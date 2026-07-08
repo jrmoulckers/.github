@@ -1,0 +1,277 @@
+#!/usr/bin/env node
+// JRM Studio sync engine — CLI entry.
+//
+// Distributes the canonical AI layer from jrmoulckers/.github to member repos described in
+// studio.config.json. See sync/README.md and docs/sync.md.
+//
+// Flags:
+//   --dry-run            Plan only. No writes, no git, no network. Prints the resolved
+//                        file set per member (and the profile mirror plan).
+//   --members <a,b>      Restrict to these member repos (full "owner/name" or bare "name").
+//   --check              CI gate. Exit non-zero if any member is out of date or has drift.
+//                        Needs member state: clones each member, or use with --work-dir.
+//   --force              Overwrite locally-modified (drift) targets instead of skipping them.
+//   --work-dir <path>    Treat <path> as a single member's checkout: apply/inspect locally,
+//                        no clone/push/PR. Requires exactly one --members. Offline testing seam.
+//   --date <YYYY-MM-DD>  Override the sync date used for branch/commit naming.
+//   --help               Show this help.
+//
+// Env: STUDIO_SYNC_TOKEN — PAT with repo scope on member repos (required for real syncs and
+// for --check without --work-dir). The default GITHUB_TOKEN cannot push to other repos.
+
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { loadManifest } from './lib/manifest.mjs';
+import { resolveAll } from './lib/resolve.mjs';
+import { enumerateTargets } from './lib/assets.mjs';
+import { readLock } from './lib/lock.mjs';
+import { apply } from './lib/copier.mjs';
+import { cloneShallow } from './lib/git.mjs';
+import { syncMemberRepo } from './lib/pr.mjs';
+import { mirrorProfile, profileTarget } from './lib/profile.mjs';
+import { log } from './lib/log.mjs';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+
+const REPO_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+const out = (s = '') => process.stdout.write(`${s}\n`);
+
+function parseArgs(argv) {
+  const opts = { dryRun: false, check: false, force: false, members: [], workDir: null, date: null, help: false };
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    const [key, inlineVal] = arg.startsWith('--') ? splitFlag(arg) : [arg, undefined];
+    const take = () => inlineVal ?? argv[++i];
+    switch (key) {
+      case '--dry-run': opts.dryRun = true; break;
+      case '--check': opts.check = true; break;
+      case '--force': opts.force = true; break;
+      case '--members': opts.members = String(take()).split(',').map((s) => s.trim()).filter(Boolean); break;
+      case '--work-dir': opts.workDir = take(); break;
+      case '--date': opts.date = take(); break;
+      case '--help': case '-h': opts.help = true; break;
+      default: throw new Error(`Unknown argument: ${arg}`);
+    }
+  }
+  return opts;
+}
+
+function splitFlag(arg) {
+  const eq = arg.indexOf('=');
+  return eq >= 0 ? [arg.slice(0, eq), arg.slice(eq + 1)] : [arg, undefined];
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function main() {
+  const opts = parseArgs(process.argv.slice(2));
+  if (opts.help) return printHelp();
+
+  const manifest = loadManifest(REPO_ROOT);
+  const date = opts.date ?? today();
+  const token = process.env.STUDIO_SYNC_TOKEN || '';
+  const resolvedList = resolveAll(manifest, opts.members);
+
+  if (!resolvedList.length) {
+    log.warn(`No members matched${opts.members.length ? ` filter: ${opts.members.join(', ')}` : ''}.`);
+    return 0;
+  }
+
+  const plans = resolvedList.map((resolved) => ({
+    resolved,
+    targets: enumerateTargets(resolved, REPO_ROOT),
+  }));
+
+  if (opts.workDir && plans.length !== 1) {
+    throw new Error('--work-dir requires exactly one member (use --members <owner/name>).');
+  }
+
+  if (opts.check) return runCheck(plans, opts, manifest, token);
+  if (opts.workDir) return runWorkDir(plans, opts, manifest, date);
+  if (opts.dryRun) return runDryRun(plans, manifest, REPO_ROOT, date);
+  return runSync(plans, opts, manifest, token, date);
+}
+
+// --- modes -----------------------------------------------------------------
+
+function runDryRun(plans, manifest, backboneRoot, date) {
+  out(`JRM Studio sync — dry run (${date}) — ${plans.length} member(s)\n`);
+  for (const { resolved, targets } of plans) printPlan(resolved, targets);
+  const profile = profileTarget(manifest.owner, backboneRoot);
+  out('▶ profile mirror');
+  out(`  ${profile.repo}:${profile.write.targetPath}  ⟵ profile/README.md`);
+  out('\nDry run complete — no files written, no git or network operations performed.');
+  return 0;
+}
+
+function runWorkDir(plans, opts, manifest, date) {
+  const { resolved, targets } = plans[0];
+  const write = !opts.dryRun;
+  const lock = readLock(opts.workDir, manifest.backbone);
+  const { report } = apply(opts.workDir, targets.writes, lock, { force: opts.force, write });
+  log.step(`${resolved.repo} → ${opts.workDir}${write ? '' : '  (dry-run: no writes)'}`);
+  printReport(report);
+  return 0;
+}
+
+function runCheck(plans, opts, manifest, token) {
+  let outOfDate = 0;
+  for (const { resolved, targets } of plans) {
+    const { root, cleanup } = memberRootForCheck(resolved.repo, opts, token, manifest.backbone);
+    try {
+      const lock = readLock(root, manifest.backbone);
+      const { report } = apply(root, targets.writes, lock, { force: false, write: false });
+      const stale = report.changed || report.hasDrift;
+      if (stale) outOfDate++;
+      const bits = [
+        report.added.length ? `${report.added.length} to add` : null,
+        report.updated.length ? `${report.updated.length} to update` : null,
+        report.adopted.length ? `${report.adopted.length} to baseline` : null,
+        report.drift.length ? `${report.drift.length} drifted` : null,
+      ].filter(Boolean);
+      log[stale ? 'warn' : 'ok'](`${resolved.repo}: ${stale ? bits.join(', ') : 'up to date'}`);
+    } finally {
+      cleanup();
+    }
+  }
+  if (outOfDate) {
+    log.error(`${outOfDate} member(s) out of date.`);
+    process.exitCode = 1;
+  } else {
+    log.ok('All members up to date.');
+  }
+  return process.exitCode ?? 0;
+}
+
+function runSync(plans, opts, manifest, token, date) {
+  if (!token) throw new Error('STUDIO_SYNC_TOKEN is required to sync (set it or use --dry-run).');
+  for (const { resolved, targets } of plans) {
+    log.step(`Syncing ${resolved.repo}`);
+    const result = syncMemberRepo({
+      repo: resolved.repo,
+      writes: targets.writes,
+      token,
+      date,
+      force: opts.force,
+      backbone: manifest.backbone,
+    });
+    if (result.status === 'pr') log.ok(`${resolved.repo}: ${result.reused ? 'updated' : 'opened'} ${result.prUrl}`);
+    else log.info(`${resolved.repo}: no changes`);
+    if (result.report?.hasDrift) {
+      log.warn(`${resolved.repo}: ${result.report.drift.length} locally-modified file(s) left untouched.`);
+    }
+  }
+  if (!opts.members.length) {
+    mirrorProfile({
+      owner: manifest.owner,
+      backbone: manifest.backbone,
+      backboneRoot: REPO_ROOT,
+      token,
+      date,
+      force: opts.force,
+    });
+  } else {
+    log.info('Profile mirror skipped (member filter active).');
+  }
+  return 0;
+}
+
+function memberRootForCheck(repo, opts, token, backbone) {
+  if (opts.workDir) return { root: opts.workDir, cleanup: () => {} };
+  if (!token) throw new Error('--check without --work-dir requires STUDIO_SYNC_TOKEN to clone members.');
+  const tmp = mkdtempSync(join(tmpdir(), 'studio-check-'));
+  try {
+    cloneShallow(repo, token, tmp);
+  } catch (err) {
+    rmSync(tmp, { recursive: true, force: true });
+    throw err;
+  }
+  return { root: tmp, cleanup: () => rmSync(tmp, { recursive: true, force: true }) };
+}
+
+// --- formatting ------------------------------------------------------------
+
+function printPlan(resolved, targets) {
+  const meta = [resolved.framework, resolved.packageManager].filter(Boolean).join(' · ');
+  out(`▶ ${resolved.repo}${meta ? `  (${meta})` : ''}`);
+
+  const byKind = groupByKind(targets.writes);
+  for (const group of resolved.groups) {
+    if (group.native) continue;
+    const items = byKind.get(group.kind) ?? [];
+    if (group.kind === 'skills') {
+      out(`  skills (${items.length} files in ${group.names.length} dirs):`);
+    } else if (group.kind === 'base') {
+      out(`  base (${items.length} files):`);
+    } else {
+      out(`  ${group.kind} (${items.length} files):`);
+    }
+    for (const item of items) {
+      const note = item.type === 'agents-md' ? '   ⟵ managed block merge' : '';
+      out(`    ${item.targetPath}${note}`);
+    }
+  }
+  for (const nat of targets.native) {
+    const how =
+      nat.kind === 'workflows'
+        ? 'called via uses:@main'
+        : 'inherited from backbone .github';
+    out(`  ${nat.kind}: native — ${how} (not written)${nat.names.length ? `: ${nat.names.join(', ')}` : ''}`);
+  }
+  out(`  Σ ${targets.writes.length} file(s) would be written\n`);
+}
+
+function printReport(report) {
+  const line = (label, arr) => arr?.length && log.info(`    ${label}: ${arr.length}`);
+  line('added', report.added);
+  line('updated', report.updated);
+  line('unchanged', report.unchanged);
+  line('force-updated', report.forced);
+  line('baselined (lock only)', report.adopted);
+  if (report.drift.length) {
+    log.warn(`    ⚠️ locally modified (skipped): ${report.drift.length}`);
+    for (const item of report.drift) log.warn(`        ${item.targetPath}`);
+  }
+  const status = report.changed
+    ? 'changes pending'
+    : report.hasDrift
+      ? 'drift only — see warnings'
+      : 'up to date';
+  log.info(`    → ${status}`);
+}
+
+function groupByKind(writes) {
+  const map = new Map();
+  for (const w of writes) {
+    if (!map.has(w.kind)) map.set(w.kind, []);
+    map.get(w.kind).push(w);
+  }
+  return map;
+}
+
+function printHelp() {
+  out(`JRM Studio sync engine
+
+Usage: node sync/index.mjs [options]
+
+  --dry-run            Plan only; no writes, git, or network. Prints the resolved file set.
+  --members <a,b>      Restrict to these member repos ("owner/name" or bare "name").
+  --check              Exit non-zero if any member is out of date or has drift (CI gate).
+  --force              Overwrite locally-modified (drift) targets instead of skipping.
+  --work-dir <path>    Apply/inspect against a local checkout (one --members); no clone/push/PR.
+  --date <YYYY-MM-DD>  Override the sync date used for branch/commit naming.
+  --help               Show this help.
+
+Env: STUDIO_SYNC_TOKEN — PAT (repo scope on members) for real syncs / remote --check.`);
+  return 0;
+}
+
+try {
+  const code = main();
+  if (typeof code === 'number' && !process.exitCode) process.exitCode = code;
+} catch (err) {
+  log.error(err.message);
+  process.exitCode = 1;
+}

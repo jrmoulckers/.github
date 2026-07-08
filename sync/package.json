@@ -1,0 +1,20 @@
+{
+  "name": "@jrm/studio-sync",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "JRM Studio sync engine — distributes the canonical AI layer from jrmoulckers/.github to member repos.",
+  "bin": {
+    "studio-sync": "index.mjs"
+  },
+  "scripts": {
+    "sync": "node index.mjs",
+    "dry-run": "node index.mjs --dry-run",
+    "check": "node index.mjs --check"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
