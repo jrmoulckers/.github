@@ -1,0 +1,132 @@
+---
+applyTo: '**'
+---
+
+# Issue-First Development Workflow
+
+Every product change must trace to a GitHub issue and land through a feature branch and PR.
+
+## Default Workflow
+
+1. Verify or create the GitHub issue.
+2. Scan for an existing worktree for the issue; resume it if found.
+3. Otherwise create a worktree from the default branch.
+4. Implement scoped changes on a feature branch.
+5. Commit as `type(scope): description (#N)`.
+6. Run the repo's documented format, lint, type-check, test, and build commands for the affected surface.
+7. Fetch and rebase onto the default branch.
+8. Push the feature branch and create a PR with `Closes #N`.
+9. Verify the PR exists with `gh pr view`.
+10. Monitor CI and mergeability until checks are green and the PR is `MERGEABLE`.
+11. Self-merge only PRs you authored when the quality gate passes and `AGENTS.md` permits it.
+12. Remove the worktree after merge.
+
+Stopping at a local commit is incomplete. A task is done only when the PR is merged, or when a green, mergeable PR clearly documents a `## Needs Human Action` blocker.
+
+## Definition of Done
+
+| Gate | Verification | Pass criteria |
+| --- | --- | --- |
+| Clean tree | `git status` | No uncommitted changes. |
+| Pushed | `git log origin/<branch>..HEAD` | Empty. |
+| PR exists | `gh pr view <branch> --json number` | Returns a PR number. |
+| CI green | `gh pr checks <number>` | No failing or pending required checks. |
+| Mergeable | `gh pr view <number> --json mergeable,mergeStateStatus` | `MERGEABLE`, not dirty/behind. |
+| Issue linked | PR body | `Closes #N` for each resolved issue. |
+| Landed | `gh pr view <number> --json state` | `MERGED`, or a documented human-gated blocker. |
+
+## Worktrees
+
+Use git worktrees rather than extra clones.
+
+```bash
+git worktree list
+git worktree add ../wt-<agent>-<type>-<issue> -b <type>/<short-description>-<issue> origin/<default-branch>
+git worktree remove ../wt-<agent>-<type>-<issue>
+```
+
+Branch types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `ci`, `perf`.
+
+## Issue Lifecycle
+
+`Created → PR opened with Closes #N → PR merged → issue auto-closed`.
+
+Rules:
+
+- Do not close issues manually; let linked PRs close them on merge.
+- Use `Closes #N` for completed work and `Refs #N` for related context.
+- Put each closing reference on its own line in the PR body.
+
+## Validation
+
+Run the product's own commands. Prefer documented scripts over ad hoc tool calls.
+
+Typical coverage:
+
+- Formatter / format check.
+- Linter.
+- Type-check or static analysis.
+- Unit/integration tests for changed behavior.
+- Build/package checks for affected apps or packages.
+
+If any check fails, fix it, rerun the relevant checks, amend or commit, and push again.
+
+## Merge Conflict Protocol
+
+Treat conflicts with the same urgency as red CI.
+
+Detect every polling cycle:
+
+```bash
+gh pr view <number> --json mergeable,mergeStateStatus,headRefName
+```
+
+| State | Action |
+| --- | --- |
+| `MERGEABLE` + `CLEAN`/`UNSTABLE` | Continue monitoring CI. |
+| `MERGEABLE` + `BEHIND` | Rebase on the default branch and re-push. |
+| `CONFLICTING` or `DIRTY` | Run the auto-resolve cycle. |
+| `UNKNOWN` | Wait briefly and re-poll. |
+
+Auto-resolve only mechanical conflicts you understand: whitespace, import order, regenerated files, changelog ordering, or lockfiles recreated by the repo's package manager. Escalate semantic conflicts such as same-function edits, schema changes, security-sensitive logic, or incompatible refactors.
+
+Use `git push --force-with-lease` only after a rebase on your own PR branch. Never use plain `git push --force`.
+
+## Fleet Coordination
+
+For parallel sprint work:
+
+1. Query issues and PRs.
+2. Assign unclaimed issues by labels and file ownership in `AGENTS.md` / `agents/`.
+3. Track assignments in SQL todos.
+4. Batch small related issues only when they touch the same files and keep the PR under reviewable size.
+5. Publish a merge order for dependent PRs.
+6. Re-dispatch failed or incomplete agents until every PR is green and mergeable.
+
+## Commit Messages
+
+```text
+type(scope): description (#N)
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+```
+
+## PR Body
+
+```markdown
+## Summary
+
+Brief description.
+
+## Changes
+
+- Bullet list.
+
+## Issues
+
+Closes #N
+
+## Testing
+
+- [ ] Repo validation command(s) run
+```
