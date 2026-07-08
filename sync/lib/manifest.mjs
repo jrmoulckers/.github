@@ -75,11 +75,60 @@ export function validateManifest(m) {
         return;
       }
       validateOptIn(member, i, m, errors);
+      validateMemberTokens(member, i, errors);
     });
   }
 
+  validateTokens(m, errors);
+
   if (errors.length) {
     throw new Error(`Invalid studio.config.json:\n  - ${errors.join('\n  - ')}`);
+  }
+}
+
+/**
+ * Validate the top-level `tokens` config (vendored @jrm/tokens from an external repo).
+ * The block is optional, but REQUIRED once any member sets `tokens.enabled: true`, since the
+ * engine needs `sourceRepo`/`sourceBase`/`targetPath` to vendor those files.
+ */
+function validateTokens(m, errors) {
+  const anyEnabled =
+    Array.isArray(m.members) && m.members.some((mem) => isObject(mem?.tokens) && mem.tokens.enabled === true);
+
+  if (m.tokens === undefined) {
+    if (anyEnabled) errors.push('`tokens` config is required when any member enables tokens');
+    return;
+  }
+  if (!isObject(m.tokens)) {
+    errors.push('`tokens` must be an object');
+    return;
+  }
+  if (typeof m.tokens.sourceRepo !== 'string' || !/^[^/]+\/[^/]+$/.test(m.tokens.sourceRepo)) {
+    errors.push('tokens.sourceRepo must be "owner/name"');
+  }
+  if (typeof m.tokens.package !== 'string' || !m.tokens.package) {
+    errors.push('tokens.package must be a non-empty string');
+  }
+  if (typeof m.tokens.sourceBase !== 'string' || !m.tokens.sourceBase) {
+    errors.push('tokens.sourceBase must be a non-empty string');
+  }
+  if (typeof m.tokens.targetPath !== 'string' || !m.tokens.targetPath) {
+    errors.push('tokens.targetPath must be a non-empty string');
+  }
+}
+
+/** Validate a member's optional `tokens` opt-in block: { enabled: boolean, targetPath?: string }. */
+function validateMemberTokens(member, i, errors) {
+  if (member.tokens === undefined) return;
+  if (!isObject(member.tokens)) {
+    errors.push(`members[${i}].tokens must be an object`);
+    return;
+  }
+  if (typeof member.tokens.enabled !== 'boolean') {
+    errors.push(`members[${i}].tokens.enabled must be a boolean`);
+  }
+  if (member.tokens.targetPath !== undefined && typeof member.tokens.targetPath !== 'string') {
+    errors.push(`members[${i}].tokens.targetPath must be a string`);
   }
 }
 

@@ -4,6 +4,12 @@
 //   - Markdown WITH YAML frontmatter -> HTML comment immediately AFTER the closing '---'
 //   - Plain Markdown                  -> HTML comment at the very top
 //   - .toml / .yml / .yaml            -> leading '#' comment line
+//   - .css / .js / .cjs / .mjs / .ts  -> leading '/* … */' block comment
+//   - uncommentable text (.json/.map) -> passthrough, no header (a comment would corrupt it)
+//
+// The default note marks backbone canon (jrmoulckers/.github). Vendored assets sourced from a
+// different repo (e.g. @jrm/tokens from jrmoulckers/studio) pass their own `note` so the header
+// points at the true origin.
 //
 // All content is normalized to LF first so the rendered output (and therefore the
 // stored hashes) are deterministic regardless of the checkout's line-endings.
@@ -11,8 +17,14 @@
 export const PROVENANCE_NOTE =
   'synced from jrmoulckers/.github — canonical source; do not edit here';
 
-const HTML_COMMENT = `<!-- ${PROVENANCE_NOTE} -->`;
-const HASH_COMMENT = `# ${PROVENANCE_NOTE}`;
+/** Extensions whose content cannot carry a leading comment without corruption. */
+const UNCOMMENTABLE = new Set(['.json', '.map']);
+
+/** Extensions that use C-style block comments. */
+const BLOCK_COMMENT_EXTS = new Set(['.css', '.js', '.cjs', '.mjs', '.ts', '.cts', '.mts']);
+
+/** Extensions that use a leading '#' comment line. */
+const HASH_COMMENT_EXTS = new Set(['.toml', '.yml', '.yaml']);
 
 /** Normalize CRLF/CR to LF. */
 export function toLF(text) {
@@ -28,20 +40,32 @@ function extname(filePath) {
 /**
  * Inject the provenance header into `rawContent` based on `filePath`'s type.
  * Input is normalized to LF; the returned string uses LF throughout.
+ * @param {string} filePath  target path (used only for its extension)
+ * @param {string} rawContent
+ * @param {{ note?: string }} [opts]  override the provenance note (e.g. for vendored tokens)
  */
-export function inject(filePath, rawContent) {
+export function inject(filePath, rawContent, opts = {}) {
   const content = toLF(rawContent);
+  const note = opts.note ?? PROVENANCE_NOTE;
   const ext = extname(filePath);
 
-  if (ext === '.toml' || ext === '.yml' || ext === '.yaml') {
-    return `${HASH_COMMENT}\n${content}`;
+  // Source maps / JSON can't hold a leading comment without breaking parsers. They are still
+  // LF-normalized (so hashing stays stable) but ship without a header.
+  if (UNCOMMENTABLE.has(ext)) return content;
+
+  if (HASH_COMMENT_EXTS.has(ext)) {
+    return `# ${note}\n${content}`;
+  }
+  if (BLOCK_COMMENT_EXTS.has(ext)) {
+    return `/* ${note} */\n${content}`;
   }
 
   // Markdown (and any other text): use HTML comments.
+  const htmlComment = `<!-- ${note} -->`;
   if (hasFrontmatter(content)) {
-    return injectAfterFrontmatter(content);
+    return injectAfterFrontmatter(content, htmlComment);
   }
-  return `${HTML_COMMENT}\n\n${content}`;
+  return `${htmlComment}\n\n${content}`;
 }
 
 /** True when the content opens with a YAML frontmatter block (`---` ... `---`). */
@@ -51,15 +75,15 @@ export function hasFrontmatter(content) {
   return /\n---[ \t]*(\n|$)/.test(lf.slice(3));
 }
 
-function injectAfterFrontmatter(content) {
+function injectAfterFrontmatter(content, htmlComment) {
   const lines = content.split('\n');
   // lines[0] === '---'. Find the next line that is exactly '---'.
   for (let i = 1; i < lines.length; i++) {
     if (lines[i].trim() === '---') {
-      lines.splice(i + 1, 0, HTML_COMMENT);
+      lines.splice(i + 1, 0, htmlComment);
       return lines.join('\n');
     }
   }
   // No closing delimiter found (shouldn't happen given hasFrontmatter); fall back.
-  return `${HTML_COMMENT}\n\n${content}`;
+  return `${htmlComment}\n\n${content}`;
 }

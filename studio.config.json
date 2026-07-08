@@ -89,6 +89,13 @@
     "$comment": "Each member.optIn.<kind> is either the string \"*\" (all canon of that kind), an array of names, or false (opt out). base/health are booleans.",
     "kinds": ["base", "agents", "skills", "prompts", "instructions", "workflows", "health"]
   },
+  "tokens": {
+    "$comment": "Vendored design tokens from the OTHER private backbone repo jrmoulckers/studio (package @jrm/tokens). Registry-free: the sync engine copies studio's committed dist/ tree verbatim into each opted-in member (Option A). The whole sourceBase tree is mirrored today; a future optional per-member `include` (array of sub-globs under sourceBase) may narrow this without a breaking schema change. Per-member opt-in lives in members[].tokens, kept separate from optIn because the source is an external repo, not the .github canon.",
+    "sourceRepo": "jrmoulckers/studio",
+    "package": "@jrm/tokens",
+    "sourceBase": "packages/tokens/dist",
+    "targetPath": "vendor/@jrm/tokens"
+  },
   "members": [
     {
       "repo": "jrmoulckers/jrm-recipes",
@@ -103,7 +110,8 @@
         "prompts": "*",
         "instructions": "*",
         "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
-      }
+      },
+      "tokens": { "enabled": false }
     },
     {
       "repo": "jrmoulckers/score-king",
@@ -138,7 +146,8 @@
         "prompts": ["review", "fix-ci", "cleanup", "backlog", "sprint"],
         "instructions": ["workflow", "agents", "skills", "docs", "tokens"],
         "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
-      }
+      },
+      "tokens": { "enabled": false }
     },
     {
       "repo": "jrmoulckers/finance",
@@ -153,7 +162,8 @@
         "prompts": false,
         "instructions": false,
         "workflows": ["reusable-ci-lint", "reusable-smoke-test"]
-      }
+      },
+      "tokens": { "enabled": true, "targetPath": "apps/web/vendor/@jrm/tokens" }
     }
   ]
 }

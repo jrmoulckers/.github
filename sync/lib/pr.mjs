@@ -95,7 +95,9 @@ export function buildPrBody(report, { date, intro } = {}) {
   lines.push(
     '<sub>Native assets are not copied: community-health files are inherited from the backbone ' +
       '`.github` repo, and reusable workflows are called via ' +
-      '`uses: jrmoulckers/.github/.github/workflows/*@main`.</sub>',
+      '`uses: jrmoulckers/.github/.github/workflows/*@main`. Vendored `@jrm/tokens` files under ' +
+      '`vendor/@jrm/tokens/` are generated in `jrmoulckers/studio` and carried here by the sync ' +
+      'engine — do not hand-edit them.</sub>',
   );
   lines.push('');
   return lines.join('\n');

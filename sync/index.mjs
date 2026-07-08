@@ -13,20 +13,26 @@
 //   --force              Overwrite locally-modified (drift) targets instead of skipping them.
 //   --work-dir <path>    Treat <path> as a single member's checkout: apply/inspect locally,
 //                        no clone/push/PR. Requires exactly one --members. Offline testing seam.
+//   --studio-dir <path>  Use <path> as a local checkout of the token source repo (jrmoulckers/
+//                        studio) instead of cloning it. Offline seam for tokens; needed to
+//                        list/apply vendored @jrm/tokens under --dry-run / --work-dir.
 //   --date <YYYY-MM-DD>  Override the sync date used for branch/commit naming.
 //   --help               Show this help.
 //
 // Env: STUDIO_SYNC_TOKEN — PAT with repo scope on member repos (required for real syncs and
-// for --check without --work-dir). The default GITHUB_TOKEN cannot push to other repos.
+// for --check without --work-dir). Also needs read access to the private token source repo
+// (jrmoulckers/studio) when a member opts into tokens. The default GITHUB_TOKEN cannot push to
+// other repos.
 
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { loadManifest } from './lib/manifest.mjs';
 import { resolveAll } from './lib/resolve.mjs';
-import { enumerateTargets } from './lib/assets.mjs';
+import { enumerateTargets, enumerateTokenTargets } from './lib/assets.mjs';
 import { readLock } from './lib/lock.mjs';
 import { apply } from './lib/copier.mjs';
 import { cloneShallow } from './lib/git.mjs';
+import { resolveStudioRoot } from './lib/studio.mjs';
 import { syncMemberRepo } from './lib/pr.mjs';
 import { mirrorProfile, profileTarget } from './lib/profile.mjs';
 import { log } from './lib/log.mjs';
@@ -37,7 +43,7 @@ const REPO_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const out = (s = '') => process.stdout.write(`${s}\n`);
 
 function parseArgs(argv) {
-  const opts = { dryRun: false, check: false, force: false, members: [], workDir: null, date: null, help: false };
+  const opts = { dryRun: false, check: false, force: false, members: [], workDir: null, studioDir: null, date: null, help: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const [key, inlineVal] = arg.startsWith('--') ? splitFlag(arg) : [arg, undefined];
@@ -48,6 +54,7 @@ function parseArgs(argv) {
       case '--force': opts.force = true; break;
       case '--members': opts.members = String(take()).split(',').map((s) => s.trim()).filter(Boolean); break;
       case '--work-dir': opts.workDir = take(); break;
+      case '--studio-dir': opts.studioDir = take(); break;
       case '--date': opts.date = take(); break;
       case '--help': case '-h': opts.help = true; break;
       default: throw new Error(`Unknown argument: ${arg}`);
@@ -88,10 +95,34 @@ function main() {
     throw new Error('--work-dir requires exactly one member (use --members <owner/name>).');
   }
 
-  if (opts.check) return runCheck(plans, opts, manifest, token);
-  if (opts.workDir) return runWorkDir(plans, opts, manifest, date);
-  if (opts.dryRun) return runDryRun(plans, manifest, REPO_ROOT, date);
-  return runSync(plans, opts, manifest, token, date);
+  // Vendored @jrm/tokens come from an external repo. Resolve a source checkout once (shared by
+  // every opted-in member) and splice the token writes into each member's plan. Runs that touch
+  // no tokens never clone anything. Dry-run / work-dir stay offline (source via --studio-dir).
+  const needTokens = plans.some((p) => p.resolved.tokens?.enabled);
+  const allowClone = !opts.dryRun && !opts.workDir;
+  const studio = needTokens ? resolveStudioRoot(opts, manifest, token, { allowClone }) : null;
+
+  try {
+    if (needTokens && studio) {
+      for (const plan of plans) {
+        if (plan.resolved.tokens?.enabled) {
+          plan.targets.writes.push(...enumerateTokenTargets(plan.resolved.tokens, studio.root));
+        }
+      }
+    } else if (needTokens) {
+      log.warn(
+        'Token source not resolved (offline): pass --studio-dir <checkout> to list/apply vendored ' +
+          `@jrm/tokens files for ${plans.filter((p) => p.resolved.tokens?.enabled).map((p) => p.resolved.repo).join(', ')}.`,
+      );
+    }
+
+    if (opts.check) return runCheck(plans, opts, manifest, token);
+    if (opts.workDir) return runWorkDir(plans, opts, manifest, date);
+    if (opts.dryRun) return runDryRun(plans, manifest, REPO_ROOT, date);
+    return runSync(plans, opts, manifest, token, date);
+  } finally {
+    studio?.cleanup();
+  }
 }
 
 // --- modes -----------------------------------------------------------------
@@ -205,6 +236,11 @@ function printPlan(resolved, targets) {
       out(`  skills (${items.length} files in ${group.names.length} dirs):`);
     } else if (group.kind === 'base') {
       out(`  base (${items.length} files):`);
+    } else if (group.kind === 'tokens') {
+      out(`  tokens (${items.length} files) ⟵ vendored from ${group.sourceRepo} ${group.package}:`);
+      if (!items.length) {
+        out('    (source not resolved — pass --studio-dir <checkout> to list files)');
+      }
     } else {
       out(`  ${group.kind} (${items.length} files):`);
     }
@@ -261,10 +297,13 @@ Usage: node sync/index.mjs [options]
   --check              Exit non-zero if any member is out of date or has drift (CI gate).
   --force              Overwrite locally-modified (drift) targets instead of skipping.
   --work-dir <path>    Apply/inspect against a local checkout (one --members); no clone/push/PR.
+  --studio-dir <path>  Local checkout of the token source repo (jrmoulckers/studio) to vendor
+                       @jrm/tokens from, instead of cloning it. Offline seam for tokens.
   --date <YYYY-MM-DD>  Override the sync date used for branch/commit naming.
   --help               Show this help.
 
-Env: STUDIO_SYNC_TOKEN — PAT (repo scope on members) for real syncs / remote --check.`);
+Env: STUDIO_SYNC_TOKEN — PAT (repo scope on members; read on jrmoulckers/studio for tokens) for
+real syncs / remote --check.`);
   return 0;
 }
 
