@@ -108,7 +108,7 @@
     {
       "repo": "jrmoulckers/score-king",
       "framework": "svelte",
-      "packageManager": "pnpm",
+      "packageManager": "npm",
       "notes": "Game-night scoring app; already carries committed design context. Adopts most of the layer; keeps its own design-engineer locally.",
       "optIn": {
         "base": true,
