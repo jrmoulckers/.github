@@ -1,0 +1,84 @@
+name: Troubleshooting
+description: Get help with build errors, environment problems, or other development blockers
+labels: ['help-wanted', 'triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Troubleshooting Request
+
+        Having trouble building, running, or developing? Describe what's going wrong and what you've already tried.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Description
+      description: What are you trying to do and what's going wrong?
+      placeholder: Describe the problem you're encountering.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Problem Category
+      description: What type of issue are you experiencing?
+      options:
+        - Build failure
+        - Install or setup issue
+        - IDE / language server issue
+        - Dependency conflict
+        - Test failure
+        - Runtime error
+        - CI/CD pipeline
+        - Documentation confusion
+        - Other development blocker
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error Output
+      description: Paste the full error message, stack trace, or build log. Redact secrets and private data.
+      render: shell
+      placeholder: |
+        Paste the error output here.
+        Include the full stack trace if available.
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-tried
+    attributes:
+      label: What I've Tried
+      description: List any troubleshooting steps you've already attempted.
+      placeholder: |
+        - Re-ran the documented setup command
+        - Cleared local build artifacts
+        - Checked runtime/tool versions
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Provide details about your development environment.
+      placeholder: |
+        - OS:
+        - Runtime/tool versions:
+        - Package manager:
+        - Editor or IDE:
+        - Relevant repository version or branch:
+    validations:
+      required: true
+
+  - type: textarea
+    id: related-context
+    attributes:
+      label: Related Context
+      description: Link related issues, PRs, files, docs, or discussions.
+      placeholder: Add links or context that might help maintainers understand the blocker.
+    validations:
+      required: false
