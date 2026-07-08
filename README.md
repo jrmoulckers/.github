@@ -33,6 +33,11 @@ here plus `@jrm` npm packages.
    └─ workflows/              # reusable-*.yml (called by product repos)
 ```
 
+> **Profile note.** `jrmoulckers` is a GitHub **User**, not an Org, so `profile/README.md` does
+> **not** render on the account page (that's an Org-only mechanism). It's authored here as the
+> canonical, self-contained studio identity; a separate `jrmoulckers/jrmoulckers` repo mirrors it
+> to `README.md` so the profile actually displays. See [`docs/sync.md`](docs/sync.md).
+
 ## Two ways product repos consume this repo
 
 ### 1. Native inheritance — nothing to install
