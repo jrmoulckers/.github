@@ -110,6 +110,28 @@ This was chosen over the alternative (the engine cloning studio and running
 The cost — studio commits generated output — is contained to a dedicated `dist/` directory
 treated as a distribution artifact. Producing/refreshing that `dist/` is studio's own concern.
 
+### The `dist/` path contract (interface between the two repos)
+
+This is the byte-for-byte interface the studio-side session must match. Under
+`sourceBase` (`packages/tokens/dist/`), `jrmoulckers/studio` commits — and the engine reads and
+mirrors — the whole tree, expected to contain at least:
+
+| Path under `packages/tokens/dist/` | What | Consumers |
+| --- | --- | --- |
+| `css/default/tokens.css` | CSS custom properties (light/base) | all (finance `@import`s these) |
+| `css/default/tokens-dark.css` | dark theme custom properties | all |
+| `css/default/tokens-dark-oled.css` | dark-OLED theme | all |
+| `css/default/tokens-high-contrast.css` | high-contrast theme | all |
+| `css/default/index.css` | barrel that `@import`s the above | all |
+| `tailwind/default.cjs` | Tailwind preset | future Tailwind consumers |
+| `js/**` | typed JS/TS (`*.js`, `*.d.ts`, source maps) | future JS consumers |
+
+The engine mirrors **whatever `dist/` actually contains** (whole-tree copy), so this table is the
+_expected minimum layout_, not a hard allowlist — if studio adds files under `dist/`, they are
+vendored too. Files that can't hold a comment (`.map`, `.json`) are copied verbatim and are still
+tracked in the lockfile by sha256 (drift-detected) even though they carry no visible header. The
+engine only reads this path; **it never runs studio's build** (Option A).
+
 ### Manifest, target path, and opt-in
 
 Because tokens come from an external repo (not `.github` canon), they get their own top-level
@@ -125,13 +147,19 @@ Because tokens come from an external repo (not `.github` canon), they get their 
 }
 
 // per member
-"tokens": { "enabled": true }              // finance opts in first
+"tokens": { "enabled": true, "targetPath": "apps/web/vendor/@jrm/tokens" }  // finance (Vite app under apps/web/)
 "tokens": { "enabled": false }             // score-king / jrm-recipes declared but off
 ```
 
-Vendored files land under a repo-root **`vendor/@jrm/tokens/…`** convention (app assets, not
-`.github` config; `vendor/` signals third-party/generated, and `@jrm/tokens` preserves the
-package identity), overridable per member. Each file carries a source-aware provenance header —
+The whole `sourceBase` tree is mirrored today. The schema leaves room for a future optional
+per-member `include` (an array of sub-globs under `sourceBase`) to narrow what a member receives,
+addable without a breaking change; it is intentionally **not** built yet.
+
+Vendored files land under a **`vendor/@jrm/tokens/…`** convention (app assets, not `.github`
+config; `vendor/` signals third-party/generated, and `@jrm/tokens` preserves the package
+identity). The default is repo-root; each member may override — e.g. `finance` is a Vite app, so
+its tokens go to `apps/web/vendor/@jrm/tokens` (co-located so Vite resolves the CSS `@import`
+cleanly). Each file carries a source-aware provenance header —
 `generated + synced from jrmoulckers/studio @jrm/tokens — do not edit here` — as a `/* … */`
 comment for CSS/JS/TS; source maps and JSON are copied verbatim (a comment would corrupt them).
 Token files reuse the same lockfile, drift detection, and PR-per-member flow as the AI layer.

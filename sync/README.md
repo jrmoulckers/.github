@@ -89,18 +89,23 @@ Opt-in is **per member** and kept separate from `optIn` (the source is an extern
 `.github` canon):
 
 ```jsonc
-"tokens": { "enabled": true }                              // finance
+"tokens": { "enabled": true, "targetPath": "apps/web/vendor/@jrm/tokens" }  // finance (Vite app under apps/web/)
 "tokens": { "enabled": false }                             // declared but off
-"tokens": { "enabled": true, "targetPath": "src/vendor/@jrm/tokens" }  // path override
+"tokens": { "enabled": true }                              // default repo-root vendor/@jrm/tokens
 ```
+
+The whole `sourceBase` tree is mirrored today; the schema leaves room for a future optional
+per-member `include` (sub-globs under `sourceBase`) without a breaking change — not built yet.
 
 Each vendored file lands under the member's `targetPath` (default repo-root `vendor/@jrm/tokens/`,
 mirroring studio's `dist/` layout: `css/default/*.css`, `tailwind/default.cjs`, `js/**`) and
 carries a source-aware provenance header
 (`generated + synced from jrmoulckers/studio @jrm/tokens — do not edit here`): a `/* … */`
 comment for `.css`/`.js`/`.cjs`/`.ts`. Source maps and JSON (`.map`/`.json`) are copied verbatim
-(no header — a comment would corrupt them). Token files flow through the same lockfile, drift
-detection, and `chore(sync)` PR machinery as the rest of the canon.
+(no header — a comment would corrupt them) but are still tracked in the lockfile by sha256.
+Token files flow through the same lockfile, drift detection, and `chore(sync)` PR machinery as
+the rest of the canon. See [`docs/sync.md`](../docs/sync.md#the-dist-path-contract-interface-between-the-two-repos)
+for the exact `dist/` path contract the studio repo must match.
 
 ### AGENTS.md base merge
 
