@@ -9,7 +9,7 @@
 // canonical source hash, so the copier can perform drift detection without re-reading
 // the backbone.
 
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { inject } from './provenance.mjs';
 import { hashText } from './lock.mjs';
@@ -30,8 +30,10 @@ export function enumerateTargets(resolved, backboneRoot) {
   const native = [];
 
   for (const group of resolved.groups) {
-    if (group.native) {
-      native.push({ kind: group.kind, names: group.names });
+    if (group.native || group.external) {
+      // Native kinds are inherited by GitHub; external kinds (tokens) are vendored from a
+      // different repo and enumerated separately via enumerateTokenTargets(studioRoot).
+      if (group.native) native.push({ kind: group.kind, names: group.names });
       continue;
     }
     if (group.kind === 'base') {
@@ -106,6 +108,42 @@ function fileSpec(kind, name, sourcePath, targetPath, raw) {
     content: inject(targetPath, raw),
     type: 'file',
   };
+}
+
+/**
+ * Enumerate the vendored @jrm/tokens targets for a member from a studio checkout.
+ * The whole `sourceBase` tree (studio's committed dist/) is mirrored under the member's
+ * `targetBase`, each file stamped with a provenance note pointing at the external source repo.
+ *
+ * @param {{ sourceRepo, package, sourceBase, targetBase }} plan  from resolveTokens
+ * @param {string} studioRoot  local checkout of the token source repo (clone or --studio-dir)
+ * @returns {TargetSpec[]}
+ */
+export function enumerateTokenTargets(plan, studioRoot) {
+  const note = `generated + synced from ${plan.sourceRepo} ${plan.package} — do not edit here`;
+  const absBase = toNative(studioRoot, plan.sourceBase);
+  if (!existsSync(absBase)) {
+    throw new Error(
+      `Token source not found: ${plan.sourceBase} is missing in ${plan.sourceRepo} checkout (${studioRoot}). ` +
+        `Ensure ${plan.sourceRepo} commits its built ${plan.package} dist tree.`,
+    );
+  }
+  const out = [];
+  for (const rel of walkFiles(absBase)) {
+    const sourcePath = posixJoin(plan.sourceBase, rel);
+    const targetPath = posixJoin(plan.targetBase, rel);
+    const raw = readSource(studioRoot, sourcePath);
+    out.push({
+      kind: 'tokens',
+      name: rel,
+      sourcePath,
+      targetPath,
+      sourceSha256: hashText(raw),
+      content: inject(targetPath, raw, { note }),
+      type: 'file',
+    });
+  }
+  return out;
 }
 
 // --- path + fs helpers -----------------------------------------------------

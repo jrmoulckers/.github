@@ -14,7 +14,8 @@ import { NATIVE_KINDS, DIR_KINDS } from './manifest.mjs';
 /**
  * @returns {{
  *   repo: string, framework?: string, packageManager?: string, notes?: string,
- *   groups: Array<{kind, mode, names, sourceBase, targetBase, native}>,
+ *   groups: Array<{kind, mode, names, sourceBase, targetBase, native, external?}>,
+ *   tokens: null | {enabled, sourceRepo, package, sourceBase, targetBase},
  * }}
  */
 export function resolveMember(manifest, member) {
@@ -45,13 +46,50 @@ export function resolveMember(manifest, member) {
     if (names !== null) groups.push(makeGroup(manifest, 'workflows', names, 'native', true));
   }
 
+  // tokens — vendored from an EXTERNAL repo (jrmoulckers/studio @jrm/tokens), not backbone canon.
+  // Opt-in and the optional target override live in member.tokens, kept apart from optIn.
+  const tokens = resolveTokens(manifest, member);
+  if (tokens) groups.push(tokens.group);
+
   return {
     repo: member.repo,
     framework: member.framework,
     packageManager: member.packageManager,
     notes: member.notes,
     groups,
+    tokens: tokens?.plan ?? null,
   };
+}
+
+/**
+ * Build a member's token plan + display group, or `null` when tokens are not enabled.
+ * The plan drives external enumeration (assets.enumerateTokenTargets); the group only exists so
+ * the dry-run plan reflects the manifest. Both carry `external: true`.
+ * @returns {null | { plan: object, group: object }}
+ */
+export function resolveTokens(manifest, member) {
+  if (member?.tokens?.enabled !== true) return null;
+  const cfg = manifest.tokens ?? {};
+  const targetBase = member.tokens.targetPath || cfg.targetPath;
+  const plan = {
+    enabled: true,
+    sourceRepo: cfg.sourceRepo,
+    package: cfg.package,
+    sourceBase: cfg.sourceBase,
+    targetBase,
+  };
+  const group = {
+    kind: 'tokens',
+    mode: 'dir',
+    names: [],
+    sourceBase: cfg.sourceBase,
+    targetBase,
+    native: false,
+    external: true,
+    sourceRepo: cfg.sourceRepo,
+    package: cfg.package,
+  };
+  return { plan, group };
 }
 
 export function resolveAll(manifest, filterRepos) {
