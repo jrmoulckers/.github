@@ -71,6 +71,9 @@ test('finance keeps its custom tokens path and AI-layer opt-outs', () => {
   }
 });
 
+// This test is also what backs a security claim: STUDIO_SYNC_TOKEN is documented as needing NO
+// `workflow` scope, because no write ever lands under `.github/workflows/` in any member. If this
+// assertion ever fails, fix the native-kind handling — do not widen the token.
 test('native kinds are reported but never produce a write', () => {
   assert.deepEqual([...NATIVE_KINDS].sort(), ['health', 'workflows']);
 
