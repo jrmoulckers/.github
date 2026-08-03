@@ -92,21 +92,40 @@ decided against these", so a considered omission looks exactly like drift and ge
 The bar for "deliberately" is the part worth stating, because we got it wrong once. `cartridge`
 carries 11 of 19 agents, 11 of 15 skills and 5 of 7 prompts, and that subset reads as a coherent
 fit decision: every business, backend, data and i18n role is absent from what looks like an offline
-game catalogue. It was registered with explicit arrays on that reading, and the reading was wrong
-twice over. The whole tree arrived in one commit copied from an unrelated session, so nobody in that
-repo chose those 11; and `cartridge` has a `bridge/` Cloudflare Worker doing an OAuth token
-exchange, a KV cache and a CORS allowlist, so "no server tier" was contradicted by the same manifest
-entry that asserted it.
+game catalogue. It was registered with explicit arrays on that reading, and the reading was wrong.
 
-Two rules come out of that:
+The author of that tree has since answered directly, and the answer is more instructive than the
+guesswork: the file list came from a **hand-typed `OPT_IN` object at the top of a one-off scaffold
+script**. So it was deliberate in *mechanism* — eleven names typed, nothing truncated or lost — and
+not a decision in *substance*. It was a first-pass guess made in the same breath as the scaffold,
+from the premise "cartridge is a client-side PWA", and by the end of that same commit the repo
+contained a Cloudflare Worker doing an OAuth client-credentials exchange, KV caching, a CORS
+allowlist and per-IP throttling.
+
+The tell is sharper still: that same commit **did** opt into the `privacy-compliance` and
+`security-review-methodology` skills. The concern was live; it simply never carried across to the
+agent list. An omission sitting next to its own counter-example is the signature of an oversight,
+not a judgement.
+
+Three rules come out of that:
 
 - **A partial canon set is not evidence of curation.** Ruling out one explanation for a subset —
   such as canon having grown after the member vendored — does not establish another. A small set is
   easy to narrate a rationale for after the fact, and that narration is not verification.
+- **Deliberate in mechanism is not deliberate in substance.** Someone typing a list by hand proves
+  only that nothing was truncated. Ask what the list was reasoned from and whether that premise held
+  by the end of the same commit.
 - **Freeze only what someone can vouch for**, and record why in `notes`.
   [`test/manifest.test.mjs`](test/manifest.test.mjs) requires a `notes` entry on any member that
   narrows `agents`/`skills`/`prompts`. That test is inert today by design; it arms itself the moment
   a member curates.
+
+One rule about tests comes out of it too, because the first attempt pinned the wrong thing. The test
+added alongside the explicit lists asserted that cartridge's three keys stay arrays and named the
+omitted files — it made a contested inference into a guarded invariant, so the next reader to doubt
+it would have had to argue with a red suite rather than with a config value. **Assert schema and
+consistency, not which names someone picked.** The `notes` requirement above is the version that
+survives: it constrains how a choice is recorded, not what the choice is.
 
 Use `"*"` when the member wants whatever canon grows into — both `libro` and `cartridge` do, and get
 new canon automatically. Use a list when the omissions are a decision someone made and can defend.

@@ -90,9 +90,10 @@ kind, re-evaluated every run", so on a member that deliberately omits canon it r
 files as an `added:` block in the next PR. A considered omission is indistinguishable from drift.
 **A curated member should use explicit arrays** — but the bar for "curated" is a decision someone
 made and can defend, not a subset that happens to read as coherent. `cartridge` briefly carried
-explicit lists on exactly that mistake: its 11-of-19 agent set was inherited wholesale from an
-unrelated session, and the "no backend roles needed" story was contradicted by its own `bridge/`
-Cloudflare Worker. `"*"` is the default because adding canon is reversible and a frozen list is not.
+explicit lists on exactly that mistake: its 11-of-19 agent set turned out to be a hand-typed
+first-pass guess in a scaffold script, reasoned from "client-side PWA" in the same commit that added
+a Cloudflare Worker handling OAuth. Deliberate in mechanism, not in substance. `"*"` is the default
+because adding canon is reversible and a frozen list is not.
 See [`sync/README.md`](../sync/README.md#-vs-an-explicit-list).
 
 ## Native kinds have no transport

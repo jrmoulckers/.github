@@ -185,7 +185,7 @@
       "repo": "jrmoulckers/cartridge",
       "framework": "svelte",
       "packageManager": "npm",
-      "notes": "Local-first game library PWA. Svelte 5 + Vite at repo root, IndexedDB via idb, vite-plugin-pwa. Separate bridge/ Cloudflare Worker (OAuth token exchange, KV cache, CORS allowlist) with its own toolchain, so this member is not backend-free. Opted in with \"*\": its partial canon set was copied wholesale from another session, not curated, so freezing it would preserve an accident.",
+      "notes": "Local-first game library PWA. Svelte 5 + Vite at repo root, IndexedDB via idb, vite-plugin-pwa. Separate bridge/ Cloudflare Worker (OAuth token exchange, KV cache, CORS allowlist) with its own toolchain, so this member is not backend-free. Opted in with \"*\": its partial canon set came from a hand-typed list in a scaffold script, not a curation decision, so freezing it would preserve a first-pass guess.",
       "optIn": {
         "base": true,
         "health": true,

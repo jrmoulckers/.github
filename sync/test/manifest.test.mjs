@@ -147,16 +147,23 @@ test('every member records its real framework and package manager', () => {
 
 // cartridge briefly carried explicit agent/skill/prompt lists, on the reasoning that its partial
 // canon set (11 of 19 agents) was a deliberate fit decision for an offline catalogue. That was
-// retracted: the whole .github/agents|skills|prompts tree arrived in cartridge in one commit copied
-// from an unrelated session, so nobody chose those 11 — and the "no server tier" rationale was
-// contradicted by cartridge's own bridge/ Cloudflare Worker (OAuth exchange, KV cache, CORS
-// allowlist), which the manifest notes had already recorded. Ruling out one cause for a subset does
-// not establish another.
+// retracted. The author of that tree confirmed the list came from a hand-typed OPT_IN object in a
+// one-off scaffold script — deliberate in mechanism, a first-pass guess in substance, reasoned from
+// "client-side PWA" in the same commit that added a Cloudflare Worker doing an OAuth exchange, KV
+// caching and a CORS allowlist. The tell: that commit did opt into the privacy-compliance and
+// security-review-methodology *skills*, so the concern was live and simply never carried to the
+// agent list. Ruling out one cause for a subset does not establish another.
 //
 // So the rule is: "*" is the default, because adding canon is cheap and reversible while a frozen
 // list is neither — nothing ever prompts a re-read of it. Narrowing is a real decision, and this
-// test requires that whoever makes it writes down why, in `notes`. It is inert today by design and
-// arms itself the moment a member curates.
+// test requires that whoever makes it writes down why, in `notes`.
+//
+// Note what this test deliberately does NOT do. Its first version asserted that cartridge's three
+// keys stay arrays and named the omitted files — pinning a contested inference as an invariant, so
+// the next reader to doubt it would have had to argue with a red suite rather than a config value.
+// Assert schema and consistency, not which names someone picked. This version constrains how a
+// choice is recorded, not what the choice is. It is inert today by design and arms itself the
+// moment a member curates.
 test('a member that narrows its AI layer records the reason in notes', () => {
   for (const member of manifest.members) {
     const narrowed = ['agents', 'skills', 'prompts'].filter((k) => Array.isArray(member.optIn[k]));
