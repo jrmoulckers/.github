@@ -23,12 +23,24 @@ function spec(content = CONTENT) {
   };
 }
 
+// Synchronous by construction: the `finally` deletes the scratch root the moment `fn` returns, so
+// an async body would have its tree removed mid-await and see an empty directory on the next call.
+// That fails as a confusing wrong-classification (`add` where `update` was expected) rather than as
+// a cleanup error, so the thenable check turns it into a loud one.
 function withTmp(fn) {
   const root = mkdtempSync(join(tmpdir(), 'copier-test-'));
   try {
-    return fn(root);
+    const result = fn(root);
+    assertSync(result);
+    return result;
   } finally {
     rmSync(root, { recursive: true, force: true });
+  }
+}
+
+function assertSync(result) {
+  if (result && typeof result.then === 'function') {
+    throw new Error('withTmp bodies must be synchronous — give an async test its own scratch root');
   }
 }
 
