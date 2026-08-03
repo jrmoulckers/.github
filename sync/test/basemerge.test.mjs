@@ -35,10 +35,16 @@ function agentsSpec(content = CANON) {
   };
 }
 
+// Synchronous by construction — see the note on copier.test.mjs's withTmp. An async body would be
+// cleaned up mid-await and misclassify on the next call rather than failing outright.
 function withTmp(fn) {
   const root = mkdtempSync(join(tmpdir(), 'basemerge-test-'));
   try {
-    return fn(root);
+    const result = fn(root);
+    if (result && typeof result.then === 'function') {
+      throw new Error('withTmp bodies must be synchronous — give an async test its own scratch root');
+    }
+    return result;
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
