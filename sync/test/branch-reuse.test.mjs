@@ -1,9 +1,15 @@
-// Regression test for the sync-branch data-loss bug.
+// Regression test for the sync-branch reuse fix.
 //
 // Before the fix, a same-day re-run recreated `studio-sync/<date>` from the member's default
-// branch and force-pushed it, silently discarding any commit a reviewer had pushed to the sync
-// branch. `prepareSyncBranch` now reuses the existing remote branch as the base, so the run is
-// stacked on top and pushed as a fast-forward.
+// branch and pushed with `--force-with-lease`. That never destroyed anything: without an explicit
+// `=<ref>:<expect>` the lease needs a reflog entry proving the local side observed the remote
+// value, and a fresh shallow clone that materializes the remote-tracking ref via a refspec fetch
+// has none — so Git refused with `stale info`, with or without reviewer commits present. It failed
+// safe, but it failed: the "update the open PR branch in place" path could never succeed, and the
+// throw was fatal to the whole run.
+//
+// `prepareSyncBranch` now reuses the existing remote branch as the base, so the run is stacked on
+// top and pushed as a plain fast-forward — it both succeeds and cannot clobber.
 //
 // Uses local file-path remotes only — no network, no gh, no token.
 

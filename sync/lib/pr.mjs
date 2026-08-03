@@ -29,9 +29,9 @@ export function commitMessage(date) {
  *
  * If the dated sync branch already exists on the remote (e.g. a same-day re-run), it is
  * **reused as the base**: this run is stacked on top of whatever is already there and pushed as a
- * fast-forward. Nothing is ever force-pushed, so commits a reviewer pushed to the sync branch are
- * preserved, and their edits to synced files are evaluated as ordinary drift (skipped and flagged)
- * instead of being silently overwritten.
+ * fast-forward. Commits a reviewer pushed to the sync branch are preserved, and their edits to
+ * synced files are evaluated as ordinary drift (skipped and flagged) rather than overwritten.
+ * The engine never force-pushes, so the reuse path both succeeds and cannot clobber.
  *
  * @returns {{ status: 'unchanged'|'pr', prUrl?: string, branch?: string, reused?: boolean, report }}
  */
