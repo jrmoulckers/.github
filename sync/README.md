@@ -83,8 +83,16 @@ Resolution follows each member's `optIn` in the manifest:
 | `prompts` | `*.prompt.md` files | `.github/prompts/` | |
 | `instructions` | `*.instructions.md` files | `.github/instructions/` | |
 | `skills` | `<name>/` directories | `.github/skills/` | Whole folder: `SKILL.md` + any checklists. |
-| `health` | community-health files | — | **Native** — GitHub inherits these from the backbone `.github` repo. Not written. |
-| `workflows` | reusable workflows | — | **Native** — called via `uses: jrmoulckers/.github/.github/workflows/*@main`. Not written. |
+| `health` | community-health files | — | **Native** — GitHub inherits these from the backbone `.github` repo. Never written; the member must **not** keep its own copy. |
+| `workflows` | reusable workflows | — | **Native** — called via `uses: jrmoulckers/.github/.github/workflows/*@main`. Never written; the member must **not** vendor a copy. |
+
+> **Opting in to a native kind installs nothing.** `health` and `workflows` (`NATIVE_KINDS` in
+> [`lib/manifest.mjs`](lib/manifest.mjs)) are resolved and reported so the plan is complete, then
+> dropped before the write list. Opting in means *"this member relies on the backbone's"*. A local
+> copy of either is **worse than having none**: a member's own health file overrides the one
+> inherited from `jrmoulckers/.github` and freezes it, and a vendored `reusable-*.yml` is a silent
+> fork with no update path. The engine cannot detect or fix either, because it never writes them.
+> See [Native kinds have no transport](../docs/sync.md#native-kinds-have-no-transport).
 
 Two more asset classes are synced but are **not** `optIn` kinds:
 

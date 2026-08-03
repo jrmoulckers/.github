@@ -139,6 +139,29 @@ Passing an empty string is the supported opt-out. Leaving a command at its defau
 has no such script fails the job; duplicating backbone logic locally makes the product repo drift
 from canon.
 
+### Never vendor a backbone workflow or health file
+
+`workflows` and `health` are **native** kinds: they reach product repos through GitHub itself, not
+through the sync engine, which resolves and reports them but never writes a file for them. So a
+product repo must contain **no copy of its own**:
+
+- **No `.github/workflows/reusable-*.yml`.** Call the backbone's with
+  `uses: jrmoulckers/.github/.github/workflows/reusable-*.yml@main`, never
+  `uses: ./.github/workflows/reusable-*.yml`. A vendored copy is a silent fork: upstream fixes never
+  reach it and nothing flags the divergence.
+- **No `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `PULL_REQUEST_TEMPLATE.md`,
+  `ISSUE_TEMPLATE/` or `DISCUSSION_TEMPLATE/`** unless you are deliberately overriding the studio
+  version for that repo. GitHub prefers a repo's own health file over the one inherited from
+  `jrmoulckers/.github`, so a verbatim copy overrides the inherited file and freezes it at the day
+  it was copied.
+
+In both cases a local copy is **worse than having nothing**, and the sync engine cannot rescue you
+— it never writes native kinds, so it can neither update the copy nor report it as drift. If you
+find one in a member repo, delete it; that is the whole fix.
+
+Opting in to `health` or `workflows` in `studio.config.json` means *"this member relies on the
+backbone's"* — it is a declaration, not an install.
+
 ## Merge Conflict Protocol
 
 Treat conflicts with the same urgency as red CI.
