@@ -37,6 +37,34 @@ STUDIO_SYNC_TOKEN=ghp_… node sync/index.mjs --members jrmoulckers/jrm-recipes
 STUDIO_SYNC_TOKEN=ghp_… node sync/index.mjs --check
 ```
 
+## Member entries
+
+Each entry in `studio.config.json`'s `members[]` array describes one product repo:
+
+| Field | Validated? | Used for |
+| --- | --- | --- |
+| `repo` | ✅ must match `owner/name` | Clone target, `--members` filter, PR destination. |
+| `optIn` | ✅ keys against `KINDS`, names against `canon.<kind>` | What canon the member receives. |
+| `tokens` | ✅ shape (`enabled` boolean, optional string `targetPath`) | Vendored `@jrm/tokens` opt-in + destination. |
+| `framework` | ❌ **free-form** | Display only. |
+| `packageManager` | ❌ **free-form** | Display only. |
+| `notes` | ❌ free-form | Human/agent context. |
+
+`framework` and `packageManager` are **not** enums and are never checked: `validateManifest` does
+not mention them, `resolve.mjs` passes them straight through, and their only consumer is the
+dry-run label in `index.mjs` (`▶ jrmoulckers/libro  (svelte · pnpm)`). Any string is accepted —
+`npm`, `pnpm`, `svelte`, `nextjs`, `kmp-web` all appear today.
+
+**That makes accuracy a discipline problem, not a validation problem.** A wrong value never breaks
+a sync; it silently misleads every human and agent that reads the registry to decide how to treat a
+repo. Two rules follow:
+
+- **Verify against the member's default branch**, not an onboarding PR — an unmerged PR is not the
+  repo. `cartridge` was registered as a pnpm Next.js app from its onboarding PR #1, which was
+  closed without merging; `main` is an npm Svelte PWA.
+- **Pin any fact worth defending in [`test/manifest.test.mjs`](test/manifest.test.mjs).** Validation
+  will not catch a descriptive error, but an assertion will.
+
 ## What gets synced
 
 Resolution follows each member's `optIn` in the manifest:

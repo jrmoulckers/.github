@@ -30,7 +30,10 @@ flowchart LR
 
 1. **Trigger** — a scheduled workflow in this repo (e.g. weekly) plus manual `workflow_dispatch`.
 2. **Read the manifest** — parse `studio.config.json`: the `canon` catalog, `sourcePaths`,
-   `targetPaths`, and each `members[].optIn` selection.
+   `targetPaths`, and each `members[].optIn` selection. Validation covers `repo`, `optIn` and
+   `tokens` only — a member's `framework`, `packageManager` and `notes` are free-form, unvalidated
+   labels, so their accuracy is a discipline matter (see
+   [Member entries](../sync/README.md#member-entries)).
 3. **Resolve opt-ins** — for every member, expand `"*"` to the full canon list, honor explicit
    arrays, and skip anything set to `false`.
 4. **Copy** — map each opted-in asset from its `sourcePaths` here to the member's `targetPaths`
