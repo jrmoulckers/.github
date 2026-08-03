@@ -1,5 +1,5 @@
 {
-  "$comment": "JRM Studio manifest. Source of truth for the cross-repo sync engine in sync/ (see docs/sync.md and sync/README.md), which reads this file on every run.",
+  "$comment": "JRM Studio manifest. Source of truth for the cross-repo sync engine in sync/ (see docs/sync.md and sync/README.md), which reads this file on every run. Only repo, optIn and tokens are validated; a member's framework, packageManager and notes are descriptive and appear only in --dry-run output, so nothing here will fail if they are wrong. Verify them against the member's default branch and keep them accurate — agents read this file to decide how to treat a repo. See sync/README.md#member-entries.",
   "studio": "JRM Studio",
   "owner": "jrmoulckers",
   "ownerType": "user",

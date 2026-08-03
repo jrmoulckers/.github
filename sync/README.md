@@ -46,8 +46,8 @@ Each entry in `studio.config.json`'s `members[]` array describes one product rep
 | `repo` | ✅ must match `owner/name` | Clone target, `--members` filter, PR destination. |
 | `optIn` | ✅ keys against `KINDS`, names against `canon.<kind>` | What canon the member receives. |
 | `tokens` | ✅ shape (`enabled` boolean, optional string `targetPath`) | Vendored `@jrm/tokens` opt-in + destination. |
-| `framework` | ❌ **free-form** | Display only. |
-| `packageManager` | ❌ **free-form** | Display only. |
+| `framework` | ❌ **free-form** | Display only — `--dry-run` plan label. |
+| `packageManager` | ❌ **free-form** | Display only — `--dry-run` plan label. |
 | `notes` | ❌ free-form | Human/agent context. |
 
 `framework` and `packageManager` are **not** enums and are never checked: `validateManifest` does
@@ -55,9 +55,17 @@ not mention them, `resolve.mjs` passes them straight through, and their only con
 dry-run label in `index.mjs` (`▶ jrmoulckers/libro  (svelte · pnpm)`). Any string is accepted —
 `npm`, `pnpm`, `svelte`, `nextjs`, `kmp-web` all appear today.
 
+Narrower still: that label is built in `printPlan`, which has exactly **one** call site — inside
+`runDryRun`. `pr.mjs` never references either field, so they never reach a PR body, and a real sync
+run never prints them at all. **These two fields are visible only in `--dry-run` output.**
+
 **That makes accuracy a discipline problem, not a validation problem.** A wrong value never breaks
 a sync; it silently misleads every human and agent that reads the registry to decide how to treat a
-repo. Two rules follow:
+repo. Note the perverse incentive: if a wrong `framework` broke a run, the error would be
+self-correcting — CI goes red, someone fixes it, the registry converges on truth. Because it only
+labels a mode most runs never use, `studio.config.json` can be **quietly wrong forever**, and its
+only consumers are agents with no independent source to check it against. An unvalidated field with
+no failure mode needs *more* care than a load-bearing one, not less. Two rules follow:
 
 - **Verify against the member's default branch**, not an onboarding PR — an unmerged PR is not the
   repo. `cartridge` was registered as a pnpm Next.js app from its onboarding PR #1, which was
