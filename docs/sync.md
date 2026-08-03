@@ -39,7 +39,10 @@ flowchart LR
 4. **Copy** — map each opted-in asset from its `sourcePaths` here to the member's `targetPaths`
    (agents → `.github/agents/`, skills → `.github/skills/`, etc.). `base` files (`AGENTS.md`,
    `agency.toml`) land at the member root; product repos keep their own extending `AGENTS.md`
-   and the tool merges/append-marks rather than clobbering (see Drift below). `health` and
+   and the tool merges/append-marks rather than clobbering (see Drift below). The
+   `studio:base` markers only count when alone on a line outside a fenced code block, so a
+   member `AGENTS.md` may safely *document* the convention (see
+   [AGENTS.md base merge](../sync/README.md#agentsmd-base-merge)). `health` and
    `workflows` are **native** (see the table above): they are resolved and reported but never
    written — health files are inherited from this `.github` repo and reusable workflows are
    called via `uses: …@main`. A member repo must therefore **not** contain its own copy of
@@ -239,7 +242,8 @@ therefore also **mirrors `profile/README.md` → `jrmoulckers/jrmoulckers/README
 canonical copy stays here while the profile actually displays.
 
 **Only on unfiltered runs.** The mirror is skipped whenever `--members` is passed (the run logs
-`Profile mirror skipped (member filter active).`). This matters for the first real syncs, which are
+`Profile mirror skipped (member filter active).`), and `--dry-run` reports it as skipped under the
+same filter so the preview matches the run it predicts. This matters for the first real syncs, which are
 member-filtered: a run like `--members jrmoulckers/libro,jrmoulckers/cartridge` will not touch
 `jrmoulckers/jrmoulckers`. To mirror the profile, run the engine with no `--members` filter (the
 scheduled weekly run, or a `workflow_dispatch` with a blank `members` input).
