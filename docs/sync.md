@@ -116,6 +116,30 @@ Three flag behaviors that are easy to trip over:
   date is also safe — the existing branch is reused and the push is a fast-forward — but a new date
   is the cleaner reset.
 
+### The first run
+
+The engine has never been run against a member. When it is, the sequence is:
+
+```bash
+# 1. Plan both new members, with tokens listed. --studio-dir is what makes tokens visible.
+node sync/index.mjs --dry-run \
+  --members jrmoulckers/libro,jrmoulckers/cartridge \
+  --studio-dir ../studio
+
+# 2. Same command without --dry-run, once STUDIO_SYNC_TOKEN exists.
+node sync/index.mjs --members jrmoulckers/libro,jrmoulckers/cartridge
+```
+
+**`tokens (0 files)` in a dry run is not a bug.** Vendored `@jrm/tokens` come from the *other*
+backbone repo, `jrmoulckers/studio`, and `--dry-run` deliberately performs no network I/O — so with
+no `--studio-dir` the source is unresolved and the plan prints
+`(source not resolved — pass --studio-dir <checkout> to list files)` above a `0`. Pass a local
+`jrmoulckers/studio` checkout to see the real file list. A **real** run clones the studio repo
+itself, so `--studio-dir` is only an offline convenience.
+
+Note that a member-filtered run — which the first one is — skips the profile mirror. The dry run
+says so explicitly rather than printing a mirror line it would not perform.
+
 Every synced file gets a provenance header
 (`synced from jrmoulckers/.github — canonical source; do not edit here`) — an HTML comment
 after any YAML frontmatter (or atop plain Markdown), or a leading `#` line for `.toml`/`.yml`.
