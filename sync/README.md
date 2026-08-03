@@ -31,10 +31,10 @@ Examples:
 node sync/index.mjs --dry-run
 
 # Real sync of a single member (opens a PR).
-STUDIO_SYNC_TOKEN=ghp_… node sync/index.mjs --members jrmoulckers/jrm-recipes
+STUDIO_SYNC_TOKEN=github_pat_… node sync/index.mjs --members jrmoulckers/jrm-recipes
 
 # CI freshness gate across all members.
-STUDIO_SYNC_TOKEN=ghp_… node sync/index.mjs --check
+STUDIO_SYNC_TOKEN=github_pat_… node sync/index.mjs --check
 ```
 
 ## Member entries
