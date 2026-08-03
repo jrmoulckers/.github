@@ -85,6 +85,12 @@ Two practices follow, both of which have already caught a real error:
   and `packageManager` is asserted there today, so changing one without updating the test fails CI —
   which is the closest the repo can get to enforcing a field the engine deliberately ignores.
 
+`optIn` **is** validated, but only for names — not for intent. `"*"` means "take all canon of this
+kind, re-evaluated every run", so on a member that deliberately omits canon it re-adds the omitted
+files as an `added:` block in the next PR. A considered omission is indistinguishable from drift.
+**Curated members must use explicit arrays**; `cartridge` does, for its 11-of-19 agents. See
+[`sync/README.md`](../sync/README.md#-vs-an-explicit-list).
+
 ## Native kinds have no transport
 
 `health` and `workflows` are the two `NATIVE_KINDS` (`sync/lib/manifest.mjs`). The engine resolves
