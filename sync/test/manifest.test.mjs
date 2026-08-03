@@ -37,29 +37,53 @@ test('libro and cartridge use the root-default vendored tokens path', () => {
 
 // The onboarding PR these facts originally came from (jrmoulckers/cartridge#1) was closed
 // without merging; the values below were re-verified against jrmoulckers/cartridge@main.
-test('cartridge is a Svelte/npm repo that does not call reusable-ci-lint', () => {
+test('cartridge is a Svelte/npm repo', () => {
   const [cartridge] = resolveAll(manifest, ['jrmoulckers/cartridge']);
   assert.equal(cartridge.framework, 'svelte');
   assert.equal(cartridge.packageManager, 'npm');
+});
 
-  const workflows = cartridge.groups.find((g) => g.kind === 'workflows');
-  assert.ok(
-    !workflows.names.includes('reusable-ci-lint'),
-    'cartridge has no ESLint/Prettier and deliberately skips reusable-ci-lint',
-  );
-  assert.deepEqual(workflows.names, [
+// Verified by reading each member's .github/workflows/ on its default branch and extracting every
+// `uses: jrmoulckers/.github/.github/workflows/<name>.yml` reference (2026-08-03). The suite is
+// offline, so the sweep is pinned here rather than re-fetched; re-run it when a member changes CI.
+const CALLED_WORKFLOWS = {
+  'jrmoulckers/jrm-recipes': [],
+  'jrmoulckers/score-king': [],
+  'jrmoulckers/finance': [],
+  'jrmoulckers/libro': [
+    'reusable-ci-lint',
     'reusable-ci-web',
     'reusable-deploy-preview',
     'reusable-perf-budget',
-  ]);
-});
+  ],
+  // cartridge adopted reusable-ci-lint in its PR #9 once the empty-command guard existed; before
+  // that it inlined its own semantic-PR-title job, and optIn.workflows omitted the entry.
+  'jrmoulckers/cartridge': [
+    'reusable-ci-lint',
+    'reusable-ci-web',
+    'reusable-deploy-preview',
+    'reusable-perf-budget',
+  ],
+};
 
-test('libro is a Svelte/pnpm repo that does call reusable-ci-lint', () => {
-  const [libro] = resolveAll(manifest, ['jrmoulckers/libro']);
-  assert.equal(libro.framework, 'svelte');
-  assert.equal(libro.packageManager, 'pnpm');
-  const workflows = libro.groups.find((g) => g.kind === 'workflows');
-  assert.ok(workflows.names.includes('reusable-ci-lint'), 'libro has eslint + prettier');
+// One-directional on purpose. Listing a workflow a member does not call yet is legitimate — the
+// kind is native, nothing is written, and the opt-in records intent. Calling one that is NOT
+// listed is the error: the registry then misdescribes the member, and nothing else can catch it.
+test('every reusable workflow a member calls is listed in its optIn.workflows', () => {
+  for (const [repo, called] of Object.entries(CALLED_WORKFLOWS)) {
+    const [resolved] = resolveAll(manifest, [repo]);
+    const listed = resolved.groups.find((g) => g.kind === 'workflows')?.names ?? [];
+    for (const name of called) {
+      assert.ok(
+        listed.includes(name),
+        `${repo} calls ${name} but optIn.workflows does not list it`,
+      );
+      assert.ok(
+        manifest.canon.workflows.includes(name),
+        `${repo} calls ${name}, which is not in canon.workflows`,
+      );
+    }
+  }
 });
 
 test('finance keeps its custom tokens path and AI-layer opt-outs', () => {

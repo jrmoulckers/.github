@@ -97,6 +97,26 @@ Typos in a list are caught: `validateOptIn` rejects any name absent from `canon.
 run starts. `resolveSelection`'s own `filter` would drop an unknown name silently, so validation is
 the guardrail that makes explicit lists safe — pinned by a test.
 
+### `optIn.workflows` vs. what the member actually calls
+
+`workflows` is a native kind: nothing is written, so the list is a *record of intent* that nothing
+in the engine can check against the member's real `ci.yml`. Same failure shape as `framework` —
+silently wrong forever.
+
+The invariant worth holding is one-directional: **every reusable workflow a member calls must appear
+in its `optIn.workflows`.** Listing one it does not call yet is fine and common — `jrm-recipes`,
+`score-king` and `finance` all list workflows they have not adopted, which records the intended
+direction. Calling one that is *not* listed is the error, because the registry then misdescribes
+the member and no other signal exists.
+
+`test/manifest.test.mjs` pins a sweep of each member's `.github/workflows/` — every
+`uses: jrmoulckers/.github/.github/workflows/<name>.yml` reference, read from its default branch —
+and asserts the invariant. The suite is offline, so the sweep is pinned data, not a live fetch:
+**re-run it by hand when a member changes CI.** cartridge is the worked example in both directions.
+It inlined its own semantic-PR-title job while `reusable-ci-lint` could not be called without lint
+commands, so the entry was correctly absent; once the empty-command guard shipped it adopted the
+workflow, and the manifest had to follow.
+
 ## What gets synced
 
 Resolution follows each member's `optIn` in the manifest:
@@ -318,7 +338,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/basemerge.test.mjs` | Managed-block detection: markers quoted in prose, shown in a fenced example, or indented as a code block do not form a block; real blocks are still replaced; genuine edits are still drift. |
 | `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown. |
 | `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule. |
-| `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; every member's `framework`/`packageManager` matches its default branch; cartridge's curated `optIn` stays explicit; an unknown name in an explicit list fails validation; `canon` matches the files on disk both ways; `tokens`/`profile` are not `optIn` kinds; native kinds are never written. |
+| `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; every member's `framework`/`packageManager` matches its default branch; every reusable workflow a member calls is listed in its `optIn.workflows`; cartridge's curated `optIn` stays explicit; an unknown name in an explicit list fails validation; `canon` matches the files on disk both ways; `tokens`/`profile` are not `optIn` kinds; native kinds are never written. |
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs the suite plus an offline
 `--dry-run` on every PR.
