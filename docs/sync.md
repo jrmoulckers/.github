@@ -121,6 +121,31 @@ table and reasonably concluding that a "synced kind" belongs in the member.
 **Checklist when onboarding a member:** it should have *no* `.github/workflows/reusable-*.yml`, and
 of the health files only ones it genuinely wants to override deliberately. Prefer none.
 
+### Hand-seeded canon must match, byte for byte, before the first sync
+
+The mirror-image trap applies to the **managed** kinds. A member seeded by hand before onboarding
+carries copies of `agents/`, `skills/`, `prompts/` and `instructions/` files that the engine *does*
+write — and on the first run each one takes one of two paths:
+
+| The member's copy | First run |
+| --- | --- |
+| byte-identical to canon | **adopted** — baselined in the lockfile, no diff, silent thereafter |
+| differs in any byte | **drift** — flagged, left untouched, and it stays that way |
+
+The second row does not self-heal. With no lock entry and content that differs, the engine cannot
+tell a stale hand-copy from a deliberate local edit, so it refuses to clobber — correctly, but
+permanently. The member then keeps an outdated file forever while every run reports success.
+
+The dangerous case is a copy of *older* canon that still carries its provenance stamp: it looks
+synced, and only a byte comparison reveals it isn't. `jrmoulckers/cartridge` has exactly this — a
+`workflow.instructions.md` at 4376 bytes against canon's 8372, with no product-specific content.
+
+**Reconcile before the first sync, in the member repo:** for each pre-seeded file, either make it
+byte-identical to canon or delete it (the engine will add it). **Do not reach for `--force`** —
+`--force` overwrites every drifted file in the run, so using it to fix a stale copy would also
+silently discard genuine member-authored edits elsewhere. It is a deliberate reviewer action for a
+known-good state, not a first-run tool.
+
 ## CLI usage
 
 The engine is a zero-dependency Node ESM CLI (Node ≥ 24). Full reference:
