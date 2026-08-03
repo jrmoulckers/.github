@@ -112,6 +112,33 @@ Rules:
   (e.g. `semantic-pr-title: false` for `reusable-ci-lint`).
 - Debug a `startup_failure` with no log by checking caller permissions first.
 
+### Taking only part of `reusable-ci-lint`
+
+`reusable-ci-lint` carries three independent checks — lint, format-check, and Conventional-Commits
+PR title — and each is opt-out, so never inline a local copy of one of them:
+
+- No ESLint/Prettier in the repo? Pass `lint-command: ''` and `format-check-command: ''`. The lint
+  job then skips entirely (no checkout, no install) and only the PR-title check runs.
+- Have a linter but no formatter (or vice versa)? Empty just the one you lack.
+- Can't grant `pull-requests: read`? Pass `semantic-pr-title: false`.
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  pr-title:
+    uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@main
+    with:
+      lint-command: ''
+      format-check-command: ''
+```
+
+Passing an empty string is the supported opt-out. Leaving a command at its default in a repo that
+has no such script fails the job; duplicating backbone logic locally makes the product repo drift
+from canon.
+
 ## Merge Conflict Protocol
 
 Treat conflicts with the same urgency as red CI.

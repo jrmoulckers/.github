@@ -5,6 +5,13 @@
 # Framework-agnostic lint/format workflow for product repositories. Callers choose
 # Node.js, npm or pnpm, working directory, and exact lint/format commands.
 #
+# The three checks are independently opt-out, so a repo can take only what it has:
+#   * `lint-command: ''` / `format-check-command: ''` — skip that step. With BOTH empty the
+#     whole lint job is skipped (no checkout, no install) and only the PR-title check runs.
+#     Use this in a repo with no ESLint/Prettier instead of inlining your own title job.
+#   * `semantic-pr-title: false` — skip the PR-title job (e.g. when `pull-requests: read`
+#     cannot be granted).
+#
 # ⚠️ Caller permissions — this workflow needs `pull-requests: read` for its Semantic PR Title
 # job. A `permissions:` block in the CALLER (workflow- or job-level) REPLACES the defaults and
 # zeroes every scope it does not list, and a called workflow can never be granted more than the
@@ -25,7 +32,13 @@
 #         lint-command: pnpm lint
 #         format-check-command: pnpm format:check
 #
-#   (Set `semantic-pr-title: false` if you genuinely cannot grant `pull-requests: read`.)
+# Semantic PR title only (repo has no linter/formatter):
+#   jobs:
+#     pr-title:
+#       uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@main
+#       with:
+#         lint-command: ''
+#         format-check-command: ''
 # =============================================================================
 name: Reusable — Lint
 
@@ -48,12 +61,12 @@ on:
         type: string
         default: .
       lint-command:
-        description: Command that runs lint checks.
+        description: Command that runs lint checks. Pass an empty string to skip the lint step.
         required: false
         type: string
         default: npm run lint
       format-check-command:
-        description: Command that checks formatting.
+        description: Command that checks formatting. Pass an empty string to skip the format step.
         required: false
         type: string
         default: npm run format:check
@@ -70,6 +83,9 @@ permissions:
 jobs:
   lint:
     name: Lint and format
+    # A repo with no linter/formatter opts out by passing empty commands; the job then skips
+    # entirely (no checkout, no install) and only the Semantic PR Title job runs.
+    if: inputs.lint-command != '' || inputs.format-check-command != ''
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -112,10 +128,12 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run lint
+        if: inputs.lint-command != ''
         working-directory: ${{ inputs.working-directory }}
         run: ${{ inputs.lint-command }}
 
       - name: Check formatting
+        if: inputs.format-check-command != ''
         working-directory: ${{ inputs.working-directory }}
         run: ${{ inputs.format-check-command }}
 
