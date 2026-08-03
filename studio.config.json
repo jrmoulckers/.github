@@ -217,7 +217,7 @@
         ],
         "prompts": ["backlog", "cleanup", "fix-ci", "review", "sprint"],
         "instructions": "*",
-        "workflows": ["reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
+        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
       },
       "tokens": { "enabled": true }
     }
