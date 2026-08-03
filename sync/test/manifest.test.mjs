@@ -3,7 +3,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
+import { readdirSync, existsSync } from 'node:fs';
 import { loadManifest, KINDS, NATIVE_KINDS, validateManifest } from '../lib/manifest.mjs';
 import { resolveAll } from '../lib/resolve.mjs';
 import { enumerateTargets } from '../lib/assets.mjs';
@@ -115,6 +116,79 @@ test('every member records its real framework and package manager', () => {
     // onboarding PR #1 was closed without merging — that is where the wrong values came from.
     'jrmoulckers/cartridge': ['svelte', 'npm'],
   });
+});
+
+// A curated member must list its AI layer explicitly. `resolveSelection` expands "*" to the whole
+// canon list, so "*" on a member that deliberately omits files would re-add them on every run and
+// silently overwrite the curation — with no diff to review beyond an `added:` block.
+test('cartridge curates its AI layer explicitly rather than with "*"', () => {
+  const cartridge = manifest.members.find((m) => m.repo === 'jrmoulckers/cartridge');
+  for (const kind of ['agents', 'skills', 'prompts']) {
+    assert.ok(
+      Array.isArray(cartridge.optIn[kind]),
+      `cartridge.optIn.${kind} must stay an explicit list — "*" would undo the curation`,
+    );
+  }
+
+  // Verified against jrmoulckers/cartridge@main: 11 agents, 11 skill dirs, 5 prompts. The omitted
+  // roles are every business/backend/data/i18n one, which do not fit an offline game catalogue
+  // with no server tier and no revenue model.
+  const [resolved] = resolveAll(manifest, ['jrmoulckers/cartridge']);
+  const names = (kind) => resolved.groups.find((g) => g.kind === kind).names;
+  assert.equal(names('agents').length, 11);
+  assert.equal(names('skills').length, 11);
+  assert.equal(names('prompts').length, 5);
+  assert.deepEqual(
+    manifest.canon.agents.filter((n) => !names('agents').includes(n)),
+    [
+      'ai-ops-engineer',
+      'backend-engineer',
+      'business-analyst',
+      'compliance-specialist',
+      'data-engineer',
+      'experimentation-engineer',
+      'localization-engineer',
+      'marketing-strategist',
+    ],
+  );
+  assert.deepEqual(
+    manifest.canon.skills.filter((n) => !names('skills').includes(n)),
+    ['go-to-market', 'i18n-localization', 'mcp-agent-tooling', 'monetization'],
+  );
+  assert.deepEqual(
+    manifest.canon.prompts.filter((n) => !names('prompts').includes(n)),
+    ['rebase-all', 'team'],
+  );
+});
+
+// `resolveSelection` filters unknown names out silently, so a typo in an explicit list would mean
+// the member just never receives that file. That is safe only because validation rejects the name
+// first — this pins the guardrail the filter relies on.
+test('an unknown name in an explicit optIn list fails validation', () => {
+  const bad = structuredClone(manifest);
+  bad.members.find((m) => m.repo === 'jrmoulckers/cartridge').optIn.agents = ['backend-enginer'];
+  assert.throws(() => validateManifest(bad), /unknown agents "backend-enginer"/);
+});
+
+// canon is hand-maintained. A name with no file resolves to a missing source; a file with no name
+// is never synced to anyone. Neither fails a run, so assert both directions here.
+test('every canon name has a file on disk, and every file is declared', () => {
+  const declared = {
+    agents: manifest.canon.agents.map((n) => `${n}.agent.md`),
+    prompts: manifest.canon.prompts.map((n) => `${n}.prompt.md`),
+    instructions: manifest.canon.instructions.map((n) => `${n}.instructions.md`),
+    skills: manifest.canon.skills,
+  };
+  for (const [kind, expected] of Object.entries(declared)) {
+    const dir = join(REPO_ROOT, manifest.sourcePaths[kind]);
+    const onDisk = readdirSync(dir).filter((n) => !n.startsWith('.'));
+    assert.deepEqual([...onDisk].sort(), [...expected].sort(), `canon.${kind} must match ${dir}`);
+  }
+
+  for (const name of manifest.canon.workflows) {
+    const p = join(REPO_ROOT, manifest.sourcePaths.workflows, `${name}.yml`);
+    assert.ok(existsSync(p), `canon.workflows declares ${name} but ${p} is missing`);
+  }
 });
 
 test('tokens and profile are not optIn kinds', () => {
