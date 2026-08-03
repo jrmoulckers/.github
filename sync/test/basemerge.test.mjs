@@ -144,6 +144,36 @@ test('an AGENTS.md documenting the convention is written, not skipped as drift',
   });
 });
 
+// The whole justification for the adoption path: once a member is baselined, a later canon change
+// must actually reach it. If adoption silently degraded into "recorded, never updated again",
+// nothing would fail — the run would just report success forever while the member froze.
+test('after adoption, a canon change updates the managed block in place', () => {
+  withTmp((root) => {
+    const local = '# libro\n\nProduct-local rules we must never lose.\n';
+    // Genuine adoption: the file already carries the exact canonical block, but no lock entry.
+    writeFileSync(join(root, 'AGENTS.md'), buildFile(local, CANON), 'utf8');
+
+    const first = apply(root, [agentsSpec()], { entries: {} }, { write: true });
+    assert.equal(first.report.adopted.length, 1, 'baselined on the first run, no content change');
+    assert.equal(first.report.added.length + first.report.updated.length, 0);
+
+    const NEXT = '# JRM Studio base guide\n\nGolden rules go here.\n\nAnd a new rule.\n';
+    const { report } = apply(root, [agentsSpec(NEXT)], first.lock, { write: true });
+
+    assert.deepEqual(
+      report.updated.map((i) => i.targetPath),
+      ['AGENTS.md'],
+      'an upstream change after adoption must update, not drift',
+    );
+
+    const written = readFileSync(join(root, 'AGENTS.md'), 'utf8');
+    assert.equal(canonicalizeInner(extractBlock(written)), canonicalizeInner(NEXT));
+    assert.ok(written.includes('Product-local rules we must never lose.'));
+    assert.equal(written.match(/^<!-- studio:base:start -->$/gm).length, 1, 'still one start marker');
+    assert.equal(written.match(/^<!-- studio:base:end -->$/gm).length, 1, 'still one end marker');
+  });
+});
+
 test('a genuinely edited managed block is still drift, with a note when implausible', () => {
   withTmp((root) => {
     const inner = canonicalizeInner(CANON);
