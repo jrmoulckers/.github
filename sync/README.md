@@ -71,7 +71,8 @@ no failure mode needs *more* care than a load-bearing one, not less. Two rules f
   repo. `cartridge` was registered as a pnpm Next.js app from its onboarding PR #1, which was
   closed without merging; `main` is an npm Svelte PWA.
 - **Pin any fact worth defending in [`test/manifest.test.mjs`](test/manifest.test.mjs).** Validation
-  will not catch a descriptive error, but an assertion will.
+  will not catch a descriptive error, but an assertion will. Every member's `framework` and
+  `packageManager` is already pinned there, so changing a stack without updating the test fails CI.
 
 ## What gets synced
 
@@ -282,7 +283,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/basemerge.test.mjs` | Managed-block detection: markers quoted in prose or shown in a fenced example do not form a block; real blocks are still replaced; genuine edits are still drift. |
 | `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown. |
 | `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule. |
-| `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; `tokens`/`profile` are not `optIn` kinds; native kinds are never written. |
+| `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; every member's `framework`/`packageManager` matches its default branch; `tokens`/`profile` are not `optIn` kinds; native kinds are never written. |
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs the suite plus an offline
 `--dry-run` on every PR.

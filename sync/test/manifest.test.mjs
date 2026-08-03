@@ -95,6 +95,28 @@ test('native kinds are reported but never produce a write', () => {
   }
 });
 
+// Nothing in the engine validates `framework` or `packageManager`, so a wrong value never fails a
+// run — it just misleads every agent that reads the registry. Pinning them here is the only
+// enforcement available: changing a member's stack without updating this test fails CI.
+//
+// Asserting against the member's real lockfile would be stronger, but the suite is deliberately
+// offline (CI runs it with no token and no network), and these repos are private. Verify by hand
+// against the member's DEFAULT BRANCH — not an onboarding PR — and update this table.
+test('every member records its real framework and package manager', () => {
+  const actual = Object.fromEntries(
+    manifest.members.map((m) => [m.repo, [m.framework, m.packageManager]]),
+  );
+  assert.deepEqual(actual, {
+    'jrmoulckers/jrm-recipes': ['nextjs', 'pnpm'],
+    'jrmoulckers/score-king': ['svelte', 'npm'],
+    'jrmoulckers/finance': ['kmp-web', 'npm'],
+    'jrmoulckers/libro': ['svelte', 'pnpm'],
+    // cartridge: verified against main (Svelte 5 + Vite, package-lock.json). Its Next.js/pnpm
+    // onboarding PR #1 was closed without merging — that is where the wrong values came from.
+    'jrmoulckers/cartridge': ['svelte', 'npm'],
+  });
+});
+
 test('tokens and profile are not optIn kinds', () => {
   assert.ok(!KINDS.includes('tokens'));
   assert.ok(!KINDS.includes('profile'));
