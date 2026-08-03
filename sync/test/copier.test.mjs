@@ -60,6 +60,26 @@ test('re-running with no upstream change writes nothing and reports no change', 
   });
 });
 
+// A no-op run must not rewrite the lockfile. `serializeLock` stamps a fresh `generatedAt` on every
+// write, so if a content-neutral run ever reported `changed`, the engine would open a PR whose only
+// diff is a timestamp — on every scheduled sync. That is how automation gets switched off.
+test('a no-op run leaves the lockfile byte-identical, including generatedAt', () => {
+  withTmp((root) => {
+    const s = spec();
+    apply(root, [s], readLock(root, BACKBONE), { write: true });
+    const before = readFileSync(join(root, LOCK_FILENAME), 'utf8');
+    assert.match(before, /"generatedAt": "/);
+
+    const { report } = apply(root, [s], readLock(root, BACKBONE), { write: true });
+    assert.equal(report.changed, false);
+    assert.equal(
+      readFileSync(join(root, LOCK_FILENAME), 'utf8'),
+      before,
+      'a content-neutral run must not bump generatedAt or reorder entries',
+    );
+  });
+});
+
 test('a locally modified target is flagged as drift and left untouched', () => {
   withTmp((root) => {
     const s = spec();
