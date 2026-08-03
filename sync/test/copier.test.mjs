@@ -86,6 +86,32 @@ test('--force overwrites drift', () => {
   });
 });
 
+// The other half of adoption, and the case that does not self-heal: a hand-seeded file that
+// differs from canon has no lock entry, so the engine cannot tell a stale copy from a deliberate
+// local edit and refuses to clobber it. Correct, but permanent — hence the docs' instruction to
+// reconcile pre-seeded files before a member's first sync.
+test('adoption: a pre-existing file that differs from canon is drift, on every run', () => {
+  withTmp((root) => {
+    const s = spec();
+    seed(root, s.targetPath, '# stale hand-copy of older canon\n');
+
+    for (const pass of ['first', 'second']) {
+      const { report } = apply(root, [s], readLock(root, BACKBONE), { write: true });
+      assert.equal(report.adopted.length, 0, `${pass}: must not be adopted`);
+      assert.deepEqual(
+        report.drift.map((i) => i.targetPath),
+        [s.targetPath],
+        `${pass}: flagged as drift`,
+      );
+      assert.equal(
+        readFileSync(join(root, s.targetPath), 'utf8'),
+        '# stale hand-copy of older canon\n',
+        `${pass}: left untouched`,
+      );
+    }
+  });
+});
+
 test('adoption: a pre-existing file matching canon is baselined and counts as a change', () => {
   withTmp((root) => {
     const s = spec();

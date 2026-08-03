@@ -273,6 +273,18 @@ the engine existed) can open a PR whose only diff is `.studio-sync.lock.json` â€
 changes, listed under "Baselined in lockfile" in the PR body. Once that lockfile is merged, further
 runs with no upstream change write nothing and open no PR.
 
+**The other half of that caveat.** Adoption only applies when the pre-existing file is
+byte-identical to canon. A hand-seeded copy that differs *at all* is drift: flagged, left untouched,
+and it stays that way, because with no lock entry the engine cannot tell a stale copy from a
+deliberate local edit. The worst version is a copy of **older** canon that still carries its
+provenance stamp â€” it looks synced and only a byte comparison says otherwise. Reconcile those in
+the member repo before its first sync: make each file byte-identical to canon, or delete it and let
+the engine add it.
+
+`--force` is not the tool for that. It applies to the whole run, rewriting **every** drifted file,
+so using it to clear one stale copy would also discard genuine member-authored edits elsewhere. It
+is a deliberate reviewer action against a known state, not a first-run cleanup.
+
 ## PR flow
 
 For each member with changes the tool clones (shallow), checks out `studio-sync/<YYYY-MM-DD>`,
@@ -337,7 +349,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/branch-reuse.test.mjs` | Sync-branch reuse: reviewer commits survive a re-run; a diverged remote is rejected instead of force-pushed. |
 | `test/basemerge.test.mjs` | Managed-block detection: markers quoted in prose, shown in a fenced example, or indented as a code block do not form a block; real blocks are still replaced; genuine edits are still drift. |
 | `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown. |
-| `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule. |
+| `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; a pre-seeded file that differs from canon stays drift on every run. |
 | `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; every member's `framework`/`packageManager` matches its default branch; every reusable workflow a member calls is listed in its `optIn.workflows`; cartridge's curated `optIn` stays explicit; an unknown name in an explicit list fails validation; `canon` matches the files on disk both ways; `tokens`/`profile` are not `optIn` kinds; native kinds are never written. |
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs the suite plus an offline
