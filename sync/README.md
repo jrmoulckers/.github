@@ -79,19 +79,38 @@ no failure mode needs *more* care than a load-bearing one, not less. Two rules f
 `optIn.<kind>` accepts `"*"` (all canon of that kind), an array of names, or `false`. `"*"` is not a
 default — it is a standing instruction to take everything, re-evaluated on every run.
 
-**A member that deliberately omits canon must list what it takes explicitly.** `resolveSelection`
+**`"*"` is nevertheless the right starting point.** Adding canon a member did not need is cheap and
+reversible: it lands as a visible `added:` block in a reviewable PR, and deleting a file the member
+does not want is one commit. A frozen list is neither. Nothing will ever prompt someone to re-read
+it, so a list is a decision that keeps applying itself long after anyone remembers making it.
+
+**A member that deliberately omits canon should list what it takes explicitly.** `resolveSelection`
 expands `"*"` to `[...canonList]`, so on a curated repo it re-adds every omitted file as an `added:`
 block in the next sync PR. Nothing distinguishes "this member never had these" from "this member
 decided against these", so a considered omission looks exactly like drift and gets undone.
 
-`cartridge` is the worked example: 11 of 19 agents, 11 of 15 skills, 5 of 7 prompts, with every
-business, backend, data and i18n role left out — a fit decision for an offline game catalogue with
-no server tier and no revenue model. It is registered with explicit arrays for that reason, and
-[`test/manifest.test.mjs`](test/manifest.test.mjs) asserts those three keys never revert to `"*"`.
+The bar for "deliberately" is the part worth stating, because we got it wrong once. `cartridge`
+carries 11 of 19 agents, 11 of 15 skills and 5 of 7 prompts, and that subset reads as a coherent
+fit decision: every business, backend, data and i18n role is absent from what looks like an offline
+game catalogue. It was registered with explicit arrays on that reading, and the reading was wrong
+twice over. The whole tree arrived in one commit copied from an unrelated session, so nobody in that
+repo chose those 11; and `cartridge` has a `bridge/` Cloudflare Worker doing an OAuth token
+exchange, a KV cache and a CORS allowlist, so "no server tier" was contradicted by the same manifest
+entry that asserted it.
 
-Use `"*"` when the member genuinely wants whatever canon grows into — `libro` does, and gets new
-canon automatically. Use a list when the omissions are a decision. The cost of the list is that
-someone must add new canon by hand; that is the point.
+Two rules come out of that:
+
+- **A partial canon set is not evidence of curation.** Ruling out one explanation for a subset —
+  such as canon having grown after the member vendored — does not establish another. A small set is
+  easy to narrate a rationale for after the fact, and that narration is not verification.
+- **Freeze only what someone can vouch for**, and record why in `notes`.
+  [`test/manifest.test.mjs`](test/manifest.test.mjs) requires a `notes` entry on any member that
+  narrows `agents`/`skills`/`prompts`. That test is inert today by design; it arms itself the moment
+  a member curates.
+
+Use `"*"` when the member wants whatever canon grows into — both `libro` and `cartridge` do, and get
+new canon automatically. Use a list when the omissions are a decision someone made and can defend.
+The cost of the list is that someone must add new canon by hand; that is the point.
 
 Typos in a list are caught: `validateOptIn` rejects any name absent from `canon.<kind>` before the
 run starts. `resolveSelection`'s own `filter` would drop an unknown name silently, so validation is
@@ -350,7 +369,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/basemerge.test.mjs` | Managed-block detection: markers quoted in prose, shown in a fenced example, or indented as a code block do not form a block; real blocks are still replaced; a canon change after adoption updates in place without duplicating markers; genuine edits are still drift. |
 | `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown. |
 | `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; a no-op run leaves the lockfile byte-identical (`generatedAt` not bumped); a pre-seeded file that differs from canon stays drift on every run. |
-| `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; every member's `framework`/`packageManager` matches its default branch; every reusable workflow a member calls is listed in its `optIn.workflows`; cartridge's curated `optIn` stays explicit; an unknown name in an explicit list fails validation; `canon` matches the files on disk both ways; `tokens`/`profile` are not `optIn` kinds; native kinds are never written. |
+| `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; every member's `framework`/`packageManager` matches its default branch; every reusable workflow a member calls is listed in its `optIn.workflows`; a member that narrows its AI layer records the reason in `notes`; an unknown name in an explicit list fails validation; `canon` matches the files on disk both ways; `tokens`/`profile` are not `optIn` kinds; native kinds are never written. |
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs the suite plus an offline
 `--dry-run` on every PR.

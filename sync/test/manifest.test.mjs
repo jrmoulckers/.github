@@ -145,47 +145,28 @@ test('every member records its real framework and package manager', () => {
   });
 });
 
-// A curated member must list its AI layer explicitly. `resolveSelection` expands "*" to the whole
-// canon list, so "*" on a member that deliberately omits files would re-add them on every run and
-// silently overwrite the curation — with no diff to review beyond an `added:` block.
-test('cartridge curates its AI layer explicitly rather than with "*"', () => {
-  const cartridge = manifest.members.find((m) => m.repo === 'jrmoulckers/cartridge');
-  for (const kind of ['agents', 'skills', 'prompts']) {
+// cartridge briefly carried explicit agent/skill/prompt lists, on the reasoning that its partial
+// canon set (11 of 19 agents) was a deliberate fit decision for an offline catalogue. That was
+// retracted: the whole .github/agents|skills|prompts tree arrived in cartridge in one commit copied
+// from an unrelated session, so nobody chose those 11 — and the "no server tier" rationale was
+// contradicted by cartridge's own bridge/ Cloudflare Worker (OAuth exchange, KV cache, CORS
+// allowlist), which the manifest notes had already recorded. Ruling out one cause for a subset does
+// not establish another.
+//
+// So the rule is: "*" is the default, because adding canon is cheap and reversible while a frozen
+// list is neither — nothing ever prompts a re-read of it. Narrowing is a real decision, and this
+// test requires that whoever makes it writes down why, in `notes`. It is inert today by design and
+// arms itself the moment a member curates.
+test('a member that narrows its AI layer records the reason in notes', () => {
+  for (const member of manifest.members) {
+    const narrowed = ['agents', 'skills', 'prompts'].filter((k) => Array.isArray(member.optIn[k]));
+    if (narrowed.length === 0) continue;
     assert.ok(
-      Array.isArray(cartridge.optIn[kind]),
-      `cartridge.optIn.${kind} must stay an explicit list — "*" would undo the curation`,
+      typeof member.notes === 'string' && member.notes.length > 0,
+      `${member.repo} pins an explicit ${narrowed.join('/')} list but records no reason in notes — ` +
+        'a frozen list nothing will ever re-examine needs a stated justification',
     );
   }
-
-  // Verified against jrmoulckers/cartridge@main: 11 agents, 11 skill dirs, 5 prompts. The omitted
-  // roles are every business/backend/data/i18n one, which do not fit an offline game catalogue
-  // with no server tier and no revenue model.
-  const [resolved] = resolveAll(manifest, ['jrmoulckers/cartridge']);
-  const names = (kind) => resolved.groups.find((g) => g.kind === kind).names;
-  assert.equal(names('agents').length, 11);
-  assert.equal(names('skills').length, 11);
-  assert.equal(names('prompts').length, 5);
-  assert.deepEqual(
-    manifest.canon.agents.filter((n) => !names('agents').includes(n)),
-    [
-      'ai-ops-engineer',
-      'backend-engineer',
-      'business-analyst',
-      'compliance-specialist',
-      'data-engineer',
-      'experimentation-engineer',
-      'localization-engineer',
-      'marketing-strategist',
-    ],
-  );
-  assert.deepEqual(
-    manifest.canon.skills.filter((n) => !names('skills').includes(n)),
-    ['go-to-market', 'i18n-localization', 'mcp-agent-tooling', 'monetization'],
-  );
-  assert.deepEqual(
-    manifest.canon.prompts.filter((n) => !names('prompts').includes(n)),
-    ['rebase-all', 'team'],
-  );
 });
 
 // `resolveSelection` filters unknown names out silently, so a typo in an explicit list would mean
