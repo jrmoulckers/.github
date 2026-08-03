@@ -229,6 +229,22 @@ and reviewer edits to synced files are evaluated as ordinary drift — flagged a
 than overwritten. If the push is rejected because the remote moved mid-run, the run fails loudly
 instead of overwriting; re-run it.
 
+> The engine previously rebuilt the branch from the default branch each run and pushed with
+> `--force-with-lease`. That never destroyed anything — without an explicit `=<ref>:<expect>` the
+> lease needs a reflog entry proving the local side observed the remote value, and a fresh shallow
+> clone has none, so Git refused with `stale info`. It failed *safe*, but it failed: the
+> "update the open PR in place" path could never succeed, and the failure was fatal to the run.
+> Reusing the remote branch fixes both — the push succeeds *and* nothing can be clobbered.
+
+**One member's failure no longer aborts the run.** Each member is synced inside its own
+try/catch ([`lib/runner.mjs`](lib/runner.mjs)): a git or network error is reported, that member is
+skipped, and the remaining members — and the profile mirror — still run. The process exits non-zero
+with a summary of every failed target. The engine touches up to six separate repos over the
+network, so treating the first error as fatal turned one transient failure into a total outage.
+
+**Recovering from a bad run:** pass a fresh `--date`. The branch is `studio-sync/<date>`, so a new
+date means a new branch and a new PR, leaving the previous attempt untouched for inspection.
+
 ## Authentication
 
 Set `STUDIO_SYNC_TOKEN` to a PAT that can push and open PRs on the member repos (and on
@@ -255,8 +271,10 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | File | Covers |
 | --- | --- |
 | `test/branch-reuse.test.mjs` | Sync-branch reuse: reviewer commits survive a re-run; a diverged remote is rejected instead of force-pushed. |
+| `test/basemerge.test.mjs` | Managed-block detection: markers quoted in prose or shown in a fenced example do not form a block; real blocks are still replaced; genuine edits are still drift. |
+| `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown. |
 | `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule. |
-| `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; `tokens`/`profile` are not `optIn` kinds. |
+| `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; `tokens`/`profile` are not `optIn` kinds; native kinds are never written. |
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs the suite plus an offline
 `--dry-run` on every PR.

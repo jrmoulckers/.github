@@ -33,7 +33,7 @@ import { readLock } from './lib/lock.mjs';
 import { apply } from './lib/copier.mjs';
 import { cloneShallow } from './lib/git.mjs';
 import { resolveStudioRoot } from './lib/studio.mjs';
-import { syncMemberRepo } from './lib/pr.mjs';
+import { syncMembers } from './lib/runner.mjs';
 import { mirrorProfile, profileTarget } from './lib/profile.mjs';
 import { log } from './lib/log.mjs';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -185,33 +185,33 @@ function runCheck(plans, opts, manifest, token) {
 
 function runSync(plans, opts, manifest, token, date) {
   if (!token) throw new Error('STUDIO_SYNC_TOKEN is required to sync (set it or use --dry-run).');
-  for (const { resolved, targets } of plans) {
-    log.step(`Syncing ${resolved.repo}`);
-    const result = syncMemberRepo({
-      repo: resolved.repo,
-      writes: targets.writes,
-      token,
-      date,
-      force: opts.force,
-      backbone: manifest.backbone,
-    });
-    if (result.status === 'pr') log.ok(`${resolved.repo}: ${result.reused ? 'updated' : 'opened'} ${result.prUrl}`);
-    else log.info(`${resolved.repo}: no changes`);
-    if (result.report?.hasDrift) {
-      log.warn(`${resolved.repo}: ${result.report.drift.length} locally-modified file(s) left untouched.`);
-    }
-  }
+  const failures = syncMembers(plans, {
+    token,
+    date,
+    force: opts.force,
+    backbone: manifest.backbone,
+  });
   if (!opts.members.length) {
-    mirrorProfile({
-      owner: manifest.owner,
-      backbone: manifest.backbone,
-      backboneRoot: REPO_ROOT,
-      token,
-      date,
-      force: opts.force,
-    });
+    try {
+      mirrorProfile({
+        owner: manifest.owner,
+        backbone: manifest.backbone,
+        backboneRoot: REPO_ROOT,
+        token,
+        date,
+        force: opts.force,
+      });
+    } catch (err) {
+      failures.push({ repo: `${manifest.owner}/${manifest.owner}`, message: err.message });
+      log.error(`profile mirror failed — ${err.message}`);
+    }
   } else {
     log.info('Profile mirror skipped (member filter active).');
+  }
+  if (failures.length) {
+    log.error(`${failures.length} of ${plans.length + (opts.members.length ? 0 : 1)} target(s) failed:`);
+    for (const f of failures) log.error(`    ${f.repo}: ${f.message}`);
+    return 1;
   }
   return 0;
 }

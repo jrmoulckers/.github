@@ -51,7 +51,9 @@ flowchart LR
    `chore(sync): update studio canon (<date>)` with a summary of changed assets. Never push to
    the member's default branch directly. If that branch already exists on the remote (a same-day
    re-run), it is fetched and **reused as the base** and the push is a plain fast-forward — the
-   engine never force-pushes, so reviewer commits on the sync branch are preserved.
+   engine never force-pushes, so reviewer commits on the sync branch are preserved. A member whose
+   sync fails is reported and skipped; the remaining members and the profile mirror still run, and
+   the process exits non-zero.
 6. **Let product CI validate** — the member's own checks run on the sync PR; a human (or the
    member's agents) reviews and merges.
 
