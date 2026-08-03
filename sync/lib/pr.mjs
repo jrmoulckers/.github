@@ -9,7 +9,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readLock } from './lock.mjs';
 import { apply } from './copier.mjs';
-import { cloneShallow, createBranch, commitAll, push, createPr, findOpenPr, CO_AUTHOR } from './git.mjs';
+import { cloneShallow, prepareSyncBranch, commitAll, push, createPr, findOpenPr, CO_AUTHOR } from './git.mjs';
+import { log } from './log.mjs';
 
 export function branchName(date) {
   return `studio-sync/${date}`;
@@ -25,8 +26,13 @@ export function commitMessage(date) {
 
 /**
  * Clone a repo, apply `writes`, and open a PR if anything changed.
- * If an open PR already targets today's sync branch (e.g. a same-day re-run), its branch is
- * updated in place instead of opening a duplicate.
+ *
+ * If the dated sync branch already exists on the remote (e.g. a same-day re-run), it is
+ * **reused as the base**: this run is stacked on top of whatever is already there and pushed as a
+ * fast-forward. Nothing is ever force-pushed, so commits a reviewer pushed to the sync branch are
+ * preserved, and their edits to synced files are evaluated as ordinary drift (skipped and flagged)
+ * instead of being silently overwritten.
+ *
  * @returns {{ status: 'unchanged'|'pr', prUrl?: string, branch?: string, reused?: boolean, report }}
  */
 export function syncRepo({ repo, writes, token, date, force, backbone, title, intro }) {
@@ -34,7 +40,17 @@ export function syncRepo({ repo, writes, token, date, force, backbone, title, in
   try {
     const defaultBranch = cloneShallow(repo, token, tmp);
     const branch = branchName(date);
-    createBranch(tmp, branch);
+    const base = prepareSyncBranch(tmp, branch);
+    if (base.reused) {
+      log.info(`${repo}: reusing existing remote branch ${branch} (fast-forward, no force-push).`);
+      if (base.foreign.length) {
+        log.warn(
+          `${repo}: ${base.foreign.length} commit(s) on ${branch} were not authored by the sync ` +
+            'engine and are preserved:',
+        );
+        for (const line of base.foreign) log.warn(`    ${line}`);
+      }
+    }
 
     const lock = readLock(tmp, backbone);
     const { report } = apply(tmp, writes, lock, { force, write: true });
@@ -43,7 +59,7 @@ export function syncRepo({ repo, writes, token, date, force, backbone, title, in
     if (!commitAll(tmp, commitMessage(date))) return { status: 'unchanged', report };
 
     const existing = findOpenPr(repo, branch, token);
-    push(tmp, branch, { force: Boolean(existing) });
+    push(tmp, branch);
     if (existing) return { status: 'pr', prUrl: existing, branch, reused: true, report };
 
     const bodyFile = join(tmp, '.studio-sync-pr-body.md');

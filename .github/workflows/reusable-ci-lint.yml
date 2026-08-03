@@ -5,7 +5,18 @@
 # Framework-agnostic lint/format workflow for product repositories. Callers choose
 # Node.js, npm or pnpm, working directory, and exact lint/format commands.
 #
+# ⚠️ Caller permissions — this workflow needs `pull-requests: read` for its Semantic PR Title
+# job. A `permissions:` block in the CALLER (workflow- or job-level) REPLACES the defaults and
+# zeroes every scope it does not list, and a called workflow can never be granted more than the
+# caller has. So a least-privilege caller that declares only `contents: read` makes this
+# workflow fail at startup — GitHub reports a bare `startup_failure` with no readable log.
+# Always grant BOTH scopes below (or omit `permissions:` entirely and inherit the defaults).
+#
 # Example caller:
+#   permissions:
+#     contents: read
+#     pull-requests: read      # required — see the warning above
+#
 #   jobs:
 #     lint:
 #       uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@main
@@ -13,6 +24,8 @@
 #         package-manager: pnpm
 #         lint-command: pnpm lint
 #         format-check-command: pnpm format:check
+#
+#   (Set `semantic-pr-title: false` if you genuinely cannot grant `pull-requests: read`.)
 # =============================================================================
 name: Reusable — Lint
 

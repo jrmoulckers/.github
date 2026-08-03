@@ -1,5 +1,5 @@
 {
-  "$comment": "JRM Studio manifest. Source of truth for the cross-repo sync tool (see docs/sync.md). The sync engine is NOT built yet — this is the manifest it will consume.",
+  "$comment": "JRM Studio manifest. Source of truth for the cross-repo sync engine in sync/ (see docs/sync.md and sync/README.md), which reads this file on every run.",
   "studio": "JRM Studio",
   "owner": "jrmoulckers",
   "ownerType": "user",
@@ -164,6 +164,38 @@
         "workflows": ["reusable-ci-lint", "reusable-smoke-test"]
       },
       "tokens": { "enabled": true, "targetPath": "apps/web/vendor/@jrm/tokens" }
+    },
+    {
+      "repo": "jrmoulckers/libro",
+      "framework": "svelte",
+      "packageManager": "pnpm",
+      "notes": "Pure-client media hub for books and audiobooks. Svelte/Vite PWA at repo root; first member to consume vendored @jrm/tokens.",
+      "optIn": {
+        "base": true,
+        "health": true,
+        "agents": "*",
+        "skills": "*",
+        "prompts": "*",
+        "instructions": "*",
+        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
+      },
+      "tokens": { "enabled": true }
+    },
+    {
+      "repo": "jrmoulckers/cartridge",
+      "framework": "nextjs",
+      "packageManager": "pnpm",
+      "notes": "Game-library aggregator across Steam/Xbox/PlayStation/Nintendo. Next.js App Router at repo root; needs a first-party server tier because every ingestion path uses third-party credentials.",
+      "optIn": {
+        "base": true,
+        "health": true,
+        "agents": "*",
+        "skills": "*",
+        "prompts": "*",
+        "instructions": "*",
+        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
+      },
+      "tokens": { "enabled": true }
     }
   ]
 }

@@ -19,7 +19,7 @@ node sync/index.mjs [options]
 | `--members <a,b>` | Restrict to these member repos (`owner/name` or bare `name`). |
 | `--check` | CI gate. Exit non-zero if any member is out of date or has drift. |
 | `--force` | Overwrite locally-modified (drift) targets instead of skipping them. |
-| `--work-dir <path>` | Apply/inspect against a local checkout (one `--members`); no clone/push/PR. |
+| `--work-dir <path>` | Apply/inspect against a local checkout; **requires exactly one matching `--members` value**. No clone/push/PR. |
 | `--studio-dir <path>` | Local checkout of the token source repo (`jrmoulckers/studio`) to vendor `@jrm/tokens` from, instead of cloning it. Offline seam for tokens. |
 | `--date <YYYY-MM-DD>` | Override the date used for branch/commit naming. |
 | `--help` | Show help. |
@@ -43,6 +43,10 @@ Resolution follows each member's `optIn` in the manifest:
 
 - `"*"` → the full canon of that kind, an array → those names, `false`/omitted → opt out.
 - `base` and `health` are booleans.
+- The **only** valid `optIn` keys are `base`, `agents`, `skills`, `prompts`, `instructions`,
+  `workflows`, `health` (`KINDS` in [`lib/manifest.mjs`](lib/manifest.mjs)). Anything else — notably
+  `optIn.tokens` or `optIn.profile` — fails validation with *"is not a known kind"*. Tokens and the
+  profile README are configured elsewhere; see the two rows below the table.
 
 | Kind | Shape | Target | Notes |
 | --- | --- | --- | --- |
@@ -53,8 +57,13 @@ Resolution follows each member's `optIn` in the manifest:
 | `skills` | `<name>/` directories | `.github/skills/` | Whole folder: `SKILL.md` + any checklists. |
 | `health` | community-health files | — | **Native** — GitHub inherits these from the backbone `.github` repo. Not written. |
 | `workflows` | reusable workflows | — | **Native** — called via `uses: jrmoulckers/.github/.github/workflows/*@main`. Not written. |
-| `tokens` | built `@jrm/tokens` outputs | `vendor/@jrm/tokens/` | **External** — vendored from the private `jrmoulckers/studio` repo, not backbone canon. See below. |
-| `profile` | `profile/README.md` | `jrmoulckers/jrmoulckers` `README.md` | Mirrored to the user profile repo. |
+
+Two more asset classes are synced but are **not** `optIn` kinds:
+
+| Asset | Configured by | Target | Notes |
+| --- | --- | --- | --- |
+| Vendored `@jrm/tokens` | `members[].tokens` (`{ "enabled": true, "targetPath"?: … }`) plus the top-level `tokens` block | `vendor/@jrm/tokens/` (per-member overridable) | **External** — vendored from the private `jrmoulckers/studio` repo, not backbone canon. See below. |
+| Profile README | not configurable per member — always `profile/README.md` in this repo | `jrmoulckers/jrmoulckers` `README.md` | Mirrored to the user profile repo once per run, and **only on unfiltered runs**: passing `--members` skips the mirror entirely. |
 
 Every synced file carries a provenance header
 (`synced from jrmoulckers/.github — canonical source; do not edit here`): an HTML comment
@@ -149,12 +158,26 @@ Each member repo carries a lockfile at its root:
 Re-running with no upstream change writes nothing and opens no PR. Hashes are computed on
 LF-normalized content, so line-ending differences don't cause spurious churn.
 
+**Adoption caveat (first run against an existing repo).** A pre-existing target that already
+matches canon but has no lock entry is *adopted*: its baseline is recorded in the lockfile. Adoption
+counts as a change, so the **first** run against a repo that was seeded by hand (or onboarded before
+the engine existed) can open a PR whose only diff is `.studio-sync.lock.json` — no file content
+changes, listed under "Baselined in lockfile" in the PR body. Once that lockfile is merged, further
+runs with no upstream change write nothing and open no PR.
+
 ## PR flow
 
-For each member with changes the tool clones (shallow), creates `studio-sync/<YYYY-MM-DD>`,
+For each member with changes the tool clones (shallow), checks out `studio-sync/<YYYY-MM-DD>`,
 commits `chore(sync): update studio canon (<date>)`, pushes, and opens a PR against the
 member's **default** branch. It never pushes to the default branch, and skips members with
 no changes.
+
+**Same-day re-runs never force-push.** If the dated branch already exists on the remote it is
+fetched and **reused as the base**, so this run is stacked on top of whatever is already there and
+pushed as a fast-forward. Commits a reviewer pushed to the sync branch are preserved (and logged),
+and reviewer edits to synced files are evaluated as ordinary drift — flagged and left alone rather
+than overwritten. If the push is rejected because the remote moved mid-run, the run fails loudly
+instead of overwriting; re-run it.
 
 ## Authentication
 
@@ -170,9 +193,31 @@ vendored token files offline).
 [`.github/workflows/studio-sync.yml`](../.github/workflows/studio-sync.yml) runs weekly and on
 `workflow_dispatch` (with `members` and `dry_run` inputs), using the `STUDIO_SYNC_TOKEN` secret.
 
+## Tests
+
+Zero-dependency `node:test` suite — no network, no `gh`, no token (the git tests use local
+file-path remotes):
+
+```bash
+cd sync && npm test        # or: node --test "test/*.test.mjs"
+```
+
+| File | Covers |
+| --- | --- |
+| `test/branch-reuse.test.mjs` | Sync-branch reuse: reviewer commits survive a re-run; a diverged remote is rejected instead of force-pushed. |
+| `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule. |
+| `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; `tokens`/`profile` are not `optIn` kinds. |
+
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs the suite plus an offline
+`--dry-run` on every PR.
+
 ## Profile mirror caveat
 
 `jrmoulckers` is a GitHub **user**, so a `.github` repo's `profile/README.md` does not render
 on the account page — it must live in the special `jrmoulckers/jrmoulckers` repo. The tool
 mirrors it there. If that repo doesn't exist yet, the run logs a **warning** and continues
 (it never fails the whole sync).
+
+The mirror only runs on **unfiltered** syncs. Any run that passes `--members` skips it and logs
+`Profile mirror skipped (member filter active).` — so a member-filtered run (including the
+`members` input of the scheduled workflow) never touches `jrmoulckers/jrmoulckers`.

@@ -71,6 +71,47 @@ Typical coverage:
 
 If any check fails, fix it, rerun the relevant checks, amend or commit, and push again.
 
+## Calling reusable workflows
+
+Studio product repos call the backbone's reusable workflows with
+`uses: jrmoulckers/.github/.github/workflows/reusable-*.yml@main`.
+
+**A caller `permissions:` block replaces the defaults — it does not add to them.** Every scope you
+omit is set to `none`, and a called workflow can never receive more than its caller holds. So a
+least-privilege `permissions: { contents: read }` in the caller silently strips the scopes the
+reusable workflow declares for itself. The symptom is a bare `startup_failure` with **no readable
+log**, which is easy to misdiagnose as a broken `uses:` reference.
+
+Grant every scope the callee declares:
+
+| Reusable workflow | Scopes the caller must grant |
+| --- | --- |
+| `reusable-ci-lint` | `contents: read` **and `pull-requests: read`** (Semantic PR Title job) |
+| `reusable-ci-web` | `contents: read` |
+| `reusable-perf-budget` | `contents: read` |
+| `reusable-smoke-test` | `contents: read` |
+| `reusable-deploy-preview` | `contents: read` (plus whatever your deploy step needs) |
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: read      # required by reusable-ci-lint
+
+jobs:
+  lint:
+    uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@main
+    with:
+      package-manager: pnpm
+```
+
+Rules:
+
+- Before adding a caller-level `permissions:` block, open the callee and copy its declared scopes.
+- Omitting `permissions:` entirely inherits the repo default — safe, but less explicit.
+- If a scope truly cannot be granted, disable the job that needs it instead
+  (e.g. `semantic-pr-title: false` for `reusable-ci-lint`).
+- Debug a `startup_failure` with no log by checking caller permissions first.
+
 ## Merge Conflict Protocol
 
 Treat conflicts with the same urgency as red CI.

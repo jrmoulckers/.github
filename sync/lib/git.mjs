@@ -45,6 +45,52 @@ export function createBranch(dest, branch) {
   git(['checkout', '-b', branch], dest);
 }
 
+/**
+ * Check out the sync branch, **reusing the remote branch when it already exists**.
+ *
+ * A same-day re-run must never discard work that landed on the sync branch after the previous
+ * run — a reviewer's fixup commit, for example. Branching off the default branch and
+ * force-pushing would do exactly that, so instead the existing remote branch is fetched and
+ * becomes the base: the new sync commit is stacked on top and pushed as a fast-forward.
+ *
+ * @returns {{ reused: boolean, foreign: string[] }} `foreign` lists short descriptions of
+ *   commits on the reused branch that the engine did not author (reviewer work being preserved).
+ */
+export function prepareSyncBranch(dest, branch) {
+  if (!fetchRemoteBranch(dest, branch)) {
+    createBranch(dest, branch);
+    return { reused: false, foreign: [] };
+  }
+  git(['checkout', '-B', branch, `refs/remotes/origin/${branch}`], dest);
+  return { reused: true, foreign: foreignCommits(dest, branch) };
+}
+
+/** Fetch `branch` from origin into its remote-tracking ref. False when the remote branch is absent. */
+export function fetchRemoteBranch(dest, branch) {
+  try {
+    git(['fetch', '--depth', '50', 'origin', `${branch}:refs/remotes/origin/${branch}`], dest);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Commits reachable from the (shallow) sync branch that were not authored by the sync engine.
+ * Used to report preserved reviewer work; never used to gate the push.
+ */
+export function foreignCommits(dest, branch) {
+  try {
+    const log = git(['log', '--format=%h %an %s', branch], dest);
+    return log
+      .split('\n')
+      .filter(Boolean)
+      .filter((line) => !line.slice(line.indexOf(' ') + 1).startsWith(`${COMMIT_NAME} `));
+  } catch {
+    return [];
+  }
+}
+
 /** Stage everything and commit. Returns false when there is nothing to commit. */
 export function commitAll(dest, message) {
   git(['add', '-A'], dest);
@@ -54,18 +100,13 @@ export function commitAll(dest, message) {
   return true;
 }
 
-export function push(dest, branch, { force = false } = {}) {
-  if (force) {
-    try {
-      // Establish the remote-tracking ref so --force-with-lease has a lease baseline.
-      git(['fetch', 'origin', `${branch}:refs/remotes/origin/${branch}`], dest);
-    } catch {
-      // Remote branch may not exist yet; force-with-lease will then simply create it.
-    }
-    git(['push', '--force-with-lease', '-u', 'origin', branch], dest);
-  } else {
-    git(['push', '-u', 'origin', branch], dest);
-  }
+/**
+ * Push the sync branch as a **fast-forward only**. The engine never force-pushes: the branch is
+ * always based on the current remote tip (see `prepareSyncBranch`), so a rejected push means the
+ * remote moved mid-run and must fail loudly rather than overwrite someone else's commits.
+ */
+export function push(dest, branch) {
+  git(['push', '-u', 'origin', branch], dest);
 }
 
 /** URL of an existing open PR whose head is `branch`, or null. */
