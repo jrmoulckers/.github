@@ -293,16 +293,56 @@ changes, listed under "Baselined in lockfile" in the PR body. Once that lockfile
 runs with no upstream change write nothing and open no PR.
 
 **The other half of that caveat.** Adoption only applies when the pre-existing file is
-byte-identical to canon. A hand-seeded copy that differs *at all* is drift: flagged, left untouched,
+byte-identical to what the engine *would write* — canon plus its provenance header, LF-normalized,
+not raw canon (see [Auditing a member by hand](#auditing-a-member-by-hand-compare-against-inject-not-against-canon)).
+A hand-seeded copy that differs *at all* is drift: flagged, left untouched,
 and it stays that way, because with no lock entry the engine cannot tell a stale copy from a
 deliberate local edit. The worst version is a copy of **older** canon that still carries its
 provenance stamp — it looks synced and only a byte comparison says otherwise. Reconcile those in
-the member repo before its first sync: make each file byte-identical to canon, or delete it and let
-the engine add it.
+the member repo before its first sync: refresh each file to match what the engine would write, or
+delete it and let the engine add it.
 
 `--force` is not the tool for that. It applies to the whole run, rewriting **every** drifted file,
 so using it to clear one stale copy would also discard genuine member-authored edits elsewhere. It
 is a deliberate reviewer action against a known state, not a first-run cleanup.
+
+### Auditing a member by hand: compare against `inject()`, not against canon
+
+"Byte-identical to canon" above is shorthand, and the shorthand will mislead you if you reach for
+`diff` to check it. The engine never writes canon verbatim — [`lib/provenance.mjs`](lib/provenance.mjs)
+prepends a header (`<!-- synced from jrmoulckers/.github … -->`, or `#`/`/* */` by file type) and
+normalizes line endings to LF first. The stored `targetSha256` is the hash of *that* output.
+
+So the expected value for a synced file is `inject(targetPath, canonContent)`, and diffing a member
+file against raw canon reports the header as a member-side addition on **every correctly-synced file
+in every member**. That is a false positive per file, and it is a dangerous one, because it is small
+and consistent enough to look like a real finding rather than a broken method.
+
+It nearly cost us a wrong call. A hand audit of cartridge's `workflow.instructions.md` against raw
+canon reported "68 lines missing, 1 line added". The 68 were real — a stale copy of older canon. The
+"1 line added" was the engine's own provenance stamp, and the only reason the conclusion survived is
+that the real signal was 68× larger than the artefact. Against a file that was merely *stale by one
+line*, the same method would have reported 1 missing and 1 added and been indistinguishable from
+noise.
+
+The check that actually settles it, run from a backbone checkout:
+
+```js
+import { readFileSync } from 'node:fs';
+import { inject, toLF } from './sync/lib/provenance.mjs';
+
+const rendered = inject('.github/instructions/workflow.instructions.md',
+                        readFileSync('instructions/workflow.instructions.md', 'utf8'));
+const member = toLF(readFileSync('<member>/.github/instructions/workflow.instructions.md', 'utf8'));
+rendered === member;   // true → will adopt;  false → drift
+```
+
+Note `toLF` on the member side too: a CRLF checkout differs from the rendered output byte for byte
+while being identical to the engine, which hashes LF-normalized content. Comparing raw byte lengths
+across a Windows checkout will disagree with this check and the check is the one that is right.
+
+Vendored tokens pass their own `note`, so audit those with the same `note` the copier uses or they
+will all read as drift.
 
 ## PR flow
 
@@ -370,6 +410,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown. |
 | `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; a no-op run leaves the lockfile byte-identical (`generatedAt` not bumped); a pre-seeded file that differs from canon stays drift on every run. |
 | `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; every member's `framework`/`packageManager` matches its default branch; every reusable workflow a member calls is listed in its `optIn.workflows`; a member that narrows its AI layer records the reason in `notes`; an unknown name in an explicit list fails validation; `canon` matches the files on disk both ways; `tokens`/`profile` are not `optIn` kinds; native kinds are never written. |
+| `test/provenance.test.mjs` | Every real write equals `inject(targetPath, canon)` and never canon verbatim — so the documented hand-audit baseline stays correct; and that check is line-ending agnostic on the member side. |
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs the suite plus an offline
 `--dry-run` on every PR.
