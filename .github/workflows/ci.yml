@@ -1,0 +1,45 @@
+# =============================================================================
+# CI — backbone repo
+# =============================================================================
+#
+# Runs the sync engine's zero-dependency `node:test` suite on every PR and on pushes to
+# main. The suite covers manifest validation (studio.config.json must always be loadable),
+# copier drift/adoption behavior, and the sync-branch reuse guarantee (no force-push).
+#
+# The tests shell out to `git` against local file-path remotes only — no network, no token.
+# =============================================================================
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync-tests:
+    name: Sync engine tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24'
+
+      - name: Run tests
+        working-directory: sync
+        run: node --test "test/*.test.mjs"
+
+      - name: Validate the manifest (dry run, offline)
+        run: node sync/index.mjs --dry-run

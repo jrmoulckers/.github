@@ -42,7 +42,9 @@ flowchart LR
    called via `uses: …@main`.
 5. **Open a PR** — commit on a `studio-sync/<date>` branch and open a PR titled
    `chore(sync): update studio canon (<date>)` with a summary of changed assets. Never push to
-   the member's default branch directly.
+   the member's default branch directly. If that branch already exists on the remote (a same-day
+   re-run), it is fetched and **reused as the base** and the push is a plain fast-forward — the
+   engine never force-pushes, so reviewer commits on the sync branch are preserved.
 6. **Let product CI validate** — the member's own checks run on the sync PR; a human (or the
    member's agents) reviews and merges.
 
@@ -62,13 +64,28 @@ Flags: `--dry-run`, `--members <a,b>`, `--check`, `--force` (overwrite drift), `
 `jrmoulckers/studio` checkout to vendor `@jrm/tokens` from, instead of cloning), `--date
 <YYYY-MM-DD>`.
 
+Two flag constraints that are easy to trip over:
+
+- **`--work-dir` requires exactly one member.** The path is a single member's checkout, so the
+  run must resolve to exactly one member — pair it with `--members <owner/name>`. Anything else
+  (no filter, or a filter matching two members) fails with
+  `--work-dir requires exactly one member (use --members <owner/name>).`
+- **`--members` disables the profile mirror.** See [Profile README](#profile-readme-user-account-caveat).
+
 Every synced file gets a provenance header
 (`synced from jrmoulckers/.github — canonical source; do not edit here`) — an HTML comment
 after any YAML frontmatter (or atop plain Markdown), or a leading `#` line for `.toml`/`.yml`.
 
 ## Idempotency & drift
 
-- The tool is **idempotent**: re-running with no upstream change writes nothing and opens no PR.
+- The tool is **idempotent**: once a member carries a lockfile, re-running with no upstream change
+  writes nothing and opens no PR.
+- **First-run caveat (adoption).** A pre-existing target that already matches canon but has no lock
+  entry is *adopted*: its baseline is recorded so a later upstream change updates it instead of
+  looking like local drift. Adoption counts as a change, so the very first run against a repo that
+  was seeded by hand — every member today, since no `.studio-sync.lock.json` exists yet — can open a
+  PR whose **only** diff is `.studio-sync.lock.json` (reported under "Baselined in lockfile"). That
+  is expected: merge it, and subsequent runs go quiet.
 - State lives in a per-member lockfile **`.studio-sync.lock.json`** at the member root, mapping
   each target path to `{ sourceSha256, targetSha256, syncedAt }`:
   - `sourceSha256` detects **upstream** change (canon moved) → the target is rewritten.
@@ -186,6 +203,16 @@ vendored token files offline); the workflow fails fast on real runs when the sec
 page — the profile README must live in the special `jrmoulckers/jrmoulckers` repo. The sync tool
 therefore also **mirrors `profile/README.md` → `jrmoulckers/jrmoulckers/README.md`** so the
 canonical copy stays here while the profile actually displays.
+
+**Only on unfiltered runs.** The mirror is skipped whenever `--members` is passed (the run logs
+`Profile mirror skipped (member filter active).`). This matters for the first real syncs, which are
+member-filtered: a run like `--members jrmoulckers/libro,jrmoulckers/cartridge` will not touch
+`jrmoulckers/jrmoulckers`. To mirror the profile, run the engine with no `--members` filter (the
+scheduled weekly run, or a `workflow_dispatch` with a blank `members` input).
+
+`profile` is **not** an `optIn` kind — it is not listed in `KINDS` and `optIn.profile` fails
+validation. The mirror is unconditional (subject to the filter rule above) and driven by
+`manifest.owner`.
 
 ## Out of scope (for now)
 
