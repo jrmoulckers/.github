@@ -48,10 +48,13 @@ export function createBranch(dest, branch) {
 /**
  * Check out the sync branch, **reusing the remote branch when it already exists**.
  *
- * A same-day re-run must never discard work that landed on the sync branch after the previous
- * run — a reviewer's fixup commit, for example. Branching off the default branch and
- * force-pushing would do exactly that, so instead the existing remote branch is fetched and
- * becomes the base: the new sync commit is stacked on top and pushed as a fast-forward.
+ * A same-day re-run must not discard work that landed on the sync branch after the previous run —
+ * a reviewer's fixup commit, for example — and must actually be able to update the open PR.
+ * Rebuilding the branch from the default branch could do neither: a plain force-push would clobber,
+ * and `--force-with-lease` on a fresh shallow clone is refused as `stale info` (no reflog to prove
+ * the remote value was observed), so the update path always failed. Fetching the existing remote
+ * branch and using it as the base gives both properties at once — the push is an ordinary
+ * fast-forward that succeeds and cannot overwrite anything.
  *
  * @returns {{ reused: boolean, foreign: string[] }} `foreign` lists short descriptions of
  *   commits on the reused branch that the engine did not author (reviewer work being preserved).

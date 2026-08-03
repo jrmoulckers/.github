@@ -103,13 +103,18 @@ Flags: `--dry-run`, `--members <a,b>`, `--check`, `--force` (overwrite drift), `
 `jrmoulckers/studio` checkout to vendor `@jrm/tokens` from, instead of cloning), `--date
 <YYYY-MM-DD>`.
 
-Two flag constraints that are easy to trip over:
+Three flag behaviors that are easy to trip over:
 
 - **`--work-dir` requires exactly one member.** The path is a single member's checkout, so the
   run must resolve to exactly one member — pair it with `--members <owner/name>`. Anything else
   (no filter, or a filter matching two members) fails with
   `--work-dir requires exactly one member (use --members <owner/name>).`
 - **`--members` disables the profile mirror.** See [Profile README](#profile-readme-user-account-caveat).
+- **`--date <YYYY-MM-DD>` starts a clean attempt.** The sync branch is `studio-sync/<date>`, so a
+  fresh date means a fresh branch and a fresh PR. That is the recovery path after a bad run: the
+  previous attempt is left intact for inspection rather than amended. Re-running with the *same*
+  date is also safe — the existing branch is reused and the push is a fast-forward — but a new date
+  is the cleaner reset.
 
 Every synced file gets a provenance header
 (`synced from jrmoulckers/.github — canonical source; do not edit here`) — an HTML comment
