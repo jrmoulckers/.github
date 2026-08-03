@@ -183,9 +183,9 @@
     },
     {
       "repo": "jrmoulckers/cartridge",
-      "framework": "nextjs",
-      "packageManager": "pnpm",
-      "notes": "Game-library aggregator across Steam/Xbox/PlayStation/Nintendo. Next.js App Router at repo root; needs a first-party server tier because every ingestion path uses third-party credentials.",
+      "framework": "svelte",
+      "packageManager": "npm",
+      "notes": "Local-first game library PWA. Svelte 5 + Vite at repo root, IndexedDB via idb, vite-plugin-pwa. Separate bridge/ package with its own toolchain.",
       "optIn": {
         "base": true,
         "health": true,
@@ -193,7 +193,7 @@
         "skills": "*",
         "prompts": "*",
         "instructions": "*",
-        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
+        "workflows": ["reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
       },
       "tokens": { "enabled": true }
     }

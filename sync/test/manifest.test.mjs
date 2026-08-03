@@ -33,6 +33,33 @@ test('libro and cartridge use the root-default vendored tokens path', () => {
   }
 });
 
+// The onboarding PR these facts originally came from (jrmoulckers/cartridge#1) was closed
+// without merging; the values below were re-verified against jrmoulckers/cartridge@main.
+test('cartridge is a Svelte/npm repo that does not call reusable-ci-lint', () => {
+  const [cartridge] = resolveAll(manifest, ['jrmoulckers/cartridge']);
+  assert.equal(cartridge.framework, 'svelte');
+  assert.equal(cartridge.packageManager, 'npm');
+
+  const workflows = cartridge.groups.find((g) => g.kind === 'workflows');
+  assert.ok(
+    !workflows.names.includes('reusable-ci-lint'),
+    'cartridge has no ESLint/Prettier and deliberately skips reusable-ci-lint',
+  );
+  assert.deepEqual(workflows.names, [
+    'reusable-ci-web',
+    'reusable-deploy-preview',
+    'reusable-perf-budget',
+  ]);
+});
+
+test('libro is a Svelte/pnpm repo that does call reusable-ci-lint', () => {
+  const [libro] = resolveAll(manifest, ['jrmoulckers/libro']);
+  assert.equal(libro.framework, 'svelte');
+  assert.equal(libro.packageManager, 'pnpm');
+  const workflows = libro.groups.find((g) => g.kind === 'workflows');
+  assert.ok(workflows.names.includes('reusable-ci-lint'), 'libro has eslint + prettier');
+});
+
 test('finance keeps its custom tokens path and AI-layer opt-outs', () => {
   const [finance] = resolveAll(manifest, ['jrmoulckers/finance']);
   assert.equal(finance.tokens.targetBase, 'apps/web/vendor/@jrm/tokens');
