@@ -8,12 +8,12 @@
 //   …canonical AGENTS.md (with provenance)…
 //   <!-- studio:base:end -->
 //
-// Marker detection is deliberately strict. A marker only counts when it stands alone on
-// its own line *outside* any fenced code block, so an AGENTS.md that documents this very
-// convention — by quoting the markers inline or showing them in a ``` example — cannot
-// form a phantom managed region. Getting this wrong is silent and severe: the phantom
-// block's contents hash as unrecognized drift, AGENTS.md is skipped, and the member never
-// receives the canonical base guide while the run still reports success.
+// Marker detection is deliberately strict. A marker only counts when it stands alone at the
+// start of its own line, *outside* any fenced code block, so an AGENTS.md that documents this
+// very convention — by quoting the markers inline, indenting them as a code block, or showing
+// them in a ``` example — cannot form a phantom managed region. Getting this wrong is silent and
+// severe: the phantom block's contents hash as unrecognized drift, AGENTS.md is skipped, and the
+// member never receives the canonical base guide while the run still reports success.
 
 import { toLF } from './provenance.mjs';
 
@@ -21,8 +21,12 @@ export const START_MARKER = '<!-- studio:base:start -->';
 export const END_MARKER = '<!-- studio:base:end -->';
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// Leading whitespace is NOT tolerated: `buildFile` always writes the markers at column 0, and any
+// indentation means the line is quoted content — most often a 4-space-indented code block, which
+// `maskFences` does not cover because it only understands ``` / ~~~ fences. Requiring column 0
+// closes that case exactly. Trailing whitespace is tolerated; editors add it and it means nothing.
 const BLOCK_RE = new RegExp(
-  `^[ \\t]*${escapeRe(START_MARKER)}[ \\t]*$\\n?([\\s\\S]*?)\\n?^[ \\t]*${escapeRe(END_MARKER)}[ \\t]*$`,
+  `^${escapeRe(START_MARKER)}[ \\t]*$\\n?([\\s\\S]*?)\\n?^${escapeRe(END_MARKER)}[ \\t]*$`,
   'dm',
 );
 
