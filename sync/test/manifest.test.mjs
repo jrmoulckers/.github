@@ -4,8 +4,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
-import { loadManifest, KINDS, validateManifest } from '../lib/manifest.mjs';
+import { loadManifest, KINDS, NATIVE_KINDS, validateManifest } from '../lib/manifest.mjs';
 import { resolveAll } from '../lib/resolve.mjs';
+import { enumerateTargets } from '../lib/assets.mjs';
 
 const REPO_ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const manifest = loadManifest(REPO_ROOT);
@@ -66,6 +67,31 @@ test('finance keeps its custom tokens path and AI-layer opt-outs', () => {
   const kinds = finance.groups.map((g) => g.kind);
   for (const kind of ['agents', 'skills', 'prompts', 'instructions']) {
     assert.ok(!kinds.includes(kind), `finance must stay opted out of ${kind}`);
+  }
+});
+
+test('native kinds are reported but never produce a write', () => {
+  assert.deepEqual([...NATIVE_KINDS].sort(), ['health', 'workflows']);
+
+  for (const resolved of resolveAll(manifest)) {
+    const { writes, native } = enumerateTargets(resolved, REPO_ROOT);
+
+    // Opting in to health/workflows must never install a file in the member: a local copy
+    // overrides the inherited health file (freezing it) or forks a reusable workflow.
+    for (const spec of writes) {
+      assert.ok(
+        !NATIVE_KINDS.has(spec.kind),
+        `${resolved.repo}: native kind ${spec.kind} must not be written (${spec.targetPath})`,
+      );
+      assert.ok(
+        !/^\.github\/workflows\//.test(spec.targetPath),
+        `${resolved.repo}: nothing may be written under .github/workflows/ (${spec.targetPath})`,
+      );
+    }
+
+    // …but they are still resolved and reported, so the plan reflects the opt-in.
+    const optedIn = resolved.groups.filter((g) => NATIVE_KINDS.has(g.kind)).map((g) => g.kind);
+    assert.deepEqual(native.map((n) => n.kind).sort(), optedIn.sort());
   }
 });
 

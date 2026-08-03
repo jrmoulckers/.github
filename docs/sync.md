@@ -12,7 +12,7 @@ assets propagate very differently:
 
 | Class | Examples | How it reaches product repos |
 | --- | --- | --- |
-| **Native** | Community-health files, reusable workflows | GitHub inherits default health files from this `.github` repo automatically; reusable workflows are called directly with `uses: jrmoulckers/.github/.github/workflows/reusable-*.yml@main`. **No sync needed.** |
+| **Native** | Community-health files, reusable workflows | GitHub inherits default health files from this `.github` repo automatically; reusable workflows are called directly with `uses: jrmoulckers/.github/.github/workflows/reusable-*.yml@main`. **No sync needed — and a member must not keep its own copy** (see below). |
 | **Canonical source** | `agents/`, `skills/`, `prompts/`, `instructions/`, `AGENTS.md`, `agency.toml` | Copilot does **not** auto-inherit these across repos. They must be **copied** into each product repo's `.github/…`. **This is what the sync tool does.** |
 | **External vendored** | `@jrm/tokens` built outputs (CSS custom properties, Tailwind preset, typed JS) | Live in a *different* private backbone repo (`jrmoulckers/studio`), registry-free. The same engine copies studio's committed `dist/` tree into opted-in members under `vendor/@jrm/tokens/`. See [Vendored tokens](#vendored-tokens-jrmtokens). |
 
@@ -42,7 +42,8 @@ flowchart LR
    and the tool merges/append-marks rather than clobbering (see Drift below). `health` and
    `workflows` are **native** (see the table above): they are resolved and reported but never
    written — health files are inherited from this `.github` repo and reusable workflows are
-   called via `uses: …@main`.
+   called via `uses: …@main`. A member repo must therefore **not** contain its own copy of
+   either (see [Native kinds have no transport](#native-kinds-have-no-transport)).
 5. **Open a PR** — commit on a `studio-sync/<date>` branch and open a PR titled
    `chore(sync): update studio canon (<date>)` with a summary of changed assets. Never push to
    the member's default branch directly. If that branch already exists on the remote (a same-day
@@ -50,6 +51,36 @@ flowchart LR
    engine never force-pushes, so reviewer commits on the sync branch are preserved.
 6. **Let product CI validate** — the member's own checks run on the sync PR; a human (or the
    member's agents) reviews and merges.
+
+## Native kinds have no transport
+
+`health` and `workflows` are the two `NATIVE_KINDS` (`sync/lib/manifest.mjs`). The engine resolves
+and reports them so the plan reflects what a member has opted into, but `assets.mjs` drops them
+before the write list — **no file is ever written for a native kind, on any run, forever.**
+
+The rule that follows is not obvious from the opt-in table, so state it plainly:
+
+> **A member repo must not contain its own copy of a native asset.** Opting in to `health` or
+> `workflows` means *"this member relies on the backbone's"*, not *"the engine will install
+> these"*. A local copy is worse than having nothing, because it wins over the inherited version
+> and nothing will ever update it.
+
+Why each case is harmful:
+
+| Native asset | What a local copy does |
+| --- | --- |
+| Community-health files (`CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `PULL_REQUEST_TEMPLATE.md`, `ISSUE_TEMPLATE/`, `DISCUSSION_TEMPLATE/`) | GitHub serves a repo's own health file in preference to the one inherited from `jrmoulckers/.github`. A verbatim copy therefore **overrides** the inherited file and freezes it at the moment it was copied. Backbone edits stop reaching that member, silently. |
+| Reusable workflows (`.github/workflows/reusable-*.yml`, called as `uses: ./.github/workflows/…`) | A silent fork with no update path. Fixing `reusable-ci-lint` here leaves the member on its stale copy indefinitely, and the divergence is invisible from both sides. |
+
+Neither is self-correcting: because the engine never writes native kinds, it cannot detect the
+copy, report drift, or delete it. Removal is a one-time manual cleanup in the member repo.
+
+This has happened: `jrmoulckers/cartridge` carried verbatim copies of both reusable workflows and
+all 13 community-health files before a cleanup PR removed them. The trigger was reading the opt-in
+table and reasonably concluding that a "synced kind" belongs in the member.
+
+**Checklist when onboarding a member:** it should have *no* `.github/workflows/reusable-*.yml`, and
+of the health files only ones it genuinely wants to override deliberately. Prefer none.
 
 ## CLI usage
 
