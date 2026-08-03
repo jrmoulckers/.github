@@ -133,7 +133,7 @@ write — and on the first run each one takes one of two paths:
 
 | The member's copy | First run |
 | --- | --- |
-| byte-identical to canon | **adopted** — baselined in the lockfile, no diff, silent thereafter |
+| byte-identical to what the engine would write | **adopted** — baselined in the lockfile, no diff, silent thereafter |
 | differs in any byte | **drift** — flagged, left untouched, and it stays that way |
 
 The second row does not self-heal. With no lock entry and content that differs, the engine cannot
@@ -141,14 +141,25 @@ tell a stale hand-copy from a deliberate local edit, so it refuses to clobber �
 permanently. The member then keeps an outdated file forever while every run reports success.
 
 The dangerous case is a copy of *older* canon that still carries its provenance stamp: it looks
-synced, and only a byte comparison reveals it isn't. `jrmoulckers/cartridge` has exactly this — a
-`workflow.instructions.md` at 4376 bytes against canon's 8372, with no product-specific content.
+synced, and only a byte comparison reveals it isn't. `jrmoulckers/cartridge` had exactly this — a
+`workflow.instructions.md` roughly half the size of canon, with no product-specific content, missing
+the section on `permissions:` replacing rather than extending. It was refreshed in the member repo
+before the first run, so it now adopts.
 
-**Reconcile before the first sync, in the member repo:** for each pre-seeded file, either make it
-byte-identical to canon or delete it (the engine will add it). **Do not reach for `--force`** —
-`--force` overwrites every drifted file in the run, so using it to fix a stale copy would also
-silently discard genuine member-authored edits elsewhere. It is a deliberate reviewer action for a
-known-good state, not a first-run tool.
+**"Byte-identical to canon" is shorthand, and taking it literally will mislead an audit.** The
+engine writes canon *plus* a provenance header, LF-normalized; the expected value is
+`inject(targetPath, canon)`, not canon. Diffing a member file against raw canon reports that header
+as a member-side addition on every correctly-synced file — a per-file false positive small enough to
+pass for a real finding. The cartridge audit above produced "68 lines missing, 1 line added"; the 68
+were real and the 1 was the engine's own stamp, and only the size difference kept the conclusion
+sound. See [`sync/README.md`](../sync/README.md#auditing-a-member-by-hand-compare-against-inject-not-against-canon)
+for the check that settles it.
+
+**Reconcile before the first sync, in the member repo:** for each pre-seeded file, either refresh it
+to match what the engine would write or delete it (the engine will add it). **Do not reach for
+`--force`** — `--force` overwrites every drifted file in the run, so using it to fix a stale copy
+would also silently discard genuine member-authored edits elsewhere. It is a deliberate reviewer
+action for a known-good state, not a first-run tool.
 
 ## CLI usage
 
