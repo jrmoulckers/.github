@@ -285,10 +285,16 @@ date means a new branch and a new PR, leaving the previous attempt untouched for
 
 ## Authentication
 
-Set `STUDIO_SYNC_TOKEN` to a PAT that can push and open PRs on the member repos (and on
-`jrmoulckers/jrmoulckers` for the profile mirror), plus **read** access to the private token
+Set `STUDIO_SYNC_TOKEN` to a **fine-grained** PAT with Contents + Pull requests **Read and write**
+on the member repos and `jrmoulckers/jrmoulckers`, plus Contents: **Read** on the private token
 source repo `jrmoulckers/studio` (needed when a member opts into `tokens`). The default
 `GITHUB_TOKEN` is scoped to the backbone repo only and **cannot** operate cross-repo.
+
+**No `workflow` scope.** The engine never writes under `.github/workflows/` — `workflows` and
+`health` are native, resolved and reported but dropped before the write list, and a test asserts it.
+See [`docs/sync.md`](../docs/sync.md#authentication-studio_sync_token) for why that scope in
+particular is worth refusing.
+
 `--dry-run` needs no token (it won't clone `jrmoulckers/studio`; pass `--studio-dir` to list
 vendored token files offline).
 

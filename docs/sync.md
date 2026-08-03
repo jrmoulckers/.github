@@ -291,12 +291,37 @@ scratch member checkout.
 
 The scheduled workflow's default `GITHUB_TOKEN` is scoped to **this** repo only and **cannot**
 push branches or open PRs in other repositories. Cross-repo sync therefore requires a Personal
-Access Token stored as the **`STUDIO_SYNC_TOKEN`** secret, able to push and open PRs on every
-member repo (and on `jrmoulckers/jrmoulckers` for the profile mirror), plus **read** access to
-the private token source repo `jrmoulckers/studio` (for `@jrm/tokens` vendoring). Classic PAT:
-`repo` scope; fine-grained: Contents + Pull requests read/write on the target repos, and
-Contents: Read on `jrmoulckers/studio`. `--dry-run` needs no token (pass `--studio-dir` to list
-vendored token files offline); the workflow fails fast on real runs when the secret is missing.
+Access Token stored as the **`STUDIO_SYNC_TOKEN`** secret.
+
+**Use a fine-grained token, with exactly these permissions:**
+
+| Permission | Level | Repositories |
+| --- | --- | --- |
+| Contents | Read and write | the 5 member repos + `jrmoulckers/jrmoulckers` |
+| Pull requests | Read and write | same set |
+| Contents | Read | `jrmoulckers/studio` (private `@jrm/tokens` source) |
+
+Contents write covers the branch push; Pull requests write covers opening and reusing the sync PR;
+the `studio` read is the token vendoring. Nothing else is exercised.
+
+**Do not grant the classic `workflow` scope.** Scopes should be derived from the paths a tool
+provably writes, not from the category of tool it is — and the engine never writes under
+`.github/workflows/`. `workflows` and `health` are the `NATIVE_KINDS`: resolved and reported so the
+plan is honest, dropped before the write list (see [Native kinds have no transport](#native-kinds-have-no-transport)),
+and asserted as never-written in `sync/test/manifest.test.mjs`.
+
+The asymmetry matters. `workflow` on a classic PAT confers the ability to create and modify Actions
+workflow files in every repo the token reaches, and a workflow edit is arbitrary code execution in
+CI with access to that repo's secrets. A stored PAT does not expire with the run, so an unnecessary
+scope persists until someone thinks to revoke it — which is to say, indefinitely. If a real run ever
+fails with a 403 on a `.github/workflows/` path, that is a **bug in the native-kind handling** and
+must be fixed there, not granted around.
+
+A classic PAT with `repo` also works and covers the `studio` read, but it is far broader than the
+engine needs and is not the recommendation.
+
+`--dry-run` needs no token (pass `--studio-dir` to list vendored token files offline); the workflow
+fails fast on real runs when the secret is missing.
 
 ## Profile README (user-account caveat)
 

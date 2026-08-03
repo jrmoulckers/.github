@@ -11,12 +11,15 @@
 # IMPORTANT — authentication:
 #   The default `GITHUB_TOKEN` is scoped to THIS repo only; it CANNOT push branches or open
 #   PRs in other repositories. Cross-repo sync therefore requires a Personal Access Token
-#   stored as the `STUDIO_SYNC_TOKEN` secret, with permission to push and open PRs on every
-#   member repo (classic PAT: `repo` scope; fine-grained: Contents + Pull requests: Read/Write
-#   on the member repos and on `jrmoulckers/jrmoulckers`). It must ALSO have **read** access to
-#   the private token source repo `jrmoulckers/studio` (fine-grained: Contents: Read) so the
-#   engine can vendor `@jrm/tokens` for members that opt in; classic `repo` scope already covers
-#   this.
+#   stored as the `STUDIO_SYNC_TOKEN` secret. Use a FINE-GRAINED token with exactly:
+#     - Contents: Read and write   — the 5 member repos + `jrmoulckers/jrmoulckers`
+#     - Pull requests: Read and write — same set
+#     - Contents: Read             — `jrmoulckers/studio` (private @jrm/tokens source)
+#   Do NOT grant the classic `workflow` scope. The engine never writes under
+#   `.github/workflows/` — `workflows` and `health` are NATIVE kinds, resolved and reported
+#   but never copied (see docs/sync.md). A classic `repo` PAT also works but is far broader
+#   than needed. If a run ever 403s on a `.github/workflows/` path that is a bug in the
+#   native-kind handling, not a missing scope.
 #
 # Without that secret the job fails fast on real syncs; `dry_run` needs no token.
 # =============================================================================
@@ -67,7 +70,7 @@ jobs:
           STUDIO_SYNC_TOKEN: ${{ secrets.STUDIO_SYNC_TOKEN }}
         run: |
           if [ -z "$STUDIO_SYNC_TOKEN" ]; then
-            echo "::error::STUDIO_SYNC_TOKEN secret is not set. The default GITHUB_TOKEN cannot push to other repos; add a PAT secret named STUDIO_SYNC_TOKEN (repo scope on member repos, plus read access to jrmoulckers/studio for @jrm/tokens vendoring)."
+            echo "::error::STUDIO_SYNC_TOKEN secret is not set. The default GITHUB_TOKEN cannot push to other repos; add a fine-grained PAT secret named STUDIO_SYNC_TOKEN with Contents + Pull requests: Read and write on the member repos and jrmoulckers/jrmoulckers, plus Contents: Read on jrmoulckers/studio for @jrm/tokens vendoring. Do not grant the workflow scope — the engine never writes .github/workflows/."
             exit 1
           fi
 
