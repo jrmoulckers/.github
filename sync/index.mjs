@@ -118,7 +118,7 @@ function main() {
 
     if (opts.check) return runCheck(plans, opts, manifest, token);
     if (opts.workDir) return runWorkDir(plans, opts, manifest, date);
-    if (opts.dryRun) return runDryRun(plans, manifest, REPO_ROOT, date);
+    if (opts.dryRun) return runDryRun(plans, opts, manifest, REPO_ROOT, date);
     return runSync(plans, opts, manifest, token, date);
   } finally {
     studio?.cleanup();
@@ -127,12 +127,19 @@ function main() {
 
 // --- modes -----------------------------------------------------------------
 
-function runDryRun(plans, manifest, backboneRoot, date) {
+function runDryRun(plans, opts, manifest, backboneRoot, date) {
   out(`JRM Studio sync — dry run (${date}) — ${plans.length} member(s)\n`);
   for (const { resolved, targets } of plans) printPlan(resolved, targets);
+  // A dry run exists to predict the real run, so it must model the same member filter:
+  // runSync mirrors the profile only on unfiltered runs.
   const profile = profileTarget(manifest.owner, backboneRoot);
-  out('▶ profile mirror');
-  out(`  ${profile.repo}:${profile.write.targetPath}  ⟵ profile/README.md`);
+  if (opts.members.length) {
+    out('▶ profile mirror');
+    out(`  skipped — member filter active (--members); a real run would not mirror ${profile.repo}`);
+  } else {
+    out('▶ profile mirror');
+    out(`  ${profile.repo}:${profile.write.targetPath}  ⟵ profile/README.md`);
+  }
   out('\nDry run complete — no files written, no git or network operations performed.');
   return 0;
 }
@@ -268,7 +275,14 @@ function printReport(report) {
   line('baselined (lock only)', report.adopted);
   if (report.drift.length) {
     log.warn(`    ⚠️ locally modified (skipped): ${report.drift.length}`);
-    for (const item of report.drift) log.warn(`        ${item.targetPath}`);
+    for (const item of report.drift) {
+      log.warn(`        ${item.targetPath}${item.note ? ` — ${item.note}` : ''}`);
+    }
+    // A skipped AGENTS.md means the member did not receive the base guide at all, which
+    // is easy to miss among a successful run's other counts.
+    if (report.drift.some((item) => item.targetPath === 'AGENTS.md')) {
+      log.warn('    ⚠️ AGENTS.md was NOT updated — this member has no current base guide.');
+    }
   }
   const status = report.changed
     ? 'changes pending'

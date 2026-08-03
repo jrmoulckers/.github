@@ -70,7 +70,7 @@ export function apply(memberRoot, writes, lock, opts = {}) {
         }
         break;
       default: // drift — leave the lock entry untouched so the reviewer can reconcile.
-        report.drift.push(item);
+        report.drift.push(res.note ? { ...item, note: res.note } : item);
     }
   }
 
@@ -120,10 +120,23 @@ function planAgentsMd(memberRoot, spec, entries, force) {
   if (isLocallyModified(entries[spec.targetPath], currentHash, renderedHash)) {
     return force
       ? { action: 'forced', newContent: buildFile(existing, inner), newEntry }
-      : { action: 'drift' };
+      : { action: 'drift', note: suspectBlockNote(currentInner, inner) };
   }
   if (currentHash === renderedHash) return { action: 'unchanged', newEntry };
   return { action: 'update', newContent: buildFile(existing, inner), newEntry };
+}
+
+/**
+ * A managed block a small fraction of canon's size is far more likely to be a stray pair
+ * of marker strings in prose than a deliberate edit. Say so, because the alternative is a
+ * generic drift line for the single most important file the sync delivers.
+ */
+function suspectBlockNote(currentInner, canonInner) {
+  if (currentInner.length >= Math.min(512, canonInner.length / 4)) return undefined;
+  return (
+    `managed block is only ${currentInner.length} char(s) vs ${canonInner.length} in canon — ` +
+    'check AGENTS.md for stray studio:base markers'
+  );
 }
 
 /**

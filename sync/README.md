@@ -99,7 +99,7 @@ Two more asset classes are synced but are **not** `optIn` kinds:
 | Asset | Configured by | Target | Notes |
 | --- | --- | --- | --- |
 | Vendored `@jrm/tokens` | `members[].tokens` (`{ "enabled": true, "targetPath"?: … }`) plus the top-level `tokens` block | `vendor/@jrm/tokens/` (per-member overridable) | **External** — vendored from the private `jrmoulckers/studio` repo, not backbone canon. See below. |
-| Profile README | not configurable per member — always `profile/README.md` in this repo | `jrmoulckers/jrmoulckers` `README.md` | Mirrored to the user profile repo once per run, and **only on unfiltered runs**: passing `--members` skips the mirror entirely. |
+| Profile README | not configurable per member — always `profile/README.md` in this repo | `jrmoulckers/jrmoulckers` `README.md` | Mirrored to the user profile repo once per run, and **only on unfiltered runs**: passing `--members` skips the mirror entirely. `--dry-run` reports the mirror as skipped under a filter, matching the run it previews. |
 
 Every synced file carries a provenance header
 (`synced from jrmoulckers/.github — canonical source; do not edit here`): an HTML comment
@@ -165,6 +165,20 @@ Product repos keep their own extending `AGENTS.md`. The tool manages only a mark
 Everything outside the markers is product-local and never touched. Editing inside the block
 is treated as drift; editing outside it is ignored. If a member has no `AGENTS.md`, one is
 created containing just the managed block.
+
+**A marker only counts when it stands alone on its own line, outside any fenced code block.**
+That strictness exists because the natural thing for a product `AGENTS.md` to do is *explain*
+this convention — quoting `` `<!-- studio:base:start -->` `` inline, or showing both markers in a
+```` ```markdown ```` example, exactly as the block above does. Under a looser match that prose
+formed a **phantom managed block**: `extractBlock` returned the few characters between the two
+mentions instead of `null`, the "no markers → append" path was never taken, the phantom content
+hashed as unrecognized drift, and `AGENTS.md` was **skipped** — the member received every other
+file, the run reported success, and the base guide silently never arrived. So documenting the
+sync in your `AGENTS.md` is safe; write about it freely.
+
+As a second line of defense, drift on a managed block that is a small fraction of canon's size is
+reported with an explicit *"check AGENTS.md for stray `studio:base` markers"* note, and a skipped
+`AGENTS.md` gets its own warning line rather than being one entry in a drift list.
 
 ## Idempotency & drift — `.studio-sync.lock.json`
 
