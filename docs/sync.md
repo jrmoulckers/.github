@@ -57,6 +57,34 @@ flowchart LR
 6. **Let product CI validate** — the member's own checks run on the sync PR; a human (or the
    member's agents) reviews and merges.
 
+## The member registry
+
+`members[]` in [`studio.config.json`](../studio.config.json) is the registry. Validation covers
+only three fields — `repo` (must match `owner/name`), `optIn` (keys against `KINDS`, names against
+the canon catalog) and `tokens` (shape). The full per-field table is in
+[`sync/README.md`](../sync/README.md#member-entries).
+
+**`framework`, `packageManager` and `notes` are descriptive, unvalidated and unenforced.**
+`manifest.mjs` never reads them, `resolve.mjs` passes them through, and their only consumer is the
+plan label built in `printPlan` — which is called from `runDryRun` and nowhere else. A wrong value
+is one wrong word in `--dry-run` stdout. It never reaches a real run, a PR body, or a failure.
+
+That is a reason for *more* care, not less. A load-bearing field that is wrong turns CI red and
+self-corrects: someone fixes it and the registry converges on truth. These can be **quietly wrong
+forever** — nothing validates them, no run fails, and their only readers are humans and future
+agents deciding how to treat a member repo, with no independent source to check against. Accuracy
+here is a discipline obligation the tooling does not protect.
+
+Two practices follow, both of which have already caught a real error:
+
+- **Verify member facts against the repo's default branch**, never an onboarding PR. `cartridge`
+  was registered as a pnpm Next.js app from its PR #1, which was closed without merging; `main` is
+  an npm Svelte PWA.
+- **Pin anything worth defending in [`sync/test/manifest.test.mjs`](../sync/test/manifest.test.mjs).**
+  Validation will not catch a descriptive error, but an assertion will. Every member's `framework`
+  and `packageManager` is asserted there today, so changing one without updating the test fails CI —
+  which is the closest the repo can get to enforcing a field the engine deliberately ignores.
+
 ## Native kinds have no transport
 
 `health` and `workflows` are the two `NATIVE_KINDS` (`sync/lib/manifest.mjs`). The engine resolves
