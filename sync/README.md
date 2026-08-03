@@ -198,15 +198,21 @@ Everything outside the markers is product-local and never touched. Editing insid
 is treated as drift; editing outside it is ignored. If a member has no `AGENTS.md`, one is
 created containing just the managed block.
 
-**A marker only counts when it stands alone on its own line, outside any fenced code block.**
-That strictness exists because the natural thing for a product `AGENTS.md` to do is *explain*
-this convention — quoting `` `<!-- studio:base:start -->` `` inline, or showing both markers in a
-```` ```markdown ```` example, exactly as the block above does. Under a looser match that prose
-formed a **phantom managed block**: `extractBlock` returned the few characters between the two
-mentions instead of `null`, the "no markers → append" path was never taken, the phantom content
-hashed as unrecognized drift, and `AGENTS.md` was **skipped** — the member received every other
-file, the run reported success, and the base guide silently never arrived. So documenting the
-sync in your `AGENTS.md` is safe; write about it freely.
+**A marker only counts when it starts at column 0 on a line of its own, outside any fenced code
+block.** That strictness exists because the natural thing for a product `AGENTS.md` to do is
+*explain* this convention — quoting `` `<!-- studio:base:start -->` `` inline, showing both markers
+in a ```` ```markdown ```` example exactly as the block above does, or indenting them four spaces as
+a code block. Under a looser match that prose formed a **phantom managed block**: `extractBlock`
+returned the few characters between the two mentions instead of `null`, the "no markers → append"
+path was never taken, the phantom content hashed as unrecognized drift, and `AGENTS.md` was
+**skipped** — the member received every other file, the run reported success, and the base guide
+silently never arrived. So documenting the sync in your `AGENTS.md` is safe; write about it freely.
+
+Three matching rules do that work, and they cover different cases: fenced examples are masked
+before matching (offsets preserved, so the real block's indices stay honest), inline mentions fail
+because the marker is not alone on its line, and **indented** code blocks fail because the markers
+must be at column 0 — masking only understands ``` / ~~~ fences, so the indent rule is what closes
+that one. The engine always writes markers at column 0, so nothing legitimate is excluded.
 
 As a second line of defense, drift on a managed block that is a small fraction of canon's size is
 reported with an explicit *"check AGENTS.md for stray `studio:base` markers"* note, and a skipped
@@ -303,7 +309,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | File | Covers |
 | --- | --- |
 | `test/branch-reuse.test.mjs` | Sync-branch reuse: reviewer commits survive a re-run; a diverged remote is rejected instead of force-pushed. |
-| `test/basemerge.test.mjs` | Managed-block detection: markers quoted in prose or shown in a fenced example do not form a block; real blocks are still replaced; genuine edits are still drift. |
+| `test/basemerge.test.mjs` | Managed-block detection: markers quoted in prose, shown in a fenced example, or indented as a code block do not form a block; real blocks are still replaced; genuine edits are still drift. |
 | `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown. |
 | `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule. |
 | `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; every member's `framework`/`packageManager` matches its default branch; cartridge's curated `optIn` stays explicit; an unknown name in an explicit list fails validation; `canon` matches the files on disk both ways; `tokens`/`profile` are not `optIn` kinds; native kinds are never written. |

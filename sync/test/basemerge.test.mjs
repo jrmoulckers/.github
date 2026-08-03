@@ -93,6 +93,34 @@ test('markers shown inside a fenced example do not form a block', () => {
   assert.ok(built.includes('Everything outside is ours.'));
 });
 
+test('markers in a 4-space indented code block do not form a block', () => {
+  // maskFences only understands ``` / ~~~ fences, so this case is closed by requiring the
+  // markers at column 0 — an indented code block always carries at least four leading spaces.
+  const file = [
+    '# Product',
+    '',
+    'The sync engine writes:',
+    '',
+    `    ${START_MARKER}`,
+    '    …canonical AGENTS.md…',
+    `    ${END_MARKER}`,
+    '',
+    'Everything outside is ours.',
+    '',
+  ].join('\n');
+
+  assert.equal(extractBlock(file), null, 'an indented example must not open a region');
+
+  const built = buildFile(file, CANON);
+  assert.equal(canonicalizeInner(extractBlock(built)), canonicalizeInner(CANON));
+  assert.ok(built.includes(`    ${START_MARKER}`), 'the indented example is untouched');
+  assert.equal(
+    built.match(/^<!-- studio:base:start -->$/gm).length,
+    1,
+    'exactly one real block, at column 0',
+  );
+});
+
 test('an AGENTS.md documenting the convention is written, not skipped as drift', () => {
   withTmp((root) => {
     // Exactly the shape that produced "⚠️ locally modified (skipped): AGENTS.md".

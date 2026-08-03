@@ -40,8 +40,8 @@ flowchart LR
    (agents → `.github/agents/`, skills → `.github/skills/`, etc.). `base` files (`AGENTS.md`,
    `agency.toml`) land at the member root; product repos keep their own extending `AGENTS.md`
    and the tool merges/append-marks rather than clobbering (see Drift below). The
-   `studio:base` markers only count when alone on a line outside a fenced code block, so a
-   member `AGENTS.md` may safely *document* the convention (see
+   `studio:base` markers only count at column 0 on a line of their own, outside a fenced code
+   block, so a member `AGENTS.md` may safely *document* the convention (see
    [AGENTS.md base merge](../sync/README.md#agentsmd-base-merge)). `health` and
    `workflows` are **native** (see the table above): they are resolved and reported but never
    written — health files are inherited from this `.github` repo and reusable workflows are
