@@ -228,7 +228,11 @@ after any YAML frontmatter (or atop plain Markdown), or a leading `#` line for `
   looking like local drift. Adoption counts as a change, so the very first run against a repo that
   was seeded by hand — every member today, since no `.studio-sync.lock.json` exists yet — can open a
   PR whose **only** diff is `.studio-sync.lock.json` (reported under "Baselined in lockfile"). That
-  is expected: merge it, and subsequent runs go quiet.
+  is expected: merge it, and subsequent runs go quiet. Confirmed on disk, not inferred — a
+  `--work-dir` rehearsal against a real `cartridge` clone with the lockfile deleted reported
+  `baselined: 68` with `git status --porcelain` showing exactly one modified file. Because that
+  reads badly (68 paths listed above a one-file diff), the PR body now states outright that no
+  file contents changed when a run is adoption-only.
 - State lives in a per-member lockfile **`.studio-sync.lock.json`** at the member root, mapping
   each target path to `{ sourceSha256, targetSha256, syncedAt }`:
   - `sourceSha256` detects **upstream** change (canon moved) → the target is rewritten.

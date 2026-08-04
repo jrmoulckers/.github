@@ -89,10 +89,32 @@ export function buildPrBody(report, { date, intro } = {}) {
       'Synced from [`jrmoulckers/.github`](https://github.com/jrmoulckers/.github) by the studio sync tool.',
   );
 
+  // A run can be entirely adoption: every target already exists and is byte-identical to what
+  // the engine would write, so the only file in the diff is the lockfile. Say so before listing
+  // the paths, or a reviewer reads "Baselined (68)" over a one-file diff and hunts for 67 more.
+  const wroteFiles =
+    report.added.length + report.updated.length + (report.forced?.length ?? 0) > 0;
+  if (!wroteFiles && report.adopted?.length) {
+    lines.push('');
+    lines.push(
+      '**No file contents changed.** Every target below already existed and matched canon ' +
+        'byte-for-byte, so this run only recorded them in `.studio-sync.lock.json` — the entire ' +
+        'diff of this PR is that one file.',
+    );
+  }
+
   section(lines, `Added (${report.added.length})`, report.added);
   section(lines, `Updated (${report.updated.length})`, report.updated);
   if (report.forced?.length) section(lines, `Force-updated (${report.forced.length})`, report.forced);
-  if (report.adopted?.length) section(lines, `Baselined in lockfile (${report.adopted.length})`, report.adopted);
+  if (report.adopted?.length) {
+    section(
+      lines,
+      `Baselined in lockfile (${report.adopted.length})`,
+      report.adopted,
+      'These files already existed and are byte-identical to canon. Nothing was written to them; ' +
+        'they are now tracked in `.studio-sync.lock.json` so later canon changes reach them.',
+    );
+  }
 
   if (report.drift.length) {
     lines.push('');
@@ -119,10 +141,14 @@ export function buildPrBody(report, { date, intro } = {}) {
   return lines.join('\n');
 }
 
-function section(lines, heading, items) {
+function section(lines, heading, items, note) {
   if (!items.length) return;
   lines.push('');
   lines.push(`### ${heading}`);
   lines.push('');
+  if (note) {
+    lines.push(note);
+    lines.push('');
+  }
   for (const item of items) lines.push(`- \`${item.targetPath}\``);
 }

@@ -430,6 +430,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; a no-op run leaves the lockfile byte-identical (`generatedAt` not bumped); an adopted baseline still updates when canon moves, and is still checked for drift; a pre-seeded file that differs from canon stays drift on every run. |
 | `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; every member's `framework`/`packageManager` matches its default branch; every reusable workflow a member calls is listed in its `optIn.workflows`; a member that narrows its AI layer records the reason in `notes`; an unknown name in an explicit list fails validation; `canon` matches the files on disk both ways; `tokens`/`profile` are not `optIn` kinds; native kinds are never written. |
 | `test/provenance.test.mjs` | Every real write equals `inject(targetPath, canon)` and never canon verbatim — so the documented hand-audit baseline stays correct; and that check is line-ending agnostic on the member side. |
+| `test/prbody.test.mjs` | An adoption-only run's PR body says its entire diff is the lockfile, and does not claim that when the run also wrote files (including via `--force`). |
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs the suite plus an offline
 `--dry-run` on every PR.
