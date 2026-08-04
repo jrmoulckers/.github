@@ -10,6 +10,7 @@ import { readLock, hashText, LOCK_FILENAME } from '../lib/lock.mjs';
 
 const BACKBONE = 'jrmoulckers/.github';
 const CONTENT = '# canon\n';
+const CONTENT_V2 = '# canon\n\nA section added upstream after the member was baselined.\n';
 
 function spec(content = CONTENT) {
   return {
@@ -163,12 +164,40 @@ test('adoption: a pre-existing file matching canon is baselined and counts as a 
   });
 });
 
-// Complements #41's adoption-lifecycle tests, which pin that an adopted baseline still *updates*
-// when canon moves. Neither they nor the drift test above reach this case: both mutations that
-// break adoption-update leave #41 red, but making an adopted file incapable of drift
-// (`isLocallyModified` -> `lockEntry ? false : ...`) leaves all three of its tests green. The
-// existing drift test only covers a lock entry created by `add`, not one created by adoption.
+// The whole justification for the adoption path: an adopted baseline must still receive later canon
+// changes. If it stopped, nothing would fail — every run would report `unchanged → up to date`
+// while the member silently froze at the version it was adopted with.
+//
+// basemerge.test.mjs covers this for the AGENTS.md managed-block path; this is the plain-file path,
+// which is the one every agent/skill/prompt/instruction file takes.
+test('an adopted baseline still updates when canon changes later', () => {
+  withTmp((root) => {
+    const target = spec().targetPath;
+    seed(root, target, CONTENT);
 
+    const adopted = apply(root, [spec()], readLock(root, BACKBONE), { write: true }).report;
+    assert.equal(adopted.adopted.length, 1, 'precondition: the file is adopted, not added');
+
+    // Canon moves upstream. The member never touched the file, so this is an update, not drift.
+    const { report } = apply(root, [spec(CONTENT_V2)], readLock(root, BACKBONE), { write: true });
+    assert.equal(report.updated.length, 1, 'an upstream change to an adopted file is an update');
+    assert.equal(report.drift.length, 0, 'an untouched adopted file is never mistaken for drift');
+    assert.equal(
+      readFileSync(join(root, ...target.split('/')), 'utf8'),
+      CONTENT_V2,
+      'the member receives the new canon',
+    );
+
+    const third = apply(root, [spec(CONTENT_V2)], readLock(root, BACKBONE), { write: true }).report;
+    assert.equal(third.changed, false, 'and settles again afterwards');
+  });
+});
+
+// The complement. Adoption writes its lock entry from a different branch than `add`, and nothing
+// else asserts drift is detected off *that* entry — the existing drift tests all start from a file
+// the engine wrote itself. Mutating `isLocallyModified` to `lockEntry ? false : …` fails this test
+// and the three pre-existing drift tests while leaving the update test above green, which is the
+// point: an update never consults drift, so update coverage cannot stand in for it.
 test('adoption does not disable drift detection for that file', () => {
   withTmp((root) => {
     const s = spec();
