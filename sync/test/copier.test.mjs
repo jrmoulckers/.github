@@ -162,3 +162,26 @@ test('adoption: a pre-existing file matching canon is baselined and counts as a 
     assert.equal(second.changed, false, 'once baselined, later runs go quiet');
   });
 });
+
+// Complements #41's adoption-lifecycle tests, which pin that an adopted baseline still *updates*
+// when canon moves. Neither they nor the drift test above reach this case: both mutations that
+// break adoption-update leave #41 red, but making an adopted file incapable of drift
+// (`isLocallyModified` -> `lockEntry ? false : ...`) leaves all three of its tests green. The
+// existing drift test only covers a lock entry created by `add`, not one created by adoption.
+
+test('adoption does not disable drift detection for that file', () => {
+  withTmp((root) => {
+    const s = spec();
+    seed(root, s.targetPath, CONTENT);
+    const adopt = apply(root, [s], readLock(root, BACKBONE), { write: true }).report;
+    assert.equal(adopt.adopted.length, 1, 'precondition: the file was adopted, not added');
+
+    const EDITED = '# canon\n\nlocal edit\n';
+    seed(root, s.targetPath, EDITED);
+    const after = apply(root, [s], readLock(root, BACKBONE), { write: true }).report;
+
+    assert.equal(after.drift.length, 1, 'a hand edit after adoption is still drift');
+    assert.equal(after.updated.length + after.forced.length, 0, 'and nothing is written');
+    assert.equal(readFileSync(join(root, ...s.targetPath.split('/')), 'utf8'), EDITED);
+  });
+});
