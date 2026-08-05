@@ -248,6 +248,21 @@ itself, so `--studio-dir` is only an offline convenience.
 Note that a member-filtered run — which the first one is — skips the profile mirror. The dry run
 says so explicitly rather than printing a mirror line it would not perform.
 
+**Vendored tokens can be adoption rather than addition.** "The engine has never run" is not the
+same claim as "the files are not there", and conflating them makes the first-run split predictable
+in the wrong direction. `cartridge` hand-vendored all 16 `vendor/@jrm/tokens/` files in its own
+`ceb394e` long before any sync, and they are byte-identical to what the engine would write — so
+they are *baselined*, not *added*. Measured with `--work-dir --studio-dir` against
+`cartridge@2536220`, and unchanged at `973c759` (2026-08-05):
+
+```
+added: 15   (canon 15 · tokens 0)
+baselined:  53   (canon 37 · tokens 16)      Σ 68, drift 0
+```
+
+Predict a first run by *reading the member*, not by assuming an empty target: any hand-seeded file
+that already matches canon lands in the baselined column whatever kind it belongs to.
+
 Every synced file gets a provenance header
 (`synced from jrmoulckers/.github — canonical source; do not edit here`) — an HTML comment
 after any YAML frontmatter (or atop plain Markdown), or a leading `#` line for `.toml`/`.yml`.
