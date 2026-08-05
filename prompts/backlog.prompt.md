@@ -21,7 +21,7 @@ Categorize issues by owner/agent, priority, and status (unclaimed, in progress, 
 ### 2. Open Pull Requests
 
 ```bash
-gh pr list --state open --json number,title,headRefName,author,createdAt,updatedAt,statusCheckRollup,mergeable,reviewDecision
+gh pr list --state open --limit 200 --json number,title,headRefName,author,createdAt,updatedAt,statusCheckRollup,mergeable,reviewDecision
 ```
 
 Report CI status, conflicts, review status, and age for each PR.

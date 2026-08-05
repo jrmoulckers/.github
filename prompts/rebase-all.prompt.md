@@ -14,7 +14,7 @@ Fetch the latest default branch and rebase open PRs onto it so conflicts do not 
 
 ```bash
 git fetch origin <default-branch>
-gh pr list --state open --json number,title,headRefName,mergeable,statusCheckRollup
+gh pr list --state open --limit 200 --json number,title,headRefName,mergeable,statusCheckRollup
 ```
 
 List open PRs and note existing conflicts.

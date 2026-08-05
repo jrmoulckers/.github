@@ -25,7 +25,7 @@ Flag worktrees whose branches are merged, deleted on the remote, or no longer ha
 ### 2. Identify Stale Pull Requests
 
 ```bash
-gh pr list --state open --json number,title,headRefName,author,createdAt,updatedAt,isDraft,statusCheckRollup,mergeable,reviewDecision
+gh pr list --state open --limit 200 --json number,title,headRefName,author,createdAt,updatedAt,isDraft,statusCheckRollup,mergeable,reviewDecision
 ```
 
 Flag PRs that:

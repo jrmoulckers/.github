@@ -13,7 +13,7 @@ Find open PRs with failing checks, diagnose the failures, fix them, and verify t
 ### 1. Identify Failing PRs
 
 ```bash
-gh pr list --state open --json number,title,headRefName,author,statusCheckRollup
+gh pr list --state open --limit 200 --json number,title,headRefName,author,statusCheckRollup
 ```
 
 Filter to PRs with non-passing checks. For each one:
