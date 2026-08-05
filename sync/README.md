@@ -18,7 +18,7 @@ node sync/index.mjs [options]
 | `--dry-run` | Plan only. Prints the resolved file set per member. **No writes, git, or network.** |
 | `--members <a,b>` | Restrict to these member repos (`owner/name` or bare `name`). |
 | `--check` | CI gate. Exit non-zero if any member is out of date or has drift. |
-| `--force` | Overwrite locally-modified (drift) targets instead of skipping them. |
+| `--force` | Overwrite locally-modified (drift) targets instead of skipping them. Applies to **every member in the run**, not per file. |
 | `--work-dir <path>` | Apply/inspect against a local checkout; **requires exactly one matching `--members` value**, and the path must be the checkout itself (a parent directory is rejected). No clone/push/PR. |
 | `--studio-dir <path>` | Local checkout of the token source repo (`jrmoulckers/studio`) to vendor `@jrm/tokens` from, instead of cloning it. Offline seam for tokens. |
 | `--date <YYYY-MM-DD>` | Override the date used for branch/commit naming. |
@@ -370,9 +370,15 @@ recorded, bytes equal to raw canon mean someone deliberately stripped the header
 which keeps its drift signal. `jrmoulckers/finance`'s root `agency.toml` is the worked example: it
 hashes to `281f6b5cf11d`, raw canon, against `inject()`'s `c5dc520a8bd3`.
 
-`--force` is not the tool for that. It applies to the whole run, rewriting **every** drifted file,
-so using it to clear one stale copy would also discard genuine member-authored edits elsewhere. It
-is a deliberate reviewer action against a known state, not a first-run cleanup.
+`--force` is not the tool for that. It is one flag for the whole invocation — `index.mjs` parses it
+once and threads it into every member, and `apply()` then applies it to every spec in each — so it
+rewrites **every** drifted file in **every member the run touches**. Using it to clear one stale
+copy would also discard genuine member-authored edits in repos you were not looking at. It is a
+deliberate reviewer action against a known state, not a first-run cleanup.
+
+The drift note in the PR body says so at the point of use, because that is the only text a reviewer
+reads before reaching for the flag, and it appears inside a single member's PR where a run-wide
+remedy looks scoped to the list beneath it.
 
 ### Auditing a member by hand: compare against `inject()`, not against canon
 
@@ -479,7 +485,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; a no-op run leaves the lockfile byte-identical (`generatedAt` not bumped); an adopted baseline still updates when canon moves, and is still checked for drift; a pre-seeded file that differs from canon stays drift on every run; a file hand-copied as **raw canon** is stamped with the provenance header instead of being flagged, but only while it has no lock entry. |
 | `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; every member's `framework`/`packageManager` matches its default branch; every reusable workflow a member calls is listed in its `optIn.workflows`; a member that narrows its AI layer records the reason in `notes`; an unknown name in an explicit list fails validation; `canon` matches the files on disk both ways; `tokens`/`profile` are not `optIn` kinds; native kinds are never written. |
 | `test/provenance.test.mjs` | Every real write equals `inject(targetPath, canon)` and never canon verbatim — so the documented hand-audit baseline stays correct; and that check is line-ending agnostic on the member side. |
-| `test/prbody.test.mjs` | An adoption-only run's PR body says its entire diff is the lockfile, and does not claim that when the run also wrote files (including via `--force`). |
+| `test/prbody.test.mjs` | An adoption-only run's PR body says its entire diff is the lockfile, and does not claim that when the run also wrote files (including via `--force`). The drift note states that `--force` is run-wide, offers the by-hand remedy first, and neither appears when the run has no drift. |
 | `test/workdir.test.mjs` | `--work-dir` guards: a parent directory, a missing path and a file are all rejected; a git worktree (whose `.git` is a file) is accepted; a checkout of the wrong repo warns, across URL spellings and case, while a remote-less checkout does not. |
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs the suite plus an offline

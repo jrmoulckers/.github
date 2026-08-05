@@ -122,7 +122,21 @@ export function buildPrBody(report, { date, intro } = {}) {
     lines.push('');
     lines.push(
       'These targets were changed in this repo since the last sync and were **left untouched**. ' +
-        'Reconcile them by hand, or re-run the sync with `--force` to overwrite with canon.',
+        'To clear one, reconcile it by hand in this repo — edit it to match canon, or delete it ' +
+        'and let the next sync add it.',
+    );
+    lines.push('');
+    // `--force` is per *invocation*, not per file and not per member: one CLI flag is threaded
+    // into every member of the run. This note sits inside one member's PR next to that member's
+    // drift list, so "re-run with --force" reads as scoped to the paths directly below it. It is
+    // not. Naming the scale here is the only place it reaches the person about to act on it —
+    // the flag's name already reads like the answer, and nobody opens the design doc to check an
+    // answer they were just handed.
+    lines.push(
+      '> **`--force` is not a per-file fix.** It is a single flag for the whole run: it rewrites ' +
+        '**every** drifted file in **every** member that run touches, discarding member-authored ' +
+        'edits in repos whose PRs you may never open. Use it only against a state you have ' +
+        'already checked across all of them.',
     );
     lines.push('');
     for (const item of report.drift) lines.push(`- \`${item.targetPath}\``);

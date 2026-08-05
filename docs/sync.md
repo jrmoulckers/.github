@@ -169,9 +169,9 @@ for the check that settles it.
 
 **Reconcile before the first sync, in the member repo:** for each pre-seeded file, either refresh it
 to match what the engine would write or delete it (the engine will add it). **Do not reach for
-`--force`** — `--force` overwrites every drifted file in the run, so using it to fix a stale copy
-would also silently discard genuine member-authored edits elsewhere. It is a deliberate reviewer
-action for a known-good state, not a first-run tool.
+`--force`** — `--force` overwrites every drifted file in **every member the run touches**, so using
+it to fix a stale copy would also silently discard genuine member-authored edits in other repos. It
+is a deliberate reviewer action for a known-good state, not a first-run tool.
 
 ## CLI usage
 
