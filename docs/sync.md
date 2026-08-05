@@ -189,7 +189,7 @@ Flags: `--dry-run`, `--members <a,b>`, `--check`, `--force` (overwrite drift), `
 `--studio-dir <path>` (local `jrmoulckers/studio` checkout to vendor `@jrm/tokens` from, instead
 of cloning), `--date <YYYY-MM-DD>`.
 
-Four flag behaviors that are easy to trip over:
+Five flag behaviors that are easy to trip over:
 
 - **`--work-dir` requires exactly one member.** The path is a single member's checkout, so the
   run must resolve to exactly one member — pair it with `--members <owner/name>`. Anything else
@@ -218,6 +218,19 @@ Four flag behaviors that are easy to trip over:
   `--allow-unverified-work-dir` is the escape hatch for a genuine fork, mirror or local-only clone.
   It is scoped to that one check and prints what it suppressed.
 - **`--members` disables the profile mirror.** See [Profile README](#profile-readme-user-account-caveat).
+- **An offline rehearsal is only as current as the checkouts it reads.** Canon is loaded from the
+  directory holding `sync/` (`REPO_ROOT` is derived from the script's own path), and `--studio-dir`
+  reads tokens from whatever that checkout contains. Neither is fetched, and neither is compared to
+  its remote. A CI run is safe because the workflow checks the repo out fresh; a run from a local
+  worktree reports on the tree you have, including uncommitted edits and commits you have not
+  pulled.
+
+  This matters because rehearsal output is cited as evidence — several claims in this document are
+  backed by `--work-dir` runs. Re-running the command refreshes the traversal and nothing about the
+  sources it names, so a stale rehearsal produces a genuinely derived, genuinely new, genuinely
+  wrong result that looks nothing like a quote. Run `git fetch && git status` in both checkouts
+  first, and state which revisions a reported figure came from — see the dated cartridge numbers
+  under [The first run](#the-first-run).
 - **`--date <YYYY-MM-DD>` starts a clean attempt.** The sync branch is `studio-sync/<date>`, so a
   fresh date means a fresh branch and a fresh PR. That is the recovery path after a bad run: the
   previous attempt is left intact for inspection rather than amended. Re-running with the *same*
