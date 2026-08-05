@@ -14,6 +14,10 @@
 //                        Run-wide: applies to every member in the run, not to one file.
 //   --work-dir <path>    Treat <path> as a single member's checkout: apply/inspect locally,
 //                        no clone/push/PR. Requires exactly one --members. Offline testing seam.
+//                        Refuses to run unless the checkout's origin is that member.
+//   --allow-unverified-work-dir
+//                        Proceed when --work-dir cannot be identified as the named member (a
+//                        fork, mirror or local-only clone). Scoped to that one check.
 //   --studio-dir <path>  Use <path> as a local checkout of the token source repo (jrmoulckers/
 //                        studio) instead of cloning it. Offline seam for tokens; needed to
 //                        list/apply vendored @jrm/tokens under --dry-run / --work-dir.
@@ -33,7 +37,7 @@ import { enumerateTargets, enumerateTokenTargets } from './lib/assets.mjs';
 import { readLock } from './lib/lock.mjs';
 import { apply } from './lib/copier.mjs';
 import { cloneShallow } from './lib/git.mjs';
-import { assertMemberCheckout, repoMismatchWarning } from './lib/workdir.mjs';
+import { assertMemberCheckout, assertMemberIdentity } from './lib/workdir.mjs';
 import { resolveStudioRoot } from './lib/studio.mjs';
 import { syncMembers } from './lib/runner.mjs';
 import { mirrorProfile, profileTarget } from './lib/profile.mjs';
@@ -45,7 +49,7 @@ const REPO_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const out = (s = '') => process.stdout.write(`${s}\n`);
 
 function parseArgs(argv) {
-  const opts = { dryRun: false, check: false, force: false, members: [], workDir: null, studioDir: null, date: null, help: false };
+  const opts = { dryRun: false, check: false, force: false, members: [], workDir: null, studioDir: null, date: null, help: false, allowUnverifiedWorkDir: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const [key, inlineVal] = arg.startsWith('--') ? splitFlag(arg) : [arg, undefined];
@@ -56,6 +60,7 @@ function parseArgs(argv) {
       case '--force': opts.force = true; break;
       case '--members': opts.members = String(take()).split(',').map((s) => s.trim()).filter(Boolean); break;
       case '--work-dir': opts.workDir = take(); break;
+      case '--allow-unverified-work-dir': opts.allowUnverifiedWorkDir = true; break;
       case '--studio-dir': opts.studioDir = take(); break;
       case '--date': opts.date = take(); break;
       case '--help': case '-h': opts.help = true; break;
@@ -96,7 +101,24 @@ function main() {
   if (opts.workDir && plans.length !== 1) {
     throw new Error('--work-dir requires exactly one member (use --members <owner/name>).');
   }
-  if (opts.workDir) assertMemberCheckout(opts.workDir);
+  // Both guards run here, before the mode dispatch, so they cover --check --work-dir and
+  // --dry-run --work-dir as well as an applying run. --check is the one that most needs it: a
+  // wrong-checkout apply leaves a lockfile that makes the next --check report "up to date", so
+  // the mistake certifies itself, and the certifying run must be stopped by the same gate.
+  if (opts.workDir) {
+    assertMemberCheckout(opts.workDir);
+    const identity = assertMemberIdentity(opts.workDir, plans[0].resolved.repo, {
+      allowUnverified: opts.allowUnverifiedWorkDir,
+    });
+    if (identity.overridden) {
+      log.warn(
+        `--work-dir identity check overridden: ${opts.workDir} ` +
+          (identity.origin ? `has origin ${identity.origin}` : 'has no origin remote') +
+          `, not verifiably ${plans[0].resolved.repo}. Proceeding because ` +
+          '--allow-unverified-work-dir was passed.',
+      );
+    }
+  }
 
   // Vendored @jrm/tokens come from an external repo. Resolve a source checkout once (shared by
   // every opted-in member) and splice the token writes into each member's plan. Runs that touch
@@ -150,8 +172,7 @@ function runDryRun(plans, opts, manifest, backboneRoot, date) {
 function runWorkDir(plans, opts, manifest, date) {
   const { resolved, targets } = plans[0];
   const write = !opts.dryRun;
-  const mismatch = repoMismatchWarning(opts.workDir, resolved.repo);
-  if (mismatch) log.warn(mismatch);  const lock = readLock(opts.workDir, manifest.backbone);
+  const lock = readLock(opts.workDir, manifest.backbone);
   const { report } = apply(opts.workDir, targets.writes, lock, { force: opts.force, write });
   log.step(`${resolved.repo} → ${opts.workDir}${write ? '' : '  (dry-run: no writes)'}`);
   printReport(report);
@@ -317,7 +338,11 @@ Usage: node sync/index.mjs [options]
                        Run-wide: rewrites every drifted file in every member the run
                        touches. Not a per-file fix.
   --work-dir <path>    Apply/inspect against a local checkout (one --members); no clone/push/PR.
-                       Must be the checkout itself, not a directory containing it.
+                       Must be the checkout itself, not a directory containing it, and its
+                       origin must be the named member.
+  --allow-unverified-work-dir
+                       Proceed when --work-dir has a different origin or none at all (fork,
+                       mirror, local-only clone). Affects only that check.
   --studio-dir <path>  Local checkout of the token source repo (jrmoulckers/studio) to vendor
                        @jrm/tokens from, instead of cloning it. Offline seam for tokens.
   --date <YYYY-MM-DD>  Override the sync date used for branch/commit naming.

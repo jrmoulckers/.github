@@ -185,11 +185,11 @@ node sync/index.mjs --check                           # CI gate: non-zero if any
 ```
 
 Flags: `--dry-run`, `--members <a,b>`, `--check`, `--force` (overwrite drift), `--work-dir
-<path>` (apply against a local checkout; no clone/push/PR), `--studio-dir <path>` (local
-`jrmoulckers/studio` checkout to vendor `@jrm/tokens` from, instead of cloning), `--date
-<YYYY-MM-DD>`.
+<path>` (apply against a local checkout; no clone/push/PR), `--allow-unverified-work-dir`,
+`--studio-dir <path>` (local `jrmoulckers/studio` checkout to vendor `@jrm/tokens` from, instead
+of cloning), `--date <YYYY-MM-DD>`.
 
-Three flag behaviors that are easy to trip over:
+Four flag behaviors that are easy to trip over:
 
 - **`--work-dir` requires exactly one member.** The path is a single member's checkout, so the
   run must resolve to exactly one member — pair it with `--members <owner/name>`. Anything else
@@ -200,9 +200,23 @@ Three flag behaviors that are easy to trip over:
   pointing at a parent directory made every target look absent, so the run reported them all as
   `added` and exited 0 — indistinguishable from a legitimate first-sync plan. That is the failure
   worth guarding: drift is reported by the *absence* of a warning, so a run that sees no files at
-  all emits the most reassuring output the tool can produce. If the checkout is real but belongs to
-  a different repo, the origin remote is compared and a warning is printed (a warning rather than
-  an error, because forks and mirrors are legitimate; a missing remote is not flagged at all).
+  all emits the most reassuring output the tool can produce.
+- **`--work-dir` must also be provably *that* member, and the run refuses when it is not.** The
+  checkout's `origin` is compared to the member in the plan. Three outcomes: it matches and the run
+  proceeds; it names a different repo; or there is no origin at all. **The last two both abort with
+  exit 1** — including under `--dry-run` and `--check`.
+
+  Warning and proceeding was the earlier behavior and it was not enough. An observed run against an
+  unrelated local repo rewrote its `AGENTS.md` from 3 lines to 145 and left a lockfile behind, and
+  the remote-less variant did it in total silence, because "no origin to compare" was treated as
+  "compared, fine". *Could not verify* is not *verified*.
+
+  The lockfile is why this aborts on `--check` too: once written into the wrong directory it makes
+  the next `--check` there report `up to date`, so the mistake stops being visible. The bytes are
+  recoverable with `git checkout`; the certification is what persists.
+
+  `--allow-unverified-work-dir` is the escape hatch for a genuine fork, mirror or local-only clone.
+  It is scoped to that one check and prints what it suppressed.
 - **`--members` disables the profile mirror.** See [Profile README](#profile-readme-user-account-caveat).
 - **`--date <YYYY-MM-DD>` starts a clean attempt.** The sync branch is `studio-sync/<date>`, so a
   fresh date means a fresh branch and a fresh PR. That is the recovery path after a bad run: the

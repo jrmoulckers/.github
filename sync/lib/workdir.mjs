@@ -33,33 +33,75 @@ export function assertMemberCheckout(workDir) {
 }
 
 /**
- * Warn when `workDir` is a real checkout of the *wrong* repo — the case `assertMemberCheckout`
- * cannot see.
+ * Identify the checkout in `workDir` against the member the plan is for.
  *
  * Compared by remote rather than by "how many targets are missing", because a genuine first sync
  * legitimately reports every target as added — libro's does — so a count-based heuristic would cry
  * wolf on the exact run it is meant to protect.
  *
- * Returns the warning string rather than logging, so the check is testable without capturing
- * stdout. A missing or unreadable remote returns null: local-only clones are how the test suite
- * drives this path, and a fork or mirror is a legitimate reason for the slug to differ, so this
- * warns and never throws.
+ * Returns a verdict rather than logging or throwing, so every branch is testable without capturing
+ * stdout:
+ *
+ * - `match`        — origin resolves to the member's slug.
+ * - `mismatch`     — origin resolves to something else. A fork or mirror is a legitimate reason.
+ * - `unverifiable` — no origin, or git could not be read. Nothing here identifies the repo.
+ *
+ * `unverifiable` is deliberately its own verdict and not folded into `match`. Treating "I could not
+ * check" as "I checked and it was fine" is what made the worst variant of this silent: a local-only
+ * `git init` repo has a `.git`, passes `assertMemberCheckout`, has no origin to compare, and was
+ * therefore written into without a single line of output.
  */
-export function repoMismatchWarning(workDir, repo) {
+export function memberIdentity(workDir, repo) {
   let origin;
   try {
     origin = git(['remote', 'get-url', 'origin'], workDir);
   } catch {
-    return null;
+    return { status: 'unverifiable', origin: null };
   }
-  if (!origin) return null;
+  if (!origin) return { status: 'unverifiable', origin: null };
   const slug = origin
     .replace(/\.git$/, '')
     .replace(/\/$/, '')
     .replace(/^.*[:/]([^/]+\/[^/]+)$/, '$1');
-  if (slug.toLowerCase() === repo.toLowerCase()) return null;
-  return (
-    `--work-dir ${workDir} has origin ${origin}, but this plan is for ${repo}. ` +
-    'Every target will look absent and be reported as added.'
+  return slug.toLowerCase() === repo.toLowerCase()
+    ? { status: 'match', origin }
+    : { status: 'mismatch', origin };
+}
+
+/**
+ * Throw unless the checkout in `workDir` is provably the member the plan is for.
+ *
+ * This refuses rather than warns, and it refuses on `--dry-run` too. Both are deliberate.
+ *
+ * Refusing: a warning that is followed by the write is a warning that arrives after the decision.
+ * The observed failure rewrote an unrelated repo's `AGENTS.md` from 3 lines to 145 and left a
+ * lockfile behind — with the warning printed, exit code 0, and the report reading like an ordinary
+ * first sync.
+ *
+ * Refusing on dry runs: the lasting damage is not only the bytes. A run against the wrong checkout
+ * writes a lockfile that makes the *next* `--check` report "up to date", so the mistake certifies
+ * itself, and a dry run's plan is read as evidence in exactly the same way. The reassuring output
+ * is the defect; withholding the write does not withhold it.
+ *
+ * `--allow-unverified-work-dir` is the escape hatch for a genuine fork, mirror or local-only clone.
+ * It is scoped to this one check rather than being a general "don't argue" flag, because an escape
+ * hatch wider than the failure it clears is how a narrow guarantee gets traded away for one green
+ * run.
+ */
+export function assertMemberIdentity(workDir, repo, { allowUnverified = false } = {}) {
+  const { status, origin } = memberIdentity(workDir, repo);
+  if (status === 'match') return { status, origin, overridden: false };
+  if (allowUnverified) return { status, origin, overridden: true };
+
+  const why =
+    status === 'mismatch'
+      ? `has origin ${origin}, but this plan is for ${repo}`
+      : `has no origin remote, so it cannot be identified as ${repo}`;
+
+  throw new Error(
+    `--work-dir ${workDir} ${why}. Every target would look absent and be reported as added, ` +
+      'and the lockfile left behind would make the next --check report "up to date". ' +
+      'Point --work-dir at the member checkout, or pass --allow-unverified-work-dir if this is ' +
+      'deliberately a fork, mirror or local-only clone.',
   );
 }
