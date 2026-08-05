@@ -166,6 +166,31 @@ It inlined its own semantic-PR-title job while `reusable-ci-lint` could not be c
 commands, so the entry was correctly absent; once the empty-command guard shipped it adopted the
 workflow, and the manifest had to follow.
 
+#### Name collisions: a member may define its own workflow with a canon filename
+
+The sweep reads `uses: jrmoulckers/.github/.github/workflows/<name>.yml`, so a workflow the member
+defines *itself* and calls via `uses: ./.github/workflows/<name>.yml` is invisible to it by
+construction. If that local file happens to share a name with a canon workflow, the two are
+indistinguishable from either side.
+
+`jrmoulckers/finance` is the live instance. It calls **zero** backbone workflows, so its swept list
+is correctly empty — while it carries its own `.github/workflows/reusable-smoke-test.yml` at 276
+lines against canon's 155 (not a superset), and its registry entry lists `reusable-smoke-test`.
+
+Nothing is broken today, and nothing is being written either way, since `workflows` is a native
+kind. The risk is latent and specific: **if finance ever switches that call to
+`uses: jrmoulckers/.github/…@main`, it silently swaps a 276-line definition for a 155-line one** —
+no diff in either repo, no error, and CI stays green while the job changes underneath it.
+
+Whether finance's file is a stale fork of canon or an independent file that collided is genuinely
+unresolvable from outside, and that ambiguity *is* the finding. The rule that avoids it: **give a
+genuinely local workflow a local name, or reference canon — never both.**
+
+This is deliberately not asserted in the test suite. Detecting it needs the member's full workflow
+directory, which the offline suite does not have, and pinning each member's local filenames would
+be a fact-test of the kind that goes stale and then certifies the wrong value. It is recorded as a
+caveat on `CALLED_WORKFLOWS` instead.
+
 ## What gets synced
 
 Resolution follows each member's `optIn` in the manifest:
