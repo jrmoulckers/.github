@@ -12,7 +12,7 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { assertMemberCheckout, repoMismatchWarning } from '../lib/workdir.mjs';
+import { assertMemberCheckout, assertMemberIdentity, memberIdentity } from '../lib/workdir.mjs';
 
 const git = (args, cwd) =>
   execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
@@ -76,17 +76,27 @@ test('a git worktree is accepted even though its .git is a file', () => {
   });
 });
 
-test('a checkout of the wrong repo warns', () => {
+// --- identity ---------------------------------------------------------------
+//
+// `assertMemberCheckout` only proves the target is *a* checkout. These cover the case it cannot
+// see: a real checkout of the wrong repo. The three verdicts must stay distinct — an earlier
+// version of this file folded "no origin, cannot check" into "checked, fine", and a local-only
+// `git init` repo was then written into with no output at all.
+
+test('a checkout of the wrong repo is refused, and names both repos', () => {
   withTmp((root) => {
     const dir = repo(root, 'finance', 'https://github.com/jrmoulckers/finance.git');
 
-    const warning = repoMismatchWarning(dir, 'jrmoulckers/libro');
-    assert.match(warning, /jrmoulckers\/libro/);
-    assert.match(warning, /reported as added/);
+    assert.equal(memberIdentity(dir, 'jrmoulckers/libro').status, 'mismatch');
+    assert.throws(() => assertMemberIdentity(dir, 'jrmoulckers/libro'), (err) => {
+      assert.match(err.message, /jrmoulckers\/libro/);
+      assert.match(err.message, /jrmoulckers\/finance/);
+      return true;
+    });
   });
 });
 
-test('the matching repo does not warn, across URL spellings', () => {
+test('the matching repo is accepted, across URL spellings', () => {
   withTmp((root) => {
     for (const [i, origin] of [
       'https://github.com/jrmoulckers/finance.git',
@@ -95,16 +105,64 @@ test('the matching repo does not warn, across URL spellings', () => {
       'https://github.com/JRMoulckers/Finance.git',
     ].entries()) {
       const dir = repo(root, `m${i}`, origin);
-      assert.equal(repoMismatchWarning(dir, 'jrmoulckers/finance'), null, origin);
+      assert.equal(memberIdentity(dir, 'jrmoulckers/finance').status, 'match', origin);
+      assert.doesNotThrow(() => assertMemberIdentity(dir, 'jrmoulckers/finance'), origin);
     }
   });
 });
 
-test('a checkout with no remote does not warn', () => {
+test('a checkout with no remote is refused, not silently accepted', () => {
   withTmp((root) => {
-    // Local-only clones are how the rest of the suite drives this path, and a fork or mirror is a
-    // legitimate reason to have no matching origin. Silence beats a warning nobody can act on.
+    // The reported failure, and the worst variant: a plain `git init` repo has a `.git`, so it
+    // passes assertMemberCheckout, and has no origin to compare against, so the previous
+    // warn-on-mismatch check returned null. It rewrote an unrelated AGENTS.md from 3 lines to 145
+    // and exited 0. "Could not verify" is not "verified".
     const dir = repo(root, 'local-only');
-    assert.equal(repoMismatchWarning(dir, 'jrmoulckers/finance'), null);
+
+    assert.equal(memberIdentity(dir, 'jrmoulckers/finance').status, 'unverifiable');
+    assert.throws(
+      () => assertMemberIdentity(dir, 'jrmoulckers/finance'),
+      /no origin remote/,
+    );
+  });
+});
+
+test('the refusal explains the self-certifying lockfile, not just the bad path', () => {
+  withTmp((root) => {
+    // The bytes are recoverable with `git checkout`. The lockfile is the part that persists: it
+    // makes the next `--check` against the same directory report "up to date", so the mistake
+    // stops being visible. Someone reading this error needs to know to delete it.
+    const dir = repo(root, 'local-only');
+
+    assert.throws(() => assertMemberIdentity(dir, 'jrmoulckers/finance'), /--check/);
+  });
+});
+
+test('--allow-unverified-work-dir overrides both failing verdicts, and says which', () => {
+  withTmp((root) => {
+    const wrong = repo(root, 'wrong', 'https://github.com/someoneelse/unrelated.git');
+    const none = repo(root, 'none');
+
+    const a = assertMemberIdentity(wrong, 'jrmoulckers/finance', { allowUnverified: true });
+    assert.equal(a.status, 'mismatch');
+    assert.equal(a.overridden, true);
+    assert.match(a.origin, /someoneelse\/unrelated/);
+
+    const b = assertMemberIdentity(none, 'jrmoulckers/finance', { allowUnverified: true });
+    assert.equal(b.status, 'unverifiable');
+    assert.equal(b.overridden, true);
+    assert.equal(b.origin, null);
+  });
+});
+
+test('a matching checkout is never reported as overridden', () => {
+  withTmp((root) => {
+    // The override flag must not change the verdict for a checkout that was fine anyway, or the
+    // warning it drives would fire on correct runs and be tuned out.
+    const dir = repo(root, 'finance', 'https://github.com/jrmoulckers/finance.git');
+
+    const v = assertMemberIdentity(dir, 'jrmoulckers/finance', { allowUnverified: true });
+    assert.equal(v.status, 'match');
+    assert.equal(v.overridden, false);
   });
 });
