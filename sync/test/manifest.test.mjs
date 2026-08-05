@@ -35,8 +35,10 @@ test('libro and cartridge use the root-default vendored tokens path', () => {
   }
 });
 
-// The onboarding PR these facts originally came from (jrmoulckers/cartridge#1) was closed
-// without merging; the values below were re-verified against jrmoulckers/cartridge@main.
+// The onboarding PR these facts originally came from (jrmoulckers/cartridge#1) was closed without
+// merging. Re-verified against jrmoulckers/cartridge@2536220 (2026-08-03) by reading package.json
+// and the lockfile; re-check when cartridge changes either. An undated "verified against main"
+// stops being a fact the moment main moves, and reads as a certificate discouraging a re-check.
 test('cartridge is a Svelte/npm repo', () => {
   const [cartridge] = resolveAll(manifest, ['jrmoulckers/cartridge']);
   assert.equal(cartridge.framework, 'svelte');
