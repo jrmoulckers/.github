@@ -184,6 +184,14 @@ Three flag behaviors that are easy to trip over:
   run must resolve to exactly one member — pair it with `--members <owner/name>`. Anything else
   (no filter, or a filter matching two members) fails with
   `--work-dir requires exactly one member (use --members <owner/name>).`
+- **`--work-dir` must be the member checkout itself, not a directory containing it.** The path is
+  now required to be a git checkout, and the run aborts if it is not. Before that check existed,
+  pointing at a parent directory made every target look absent, so the run reported them all as
+  `added` and exited 0 — indistinguishable from a legitimate first-sync plan. That is the failure
+  worth guarding: drift is reported by the *absence* of a warning, so a run that sees no files at
+  all emits the most reassuring output the tool can produce. If the checkout is real but belongs to
+  a different repo, the origin remote is compared and a warning is printed (a warning rather than
+  an error, because forks and mirrors are legitimate; a missing remote is not flagged at all).
 - **`--members` disables the profile mirror.** See [Profile README](#profile-readme-user-account-caveat).
 - **`--date <YYYY-MM-DD>` starts a clean attempt.** The sync branch is `studio-sync/<date>`, so a
   fresh date means a fresh branch and a fresh PR. That is the recovery path after a bad run: the
