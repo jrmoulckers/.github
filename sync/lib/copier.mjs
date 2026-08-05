@@ -94,6 +94,9 @@ function planFile(memberRoot, spec, entries, force) {
 
   const currentHash = hashText(readFileSync(abs, 'utf8'));
   if (isLocallyModified(entries[spec.targetPath], currentHash, renderedHash)) {
+    if (isUnstampedCanon(entries[spec.targetPath], currentHash, spec)) {
+      return { action: 'update', newContent: rendered, newEntry };
+    }
     return force
       ? { action: 'forced', newContent: rendered, newEntry }
       : { action: 'drift' };
@@ -145,6 +148,31 @@ function suspectBlockNote(currentInner, canonInner) {
  */
 function isLocallyModified(lockEntry, currentHash, renderedHash) {
   return lockEntry ? currentHash !== lockEntry.targetSha256 : currentHash !== renderedHash;
+}
+
+/**
+ * An unrecorded target whose bytes are *raw canon* — canon hand-copied into the member without
+ * going through `inject()`, so it differs from what the engine would write by exactly the
+ * provenance header.
+ *
+ * This has to be distinguished from drift because otherwise it is a permanent skip: the file
+ * never matches `rendered`, so every run flags it and no run ever fixes it, and `--check` fails
+ * forever. It is also the hardest kind of staleness to notice by eye, since the *content* is
+ * current — only the provenance is missing.
+ *
+ * Rewriting is safe in a way ordinary drift is not: bytes equal to canon are provably not
+ * member-authored, so the write discards no human work and changes nothing but the header. That
+ * is why this returns `update` rather than requiring `--force`, which would suppress the drift
+ * signal for every other target in the same run.
+ *
+ * `spec.sourceSha256` is already the hash of raw canon, and `hashText` normalizes line endings,
+ * so the comparison needs no new plumbing and is CRLF-safe.
+ *
+ * Restricted to targets with **no lock entry**. Once a file is recorded, bytes equal to raw canon
+ * mean someone deliberately stripped the header, which is a local edit and stays drift.
+ */
+function isUnstampedCanon(lockEntry, currentHash, spec) {
+  return !lockEntry && currentHash === spec.sourceSha256;
 }
 
 function entry(sourceSha256, targetSha256) {

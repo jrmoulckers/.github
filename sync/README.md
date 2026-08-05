@@ -321,6 +321,19 @@ provenance stamp — it looks synced and only a byte comparison says otherwise. 
 the member repo before its first sync: refresh each file to match what the engine would write, or
 delete it and let the engine add it.
 
+**One case self-heals: bytes equal to *raw canon*.** A file hand-copied from the backbone without
+going through `inject()` has current content and no provenance header, so it can never match what
+the engine would write. Left as drift it is a permanent skip — every run flags it, no run fixes it,
+`--check` fails forever — and it is the hardest staleness to notice, because the content is right.
+The engine therefore stamps it: rewrites it with the header and records the baseline, reported as
+an ordinary `updated`. This is safe in a way clobbering ordinary drift is not, since bytes equal to
+canon are provably not member-authored, so nothing a human wrote is discarded.
+
+The narrowness is the point. It applies **only** to a target with no lock entry. Once a file is
+recorded, bytes equal to raw canon mean someone deliberately stripped the header — a local edit,
+which keeps its drift signal. `jrmoulckers/finance`'s root `agency.toml` is the worked example: it
+hashes to `281f6b5cf11d`, raw canon, against `inject()`'s `c5dc520a8bd3`.
+
 `--force` is not the tool for that. It applies to the whole run, rewriting **every** drifted file,
 so using it to clear one stale copy would also discard genuine member-authored edits elsewhere. It
 is a deliberate reviewer action against a known state, not a first-run cleanup.
@@ -427,7 +440,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/branch-reuse.test.mjs` | Sync-branch reuse: reviewer commits survive a re-run; a diverged remote is rejected instead of force-pushed. |
 | `test/basemerge.test.mjs` | Managed-block detection: markers quoted in prose, shown in a fenced example, or indented as a code block do not form a block; real blocks are still replaced; a canon change after adoption updates in place without duplicating markers; genuine edits are still drift. |
 | `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown. |
-| `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; a no-op run leaves the lockfile byte-identical (`generatedAt` not bumped); an adopted baseline still updates when canon moves, and is still checked for drift; a pre-seeded file that differs from canon stays drift on every run. |
+| `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; a no-op run leaves the lockfile byte-identical (`generatedAt` not bumped); an adopted baseline still updates when canon moves, and is still checked for drift; a pre-seeded file that differs from canon stays drift on every run; a file hand-copied as **raw canon** is stamped with the provenance header instead of being flagged, but only while it has no lock entry. |
 | `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; every member's `framework`/`packageManager` matches its default branch; every reusable workflow a member calls is listed in its `optIn.workflows`; a member that narrows its AI layer records the reason in `notes`; an unknown name in an explicit list fails validation; `canon` matches the files on disk both ways; `tokens`/`profile` are not `optIn` kinds; native kinds are never written. |
 | `test/provenance.test.mjs` | Every real write equals `inject(targetPath, canon)` and never canon verbatim — so the documented hand-audit baseline stays correct; and that check is line-ending agnostic on the member side. |
 | `test/prbody.test.mjs` | An adoption-only run's PR body says its entire diff is the lockfile, and does not claim that when the run also wrote files (including via `--force`). |

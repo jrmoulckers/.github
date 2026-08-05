@@ -135,11 +135,22 @@ write — and on the first run each one takes one of two paths:
 | The member's copy | First run |
 | --- | --- |
 | byte-identical to what the engine would write | **adopted** — baselined in the lockfile, no diff, silent thereafter |
-| differs in any byte | **drift** — flagged, left untouched, and it stays that way |
+| byte-identical to **raw canon** (no provenance header) | **stamped** — rewritten with the header, then silent |
+| differs in any other way | **drift** — flagged, left untouched, and it stays that way |
 
-The second row does not self-heal. With no lock entry and content that differs, the engine cannot
+The third row does not self-heal. With no lock entry and content that differs, the engine cannot
 tell a stale hand-copy from a deliberate local edit, so it refuses to clobber — correctly, but
 permanently. The member then keeps an outdated file forever while every run reports success.
+
+The second row exists because it would otherwise be the worst instance of the third. A file
+hand-copied from canon *without* going through `inject()` has current content and a missing header,
+so it never matches what the engine would write and every run flags it while no run fixes it —
+and it is the hardest staleness to spot by eye, because the content is right.
+`jrmoulckers/finance`'s root `agency.toml` was exactly this. Rewriting it is safe in a way ordinary
+drift is not: bytes equal to canon are provably not member-authored, so the write discards no human
+work and changes nothing but the header. The narrowness matters — it applies **only** to targets
+with no lock entry. Once a file is recorded, bytes equal to raw canon mean someone deliberately
+stripped the header, which is a local edit and keeps its drift signal.
 
 The dangerous case is a copy of *older* canon that still carries its provenance stamp: it looks
 synced, and only a byte comparison reveals it isn't. `jrmoulckers/cartridge` had exactly this — a

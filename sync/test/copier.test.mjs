@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { apply } from '../lib/copier.mjs';
 import { readLock, hashText, LOCK_FILENAME } from '../lib/lock.mjs';
+import { inject } from '../lib/provenance.mjs';
 
 const BACKBONE = 'jrmoulckers/.github';
 const CONTENT = '# canon\n';
@@ -212,5 +213,81 @@ test('adoption does not disable drift detection for that file', () => {
     assert.equal(after.drift.length, 1, 'a hand edit after adoption is still drift');
     assert.equal(after.updated.length + after.forced.length, 0, 'and nothing is written');
     assert.equal(readFileSync(join(root, ...s.targetPath.split('/')), 'utf8'), EDITED);
+  });
+});
+
+// --- unstamped canon -------------------------------------------------------
+//
+// A member seeded by hand with canon that never went through `inject()` has a file whose CONTENT
+// is current but whose PROVENANCE HEADER is missing, so it never matches `rendered`. Classified as
+// drift it is a permanent skip: every run flags it, no run fixes it, and `--check` fails forever.
+// Found in `jrmoulckers/finance`, whose root `agency.toml` hashes to raw canon (281f6b5cf11d)
+// against `inject()`'s c5dc520a8bd3 — reproduced offline before this branch existed.
+//
+// These use a spec whose raw and rendered forms genuinely differ, via the real `inject`, because
+// the plain `spec()` helper above sets sourceSha256 = hashText(content) and so cannot express the
+// distinction being tested.
+
+const RAW = '# canon\n';
+const rawSpec = () => ({
+  ...spec(),
+  targetPath: 'agency.toml',
+  sourcePath: 'agency.toml',
+  sourceSha256: hashText(RAW),
+  content: inject('agency.toml', RAW),
+});
+
+test('a target hand-copied as raw canon is stamped, not flagged as drift', () => {
+  withTmp((root) => {
+    const s = rawSpec();
+    seed(root, s.targetPath, RAW);
+
+    const { report } = apply(root, [s], readLock(root, BACKBONE), { write: true });
+
+    assert.equal(report.drift.length, 0, 'missing provenance is not a local edit');
+    assert.equal(report.updated.length, 1);
+    const onDisk = readFileSync(join(root, s.targetPath), 'utf8');
+    assert.equal(onDisk, s.content, 'the file now carries the provenance header');
+    assert.ok(onDisk.includes(RAW.trim()), 'and still contains the canon body');
+
+    // The whole point is that it stops being reported. A fix that rewrites every run is the same
+    // bug wearing a different label.
+    const second = apply(root, [s], readLock(root, BACKBONE), { write: true }).report;
+    assert.equal(second.changed, false, 'and the run converges');
+    assert.equal(second.unchanged.length, 1);
+  });
+});
+
+test('a recorded target stripped back to raw canon is drift, not a silent rewrite', () => {
+  withTmp((root) => {
+    const s = rawSpec();
+    seed(root, s.targetPath, s.content);
+    const first = apply(root, [s], readLock(root, BACKBONE), { write: true }).report;
+    assert.equal(first.adopted.length, 1, 'precondition: recorded in the lockfile');
+
+    // Once a lock entry exists, bytes equal to raw canon mean someone deliberately removed the
+    // header. That is a local edit and must keep its drift signal, or the narrow fix above would
+    // silently undo a deliberate change.
+    seed(root, s.targetPath, RAW);
+    const after = apply(root, [s], readLock(root, BACKBONE), { write: true }).report;
+
+    assert.equal(after.drift.length, 1);
+    assert.equal(after.updated.length, 0);
+    assert.equal(readFileSync(join(root, s.targetPath), 'utf8'), RAW, 'left untouched');
+  });
+});
+
+test('a pre-existing file that is neither canon nor rendered is still drift', () => {
+  withTmp((root) => {
+    // The regression guard for the fix above: it keys on equality with raw canon specifically, so
+    // ordinary member-authored content must be unaffected.
+    const s = rawSpec();
+    seed(root, s.targetPath, '# member wrote this\n');
+
+    const { report } = apply(root, [s], readLock(root, BACKBONE), { write: true });
+
+    assert.equal(report.drift.length, 1);
+    assert.equal(report.updated.length, 0);
+    assert.equal(readFileSync(join(root, s.targetPath), 'utf8'), '# member wrote this\n');
   });
 });
