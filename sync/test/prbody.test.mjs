@@ -69,3 +69,42 @@ test('a force-only run is not mistaken for an adoption-only run', () => {
 
   assert.doesNotMatch(body, /\*\*No file contents changed\.\*\*/);
 });
+
+// --- the drift note's remedy ---
+//
+// `--force` is parsed once per invocation and threaded into every member, so it rewrites every
+// drifted file in every repo the run touches. The drift note is the only text that reaches a
+// reviewer before they reach for the flag, and it appears inside one member's PR directly above
+// that member's drift list — a context that makes any remedy look scoped to those paths.
+//
+// These pin the scope statement into the body so the sentence cannot quietly lose it, and pin the
+// per-file remedy ahead of it so the safe option is the one offered first.
+
+test('the drift note states that --force is run-wide, not per file', () => {
+  const body = buildPrBody(report({ drift: paths('AGENTS.md', 'skills/a/SKILL.md') }), {
+    date: '2026-08-04',
+  });
+
+  assert.match(body, /### ⚠️ Locally modified — not overwritten \(2\)/);
+  assert.match(body, /`--force` is not a per-file fix/);
+  assert.match(body, /every.{0,40}member that run touches/s);
+});
+
+test('the drift note offers the per-file remedy before mentioning --force', () => {
+  const body = buildPrBody(report({ drift: paths('AGENTS.md') }), { date: '2026-08-04' });
+
+  // Reconciling by hand is the correct fix for one stale file; `--force` never is. If the flag
+  // were named first a reader would stop there, which is how the original wording read.
+  assert.ok(
+    body.indexOf('reconcile it by hand') < body.indexOf('--force'),
+    'the by-hand remedy must precede any mention of --force',
+  );
+});
+
+test('no drift means no --force wording anywhere in the body', () => {
+  // A warning that fires on every run is one a reader learns to skip past.
+  const body = buildPrBody(report({ added: paths('AGENTS.md') }), { date: '2026-08-04' });
+
+  assert.doesNotMatch(body, /--force/);
+  assert.doesNotMatch(body, /Locally modified/);
+});

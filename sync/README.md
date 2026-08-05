@@ -18,7 +18,7 @@ node sync/index.mjs [options]
 | `--dry-run` | Plan only. Prints the resolved file set per member. **No writes, git, or network.** |
 | `--members <a,b>` | Restrict to these member repos (`owner/name` or bare `name`). |
 | `--check` | CI gate. Exit non-zero if any member is out of date or has drift. |
-| `--force` | Overwrite locally-modified (drift) targets instead of skipping them. |
+| `--force` | Overwrite locally-modified (drift) targets instead of skipping them. Applies to **every member in the run**, not per file. |
 | `--work-dir <path>` | Apply/inspect against a local checkout; **requires exactly one matching `--members` value**, and the path must be the checkout itself (a parent directory is rejected). No clone/push/PR. |
 | `--studio-dir <path>` | Local checkout of the token source repo (`jrmoulckers/studio`) to vendor `@jrm/tokens` from, instead of cloning it. Offline seam for tokens. |
 | `--date <YYYY-MM-DD>` | Override the date used for branch/commit naming. |
@@ -370,9 +370,15 @@ recorded, bytes equal to raw canon mean someone deliberately stripped the header
 which keeps its drift signal. `jrmoulckers/finance`'s root `agency.toml` is the worked example: it
 hashes to `281f6b5cf11d`, raw canon, against `inject()`'s `c5dc520a8bd3`.
 
-`--force` is not the tool for that. It applies to the whole run, rewriting **every** drifted file,
-so using it to clear one stale copy would also discard genuine member-authored edits elsewhere. It
-is a deliberate reviewer action against a known state, not a first-run cleanup.
+`--force` is not the tool for that. It is one flag for the whole invocation — `index.mjs` parses it
+once and threads it into every member, and `apply()` then applies it to every spec in each — so it
+rewrites **every** drifted file in **every member the run touches**. Using it to clear one stale
+copy would also discard genuine member-authored edits in repos you were not looking at. It is a
+deliberate reviewer action against a known state, not a first-run cleanup.
+
+The drift note in the PR body says so at the point of use, because that is the only text a reviewer
+reads before reaching for the flag, and it appears inside a single member's PR where a run-wide
+remedy looks scoped to the list beneath it.
 
 ### Auditing a member by hand: compare against `inject()`, not against canon
 

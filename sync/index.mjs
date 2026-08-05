@@ -11,6 +11,7 @@
 //   --check              CI gate. Exit non-zero if any member is out of date or has drift.
 //                        Needs member state: clones each member, or use with --work-dir.
 //   --force              Overwrite locally-modified (drift) targets instead of skipping them.
+//                        Run-wide: applies to every member in the run, not to one file.
 //   --work-dir <path>    Treat <path> as a single member's checkout: apply/inspect locally,
 //                        no clone/push/PR. Requires exactly one --members. Offline testing seam.
 //   --studio-dir <path>  Use <path> as a local checkout of the token source repo (jrmoulckers/
@@ -313,6 +314,8 @@ Usage: node sync/index.mjs [options]
   --members <a,b>      Restrict to these member repos ("owner/name" or bare "name").
   --check              Exit non-zero if any member is out of date or has drift (CI gate).
   --force              Overwrite locally-modified (drift) targets instead of skipping.
+                       Run-wide: rewrites every drifted file in every member the run
+                       touches. Not a per-file fix.
   --work-dir <path>    Apply/inspect against a local checkout (one --members); no clone/push/PR.
                        Must be the checkout itself, not a directory containing it.
   --studio-dir <path>  Local checkout of the token source repo (jrmoulckers/studio) to vendor
