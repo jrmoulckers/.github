@@ -175,12 +175,15 @@ construction. If that local file happens to share a name with a canon workflow, 
 indistinguishable from either side.
 
 `jrmoulckers/finance` is the live instance. It calls **zero** backbone workflows, so its swept list
-is correctly empty — while it carries its own `.github/workflows/reusable-smoke-test.yml` at 276
-lines against canon's 155 (not a superset), and its registry entry lists `reusable-smoke-test`.
+is correctly empty — while it carries its own `.github/workflows/reusable-smoke-test.yml` that is
+substantially larger than canon's and **not a superset** of it, and its registry entry lists
+`reusable-smoke-test`. (Measured 2026-08-05: 275 lines against canon's 154. The counts are a
+property of a checkout at a moment; the claim that survives is *different file, same name*.)
 
 Nothing is broken today, and nothing is being written either way, since `workflows` is a native
 kind. The risk is latent and specific: **if finance ever switches that call to
-`uses: jrmoulckers/.github/…@main`, it silently swaps a 276-line definition for a 155-line one** —
+`uses: jrmoulckers/.github/…@main`, its own definition is silently replaced by a shorter, different
+one** —
 no diff in either repo, no error, and CI stays green while the job changes underneath it.
 
 Whether finance's file is a stale fork of canon or an independent file that collided is genuinely

@@ -76,13 +76,19 @@ const CALLED_WORKFLOWS = {
 // The sweep above reads `uses: jrmoulckers/.github/.github/workflows/<name>.yml`, so a local
 // definition called via `uses: ./.github/workflows/<name>.yml` is invisible to it by construction.
 // `jrmoulckers/finance` is the live instance: it calls zero backbone workflows (hence `[]` above,
-// which is correct), while carrying its own `.github/workflows/reusable-smoke-test.yml` — 276
-// lines against canon's 155, not a superset — and its registry entry lists `reusable-smoke-test`.
+// which is correct), while carrying its own `.github/workflows/reusable-smoke-test.yml` that is
+// substantially larger than canon's and not a superset of it — and its registry entry lists
+// `reusable-smoke-test`.
 //
 // Two different files wear one name, and neither side can see it: the registry sees a member that
 // calls nothing shared, finance sees a workflow it calls every run. It arms a specific future
-// failure — if finance ever switches that call to `uses: jrmoulckers/.github/...@main`, it swaps a
-// 276-line definition for a 155-line one with no diff anywhere and no error.
+// failure — if finance ever switches that call to `uses: jrmoulckers/.github/...@main`, its own
+// definition is silently replaced by a shorter, different one, with no diff anywhere and no error.
+//
+// No line counts here on purpose. An earlier revision said "276 lines against canon's 155"; both
+// were off by one from counting the empty tail of a newline-terminated file, and the corrected
+// figures are a property of two checkouts at a moment anyway. The durable claim is
+// "different file, same name". Measured counts live in issue #60, where they can be dated.
 //
 // Deliberately NOT asserted here. Detecting it needs the member's full workflow directory, which
 // this offline suite does not have, and pinning finance's local filenames would be a fact-test of
