@@ -95,10 +95,16 @@ test('the drift note offers the per-file remedy before mentioning --force', () =
 
   // Reconciling by hand is the correct fix for one stale file; `--force` never is. If the flag
   // were named first a reader would stop there, which is how the original wording read.
-  assert.ok(
-    body.indexOf('reconcile it by hand') < body.indexOf('--force'),
-    'the by-hand remedy must precede any mention of --force',
-  );
+  const byHand = body.indexOf('reconcile it by hand');
+  const flag = body.indexOf('--force');
+
+  // Assert presence before order. `indexOf` returns -1 for a missing string, and -1 sorts first,
+  // so an ordering check alone passes when the by-hand remedy is deleted entirely — the failure
+  // this test exists to catch. Caught by mutating the note back to its original single sentence,
+  // which killed the scope test above and left this one green.
+  assert.notEqual(byHand, -1, 'the by-hand remedy must be present');
+  assert.notEqual(flag, -1, 'the --force caveat must be present');
+  assert.ok(byHand < flag, 'the by-hand remedy must precede any mention of --force');
 });
 
 test('no drift means no --force wording anywhere in the body', () => {
