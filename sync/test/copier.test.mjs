@@ -197,8 +197,10 @@ test('an adopted baseline still updates when canon changes later', () => {
 // The complement. Adoption writes its lock entry from a different branch than `add`, and nothing
 // else asserts drift is detected off *that* entry — the existing drift tests all start from a file
 // the engine wrote itself. Mutating `isLocallyModified` to `lockEntry ? false : …` fails this test
-// and the three pre-existing drift tests while leaving the update test above green, which is the
-// point: an update never consults drift, so update coverage cannot stand in for it.
+// alongside the other drift tests, while leaving the update test above green — which is the point:
+// an update never consults drift, so update coverage cannot stand in for it. Deliberately no count
+// of co-failing tests here; an earlier revision said "the three pre-existing drift tests" and went
+// stale the moment #58 added a fourth. The claim that survives is which test stays green.
 test('adoption does not disable drift detection for that file', () => {
   withTmp((root) => {
     const s = spec();
