@@ -44,11 +44,22 @@ Each entry in `studio.config.json`'s `members[]` array describes one product rep
 | Field | Validated? | Used for |
 | --- | --- | --- |
 | `repo` | ✅ must match `owner/name` | Clone target, `--members` filter, PR destination. |
-| `optIn` | ✅ keys against `KINDS`, names against `canon.<kind>` | What canon the member receives. |
+| `optIn.base` / `.agents` / `.skills` / `.prompts` / `.instructions` | ✅ keys against `KINDS`, names against `canon.<kind>` | **Executed** — what canon the member receives. |
+| `optIn.health` / `optIn.workflows` | ✅ same validation | **Recorded only** — native kinds, never copied (see below). |
 | `tokens` | ✅ shape (`enabled` boolean, optional string `targetPath`) | Vendored `@jrm/tokens` opt-in + destination. |
 | `framework` | ❌ **free-form** | Display only — `--dry-run` plan label. |
 | `packageManager` | ❌ **free-form** | Display only — `--dry-run` plan label. |
 | `notes` | ❌ free-form | Human/agent context. |
+
+**Two keys inside `optIn` do not behave like the rest.** `health` and `workflows` are
+`NATIVE_KINDS` ([`lib/manifest.mjs`](lib/manifest.mjs)): community-health files are inherited from
+this backbone repo by GitHub itself, and reusable workflows are called via
+`uses: jrmoulckers/.github/.github/workflows/*@main`. Both are resolved and reported, then skipped
+before any write ([`lib/assets.mjs`](lib/assets.mjs)). So `"agents": "*"` and
+`"workflows": [...]` sit in the same object with the same shape, and one decides which files exist
+while the other is a label. Validation catches a *misspelled* name in either; nothing catches a
+`workflows` list that simply disagrees with what the member's CI actually calls — which is why
+that invariant is asserted in [`test/manifest.test.mjs`](test/manifest.test.mjs) instead.
 
 `framework` and `packageManager` are **not** enums and are never checked: `validateManifest` does
 not mention them, `resolve.mjs` passes them straight through, and their only consumer is the
