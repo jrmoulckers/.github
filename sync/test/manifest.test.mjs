@@ -71,6 +71,23 @@ const CALLED_WORKFLOWS = {
 // One-directional on purpose. Listing a workflow a member does not call yet is legitimate — the
 // kind is native, nothing is written, and the opt-in records intent. Calling one that is NOT
 // listed is the error: the registry then misdescribes the member, and nothing else can catch it.
+//
+// KNOWN BLIND SPOT — a member can define its OWN workflow with a canon filename.
+// The sweep above reads `uses: jrmoulckers/.github/.github/workflows/<name>.yml`, so a local
+// definition called via `uses: ./.github/workflows/<name>.yml` is invisible to it by construction.
+// `jrmoulckers/finance` is the live instance: it calls zero backbone workflows (hence `[]` above,
+// which is correct), while carrying its own `.github/workflows/reusable-smoke-test.yml` — 276
+// lines against canon's 155, not a superset — and its registry entry lists `reusable-smoke-test`.
+//
+// Two different files wear one name, and neither side can see it: the registry sees a member that
+// calls nothing shared, finance sees a workflow it calls every run. It arms a specific future
+// failure — if finance ever switches that call to `uses: jrmoulckers/.github/...@main`, it swaps a
+// 276-line definition for a 155-line one with no diff anywhere and no error.
+//
+// Deliberately NOT asserted here. Detecting it needs the member's full workflow directory, which
+// this offline suite does not have, and pinning finance's local filenames would be a fact-test of
+// exactly the kind that went stale within the hour last time — it would certify a wrong value
+// rather than merely fail to help. Recorded as a caveat instead; see sync/README.md.
 test('every reusable workflow a member calls is listed in its optIn.workflows', () => {
   for (const [repo, called] of Object.entries(CALLED_WORKFLOWS)) {
     const [resolved] = resolveAll(manifest, [repo]);
