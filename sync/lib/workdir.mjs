@@ -56,8 +56,12 @@ export function memberIdentity(workDir, repo) {
   try {
     origin = git(['remote', 'get-url', 'origin'], workDir);
   } catch {
+    // The observed path for a repo with no origin: `git remote get-url origin` exits non-zero.
     return { status: 'unverifiable', origin: null };
   }
+  // Defensive, and not reachable via git's current behaviour — mutating this line alone breaks no
+  // test, which is the honest description of it. Kept so a git that prints nothing and exits 0
+  // cannot reintroduce the silent case; noted so it is not mistaken for covered code.
   if (!origin) return { status: 'unverifiable', origin: null };
   const slug = origin
     .replace(/\.git$/, '')
