@@ -32,6 +32,7 @@ import { enumerateTargets, enumerateTokenTargets } from './lib/assets.mjs';
 import { readLock } from './lib/lock.mjs';
 import { apply } from './lib/copier.mjs';
 import { cloneShallow } from './lib/git.mjs';
+import { assertMemberCheckout, repoMismatchWarning } from './lib/workdir.mjs';
 import { resolveStudioRoot } from './lib/studio.mjs';
 import { syncMembers } from './lib/runner.mjs';
 import { mirrorProfile, profileTarget } from './lib/profile.mjs';
@@ -94,6 +95,7 @@ function main() {
   if (opts.workDir && plans.length !== 1) {
     throw new Error('--work-dir requires exactly one member (use --members <owner/name>).');
   }
+  if (opts.workDir) assertMemberCheckout(opts.workDir);
 
   // Vendored @jrm/tokens come from an external repo. Resolve a source checkout once (shared by
   // every opted-in member) and splice the token writes into each member's plan. Runs that touch
@@ -147,7 +149,8 @@ function runDryRun(plans, opts, manifest, backboneRoot, date) {
 function runWorkDir(plans, opts, manifest, date) {
   const { resolved, targets } = plans[0];
   const write = !opts.dryRun;
-  const lock = readLock(opts.workDir, manifest.backbone);
+  const mismatch = repoMismatchWarning(opts.workDir, resolved.repo);
+  if (mismatch) log.warn(mismatch);  const lock = readLock(opts.workDir, manifest.backbone);
   const { report } = apply(opts.workDir, targets.writes, lock, { force: opts.force, write });
   log.step(`${resolved.repo} → ${opts.workDir}${write ? '' : '  (dry-run: no writes)'}`);
   printReport(report);
@@ -311,6 +314,7 @@ Usage: node sync/index.mjs [options]
   --check              Exit non-zero if any member is out of date or has drift (CI gate).
   --force              Overwrite locally-modified (drift) targets instead of skipping.
   --work-dir <path>    Apply/inspect against a local checkout (one --members); no clone/push/PR.
+                       Must be the checkout itself, not a directory containing it.
   --studio-dir <path>  Local checkout of the token source repo (jrmoulckers/studio) to vendor
                        @jrm/tokens from, instead of cloning it. Offline seam for tokens.
   --date <YYYY-MM-DD>  Override the sync date used for branch/commit naming.
