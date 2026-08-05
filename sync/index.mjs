@@ -19,11 +19,11 @@
 //   --date <YYYY-MM-DD>  Override the sync date used for branch/commit naming.
 //   --help               Show this help.
 //
-// Env: STUDIO_SYNC_TOKEN — PAT with repo scope on member repos (required for real syncs and
-// for --check without --work-dir). Also needs read access to the private token source repo
-// (jrmoulckers/studio) when a member opts into tokens. The default GITHUB_TOKEN cannot push to
-// other repos.
-
+// Env: STUDIO_SYNC_TOKEN — fine-grained PAT with Contents + Pull requests read/write on
+// member repos (required for real syncs and for --check without --work-dir). Also needs
+// Contents read on the token source repo (jrmoulckers/studio) when a member opts into
+// tokens. No `workflow` scope and no blanket `repo` scope — see docs/sync.md. The default
+// GITHUB_TOKEN cannot push to other repos.
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { loadManifest } from './lib/manifest.mjs';
@@ -316,8 +316,8 @@ Usage: node sync/index.mjs [options]
   --date <YYYY-MM-DD>  Override the sync date used for branch/commit naming.
   --help               Show this help.
 
-Env: STUDIO_SYNC_TOKEN — PAT (repo scope on members; read on jrmoulckers/studio for tokens) for
-real syncs / remote --check.`);
+Env: STUDIO_SYNC_TOKEN — fine-grained PAT: Contents + Pull requests read/write on members,
+Contents read on jrmoulckers/studio. No workflow scope, no blanket repo scope. See docs/sync.md.`);
   return 0;
 }
 
