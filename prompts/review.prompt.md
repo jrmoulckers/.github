@@ -16,7 +16,7 @@ Review all or selected open PRs with read-only review agents.
 ### 1. Identify PRs
 
 ```bash
-gh pr list --state open --json number,title,headRefName,author,isDraft,additions,deletions,changedFiles,labels
+gh pr list --state open --limit 200 --json number,title,headRefName,author,isDraft,additions,deletions,changedFiles,labels
 ```
 
 If `scope` is `all`, review every open PR. Otherwise filter to the requested PR numbers.

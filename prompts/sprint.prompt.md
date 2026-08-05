@@ -18,7 +18,7 @@ Deploy **{{ N }}** sprint waves across the product's agent types. Each agent wor
 ```bash
 git fetch origin <default-branch>
 gh issue list --state open --limit 200 --json number,title,labels,milestone,assignees
-gh pr list --state open --json number,title,headRefName,statusCheckRollup
+gh pr list --state open --limit 200 --json number,title,headRefName,statusCheckRollup
 ```
 
 - Start from the latest default branch.
