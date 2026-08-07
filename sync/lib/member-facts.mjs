@@ -3,6 +3,7 @@
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { memberMode } from './manifest.mjs';
 
 const PACKAGE_LOCKS = new Map([
   ['package-lock.json', 'npm'],
@@ -20,12 +21,31 @@ export function deriveMemberFacts(root, backbone) {
   };
 }
 
+export function inspectMemberFacts(root, backbone) {
+  return {
+    framework: inspectFramework(root),
+    packageManager: inspectPackageManager(root),
+    workflows: deriveCalledWorkflows(root, backbone),
+  };
+}
+
 export function assertMemberFacts(root, member, backbone) {
-  const actual = deriveMemberFacts(root, backbone);
+  const mode = memberMode(member);
+  const actual =
+    mode === 'application'
+      ? deriveMemberFacts(root, backbone)
+      : inspectMemberFacts(root, backbone);
   const errors = [];
 
-  compareScalar(errors, 'framework', member.framework, actual.framework);
-  compareScalar(errors, 'packageManager', member.packageManager, actual.packageManager);
+  if (mode === 'application') {
+    compareScalar(errors, 'framework', member.framework, actual.framework);
+    compareScalar(errors, 'packageManager', member.packageManager, actual.packageManager);
+  } else if (mode === 'infrastructure') {
+    compareOptionalScalar(errors, 'framework', member.framework, actual.framework);
+    compareOptionalScalar(errors, 'packageManager', member.packageManager, actual.packageManager);
+  } else {
+    rejectBootstrappedEvidence(errors, actual);
+  }
 
   const claimed = new Set(
     member.groups?.find((group) => group.kind === 'workflows')?.names ?? [],
@@ -49,16 +69,22 @@ export function assertMemberFacts(root, member, backbone) {
 }
 
 export function derivePackageManager(root) {
-  const matches = [...PACKAGE_LOCKS]
-    .filter(([file]) => existsSync(join(root, file)))
-    .map(([file, value]) => ({ file, value }));
-
-  if (matches.length === 0) {
+  const match = inspectPackageManager(root);
+  if (!match) {
     throw new Error(
       'cannot derive packageManager: no root package-lock.json, pnpm-lock.yaml, yarn.lock, ' +
         'bun.lock, or bun.lockb',
     );
   }
+  return match;
+}
+
+export function inspectPackageManager(root) {
+  const matches = [...PACKAGE_LOCKS]
+    .filter(([file]) => existsSync(join(root, file)))
+    .map(([file, value]) => ({ file, value }));
+
+  if (matches.length === 0) return null;
   if (matches.length > 1) {
     throw new Error(
       `cannot derive packageManager: conflicting root lockfiles ${matches.map((m) => m.file).join(', ')}`,
@@ -68,6 +94,12 @@ export function derivePackageManager(root) {
 }
 
 export function deriveFramework(root) {
+  const match = inspectFramework(root);
+  if (!match) throw new Error('cannot derive framework: no supported framework signature found');
+  return match;
+}
+
+export function inspectFramework(root) {
   const candidates = [];
   const packagePath = join(root, 'package.json');
   if (existsSync(packagePath)) {
@@ -99,9 +131,7 @@ export function deriveFramework(root) {
     });
   }
 
-  if (candidates.length === 0) {
-    throw new Error('cannot derive framework: no supported framework signature found');
-  }
+  if (candidates.length === 0) return null;
   if (candidates.length > 1) {
     throw new Error(
       `cannot derive framework: conflicting signatures ${candidates
@@ -145,6 +175,43 @@ function compareScalar(errors, field, claimed, actual) {
         `from ${actual.evidence}`,
     );
   }
+}
+
+function compareOptionalScalar(errors, field, claimed, actual) {
+  if (claimed === undefined && actual) {
+    errors.push(
+      `${field} is omitted in infrastructure mode but checkout derives ${quote(actual.value)} ` +
+        `from ${actual.evidence}; declare the fact or change mode`,
+    );
+    return;
+  }
+  if (claimed !== undefined && !actual) {
+    const evidence =
+      field === 'framework'
+        ? 'no supported framework signature'
+        : 'no supported root package-manager lockfile';
+    errors.push(`${field} claims ${quote(claimed)} but checkout has ${evidence}`);
+    return;
+  }
+  if (claimed !== undefined) compareScalar(errors, field, claimed, actual);
+}
+
+function rejectBootstrappedEvidence(errors, actual) {
+  const found = [
+    actual.framework
+      ? `framework ${quote(actual.framework.value)} from ${actual.framework.evidence}`
+      : null,
+    actual.packageManager
+      ? `packageManager ${quote(actual.packageManager.value)} from ${actual.packageManager.evidence}`
+      : null,
+  ].filter(Boolean);
+  if (!found.length) return;
+
+  errors.push(
+    `pre-bootstrap mode is no longer valid: checkout derives ${found.join(' and ')}; ` +
+      'upgrade mode and declared facts before syncing (use "application" when both application ' +
+      'facts exist, otherwise use "infrastructure" and declare each fact that applies)',
+  );
 }
 
 function walkFiles(root) {

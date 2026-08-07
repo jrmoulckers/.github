@@ -10,6 +10,8 @@ import { join } from 'node:path';
 import { validateAgentIntegrity } from './agent-integrity.mjs';
 
 export const KINDS = ['base', 'agents', 'skills', 'prompts', 'instructions', 'workflows', 'health'];
+export const MEMBER_MODES = ['application', 'infrastructure', 'pre-bootstrap'];
+export const DEFAULT_MEMBER_MODE = 'application';
 
 // Kinds that produce written files vs. those inherited natively by GitHub/Copilot.
 export const NATIVE_KINDS = new Set(['health', 'workflows']);
@@ -31,9 +33,22 @@ export function loadManifest(repoRoot) {
   } catch (err) {
     throw new Error(`Manifest ${p} is not valid JSON: ${err.message}`);
   }
+  applyManifestDefaults(parsed);
   validateManifest(parsed);
   validateAgentIntegrity(repoRoot, parsed);
   return parsed;
+}
+
+export function applyManifestDefaults(manifest) {
+  if (!isObject(manifest) || !Array.isArray(manifest.members)) return manifest;
+  for (const member of manifest.members) {
+    if (isObject(member) && member.mode === undefined) member.mode = DEFAULT_MEMBER_MODE;
+  }
+  return manifest;
+}
+
+export function memberMode(member) {
+  return member?.mode ?? DEFAULT_MEMBER_MODE;
 }
 
 export function validateManifest(m) {
@@ -72,6 +87,7 @@ export function validateManifest(m) {
       if (typeof member.repo !== 'string' || !/^[^/]+\/[^/]+$/.test(member.repo)) {
         errors.push(`members[${i}].repo must be "owner/name"`);
       }
+      validateMemberMode(member, i, errors);
       if (!isObject(member.optIn)) {
         errors.push(`members[${i}].optIn must be an object`);
         return;
@@ -86,6 +102,41 @@ export function validateManifest(m) {
 
   if (errors.length) {
     throw new Error(`Invalid studio.config.json:\n  - ${errors.join('\n  - ')}`);
+  }
+}
+
+function validateMemberMode(member, i, errors) {
+  const mode = memberMode(member);
+  if (!MEMBER_MODES.includes(mode)) {
+    errors.push(
+      `members[${i}].mode must be one of ${MEMBER_MODES.map((value) => `"${value}"`).join(', ')}`,
+    );
+    return;
+  }
+
+  for (const field of ['framework', 'packageManager']) {
+    if (member[field] !== undefined && (typeof member[field] !== 'string' || !member[field])) {
+      errors.push(`members[${i}].${field} must be a non-empty string when present`);
+    }
+  }
+
+  if (mode === 'application') {
+    for (const field of ['framework', 'packageManager']) {
+      if (typeof member[field] !== 'string' || !member[field]) {
+        errors.push(`members[${i}].${field} is required in application mode`);
+      }
+    }
+  }
+
+  if (mode === 'pre-bootstrap') {
+    for (const field of ['framework', 'packageManager']) {
+      if (member[field] !== undefined) {
+        errors.push(
+          `members[${i}].${field} must be omitted in pre-bootstrap mode; ` +
+            'upgrade the mode when checkout evidence exists',
+        );
+      }
+    }
   }
 }
 

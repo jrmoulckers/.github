@@ -45,12 +45,13 @@ Each entry in `studio.config.json`'s `members[]` array describes one product rep
 | Field | Validated? | Used for |
 | --- | --- | --- |
 | `repo` | ✅ must match `owner/name` | Clone target, `--members` filter, PR destination. |
+| `mode` | ✅ `application`, `infrastructure`, or `pre-bootstrap`; omitted entries default to `application` | Selects the checkout evidence contract; never selects files. |
 | `optIn.base` / `.agents` / `.skills` / `.prompts` / `.instructions` | ✅ keys against `KINDS`, names against `canon.<kind>` | **Executed** — what canon the member receives. |
 | `optIn.health` / `optIn.workflows` | ✅ same validation; called workflows are checkout-verified | **Recorded only** — native kinds, never copied (see below). |
 | `localAgents` | ✅ kebab-case list; cannot overlap selected canon | Locally authored roles/replacements available for handoffs but never synced. |
 | `tokens` | ✅ shape (`enabled` boolean, optional string `targetPath`) | Vendored `@jrm/tokens` opt-in + destination. |
-| `framework` | ❌ free-form schema; checkout-verified | Descriptive — `--dry-run` label; checked against repository signatures during real sync/`--check`. |
-| `packageManager` | ❌ free-form schema; checkout-verified | Descriptive — `--dry-run` label; checked against the root lockfile during real sync/`--check`. |
+| `framework` | ✅ non-empty string when allowed; checkout-verified | Descriptive — `--dry-run` label; checked against supported repository signatures. |
+| `packageManager` | ✅ non-empty string when allowed; checkout-verified | Descriptive — `--dry-run` label; checked against the root lockfile. |
 | `notes` | ❌ free-form | Human/agent context. |
 
 **Two keys inside `optIn` do not behave like the rest.** `health` and `workflows` are
@@ -63,16 +64,29 @@ while the other is a label. Schema validation catches a *misspelled* name in eit
 sync or `--check`, checkout inspection also catches any backbone workflow the member actually calls
 but does not list. Extra listed workflows remain valid because they record intended adoption.
 
-`framework` and `packageManager` are **not** enums: `validateManifest` does not constrain them, and
-`resolve.mjs` passes them through to the dry-run label in `index.mjs`
-(`▶ jrmoulckers/libro  (svelte · pnpm)`). A checkout-owning run verifies the claims separately:
-`packageManager` comes from the root lockfile, while framework signatures come from root package
-metadata or the Gradle/Kotlin Multiplatform + web project shape.
+### Member modes and evidence
 
-These fields still do not decide what gets written. Real syncs inspect the fresh default-branch
-clone before preparing a branch or applying files; `--check` inspects its fresh clone or verified
-`--work-dir` before drift checks. A mismatch, missing signature, or ambiguous signature fails that
-member with the claim and checkout evidence, while other members continue.
+`mode` has three closed-schema values. Omitted legacy entries default to `application`, but the
+canonical manifest declares every mode explicitly:
+
+| Mode | Manifest facts | Checkout rule |
+| --- | --- | --- |
+| `application` | `framework` and `packageManager` are required. | Preserves the original strict behavior: derive exactly one supported framework and exactly one root lockfile package manager, then compare both claims. Missing, conflicting, or mismatched evidence fails. |
+| `infrastructure` | Either fact may be omitted; any present fact must be a non-empty string. | Inspect both signals independently. An omitted fact is valid only when that evidence is absent; detected evidence must be declared and declared evidence must be detected. Nested lockfiles do not become a root package-manager claim. |
+| `pre-bootstrap` | Both facts must be omitted. | Accept only while neither supported framework nor root package-manager evidence exists. The first detected signal fails with instructions to upgrade the mode and facts before syncing. |
+
+Fact values remain open strings so new stacks do not require a schema release. `resolve.mjs` passes
+the mode and applicable facts through to the dry-run label
+(`▶ jrmoulckers/libro  (application · svelte · pnpm)`). `packageManager` evidence comes from a root
+lockfile; framework evidence comes from root package metadata or the Gradle/Kotlin Multiplatform +
+web project shape.
+
+This is **not a verification bypass**. Every checkout-owning operation (real sync, `--check`, and
+`--work-dir`, including its dry-run form) verifies the selected contract and scans called backbone
+workflows before reading the sync lock or applying files. Ambiguous evidence, malformed package
+metadata, undeclared evidence, stale claims, and unlisted workflow calls all fail closed. Repository
+identity is still established by cloning the declared repo or by the existing `--work-dir` origin
+guard. Modes change which facts apply; they do not suppress evidence checks.
 
 Manifest-only `--dry-run` deliberately remains offline: it performs no clone and therefore prints
 the claims without certifying them. The zero-network test suite likewise tests derivation against
@@ -82,8 +96,8 @@ That avoids converting one hand-entered error into two agreeing errors. Two rule
 - **Verify against the member's default branch**, not an onboarding PR — an unmerged PR is not the
   repo. `cartridge` was registered as a pnpm Next.js app from its onboarding PR #1, which was
   closed without merging; `main` is an npm Svelte PWA.
-- **Use a real sync or `--check` to certify checkout-derived facts.** Offline `--dry-run` validates
-  manifest shape and plan resolution only.
+- **Use a real sync, `--check`, or verified `--work-dir` to certify checkout-derived facts.**
+  Manifest-only `--dry-run` validates manifest shape and plan resolution only.
 
 ### `"*"` vs. an explicit list
 
@@ -509,12 +523,12 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown; drift warnings name every exact skipped path. |
 | `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; raw-canon stamping; exact historical-output recovery; empty-evidence and one-byte-mutation refusal; recorded targets never use first-sync recovery. |
 | `test/history.test.mjs` | Full-history enforcement and committed-blob enumeration; end-to-end target enumeration recovers a member holding a prior engine rendering. |
-| `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; a member that narrows its AI layer records the reason in `notes`; an unknown name in an explicit list fails validation; `canon` matches the files on disk both ways; `tokens`/`profile` are not `optIn` kinds; native kinds are never written. |
-| `test/member-facts.test.mjs` | Synthetic checkout derivation for root package managers, supported framework signatures, ambiguous/missing evidence, backbone workflow calls, one-directional planned adoption, and field-specific mismatch diagnostics. No member facts or network access are pinned. |
+| `test/manifest.test.mjs` | The real `studio.config.json` validates; all nine consumers and their explicit modes are registered; disabled infrastructure members produce no writes; local-agent metadata remains compatible; application defaults, Docket's completed mode transition, and mode-specific fact schema are enforced; `canon` matches disk; native kinds are never written. |
+| `test/member-facts.test.mjs` | Synthetic checkout derivation for each mode, independently optional infrastructure facts, pre-bootstrap transitions, root package managers, supported framework signatures, ambiguous/missing evidence, backbone workflow calls in every mode, and field-specific diagnostics. No member facts or network access are pinned. |
 | `test/provenance.test.mjs` | Every real write equals `inject(targetPath, canon)` and never canon verbatim — so the documented hand-audit baseline stays correct; and that check is line-ending agnostic on the member side. |
 | `test/prbody.test.mjs` | An adoption-only run's PR body says its entire diff is the lockfile, and does not claim that when the run also wrote files (including via `--force`). The drift note states that `--force` is run-wide, offers the by-hand remedy first, and neither appears when the run has no drift. |
 | `test/workdir.test.mjs` | `--work-dir` guards: a parent directory, a missing path and a file are all rejected; a git worktree (whose `.git` is a file) is accepted; identity resolves to `match` / `mismatch` / `unverifiable` across URL spellings and case, both failing verdicts abort, the refusal names the self-certifying lockfile, and `--allow-unverified-work-dir` overrides them without ever marking a matching checkout as overridden. |
-| `test/cli-workdir.test.mjs` | The same guards **through the CLI**: every mode — apply, `--check`, `--dry-run` — exits 1 on a wrong or absent origin, a refused run leaves no file and no lockfile, the override flag lets a run through while saying what it suppressed, and a matching checkout is unaffected. Also proves `--check` obeys checkout-derived registry verification before reading or applying the sync lock. |
+| `test/cli-workdir.test.mjs` | The same guards **through the CLI**: every operation — apply, `--check`, `--dry-run` — exits 1 on a wrong or absent origin; refused and fact-verification failures leave no file or lockfile; the override flag says what it suppressed; dry-run reports mode and zero-write members; checkout facts are verified before the sync lock is read or applied. |
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs the suite plus an offline
 `--dry-run` on every PR.

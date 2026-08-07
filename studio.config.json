@@ -1,5 +1,5 @@
 {
-  "$comment": "JRM Studio manifest. Source of truth for the cross-repo sync engine in sync/ (see docs/sync.md and sync/README.md), which reads this file on every run. Fields fall into three tiers and the format does not otherwise distinguish them. EXECUTED — repo, optIn.base, optIn.agents/skills/prompts/instructions, targetPaths and tokens decide which files are written where; getting one wrong changes the output. RECORDED — localAgents names locally authored roles/replacements used for handoff validation but never copied; optIn.health and optIn.workflows are native kinds (sync/lib/manifest.mjs NATIVE_KINDS), so neither is copied. DESCRIPTIVE — framework, packageManager and notes never decide a write; framework and packageManager appear in --dry-run output, while notes supplies human/agent context. Schema validation covers repo, optIn, localAgents and tokens. Real syncs and --check additionally derive framework, the root package manager and called backbone workflows from each existing member checkout, then fail that member before writes if its registry claims disagree. Manifest-only --dry-run stays offline and cannot verify checkout facts. See sync/README.md#member-entries.",
+  "$comment": "JRM Studio manifest. Source of truth for the cross-repo sync engine in sync/ (see docs/sync.md and sync/README.md), which reads this file on every run. Fields fall into three tiers. EXECUTED — repo, optIn.base, optIn.agents/skills/prompts/instructions, targetPaths and tokens decide which files are written where; getting one wrong changes the output. VERIFIED — mode selects the checkout evidence contract; framework, packageManager and called backbone workflows are checked when they apply but never decide a write. RECORDED — localAgents names locally authored roles/replacements used for handoff validation but never copied; optIn.health and optIn.workflows are native kinds (sync/lib/manifest.mjs NATIVE_KINDS), so neither is copied. DESCRIPTIVE — notes supplies human/agent context. Schema validation covers mode, mode-specific facts, repo, optIn, localAgents and tokens. Real syncs, --check, and --work-dir additionally inspect each existing member checkout, then fail that member before writes if its mode or registry claims disagree. Manifest-only --dry-run stays offline and cannot verify checkout facts. See sync/README.md#member-entries.",
   "studio": "JRM Studio",
   "owner": "jrmoulckers",
   "ownerType": "user",
@@ -102,6 +102,7 @@
   "members": [
     {
       "repo": "jrmoulckers/jrm-recipes",
+      "mode": "application",
       "framework": "nextjs",
       "packageManager": "pnpm",
       "notes": "New consumer web product. Adopts the full canonical layer.",
@@ -118,6 +119,7 @@
     },
     {
       "repo": "jrmoulckers/score-king",
+      "mode": "application",
       "framework": "svelte",
       "packageManager": "npm",
       "notes": "Game-night scoring app. Adopts the canonical roster and keeps its committed design-engineer as an explicit local replacement, so only design-engineer is omitted from sync.",
@@ -157,6 +159,7 @@
     },
     {
       "repo": "jrmoulckers/finance",
+      "mode": "application",
       "framework": "kmp-web",
       "packageManager": "npm",
       "notes": "Origin of most canon; maintains its own richer, product-specific AI layer. Consumes shared health + reusable workflows only.",
@@ -173,6 +176,7 @@
     },
     {
       "repo": "jrmoulckers/libro",
+      "mode": "application",
       "framework": "svelte",
       "packageManager": "pnpm",
       "notes": "Pure-client media hub for books and audiobooks. Svelte/Vite PWA at repo root; first member to consume vendored @jrm/tokens.",
@@ -189,6 +193,7 @@
     },
     {
       "repo": "jrmoulckers/cartridge",
+      "mode": "application",
       "framework": "svelte",
       "packageManager": "npm",
       "notes": "Local-first game library PWA. Svelte 5 + Vite at repo root, IndexedDB via idb, vite-plugin-pwa. Separate bridge/ Cloudflare Worker (OAuth token exchange, KV cache, CORS allowlist) with its own toolchain, so this member is not backend-free. Opted in with \"*\": its partial canon set came from a hand-typed list in a scaffold script, not a curation decision, so freezing it would preserve a first-pass guess.",
@@ -205,9 +210,10 @@
     },
     {
       "repo": "jrmoulckers/docket",
+      "mode": "application",
       "framework": "svelte",
       "packageManager": "pnpm",
-      "notes": "New private product repo, currently just a README — pre-bootstrap. Registered with the full canonical layer (matching libro/cartridge) so its first real sync seeds the Studio baseline and vendored tokens once the repo has enough checkout evidence (package.json/lockfile) for the sync engine to verify framework and packageManager.",
+      "notes": "Native-first task system with a Svelte PWA, pnpm workspace, shared domain/contracts packages, Hono/SQLite server, and planned SwiftUI client. Upgraded from pre-bootstrap immediately when its application and root toolchain evidence landed.",
       "optIn": {
         "base": true,
         "health": true,
@@ -218,6 +224,62 @@
         "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
       },
       "tokens": { "enabled": true }
+    },
+    {
+      "repo": "jrmoulckers/studio",
+      "mode": "infrastructure",
+      "packageManager": "pnpm",
+      "notes": "Design and tooling kernel: a pnpm workspace for @jrm/tokens and shared lint, formatting, TypeScript, and Tailwind packages. It is the token source, never its own vendored-token target. Canon selections stay disabled until its authored AI layer is prepared for overlay adoption.",
+      "optIn": {
+        "base": false,
+        "health": false,
+        "agents": false,
+        "skills": false,
+        "prompts": false,
+        "instructions": false,
+        "workflows": false
+      },
+      "tokens": { "enabled": false }
+    },
+    {
+      "repo": "jrmoulckers/homelab",
+      "mode": "infrastructure",
+      "notes": "Infrastructure-as-code and operations repository for Proxmox, self-hosted services, automation, backups, and runbooks. JavaScript package metadata is nested under individual tools rather than defining a root application toolchain. Its existing product-specific agents remain local while overlay preparation is pending.",
+      "localAgents": [
+        "automation-steward",
+        "backup-warden",
+        "edge-warden",
+        "host-operator",
+        "inventory-scribe",
+        "media-steward",
+        "security-warden",
+        "service-steward"
+      ],
+      "optIn": {
+        "base": false,
+        "health": false,
+        "agents": false,
+        "skills": false,
+        "prompts": false,
+        "instructions": false,
+        "workflows": false
+      },
+      "tokens": { "enabled": false }
+    },
+    {
+      "repo": "jrmoulckers/windows",
+      "mode": "infrastructure",
+      "notes": "Windows device-management repository for shared and per-machine configuration. Its default branch is intentionally empty today; canon selections stay disabled until the configuration and AI overlay are prepared.",
+      "optIn": {
+        "base": false,
+        "health": false,
+        "agents": false,
+        "skills": false,
+        "prompts": false,
+        "instructions": false,
+        "workflows": false
+      },
+      "tokens": { "enabled": false }
     }
   ]
 }

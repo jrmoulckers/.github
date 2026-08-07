@@ -175,6 +175,7 @@ function runDryRun(plans, opts, manifest, backboneRoot, date) {
 function runWorkDir(plans, opts, manifest, date) {
   const { resolved, targets } = plans[0];
   const write = !opts.dryRun;
+  assertMemberFacts(opts.workDir, resolved, manifest.backbone);
   const lock = readLock(opts.workDir, manifest.backbone);
   const { report } = apply(opts.workDir, targets.writes, lock, { force: opts.force, write });
   log.step(`${resolved.repo} → ${opts.workDir}${write ? '' : '  (dry-run: no writes)'}`);
@@ -268,7 +269,7 @@ function memberRootForCheck(repo, opts, token, backbone) {
 // --- formatting ------------------------------------------------------------
 
 function printPlan(resolved, targets) {
-  const meta = [resolved.framework, resolved.packageManager].filter(Boolean).join(' · ');
+  const meta = [resolved.mode, resolved.framework, resolved.packageManager].filter(Boolean).join(' · ');
   out(`▶ ${resolved.repo}${meta ? `  (${meta})` : ''}`);
 
   const byKind = groupByKind(targets.writes);
