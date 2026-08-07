@@ -27,7 +27,7 @@ The four canonical authorities are:
 
 | Authority | Owns |
 | --- | --- |
-| **Studio** | Design and UI principles and implementations: visual design, interaction, accessibility, localization UX, tokens, themes, UI contracts, platform UI implementations, presets, and visual validation. |
+| **Studio** | Design and UI principles and implementations: visual design, interaction, accessibility, localization UX, tokens, themes, UI contracts, platform implementations, presets, and visual validation. |
 | **Engineering** | Engineering principles and implementations: architecture, browser and frontend engineering, APIs and backend systems, data systems, security and privacy mechanisms, testing, performance, local-first behavior, observability, build and release engineering, configurations, and libraries. |
 | **Product** | Product and operations principles and implementations: strategy, planning, business, discovery, experimentation, metrics, compliance obligations, delivery and go/no-go decisions, content operations, and product or operations templates. |
 | **`.github`** | GitHub governance, GitHub Actions, GitHub Copilot and AI principles and implementations, agents, skills, prompts, instructions, evaluations, GitHub-native templates, the fleet registry, and sync provenance and distribution. |
@@ -55,12 +55,14 @@ must not become a substitute policy.
 - Product may consume discovery, feasibility, evidence, and validation from Engineering and Studio
   while retaining ownership only of obligations, outcomes, and product operations.
 - Engineering may read Product obligations and Studio-owned UI contracts to produce mechanisms,
-  platform contracts, and evidence. It may reference `.github` for GitHub, Copilot, or AI rules.
+  technical interfaces, and evidence.
 - Studio may read Product obligations and Engineering contracts or evidence to produce user-facing
-  expression and visual validation. It may reference `.github` for GitHub, Copilot, or AI rules.
+  expression, UI contracts, platform implementations, and visual validation.
 - `.github` may operationally read all authorities to run checks, maintain provenance, or distribute
   an authority-owned source. This operational read or distribution edge never transfers source
   ownership to `.github`.
+- Every authority may reference `.github` for GitHub, Copilot, or AI rules; those rules remain
+  `.github`-owned.
 - Every authority may link to another authority's canonical source. No authority may copy another
   authority's normative text into its own source tree.
 

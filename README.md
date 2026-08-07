@@ -35,8 +35,9 @@ here plus `@jrm` npm packages.
 
 ## Authority map
 
-JRM Studio uses four canonical authorities so operational placement never obscures source
-ownership:
+**Non-normative index.** [ADR-0003](docs/architecture/0003-four-authority-topology.md) is the
+canonical source for this topology. This summary helps readers find the four authorities without
+turning operational placement into source ownership:
 
 | Authority | Canonical domain |
 | --- | --- |
@@ -48,8 +49,8 @@ ownership:
 Product defines the obligation and outcome, Engineering defines the mechanism and evidence, Studio
 defines the user-facing expression, and `.github` automates checks and distribution. Operational
 reading or distribution does not transfer source ownership. See
-[ADR-0003](docs/architecture/0003-four-authority-topology.md) for dependency directions and
-ownership boundaries.
+[ADR-0003](docs/architecture/0003-four-authority-topology.md) for the normative dependency
+directions and ownership boundaries.
 
 > **Profile note.** `jrmoulckers` is a GitHub **User**, not an Org, so `profile/README.md` does
 > **not** render on the account page (that's an Org-only mechanism). It's authored here as the
