@@ -136,3 +136,23 @@ test('a checkout whose origin is the member is not blocked', () => {
     assert.match(out, new RegExp(MEMBER.replace('/', '\\/')));
   });
 });
+
+test('--check derives registry facts before reading or applying the member lock', () => {
+  withTmp((root) => {
+    const member = 'jrmoulckers/cartridge';
+    const dir = seededRepo(root, 'cartridge', `https://github.com/${member}.git`);
+    writeFileSync(
+      join(dir, 'package.json'),
+      JSON.stringify({ devDependencies: { svelte: '5.0.0' } }),
+      'utf8',
+    );
+    writeFileSync(join(dir, 'pnpm-lock.yaml'), 'lockfileVersion: 9\n', 'utf8');
+    writeFileSync(join(dir, '.studio-sync.lock.json'), 'not json', 'utf8');
+
+    const { code, out } = run(['--check', '--work-dir', dir, '--members', member]);
+
+    assert.equal(code, 1);
+    assert.match(out, /packageManager claims "npm" but checkout derives "pnpm"/);
+    assert.doesNotMatch(out, /Corrupt lockfile/);
+  });
+});

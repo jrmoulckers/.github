@@ -23,6 +23,7 @@ export function syncMembers(plans, ctx, syncOne = syncMemberRepo) {
     try {
       const result = syncOne({
         repo: resolved.repo,
+        member: resolved,
         writes: targets.writes,
         token: ctx.token,
         date: ctx.date,

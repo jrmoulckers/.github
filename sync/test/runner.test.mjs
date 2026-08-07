@@ -50,6 +50,7 @@ test('the member context is passed through to each sync', () => {
   assert.equal(calls[0].date, '2026-08-03');
   assert.equal(calls[0].force, true);
   assert.equal(calls[0].backbone, 'jrmoulckers/.github');
+  assert.equal(calls[0].member.repo, 'o/a');
 });
 
 test('drift warnings name every exact skipped file', () => {
