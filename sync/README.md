@@ -427,12 +427,13 @@ commits `chore(sync): update studio canon (<date>)`, pushes, and opens a PR agai
 member's **default** branch. It never pushes to the default branch, and skips members with
 no changes.
 
-**Same-day re-runs never force-push.** If the dated branch already exists on the remote it is
-fetched and **reused as the base**, so this run is stacked on top of whatever is already there and
-pushed as a fast-forward. Commits a reviewer pushed to the sync branch are preserved (and logged),
-and reviewer edits to synced files are evaluated as ordinary drift — flagged and left alone rather
-than overwritten. If the push is rejected because the remote moved mid-run, the run fails loudly
-instead of overwriting; re-run it.
+**Same-day re-runs never force-push.** A dated branch is fetched and reused only while it belongs
+to an open PR, so reviewer commits on active work are preserved (and logged) and the update is a
+plain fast-forward. Reviewer edits to synced files are evaluated as ordinary drift — flagged and
+left alone rather than overwritten. A retained branch from a merged or closed PR is stale: the
+engine leaves it untouched and creates a clean `studio-sync/<date>-rerun-N` branch from current
+default if another write is needed that day. Later runs reuse that rerun branch while its PR remains
+open. If an active branch moves mid-run, the push is rejected loudly instead of overwriting it.
 
 > The engine previously rebuilt the branch from the default branch each run and pushed with
 > `--force-with-lease`. That never destroyed anything — without an explicit `=<ref>:<expect>` the
@@ -481,7 +482,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 
 | File | Covers |
 | --- | --- |
-| `test/branch-reuse.test.mjs` | Sync-branch reuse: reviewer commits survive a re-run; a diverged remote is rejected instead of force-pushed. |
+| `test/branch-reuse.test.mjs` | Sync-branch lifecycle: active reviewer work survives; squash-merged and closed branches are bypassed; clean reruns and first runs start from default; a diverged active remote is rejected instead of force-pushed. |
 | `test/basemerge.test.mjs` | Managed-block detection: markers quoted in prose, shown in a fenced example, or indented as a code block do not form a block; real blocks are still replaced; a canon change after adoption updates in place without duplicating markers; genuine edits are still drift. |
 | `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown; drift warnings name every exact skipped path. |
 | `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; raw-canon stamping; exact historical-output recovery; empty-evidence and one-byte-mutation refusal; recorded targets never use first-sync recovery. |

@@ -46,7 +46,7 @@ export function createBranch(dest, branch) {
 }
 
 /**
- * Check out the sync branch, **reusing the remote branch when it already exists**.
+ * Check out a sync branch, reusing a remote branch only when an open PR owns it.
  *
  * A same-day re-run must not discard work that landed on the sync branch after the previous run —
  * a reviewer's fixup commit, for example — and must actually be able to update the open PR.
@@ -56,16 +56,36 @@ export function createBranch(dest, branch) {
  * branch and using it as the base gives both properties at once — the push is an ordinary
  * fast-forward that succeeds and cannot overwrite anything.
  *
- * @returns {{ reused: boolean, foreign: string[] }} `foreign` lists short descriptions of
- *   commits on the reused branch that the engine did not author (reviewer work being preserved).
+ * A retained branch from a closed or squash-merged PR is not safe to reuse. In that case a
+ * non-colliding `-rerun-N` branch is created from the current default branch, leaving the retained
+ * remote ref untouched.
+ *
+ * @returns {{ branch: string, reused: boolean, foreign: string[] }} `foreign` lists short
+ *   descriptions of ahead-of-default commits on the reused branch that the engine did not author.
  */
-export function prepareSyncBranch(dest, branch) {
+export function prepareSyncBranch(dest, branch, { reuse = false, defaultBranch = 'main' } = {}) {
+  if (reuse) {
+    if (!fetchRemoteBranch(dest, branch)) {
+      throw new Error(`Open PR branch ${branch} disappeared before it could be reused.`);
+    }
+    git(['checkout', '-B', branch, `refs/remotes/origin/${branch}`], dest);
+    return { branch, reused: true, foreign: foreignCommits(dest, branch, defaultBranch) };
+  }
+
   if (!fetchRemoteBranch(dest, branch)) {
     createBranch(dest, branch);
-    return { reused: false, foreign: [] };
+    return { branch, reused: false, foreign: [] };
   }
-  git(['checkout', '-B', branch, `refs/remotes/origin/${branch}`], dest);
-  return { reused: true, foreign: foreignCommits(dest, branch) };
+
+  let sequence = 2;
+  let freshBranch;
+  do {
+    freshBranch = `${branch}-rerun-${sequence}`;
+    sequence += 1;
+  } while (fetchRemoteBranch(dest, freshBranch));
+
+  createBranch(dest, freshBranch);
+  return { branch: freshBranch, reused: false, foreign: [] };
 }
 
 /** Fetch `branch` from origin into its remote-tracking ref. False when the remote branch is absent. */
@@ -79,12 +99,16 @@ export function fetchRemoteBranch(dest, branch) {
 }
 
 /**
- * Commits reachable from the (shallow) sync branch that were not authored by the sync engine.
+ * Commits ahead of the default branch that were not authored by the sync engine.
  * Used to report preserved reviewer work; never used to gate the push.
  */
-export function foreignCommits(dest, branch) {
+export function foreignCommits(dest, branch, defaultBranch = 'main') {
   try {
-    const log = git(['log', '--format=%h %an %s', branch], dest);
+    if (git(['rev-parse', '--is-shallow-repository'], dest) === 'true') {
+      git(['fetch', '--unshallow', 'origin', defaultBranch], dest);
+      git(['fetch', 'origin', `${branch}:refs/remotes/origin/${branch}`], dest);
+    }
+    const log = git(['log', '--format=%h %an %s', `${defaultBranch}..${branch}`], dest);
     return log
       .split('\n')
       .filter(Boolean)
@@ -112,15 +136,53 @@ export function push(dest, branch) {
   git(['push', '-u', 'origin', branch], dest);
 }
 
-/** URL of an existing open PR whose head is `branch`, or null. */
-export function findOpenPr(repo, branch, token) {
+/** Remote dated branch and clean rerun branches that could belong to an open PR. */
+export function remoteSyncBranches(dest, branch) {
+  const output = git(
+    ['ls-remote', '--heads', 'origin', `refs/heads/${branch}`, `refs/heads/${branch}-rerun-*`],
+    dest,
+  );
+  return output
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => line.slice(line.indexOf('refs/heads/') + 'refs/heads/'.length));
+}
+
+/** Most recent open PR whose head is the dated branch or one of its clean rerun branches. */
+export function findOpenPr(repo, branch, token, dest) {
   try {
-    const json = gh(['pr', 'list', '--repo', repo, '--head', branch, '--state', 'open', '--json', 'url'], token);
-    const list = JSON.parse(json || '[]');
-    return list.length ? list[0].url : null;
+    const list = remoteSyncBranches(dest, branch).flatMap((head) => {
+      const json = gh(
+        [
+          'pr',
+          'list',
+          '--repo',
+          repo,
+          '--head',
+          head,
+          '--state',
+          'open',
+          '--limit',
+          '1',
+          '--json',
+          'url,headRefName,number',
+        ],
+        token,
+      );
+      return JSON.parse(json || '[]');
+    });
+    return selectOpenPr(list, branch);
   } catch {
     return null;
   }
+}
+
+export function selectOpenPr(prs, branch) {
+  const escaped = branch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const candidates = prs
+    .filter((pr) => new RegExp(`^${escaped}(?:-rerun-[0-9]+)?$`).test(pr.headRefName))
+    .sort((left, right) => right.number - left.number);
+  return candidates.length ? { url: candidates[0].url, branch: candidates[0].headRefName } : null;
 }
 
 /** True when the repo exists and is visible to the token. */

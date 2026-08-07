@@ -53,11 +53,12 @@ flowchart LR
    either (see [Native kinds have no transport](#native-kinds-have-no-transport)).
 6. **Open a PR** — commit on a `studio-sync/<date>` branch and open a PR titled
    `chore(sync): update studio canon (<date>)` with a summary of changed assets. Never push to
-   the member's default branch directly. If that branch already exists on the remote (a same-day
-   re-run), it is fetched and **reused as the base** and the push is a plain fast-forward — the
-   engine never force-pushes, so reviewer commits on the sync branch are preserved. A member whose
-   sync fails is reported and skipped; the remaining members and the profile mirror still run, and
-   the process exits non-zero.
+   the member's default branch directly. On a same-day re-run, an existing branch is reused only
+   when it belongs to an open PR; its reviewer commits are preserved and the push is a plain
+   fast-forward. A retained branch from a merged or closed PR is left untouched and, when another
+   write is needed, replaced by a clean `studio-sync/<date>-rerun-N` branch from current default.
+   The engine never force-pushes. A member whose sync fails is reported and skipped; the remaining
+   members and the profile mirror still run, and the process exits non-zero.
 7. **Let product CI validate** — the member's own checks run on the sync PR; a human (or the
    member's agents) reviews and merges.
 
@@ -237,11 +238,12 @@ Five flag behaviors that are easy to trip over:
   wrong result that looks nothing like a quote. Run `git fetch && git status` in both checkouts
   first, and state which revisions a reported figure came from — see the dated cartridge numbers
   under [The first run](#the-first-run).
-- **`--date <YYYY-MM-DD>` starts a clean attempt.** The sync branch is `studio-sync/<date>`, so a
-  fresh date means a fresh branch and a fresh PR. That is the recovery path after a bad run: the
-  previous attempt is left intact for inspection rather than amended. Re-running with the *same*
-  date is also safe — the existing branch is reused and the push is a fast-forward — but a new date
-  is the cleaner reset.
+- **`--date <YYYY-MM-DD>` starts a clean attempt.** The first sync branch is
+  `studio-sync/<date>`, so a fresh date means a fresh branch and a fresh PR. That is the recovery
+  path after a bad run: the previous attempt is left intact for inspection rather than amended.
+  Re-running with the *same* date updates an open PR by fast-forward. If that PR is already closed
+  or merged but its branch remains, the next write uses `studio-sync/<date>-rerun-N` from current
+  default instead of stacking on stale history.
 
 ### The first run
 
