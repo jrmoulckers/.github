@@ -28,11 +28,10 @@ export function commitMessage(date) {
 /**
  * Clone a repo, apply `writes`, and open a PR if anything changed.
  *
- * If the dated sync branch already exists on the remote (e.g. a same-day re-run), it is
- * **reused as the base**: this run is stacked on top of whatever is already there and pushed as a
- * fast-forward. Commits a reviewer pushed to the sync branch are preserved, and their edits to
- * synced files are evaluated as ordinary drift (skipped and flagged) rather than overwritten.
- * The engine never force-pushes, so the reuse path both succeeds and cannot clobber.
+ * A same-day branch is reused only while an open PR owns it. Commits a reviewer pushed to that
+ * active branch are preserved, and their edits to synced files are evaluated as ordinary drift.
+ * A retained branch from a merged or closed PR is bypassed with a clean `-rerun-N` branch from the
+ * current default. The engine never force-pushes either path.
  *
  * @returns {{ status: 'unchanged'|'pr', prUrl?: string, branch?: string, reused?: boolean, report }}
  */
@@ -41,8 +40,13 @@ export function syncRepo({ repo, writes, token, date, force, backbone, title, in
   try {
     const defaultBranch = cloneShallow(repo, token, tmp);
     inspectCheckout?.(tmp);
-    const branch = branchName(date);
-    const base = prepareSyncBranch(tmp, branch);
+    const datedBranch = branchName(date);
+    const existing = findOpenPr(repo, datedBranch, token, tmp);
+    const base = prepareSyncBranch(tmp, existing?.branch ?? datedBranch, {
+      reuse: Boolean(existing),
+      defaultBranch,
+    });
+    const branch = base.branch;
     if (base.reused) {
       log.info(`${repo}: reusing existing remote branch ${branch} (fast-forward, no force-push).`);
       if (base.foreign.length) {
@@ -60,9 +64,8 @@ export function syncRepo({ repo, writes, token, date, force, backbone, title, in
 
     if (!commitAll(tmp, commitMessage(date))) return { status: 'unchanged', report };
 
-    const existing = findOpenPr(repo, branch, token);
     push(tmp, branch);
-    if (existing) return { status: 'pr', prUrl: existing, branch, reused: true, report };
+    if (existing) return { status: 'pr', prUrl: existing.url, branch, reused: true, report };
 
     const bodyFile = join(tmp, '.studio-sync-pr-body.md');
     writeFileSync(bodyFile, buildPrBody(report, { date, intro }), 'utf8');
