@@ -1,11 +1,16 @@
 <!-- markdownlint-disable MD041 -->
 
-# `jrmoulckers/.github` — JRM Studio backbone
+# `jrmoulckers/.github` — JRM Studio control plane
 
-The single source of truth for **JRM Studio**: shared identity, community-health defaults, the
-canonical (product-agnostic) AI layer, reusable CI/CD workflows, and the manifest that drives
-cross-repo sync. Product repos (`jrm-recipes`, `score-king`, `finance`, and more) share DNA from
-here plus `@jrm` npm packages.
+The single source of truth for the studio's **GitHub, Copilot, and AI control plane**:
+community-health defaults, reusable Actions, GitHub Copilot and AI canon, fleet registry, and sync
+and provenance mechanics. Product repos (`jrm-recipes`, `score-king`, `finance`, and more) consume
+these control-plane assets alongside shared outputs from the other studio authorities.
+
+This repository may automate checks and distribute source-owned outputs, but it does **not** own
+design/UI, engineering, or product/operations policy. See
+**[ADR-0002: Four-authority repository topology](docs/architecture/0002-four-authority-topology.md)**
+for the canonical ownership and handoff map.
 
 > New to the studio? Start with **[`AGENTS.md`](AGENTS.md)** (base operating guide) and the
 > **[studio profile](profile/README.md)**.
@@ -103,13 +108,14 @@ flow and **[`sync/README.md`](sync/README.md)** for the implemented engine.
 - **Prompts** drive multi-PR and sprint workflows; **instructions** attach path-scoped standards
   via `applyTo` globs.
 
-Design principle: **decide it once, reuse it everywhere.** Proven practice becomes shared canon;
-new products start with the studio's accumulated craft on day one.
+Control-plane principle: **decide it once, reuse it everywhere.** Proven GitHub, Copilot, and AI
+practice becomes shared canon; domain-owned outputs retain their source authority when distributed.
 
 ## Contributing to the backbone
 
-This repo is the canonical source — edits here propagate to the whole studio. Keep everything
-**product-neutral and framework-agnostic**. Follow [`AGENTS.md`](AGENTS.md),
+This repo is the canonical source for the control-plane assets it owns; many edits here propagate to
+the whole studio. Keep those assets **product-neutral and framework-agnostic**. Follow
+[`AGENTS.md`](AGENTS.md),
 [`CONTRIBUTING.md`](CONTRIBUTING.md), and the authoring standards in
 [`instructions/`](instructions/) (`skills.instructions.md`, `agents.instructions.md`). Conventional
 commits; no secrets.
