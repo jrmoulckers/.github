@@ -35,7 +35,7 @@ export function syncMembers(plans, ctx, syncOne = syncMemberRepo) {
         log.info(`${resolved.repo}: no changes`);
       }
       if (result.report?.hasDrift) {
-        log.warn(`${resolved.repo}: ${result.report.drift.length} locally-modified file(s) left untouched.`);
+        log.warn(formatDriftWarning(resolved.repo, result.report.drift));
       }
     } catch (err) {
       failures.push({ repo: resolved.repo, message: err.message });
@@ -45,4 +45,10 @@ export function syncMembers(plans, ctx, syncOne = syncMemberRepo) {
   }
 
   return failures;
+}
+
+export function formatDriftWarning(repo, drift) {
+  return `${repo}: locally-modified file(s) left untouched: ${drift
+    .map((item) => item.targetPath)
+    .join(', ')}`;
 }

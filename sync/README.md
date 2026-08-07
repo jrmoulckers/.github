@@ -354,12 +354,11 @@ runs with no upstream change write nothing and open no PR.
 **The other half of that caveat.** Adoption only applies when the pre-existing file is
 byte-identical to what the engine *would write* — canon plus its provenance header, LF-normalized,
 not raw canon (see [Auditing a member by hand](#auditing-a-member-by-hand-compare-against-inject-not-against-canon)).
-A hand-seeded copy that differs *at all* is drift: flagged, left untouched,
-and it stays that way, because with no lock entry the engine cannot tell a stale copy from a
-deliberate local edit. The worst version is a copy of **older** canon that still carries its
-provenance stamp — it looks synced and only a byte comparison says otherwise. Reconcile those in
-the member repo before its first sync: refresh each file to match what the engine would write, or
-delete it and let the engine add it.
+A hand-seeded copy that differs is drift unless its exact bytes match a committed historical canon
+blob or the engine rendering reconstructed from that blob. That repository-history proof lets the
+engine safely update stale canon without trusting a provenance-looking header or content
+similarity. A genuine member edit — even a one-byte mutation of historical output — is still
+flagged and left untouched.
 
 **One case self-heals: bytes equal to *raw canon*.** A file hand-copied from the backbone without
 going through `inject()` has current content and no provenance header, so it can never match what
@@ -373,6 +372,11 @@ The narrowness is the point. It applies **only** to a target with no lock entry.
 recorded, bytes equal to raw canon mean someone deliberately stripped the header — a local edit,
 which keeps its drift signal. `jrmoulckers/finance`'s root `agency.toml` is the worked example: it
 hashes to `281f6b5cf11d`, raw canon, against `inject()`'s `c5dc520a8bd3`.
+
+The same boundary applies to historical recovery: only an unrecorded target can use the evidence.
+The backbone checkout must contain full Git history (`fetch-depth: 0` in Actions); the engine fails
+closed on a shallow checkout rather than pretending an incomplete evidence set is authoritative.
+Drift warnings name every skipped target so reconciliation does not require lockfile archaeology.
 
 `--force` is not the tool for that. It is one flag for the whole invocation — `index.mjs` parses it
 once and threads it into every member, and `apply()` then applies it to every spec in each — so it
@@ -485,8 +489,9 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | --- | --- |
 | `test/branch-reuse.test.mjs` | Sync-branch reuse: reviewer commits survive a re-run; a diverged remote is rejected instead of force-pushed. |
 | `test/basemerge.test.mjs` | Managed-block detection: markers quoted in prose, shown in a fenced example, or indented as a code block do not form a block; real blocks are still replaced; a canon change after adoption updates in place without duplicating markers; genuine edits are still drift. |
-| `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown. |
-| `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; a no-op run leaves the lockfile byte-identical (`generatedAt` not bumped); an adopted baseline still updates when canon moves, and is still checked for drift; a pre-seeded file that differs from canon stays drift on every run; a file hand-copied as **raw canon** is stamped with the provenance header instead of being flagged, but only while it has no lock entry. |
+| `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown; drift warnings name every exact skipped path. |
+| `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; raw-canon stamping; exact historical-output recovery; empty-evidence and one-byte-mutation refusal; recorded targets never use first-sync recovery. |
+| `test/history.test.mjs` | Full-history enforcement and committed-blob enumeration; end-to-end target enumeration recovers a member holding a prior engine rendering. |
 | `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; every member's `framework`/`packageManager` matches its default branch; every reusable workflow a member calls is listed in its `optIn.workflows`; a member that narrows its AI layer records the reason in `notes`; an unknown name in an explicit list fails validation; `canon` matches the files on disk both ways; `tokens`/`profile` are not `optIn` kinds; native kinds are never written. |
 | `test/provenance.test.mjs` | Every real write equals `inject(targetPath, canon)` and never canon verbatim — so the documented hand-audit baseline stays correct; and that check is line-ending agnostic on the member side. |
 | `test/prbody.test.mjs` | An adoption-only run's PR body says its entire diff is the lockfile, and does not claim that when the run also wrote files (including via `--force`). The drift note states that `--force` is run-wide, offers the by-hand remedy first, and neither appears when the run has no drift. |
