@@ -293,3 +293,75 @@ test('a pre-existing file that is neither canon nor rendered is still drift', ()
     assert.equal(readFileSync(join(root, s.targetPath), 'utf8'), '# member wrote this\n');
   });
 });
+
+// --- historical canon recovery ---------------------------------------------
+
+test('an unrecorded historical engine rendering is safely updated to current canon', () => {
+  withTmp((root) => {
+    const previousRaw = '# previous canon\n';
+    const previousRendered = inject('agency.toml', previousRaw);
+    const s = {
+      ...rawSpec(),
+      historicalCanonSha256: [hashText(previousRendered)],
+    };
+    seed(root, s.targetPath, previousRendered);
+
+    const { report } = apply(root, [s], readLock(root, BACKBONE), { write: true });
+
+    assert.deepEqual(report.updated.map((item) => item.targetPath), [s.targetPath]);
+    assert.equal(report.drift.length, 0);
+    assert.equal(readFileSync(join(root, s.targetPath), 'utf8'), s.content);
+  });
+});
+
+test('historical recovery is vacuous without repository-backed hash evidence', () => {
+  withTmp((root) => {
+    const previousRendered = inject('agency.toml', '# previous canon\n');
+    const s = { ...rawSpec(), historicalCanonSha256: [] };
+    seed(root, s.targetPath, previousRendered);
+
+    const { report } = apply(root, [s], readLock(root, BACKBONE), { write: true });
+
+    assert.deepEqual(report.drift.map((item) => item.targetPath), [s.targetPath]);
+    assert.equal(report.updated.length, 0);
+    assert.equal(readFileSync(join(root, s.targetPath), 'utf8'), previousRendered);
+  });
+});
+
+test('a one-byte mutation of proven historical output remains genuine drift', () => {
+  withTmp((root) => {
+    const previousRendered = inject('agency.toml', '# previous canon\n');
+    const mutated = previousRendered.replace('previous', 'previous!');
+    const s = {
+      ...rawSpec(),
+      historicalCanonSha256: [hashText(previousRendered)],
+    };
+    seed(root, s.targetPath, mutated);
+
+    const { report } = apply(root, [s], readLock(root, BACKBONE), { write: true });
+
+    assert.equal(report.drift.length, 1);
+    assert.equal(report.updated.length, 0);
+    assert.equal(readFileSync(join(root, s.targetPath), 'utf8'), mutated);
+  });
+});
+
+test('historical evidence never overrides drift on a recorded target', () => {
+  withTmp((root) => {
+    const previousRendered = inject('agency.toml', '# previous canon\n');
+    const s = {
+      ...rawSpec(),
+      historicalCanonSha256: [hashText(previousRendered)],
+    };
+    seed(root, s.targetPath, s.content);
+    const adopted = apply(root, [s], readLock(root, BACKBONE), { write: true }).report;
+    assert.equal(adopted.adopted.length, 1, 'precondition: current rendering is recorded');
+
+    seed(root, s.targetPath, previousRendered);
+    const { report } = apply(root, [s], readLock(root, BACKBONE), { write: true });
+
+    assert.equal(report.drift.length, 1);
+    assert.equal(report.updated.length, 0);
+    assert.equal(readFileSync(join(root, s.targetPath), 'utf8'), previousRendered);
+  });
+});

@@ -6,7 +6,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { syncMembers } from '../lib/runner.mjs';
+import { formatDriftWarning, syncMembers } from '../lib/runner.mjs';
 
 const plan = (repo) => ({ resolved: { repo }, targets: { writes: [] } });
 const ctx = { token: 'x', date: '2026-08-03', backbone: 'jrmoulckers/.github' };
@@ -50,4 +50,15 @@ test('the member context is passed through to each sync', () => {
   assert.equal(calls[0].date, '2026-08-03');
   assert.equal(calls[0].force, true);
   assert.equal(calls[0].backbone, 'jrmoulckers/.github');
+});
+
+test('drift warnings name every exact skipped file', () => {
+  assert.equal(
+    formatDriftWarning('o/a', [
+      { targetPath: '.github/prompts/backlog.prompt.md' },
+      { targetPath: '.github/prompts/review.prompt.md' },
+    ]),
+    'o/a: locally-modified file(s) left untouched: ' +
+      '.github/prompts/backlog.prompt.md, .github/prompts/review.prompt.md',
+  );
 });

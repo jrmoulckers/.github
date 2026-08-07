@@ -5,7 +5,8 @@
 // studio.config.json. See sync/README.md and docs/sync.md.
 //
 // Flags:
-//   --dry-run            Plan only. No writes, no git, no network. Prints the resolved
+//   --dry-run            Plan only. No writes or network. Reads local backbone history to
+//                        build historical-canon evidence. Prints the resolved
 //                        file set per member (and the profile mirror plan).
 //   --members <a,b>      Restrict to these member repos (full "owner/name" or bare "name").
 //   --check              CI gate. Exit non-zero if any member is out of date or has drift.
@@ -39,7 +40,7 @@ import { apply } from './lib/copier.mjs';
 import { cloneShallow } from './lib/git.mjs';
 import { assertMemberCheckout, assertMemberIdentity } from './lib/workdir.mjs';
 import { resolveStudioRoot } from './lib/studio.mjs';
-import { syncMembers } from './lib/runner.mjs';
+import { formatDriftWarning, syncMembers } from './lib/runner.mjs';
 import { mirrorProfile, profileTarget } from './lib/profile.mjs';
 import { log } from './lib/log.mjs';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -122,7 +123,8 @@ function main() {
 
   // Vendored @jrm/tokens come from an external repo. Resolve a source checkout once (shared by
   // every opted-in member) and splice the token writes into each member's plan. Runs that touch
-  // no tokens never clone anything. Dry-run / work-dir stay offline (source via --studio-dir).
+  // no tokens never clone anything. Dry-run / work-dir stay network-offline (source via
+  // --studio-dir), while target enumeration still reads local backbone Git history.
   const needTokens = plans.some((p) => p.resolved.tokens?.enabled);
   const allowClone = !opts.dryRun && !opts.workDir;
   const studio = needTokens ? resolveStudioRoot(opts, manifest, token, { allowClone }) : null;
@@ -165,7 +167,7 @@ function runDryRun(plans, opts, manifest, backboneRoot, date) {
     out('▶ profile mirror');
     out(`  ${profile.repo}:${profile.write.targetPath}  ⟵ profile/README.md`);
   }
-  out('\nDry run complete — no files written, no git or network operations performed.');
+  out('\nDry run complete — no files written and no network operations performed.');
   return 0;
 }
 
@@ -195,6 +197,7 @@ function runCheck(plans, opts, manifest, token) {
         report.drift.length ? `${report.drift.length} drifted` : null,
       ].filter(Boolean);
       log[stale ? 'warn' : 'ok'](`${resolved.repo}: ${stale ? bits.join(', ') : 'up to date'}`);
+      if (report.hasDrift) log.warn(formatDriftWarning(resolved.repo, report.drift));
     } finally {
       cleanup();
     }

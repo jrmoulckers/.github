@@ -94,7 +94,10 @@ function planFile(memberRoot, spec, entries, force) {
 
   const currentHash = hashText(readFileSync(abs, 'utf8'));
   if (isLocallyModified(entries[spec.targetPath], currentHash, renderedHash)) {
-    if (isUnstampedCanon(entries[spec.targetPath], currentHash, spec)) {
+    if (
+      isUnstampedCanon(entries[spec.targetPath], currentHash, spec) ||
+      isHistoricalCanonOutput(entries[spec.targetPath], currentHash, spec)
+    ) {
       return { action: 'update', newContent: rendered, newEntry };
     }
     return force
@@ -173,6 +176,15 @@ function isLocallyModified(lockEntry, currentHash, renderedHash) {
  */
 function isUnstampedCanon(lockEntry, currentHash, spec) {
   return !lockEntry && currentHash === spec.sourceSha256;
+}
+
+/**
+ * Recover an unrecorded target only when its exact bytes match committed historical canon or the
+ * engine rendering reconstructed from it. Headers, similarity, and file history in the member repo
+ * are not evidence: only a hash derived from backbone canon authorizes the overwrite.
+ */
+function isHistoricalCanonOutput(lockEntry, currentHash, spec) {
+  return !lockEntry && (spec.historicalCanonSha256 ?? []).includes(currentHash);
 }
 
 function entry(sourceSha256, targetSha256) {

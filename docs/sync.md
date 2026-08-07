@@ -126,23 +126,25 @@ table and reasonably concluding that a "synced kind" belongs in the member.
 **Checklist when onboarding a member:** it should have *no* `.github/workflows/reusable-*.yml`, and
 of the health files only ones it genuinely wants to override deliberately. Prefer none.
 
-### Hand-seeded canon must match, byte for byte, before the first sync
+### Hand-seeded canon is verified byte for byte on the first sync
 
 The mirror-image trap applies to the **managed** kinds. A member seeded by hand before onboarding
 carries copies of `agents/`, `skills/`, `prompts/` and `instructions/` files that the engine *does*
-write — and on the first run each one takes one of two paths:
+write — and on the first run each one takes one of these paths:
 
 | The member's copy | First run |
 | --- | --- |
 | byte-identical to what the engine would write | **adopted** — baselined in the lockfile, no diff, silent thereafter |
 | byte-identical to **raw canon** (no provenance header) | **stamped** — rewritten with the header, then silent |
+| byte-identical to committed historical canon or its engine rendering | **recovered** — safely updated and baselined |
 | differs in any other way | **drift** — flagged, left untouched, and it stays that way |
 
-The third row does not self-heal. With no lock entry and content that differs, the engine cannot
-tell a stale hand-copy from a deliberate local edit, so it refuses to clobber — correctly, but
-permanently. The member then keeps an outdated file forever while every run reports success.
+The final row does not self-heal. With no lock entry and no exact repository-history match, the
+engine cannot tell a stale hand-copy from a deliberate local edit, so it refuses to clobber.
+Historical recovery never trusts a provenance-looking header or similarity: it hashes committed
+source blobs and their deterministic renderings, and only exact equality authorizes an update.
 
-The second row exists because it would otherwise be the worst instance of the third. A file
+The second row exists because it would otherwise be the worst instance of the final row. A file
 hand-copied from canon *without* going through `inject()` has current content and a missing header,
 so it never matches what the engine would write and every run flags it while no run fixes it —
 and it is the hardest staleness to spot by eye, because the content is right.
@@ -153,10 +155,9 @@ with no lock entry. Once a file is recorded, bytes equal to raw canon mean someo
 stripped the header, which is a local edit and keeps its drift signal.
 
 The dangerous case is a copy of *older* canon that still carries its provenance stamp: it looks
-synced, and only a byte comparison reveals it isn't. `jrmoulckers/cartridge` had exactly this — a
-`workflow.instructions.md` roughly half the size of canon, with no product-specific content, missing
-the section on `permissions:` replacing rather than extending. It was refreshed in the member repo
-before the first run, so it now adopts.
+synced, and only a byte comparison reveals it isn't. The engine now recovers this case only when
+full backbone history proves the bytes are prior canon output. A one-byte member mutation remains
+drift, as does any recorded target that diverges from its lock baseline.
 
 **"Byte-identical to canon" is shorthand, and taking it literally will mislead an audit.** The
 engine writes canon *plus* a provenance header, LF-normalized; the expected value is
@@ -167,11 +168,11 @@ were real and the 1 was the engine's own stamp, and only the size difference kep
 sound. See [`sync/README.md`](../sync/README.md#auditing-a-member-by-hand-compare-against-inject-not-against-canon)
 for the check that settles it.
 
-**Reconcile before the first sync, in the member repo:** for each pre-seeded file, either refresh it
-to match what the engine would write or delete it (the engine will add it). **Do not reach for
-`--force`** — `--force` overwrites every drifted file in **every member the run touches**, so using
-it to fix a stale copy would also silently discard genuine member-authored edits in other repos. It
-is a deliberate reviewer action for a known-good state, not a first-run tool.
+**Reconcile unproven drift in the member repo:** refresh the file to match what the engine would
+write or delete it (the engine will add it). **Do not reach for `--force`** — `--force` overwrites
+every drifted file in **every member the run touches**, so using it to fix one stale copy would also
+silently discard genuine member-authored edits in other repos. It is a deliberate reviewer action
+for a known-good state, not a first-run tool. Drift warnings name each exact skipped path.
 
 ## CLI usage
 

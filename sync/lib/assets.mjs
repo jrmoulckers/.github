@@ -13,6 +13,7 @@ import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { inject } from './provenance.mjs';
 import { hashText } from './lock.mjs';
+import { historicalFileVersions } from './history.mjs';
 
 const FILE_SUFFIX = {
   agents: '.agent.md',
@@ -45,6 +46,7 @@ export function enumerateTargets(resolved, backboneRoot) {
     }
   }
 
+  attachCanonHistory(writes, backboneRoot);
   return { writes, native };
 }
 
@@ -108,6 +110,30 @@ function fileSpec(kind, name, sourcePath, targetPath, raw) {
     content: inject(targetPath, raw),
     type: 'file',
   };
+}
+
+/**
+ * Record exact hashes of prior committed canon and its deterministic engine rendering.
+ * The copier uses these only for unrecorded targets, where no lock baseline exists yet.
+ */
+function attachCanonHistory(writes, backboneRoot) {
+  const files = writes.filter((spec) => spec.type === 'file');
+  const versions = historicalFileVersions(
+    backboneRoot,
+    files.map((spec) => spec.sourcePath),
+  );
+
+  for (const spec of files) {
+    const currentRenderedHash = hashText(spec.content);
+    const historical = new Set();
+    for (const raw of versions.get(spec.sourcePath) ?? []) {
+      historical.add(hashText(raw));
+      historical.add(hashText(inject(spec.targetPath, raw)));
+    }
+    historical.delete(spec.sourceSha256);
+    historical.delete(currentRenderedHash);
+    spec.historicalCanonSha256 = [...historical].sort();
+  }
 }
 
 /**
