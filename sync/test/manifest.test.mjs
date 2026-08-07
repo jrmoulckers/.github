@@ -24,11 +24,12 @@ test('every studio member is registered', () => {
     'jrmoulckers/finance',
     'jrmoulckers/libro',
     'jrmoulckers/cartridge',
+    'jrmoulckers/docket',
   ]);
 });
 
-test('libro and cartridge use the root-default vendored tokens path', () => {
-  for (const repo of ['jrmoulckers/libro', 'jrmoulckers/cartridge']) {
+test('libro, cartridge, and docket use the root-default vendored tokens path', () => {
+  for (const repo of ['jrmoulckers/libro', 'jrmoulckers/cartridge', 'jrmoulckers/docket']) {
     const [resolved] = resolveAll(manifest, [repo]);
     assert.equal(resolved.tokens?.enabled, true, `${repo} opts into tokens`);
     assert.equal(resolved.tokens.targetBase, manifest.tokens.targetPath, `${repo} uses the default path`);
