@@ -43,6 +43,7 @@ import { resolveStudioRoot } from './lib/studio.mjs';
 import { formatDriftWarning, syncMembers } from './lib/runner.mjs';
 import { mirrorProfile, profileTarget } from './lib/profile.mjs';
 import { log } from './lib/log.mjs';
+import { assertMemberFacts } from './lib/member-facts.mjs';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
@@ -183,11 +184,14 @@ function runWorkDir(plans, opts, manifest, date) {
 
 function runCheck(plans, opts, manifest, token) {
   let outOfDate = 0;
+  let failed = 0;
   for (const { resolved, targets } of plans) {
-    const { root, cleanup } = memberRootForCheck(resolved.repo, opts, token, manifest.backbone);
+    let checkout;
     try {
-      const lock = readLock(root, manifest.backbone);
-      const { report } = apply(root, targets.writes, lock, { force: false, write: false });
+      checkout = memberRootForCheck(resolved.repo, opts, token, manifest.backbone);
+      assertMemberFacts(checkout.root, resolved, manifest.backbone);
+      const lock = readLock(checkout.root, manifest.backbone);
+      const { report } = apply(checkout.root, targets.writes, lock, { force: false, write: false });
       const stale = report.changed || report.hasDrift;
       if (stale) outOfDate++;
       const bits = [
@@ -198,12 +202,16 @@ function runCheck(plans, opts, manifest, token) {
       ].filter(Boolean);
       log[stale ? 'warn' : 'ok'](`${resolved.repo}: ${stale ? bits.join(', ') : 'up to date'}`);
       if (report.hasDrift) log.warn(formatDriftWarning(resolved.repo, report.drift));
+    } catch (err) {
+      failed++;
+      log.error(`${resolved.repo}: check failed — ${err.message}`);
     } finally {
-      cleanup();
+      checkout?.cleanup();
     }
   }
-  if (outOfDate) {
-    log.error(`${outOfDate} member(s) out of date.`);
+  if (outOfDate || failed) {
+    if (failed) log.error(`${failed} member(s) could not be verified.`);
+    if (outOfDate) log.error(`${outOfDate} member(s) out of date.`);
     process.exitCode = 1;
   } else {
     log.ok('All members up to date.');

@@ -35,82 +35,6 @@ test('libro and cartridge use the root-default vendored tokens path', () => {
   }
 });
 
-// The onboarding PR these facts originally came from (jrmoulckers/cartridge#1) was closed without
-// merging. Re-verified against jrmoulckers/cartridge@2536220 (2026-08-03) by reading package.json
-// and the lockfile; re-check when cartridge changes either. An undated "verified against main"
-// stops being a fact the moment main moves, and reads as a certificate discouraging a re-check.
-test('cartridge is a Svelte/npm repo', () => {
-  const [cartridge] = resolveAll(manifest, ['jrmoulckers/cartridge']);
-  assert.equal(cartridge.framework, 'svelte');
-  assert.equal(cartridge.packageManager, 'npm');
-});
-
-// Verified by reading each member's .github/workflows/ on its default branch and extracting every
-// `uses: jrmoulckers/.github/.github/workflows/<name>.yml` reference (2026-08-03). The suite is
-// offline, so the sweep is pinned here rather than re-fetched; re-run it when a member changes CI.
-const CALLED_WORKFLOWS = {
-  'jrmoulckers/jrm-recipes': [],
-  'jrmoulckers/score-king': [],
-  'jrmoulckers/finance': [],
-  'jrmoulckers/libro': [
-    'reusable-ci-lint',
-    'reusable-ci-web',
-    'reusable-deploy-preview',
-    'reusable-perf-budget',
-  ],
-  // cartridge adopted reusable-ci-lint in its PR #9 once the empty-command guard existed; before
-  // that it inlined its own semantic-PR-title job, and optIn.workflows omitted the entry.
-  'jrmoulckers/cartridge': [
-    'reusable-ci-lint',
-    'reusable-ci-web',
-    'reusable-deploy-preview',
-    'reusable-perf-budget',
-  ],
-};
-
-// One-directional on purpose. Listing a workflow a member does not call yet is legitimate — the
-// kind is native, nothing is written, and the opt-in records intent. Calling one that is NOT
-// listed is the error: the registry then misdescribes the member, and nothing else can catch it.
-//
-// KNOWN BLIND SPOT — a member can define its OWN workflow with a canon filename.
-// The sweep above reads `uses: jrmoulckers/.github/.github/workflows/<name>.yml`, so a local
-// definition called via `uses: ./.github/workflows/<name>.yml` is invisible to it by construction.
-// `jrmoulckers/finance` is the live instance: it calls zero backbone workflows (hence `[]` above,
-// which is correct), while carrying its own `.github/workflows/reusable-smoke-test.yml` that is
-// substantially larger than canon's and not a superset of it — and its registry entry lists
-// `reusable-smoke-test`.
-//
-// Two different files wear one name, and neither side can see it: the registry sees a member that
-// calls nothing shared, finance sees a workflow it calls every run. It arms a specific future
-// failure — if finance ever switches that call to `uses: jrmoulckers/.github/...@main`, its own
-// definition is silently replaced by a shorter, different one, with no diff anywhere and no error.
-//
-// No line counts here on purpose. An earlier revision said "276 lines against canon's 155"; both
-// were off by one from counting the empty tail of a newline-terminated file, and the corrected
-// figures are a property of two checkouts at a moment anyway. The durable claim is
-// "different file, same name". Measured counts live in issue #60, where they can be dated.
-//
-// Deliberately NOT asserted here. Detecting it needs the member's full workflow directory, which
-// this offline suite does not have, and pinning finance's local filenames would be a fact-test of
-// exactly the kind that went stale within the hour last time — it would certify a wrong value
-// rather than merely fail to help. Recorded as a caveat instead; see sync/README.md.
-test('every reusable workflow a member calls is listed in its optIn.workflows', () => {
-  for (const [repo, called] of Object.entries(CALLED_WORKFLOWS)) {
-    const [resolved] = resolveAll(manifest, [repo]);
-    const listed = resolved.groups.find((g) => g.kind === 'workflows')?.names ?? [];
-    for (const name of called) {
-      assert.ok(
-        listed.includes(name),
-        `${repo} calls ${name} but optIn.workflows does not list it`,
-      );
-      assert.ok(
-        manifest.canon.workflows.includes(name),
-        `${repo} calls ${name}, which is not in canon.workflows`,
-      );
-    }
-  }
-});
-
 test('finance keeps its custom tokens path and AI-layer opt-outs', () => {
   const [finance] = resolveAll(manifest, ['jrmoulckers/finance']);
   assert.equal(finance.tokens.targetBase, 'apps/web/vendor/@jrm/tokens');
@@ -146,28 +70,6 @@ test('native kinds are reported but never produce a write', () => {
     const optedIn = resolved.groups.filter((g) => NATIVE_KINDS.has(g.kind)).map((g) => g.kind);
     assert.deepEqual(native.map((n) => n.kind).sort(), optedIn.sort());
   }
-});
-
-// Nothing in the engine validates `framework` or `packageManager`, so a wrong value never fails a
-// run — it just misleads every agent that reads the registry. Pinning them here is the only
-// enforcement available: changing a member's stack without updating this test fails CI.
-//
-// Asserting against the member's real lockfile would be stronger, but the suite is deliberately
-// offline (CI runs it with no token and no network), and these repos are private. Verify by hand
-// against the member's DEFAULT BRANCH — not an onboarding PR — and update this table.
-test('every member records its real framework and package manager', () => {
-  const actual = Object.fromEntries(
-    manifest.members.map((m) => [m.repo, [m.framework, m.packageManager]]),
-  );
-  assert.deepEqual(actual, {
-    'jrmoulckers/jrm-recipes': ['nextjs', 'pnpm'],
-    'jrmoulckers/score-king': ['svelte', 'npm'],
-    'jrmoulckers/finance': ['kmp-web', 'npm'],
-    'jrmoulckers/libro': ['svelte', 'pnpm'],
-    // cartridge: verified against main (Svelte 5 + Vite, package-lock.json). Its Next.js/pnpm
-    // onboarding PR #1 was closed without merging — that is where the wrong values came from.
-    'jrmoulckers/cartridge': ['svelte', 'npm'],
-  });
 });
 
 // cartridge briefly carried explicit agent/skill/prompt lists, on the reasoning that its partial

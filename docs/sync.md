@@ -23,20 +23,24 @@ flowchart LR
   A[studio.config.json] --> B[sync workflow<br/>scheduled + manual]
   B --> C{for each member repo}
   C --> D[resolve opted-in canon]
-  D --> E[copy source → target paths]
-  E --> F[open chore(sync) PR]
-  F --> G[product repo CI runs]
+  D --> E[verify checkout facts]
+  E --> F[copy source → target paths]
+  F --> G[open chore(sync) PR]
+  G --> H[product repo CI runs]
 ```
 
 1. **Trigger** — a scheduled workflow in this repo (e.g. weekly) plus manual `workflow_dispatch`.
 2. **Read the manifest** — parse `studio.config.json`: the `canon` catalog, `sourcePaths`,
-   `targetPaths`, and each `members[].optIn` selection. Validation covers `repo`, `optIn` and
-   `tokens` only — a member's `framework`, `packageManager` and `notes` are free-form, unvalidated
-   labels, so their accuracy is a discipline matter (see
+   `targetPaths`, and each `members[].optIn` selection. Schema validation covers `repo`, `optIn` and
+   `tokens`; checkout-owning modes separately verify the recorded/descriptive member facts (see
    [Member entries](../sync/README.md#member-entries)).
 3. **Resolve opt-ins** — for every member, expand `"*"` to the full canon list, honor explicit
    arrays, and skip anything set to `false`.
-4. **Copy** — map each opted-in asset from its `sourcePaths` here to the member's `targetPaths`
+4. **Verify recorded facts** — from the member checkout already acquired by a real sync or
+   `--check`, derive its framework, root package manager, and called backbone workflows. A mismatch
+   fails that member before apply/branch/push; other members continue. Manifest-only `--dry-run`
+   performs no clone and cannot certify these claims.
+5. **Copy** — map each opted-in asset from its `sourcePaths` here to the member's `targetPaths`
    (agents → `.github/agents/`, skills → `.github/skills/`, etc.). `base` files (`AGENTS.md`,
    `agency.toml`) land at the member root; product repos keep their own extending `AGENTS.md`
    and the tool merges/append-marks rather than clobbering (see Drift below). The
@@ -47,14 +51,14 @@ flowchart LR
    written — health files are inherited from this `.github` repo and reusable workflows are
    called via `uses: …@main`. A member repo must therefore **not** contain its own copy of
    either (see [Native kinds have no transport](#native-kinds-have-no-transport)).
-5. **Open a PR** — commit on a `studio-sync/<date>` branch and open a PR titled
+6. **Open a PR** — commit on a `studio-sync/<date>` branch and open a PR titled
    `chore(sync): update studio canon (<date>)` with a summary of changed assets. Never push to
    the member's default branch directly. If that branch already exists on the remote (a same-day
    re-run), it is fetched and **reused as the base** and the push is a plain fast-forward — the
    engine never force-pushes, so reviewer commits on the sync branch are preserved. A member whose
    sync fails is reported and skipped; the remaining members and the profile mirror still run, and
    the process exits non-zero.
-6. **Let product CI validate** — the member's own checks run on the sync PR; a human (or the
+7. **Let product CI validate** — the member's own checks run on the sync PR; a human (or the
    member's agents) reviews and merges.
 
 ## The member registry
@@ -64,26 +68,27 @@ only three fields — `repo` (must match `owner/name`), `optIn` (keys against `K
 the canon catalog) and `tokens` (shape). The full per-field table is in
 [`sync/README.md`](../sync/README.md#member-entries).
 
-**`framework`, `packageManager` and `notes` are descriptive, unvalidated and unenforced.**
-`manifest.mjs` never reads them, `resolve.mjs` passes them through, and their only consumer is the
-plan label built in `printPlan` — which is called from `runDryRun` and nowhere else. A wrong value
-is one wrong word in `--dry-run` stdout. It never reaches a real run, a PR body, or a failure.
+**`framework`, `packageManager` and `notes` remain descriptive: none decides a write.**
+`framework` and `packageManager` feed the dry-run plan label, while `notes` supplies human/agent
+context. Schema validation leaves them free-form so the registry can describe new stacks without a
+schema release.
 
-That is a reason for *more* care, not less. A load-bearing field that is wrong turns CI red and
-self-corrects: someone fixes it and the registry converges on truth. These can be **quietly wrong
-forever** — nothing validates them, no run fails, and their only readers are humans and future
-agents deciding how to treat a member repo, with no independent source to check against. Accuracy
-here is a discipline obligation the tooling does not protect.
+Real syncs and `--check` now add evidence without turning these labels into executed configuration.
+They derive the root package manager from root lockfiles, derive supported frameworks from
+repository signatures, and scan `.github/workflows/**/*.yml|yaml` for calls to this backbone. A
+disagreement fails that member before any apply, branch, push, or PR and prints both claim and
+evidence; remaining members continue.
 
-Two practices follow, both of which have already caught a real error:
+Manifest-only `--dry-run` remains network-free and prints claims without certifying them. The
+offline test suite uses synthetic checkouts rather than hand-typed member expected values, avoiding
+the failure mode where one initial mistake is copied into both registry and test. Two practices
+follow:
 
 - **Verify member facts against the repo's default branch**, never an onboarding PR. `cartridge`
   was registered as a pnpm Next.js app from its PR #1, which was closed without merging; `main` is
   an npm Svelte PWA.
-- **Pin anything worth defending in [`sync/test/manifest.test.mjs`](../sync/test/manifest.test.mjs).**
-  Validation will not catch a descriptive error, but an assertion will. Every member's `framework`
-  and `packageManager` is asserted there today, so changing one without updating the test fails CI —
-  which is the closest the repo can get to enforcing a field the engine deliberately ignores.
+- **Use a real sync or `--check` to certify checkout-derived facts.** Offline dry-run validates the
+  manifest and plan only.
 
 `optIn` **is** validated, but only for names — not for intent. `"*"` means "take all canon of this
 kind, re-evaluated every run", so on a member that deliberately omits canon it re-adds the omitted

@@ -11,6 +11,7 @@ import { readLock } from './lock.mjs';
 import { apply } from './copier.mjs';
 import { cloneShallow, prepareSyncBranch, commitAll, push, createPr, findOpenPr, CO_AUTHOR } from './git.mjs';
 import { log } from './log.mjs';
+import { assertMemberFacts } from './member-facts.mjs';
 
 export function branchName(date) {
   return `studio-sync/${date}`;
@@ -35,10 +36,11 @@ export function commitMessage(date) {
  *
  * @returns {{ status: 'unchanged'|'pr', prUrl?: string, branch?: string, reused?: boolean, report }}
  */
-export function syncRepo({ repo, writes, token, date, force, backbone, title, intro }) {
+export function syncRepo({ repo, writes, token, date, force, backbone, title, intro, inspectCheckout }) {
   const tmp = mkdtempSync(join(tmpdir(), 'studio-sync-'));
   try {
     const defaultBranch = cloneShallow(repo, token, tmp);
+    inspectCheckout?.(tmp);
     const branch = branchName(date);
     const base = prepareSyncBranch(tmp, branch);
     if (base.reused) {
@@ -75,8 +77,16 @@ export function syncRepo({ repo, writes, token, date, force, backbone, title, in
   }
 }
 
-export function syncMemberRepo({ repo, writes, token, date, force, backbone }) {
-  return syncRepo({ repo, writes, token, date, force, backbone });
+export function syncMemberRepo({ repo, member, writes, token, date, force, backbone }, sync = syncRepo) {
+  return sync({
+    repo,
+    writes,
+    token,
+    date,
+    force,
+    backbone,
+    inspectCheckout: (root) => assertMemberFacts(root, member, backbone),
+  });
 }
 
 /** Render a PR body summarizing added/updated assets and drift warnings. */

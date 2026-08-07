@@ -46,10 +46,10 @@ Each entry in `studio.config.json`'s `members[]` array describes one product rep
 | --- | --- | --- |
 | `repo` | ✅ must match `owner/name` | Clone target, `--members` filter, PR destination. |
 | `optIn.base` / `.agents` / `.skills` / `.prompts` / `.instructions` | ✅ keys against `KINDS`, names against `canon.<kind>` | **Executed** — what canon the member receives. |
-| `optIn.health` / `optIn.workflows` | ✅ same validation | **Recorded only** — native kinds, never copied (see below). |
+| `optIn.health` / `optIn.workflows` | ✅ same validation; called workflows are checkout-verified | **Recorded only** — native kinds, never copied (see below). |
 | `tokens` | ✅ shape (`enabled` boolean, optional string `targetPath`) | Vendored `@jrm/tokens` opt-in + destination. |
-| `framework` | ❌ **free-form** | Display only — `--dry-run` plan label. |
-| `packageManager` | ❌ **free-form** | Display only — `--dry-run` plan label. |
+| `framework` | ❌ free-form schema; checkout-verified | Descriptive — `--dry-run` label; checked against repository signatures during real sync/`--check`. |
+| `packageManager` | ❌ free-form schema; checkout-verified | Descriptive — `--dry-run` label; checked against the root lockfile during real sync/`--check`. |
 | `notes` | ❌ free-form | Human/agent context. |
 
 **Two keys inside `optIn` do not behave like the rest.** `health` and `workflows` are
@@ -58,33 +58,31 @@ this backbone repo by GitHub itself, and reusable workflows are called via
 `uses: jrmoulckers/.github/.github/workflows/*@main`. Both are resolved and reported, then skipped
 before any write ([`lib/assets.mjs`](lib/assets.mjs)). So `"agents": "*"` and
 `"workflows": [...]` sit in the same object with the same shape, and one decides which files exist
-while the other is a label. Validation catches a *misspelled* name in either; nothing catches a
-`workflows` list that simply disagrees with what the member's CI actually calls — which is why
-that invariant is asserted in [`test/manifest.test.mjs`](test/manifest.test.mjs) instead.
+while the other is a label. Schema validation catches a *misspelled* name in either. During a real
+sync or `--check`, checkout inspection also catches any backbone workflow the member actually calls
+but does not list. Extra listed workflows remain valid because they record intended adoption.
 
-`framework` and `packageManager` are **not** enums and are never checked: `validateManifest` does
-not mention them, `resolve.mjs` passes them straight through, and their only consumer is the
-dry-run label in `index.mjs` (`▶ jrmoulckers/libro  (svelte · pnpm)`). Any string is accepted —
-`npm`, `pnpm`, `svelte`, `nextjs`, `kmp-web` all appear today.
+`framework` and `packageManager` are **not** enums: `validateManifest` does not constrain them, and
+`resolve.mjs` passes them through to the dry-run label in `index.mjs`
+(`▶ jrmoulckers/libro  (svelte · pnpm)`). A checkout-owning run verifies the claims separately:
+`packageManager` comes from the root lockfile, while framework signatures come from root package
+metadata or the Gradle/Kotlin Multiplatform + web project shape.
 
-Narrower still: that label is built in `printPlan`, which has exactly **one** call site — inside
-`runDryRun`. `pr.mjs` never references either field, so they never reach a PR body, and a real sync
-run never prints them at all. **These two fields are visible only in `--dry-run` output.**
+These fields still do not decide what gets written. Real syncs inspect the fresh default-branch
+clone before preparing a branch or applying files; `--check` inspects its fresh clone or verified
+`--work-dir` before drift checks. A mismatch, missing signature, or ambiguous signature fails that
+member with the claim and checkout evidence, while other members continue.
 
-**That makes accuracy a discipline problem, not a validation problem.** A wrong value never breaks
-a sync; it silently misleads every human and agent that reads the registry to decide how to treat a
-repo. Note the perverse incentive: if a wrong `framework` broke a run, the error would be
-self-correcting — CI goes red, someone fixes it, the registry converges on truth. Because it only
-labels a mode most runs never use, `studio.config.json` can be **quietly wrong forever**, and its
-only consumers are agents with no independent source to check it against. An unvalidated field with
-no failure mode needs *more* care than a load-bearing one, not less. Two rules follow:
+Manifest-only `--dry-run` deliberately remains offline: it performs no clone and therefore prints
+the claims without certifying them. The zero-network test suite likewise tests derivation against
+synthetic checkouts rather than copying current product facts into a second expected-value table.
+That avoids converting one hand-entered error into two agreeing errors. Two rules follow:
 
 - **Verify against the member's default branch**, not an onboarding PR — an unmerged PR is not the
   repo. `cartridge` was registered as a pnpm Next.js app from its onboarding PR #1, which was
   closed without merging; `main` is an npm Svelte PWA.
-- **Pin any fact worth defending in [`test/manifest.test.mjs`](test/manifest.test.mjs).** Validation
-  will not catch a descriptive error, but an assertion will. Every member's `framework` and
-  `packageManager` is already pinned there, so changing a stack without updating the test fails CI.
+- **Use a real sync or `--check` to certify checkout-derived facts.** Offline `--dry-run` validates
+  manifest shape and plan resolution only.
 
 ### `"*"` vs. an explicit list
 
@@ -149,9 +147,9 @@ the guardrail that makes explicit lists safe — pinned by a test.
 
 ### `optIn.workflows` vs. what the member actually calls
 
-`workflows` is a native kind: nothing is written, so the list is a *record of intent* that nothing
-in the engine can check against the member's real `ci.yml`. Same failure shape as `framework` —
-silently wrong forever.
+`workflows` is a native kind: nothing is written, so the list is a *record of intent*. Checkout
+inspection scans every YAML file under `.github/workflows/` during a real sync or `--check` and
+extracts calls to this backbone's `.github/workflows/*.yml|yaml`.
 
 The invariant worth holding is one-directional: **every reusable workflow a member calls must appear
 in its `optIn.workflows`.** Listing one it does not call yet is fine and common — `jrm-recipes`,
@@ -159,17 +157,16 @@ in its `optIn.workflows`.** Listing one it does not call yet is fine and common 
 direction. Calling one that is *not* listed is the error, because the registry then misdescribes
 the member and no other signal exists.
 
-`test/manifest.test.mjs` pins a sweep of each member's `.github/workflows/` — every
-`uses: jrmoulckers/.github/.github/workflows/<name>.yml` reference, read from its default branch —
-and asserts the invariant. The suite is offline, so the sweep is pinned data, not a live fetch:
-**re-run it by hand when a member changes CI.** cartridge is the worked example in both directions.
-It inlined its own semantic-PR-title job while `reusable-ci-lint` could not be called without lint
-commands, so the entry was correctly absent; once the empty-command guard shipped it adopted the
-workflow, and the manifest had to follow.
+This check runs against the clone already required by the operation, so it adds no fetch or API
+request. The offline suite supplies synthetic workflow trees and verifies the scanner and
+comparison rules without pinning private member state. `cartridge` is the worked example in both
+directions: it inlined its own semantic-PR-title job while `reusable-ci-lint` could not be called
+without lint commands, so the entry was correctly absent; once the empty-command guard shipped it
+adopted the workflow, and the manifest had to follow.
 
 #### Name collisions: a member may define its own workflow with a canon filename
 
-The sweep reads `uses: jrmoulckers/.github/.github/workflows/<name>.yml`, so a workflow the member
+The checkout scanner reads `uses: jrmoulckers/.github/.github/workflows/<name>.yml`, so a workflow the member
 defines *itself* and calls via `uses: ./.github/workflows/<name>.yml` is invisible to it by
 construction. If that local file happens to share a name with a canon workflow, the two are
 indistinguishable from either side.
@@ -192,8 +189,8 @@ genuinely local workflow a local name, or reference canon — never both.**
 
 This is deliberately not asserted in the test suite. Detecting it needs the member's full workflow
 directory, which the offline suite does not have, and pinning each member's local filenames would
-be a fact-test of the kind that goes stale and then certifies the wrong value. It is recorded as a
-caveat on `CALLED_WORKFLOWS` instead.
+be a fact-test of the kind that goes stale and then certifies the wrong value. It is recorded here
+as an operational caveat instead.
 
 ## What gets synced
 
@@ -492,11 +489,12 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown; drift warnings name every exact skipped path. |
 | `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; raw-canon stamping; exact historical-output recovery; empty-evidence and one-byte-mutation refusal; recorded targets never use first-sync recovery. |
 | `test/history.test.mjs` | Full-history enforcement and committed-blob enumeration; end-to-end target enumeration recovers a member holding a prior engine rendering. |
-| `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; every member's `framework`/`packageManager` matches its default branch; every reusable workflow a member calls is listed in its `optIn.workflows`; a member that narrows its AI layer records the reason in `notes`; an unknown name in an explicit list fails validation; `canon` matches the files on disk both ways; `tokens`/`profile` are not `optIn` kinds; native kinds are never written. |
+| `test/manifest.test.mjs` | The real `studio.config.json` validates; every member is registered; a member that narrows its AI layer records the reason in `notes`; an unknown name in an explicit list fails validation; `canon` matches the files on disk both ways; `tokens`/`profile` are not `optIn` kinds; native kinds are never written. |
+| `test/member-facts.test.mjs` | Synthetic checkout derivation for root package managers, supported framework signatures, ambiguous/missing evidence, backbone workflow calls, one-directional planned adoption, and field-specific mismatch diagnostics. No member facts or network access are pinned. |
 | `test/provenance.test.mjs` | Every real write equals `inject(targetPath, canon)` and never canon verbatim — so the documented hand-audit baseline stays correct; and that check is line-ending agnostic on the member side. |
 | `test/prbody.test.mjs` | An adoption-only run's PR body says its entire diff is the lockfile, and does not claim that when the run also wrote files (including via `--force`). The drift note states that `--force` is run-wide, offers the by-hand remedy first, and neither appears when the run has no drift. |
 | `test/workdir.test.mjs` | `--work-dir` guards: a parent directory, a missing path and a file are all rejected; a git worktree (whose `.git` is a file) is accepted; identity resolves to `match` / `mismatch` / `unverifiable` across URL spellings and case, both failing verdicts abort, the refusal names the self-certifying lockfile, and `--allow-unverified-work-dir` overrides them without ever marking a matching checkout as overridden. |
-| `test/cli-workdir.test.mjs` | The same guards **through the CLI**: every mode — apply, `--check`, `--dry-run` — exits 1 on a wrong or absent origin, a refused run leaves no file and no lockfile, the override flag lets a run through while saying what it suppressed, and a matching checkout is unaffected. Unit tests cannot see a guard that is called but not obeyed, which is how the warn-and-proceed version survived its own fix. |
+| `test/cli-workdir.test.mjs` | The same guards **through the CLI**: every mode — apply, `--check`, `--dry-run` — exits 1 on a wrong or absent origin, a refused run leaves no file and no lockfile, the override flag lets a run through while saying what it suppressed, and a matching checkout is unaffected. Also proves `--check` obeys checkout-derived registry verification before reading or applying the sync lock. |
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs the suite plus an offline
 `--dry-run` on every PR.
