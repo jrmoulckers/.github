@@ -7,6 +7,7 @@
 
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { validateAgentIntegrity } from './agent-integrity.mjs';
 
 export const KINDS = ['base', 'agents', 'skills', 'prompts', 'instructions', 'workflows', 'health'];
 
@@ -31,6 +32,7 @@ export function loadManifest(repoRoot) {
     throw new Error(`Manifest ${p} is not valid JSON: ${err.message}`);
   }
   validateManifest(parsed);
+  validateAgentIntegrity(repoRoot, parsed);
   return parsed;
 }
 
@@ -75,6 +77,7 @@ export function validateManifest(m) {
         return;
       }
       validateOptIn(member, i, m, errors);
+      validateLocalAgents(member, i, m, errors);
       validateMemberTokens(member, i, errors);
     });
   }
@@ -129,6 +132,39 @@ function validateMemberTokens(member, i, errors) {
   }
   if (member.tokens.targetPath !== undefined && typeof member.tokens.targetPath !== 'string') {
     errors.push(`members[${i}].tokens.targetPath must be a string`);
+  }
+}
+
+function validateLocalAgents(member, i, manifest, errors) {
+  if (member.localAgents === undefined) return;
+  if (!Array.isArray(member.localAgents)) {
+    errors.push(`members[${i}].localAgents must be an array`);
+    return;
+  }
+
+  const seen = new Set();
+  for (const name of member.localAgents) {
+    if (typeof name !== 'string' || !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(name)) {
+      errors.push(`members[${i}].localAgents entries must be kebab-case agent names`);
+      continue;
+    }
+    if (seen.has(name)) errors.push(`members[${i}].localAgents contains duplicate "${name}"`);
+    seen.add(name);
+  }
+
+  const selection = member.optIn?.agents;
+  const selected =
+    selection === '*'
+      ? manifest.canon?.agents ?? []
+      : Array.isArray(selection)
+        ? selection
+        : [];
+  for (const name of seen) {
+    if (selected.includes(name)) {
+      errors.push(
+        `members[${i}].localAgents "${name}" overlaps optIn.agents; use either the local replacement or canon`,
+      );
+    }
   }
 }
 

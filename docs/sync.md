@@ -31,8 +31,9 @@ flowchart LR
 
 1. **Trigger** — a scheduled workflow in this repo (e.g. weekly) plus manual `workflow_dispatch`.
 2. **Read the manifest** — parse `studio.config.json`: the `canon` catalog, `sourcePaths`,
-   `targetPaths`, and each `members[].optIn` selection. Schema validation covers `repo`, `optIn` and
-   `tokens`; checkout-owning modes separately verify the recorded/descriptive member facts (see
+   `targetPaths`, and each `members[].optIn` selection. Schema validation covers `repo`, `optIn`,
+   `localAgents`, and `tokens`; agent integrity also checks each selected roster's handoff closure.
+   Checkout-owning modes separately verify the recorded/descriptive member facts (see
    [Member entries](../sync/README.md#member-entries)).
 3. **Resolve opt-ins** — for every member, expand `"*"` to the full canon list, honor explicit
    arrays, and skip anything set to `false`.
@@ -62,11 +63,42 @@ flowchart LR
 7. **Let product CI validate** — the member's own checks run on the sync PR; a human (or the
    member's agents) reviews and merges.
 
+## Canonical agents and local overlays
+
+The supported model separates reusable role behavior from product facts:
+
+1. `agents/*.agent.md` in this backbone owns generic persona, capabilities, workflow, and role
+   boundaries. The agent-integrity validator checks schema, roster parity, and declared references
+   before the sync engine can plan or copy them.
+2. The sync engine materializes opted-in roles as `.github/agents/*.agent.md`. Those files are
+   generated artifacts with provenance and lockfile drift detection; do not edit them in a member.
+3. A product's root `AGENTS.md` content outside the managed block, plus its scoped
+   `.github/instructions/*.instructions.md`, owns concise stack, path, command, domain, and
+   product-risk overlays. Product rules may narrow or specialize generic behavior but cannot relax
+   the mandatory studio human gates.
+4. Product-only roles may remain additional local agent files. A member may also declare a
+   same-slug local replacement in `members[].localAgents` only when an explicit `optIn.agents` list
+   omits that canonical role; selecting both is invalid because discovery would be ambiguous.
+
+When guidance intersects, apply mandatory studio safety first, then the product's root/scoped
+overlay, then the canonical generic role; choose the more restrictive rule if the sources conflict.
+The sync engine merges the root `AGENTS.md` managed block, but it does **not** merge individual agent
+files. Move reusable behavior upstream and keep product facts in the supported overlay surfaces.
+
+**Current discovery limitation:** Copilot custom agents are discovered from repository-local
+`.github/agents/*.agent.md` files. Owner-level custom-agent inheritance from this backbone has not
+been verified as an official runtime capability. Therefore consumer materializations cannot safely
+be removed. If a member currently carries authored copies of canonical roles, reduce/move their
+product-specific content into overlays and let sync own the materialized files; do not delete the
+generated copies until official inheritance is verified end to end. A declared local replacement
+remains authored and is not a generated copy.
+
 ## The member registry
 
 `members[]` in [`studio.config.json`](../studio.config.json) is the registry. Validation covers
-only three fields — `repo` (must match `owner/name`), `optIn` (keys against `KINDS`, names against
-the canon catalog) and `tokens` (shape). The full per-field table is in
+`repo` (must match `owner/name`), `optIn` (keys against `KINDS`, names against the canon catalog),
+`localAgents` (local handoff targets that cannot overlap selected canon), and `tokens` (shape).
+The full per-field table is in
 [`sync/README.md`](../sync/README.md#member-entries).
 
 **`framework`, `packageManager` and `notes` remain descriptive: none decides a write.**

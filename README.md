@@ -21,11 +21,11 @@ here plus `@jrm` npm packages.
 ├─ CONTRIBUTING.md            # ┐
 ├─ SECURITY.md                # ├─ default community-health files (inherited by member repos)
 ├─ CODE_OF_CONDUCT.md         # ┘
-├─ agents/                    # 19 cross-cutting Copilot agents  (canonical source)
+├─ agents/                    # 22 cross-cutting Copilot agents  (canonical source)
 ├─ skills/                    # 15 cross-cutting skills          (canonical source)
 ├─ prompts/                   # 7 reusable prompts               (canonical source)
 ├─ instructions/             # 5 path-scoped instructions       (canonical source)
-├─ docs/sync.md               # design of the cross-repo sync flow (engine not built yet)
+├─ docs/sync.md               # design and operating model for cross-repo sync
 └─ .github/
    ├─ ISSUE_TEMPLATE/         # bug · feature · task · spike · troubleshooting · config
    ├─ DISCUSSION_TEMPLATE/    # rfc · feature-proposal · question
@@ -80,11 +80,11 @@ Copilot **does not** auto-inherit `agents/`, `skills/`, `prompts/`, `instruction
 or `agency.toml` across repos. They are the **canonical source** that a scheduled sync tool copies
 into each product repo's `.github/…`, based on what that repo opts into in
 [`studio.config.json`](studio.config.json). See **[`docs/sync.md`](docs/sync.md)** for the intended
-flow. (The sync engine is a later, separate effort — only the manifest + design exist today.)
+flow and **[`sync/README.md`](sync/README.md)** for the implemented engine.
 
 | Canon | Count | Synced to (in product repo) |
 | --- | --- | --- |
-| `agents/*.agent.md` | 19 | `.github/agents/` |
+| `agents/*.agent.md` | 22 | `.github/agents/` |
 | `skills/<name>/SKILL.md` | 15 | `.github/skills/` |
 | `prompts/*.prompt.md` | 7 | `.github/prompts/` |
 | `instructions/*.instructions.md` | 5 | `.github/instructions/` |
@@ -92,11 +92,10 @@ flow. (The sync engine is a later, separate effort — only the manifest + desig
 
 ## The AI layer
 
-- **Agents** are cross-cutting roles (architect, backend/web/design/devops engineers, QA,
-  security & accessibility reviewers, docs, PM, release, performance, data, AI-ops, business
-  analyst, experimentation, localization, marketing, compliance). Each is genericized — no
-  product/stack/platform assumptions — so a product repo can adopt it and extend with its own
-  product-specific agents.
+- **Agents** are cross-cutting roles (architecture, backend, database, native app, web, design,
+  DevOps, SRE, QA, security, accessibility, docs, product, release, performance, product data,
+  AI ops, business, experimentation, localization, marketing, and compliance). Each is genericized
+  so a product repo can keep concise stack/path/risk overlays without forking the shared persona.
 - **Skills** are reusable playbooks (`trigger · inputs · method · safety · output`) for
   accessibility, design tokens, performance budgets, security review, UX testing, prompt
   engineering, issue/project/sprint management, i18n, onboarding, MCP tooling, go-to-market,
