@@ -196,6 +196,22 @@
         "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
       },
       "tokens": { "enabled": true }
+    },
+    {
+      "repo": "jrmoulckers/docket",
+      "framework": "svelte",
+      "packageManager": "pnpm",
+      "notes": "New private product repo, currently just a README — pre-bootstrap. Registered with the full canonical layer (matching libro/cartridge) so its first real sync seeds the Studio baseline and vendored tokens once the repo has enough checkout evidence (package.json/lockfile) for the sync engine to verify framework and packageManager.",
+      "optIn": {
+        "base": true,
+        "health": true,
+        "agents": "*",
+        "skills": "*",
+        "prompts": "*",
+        "instructions": "*",
+        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
+      },
+      "tokens": { "enabled": true }
     }
   ]
 }
