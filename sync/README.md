@@ -152,10 +152,10 @@ inspection scans every YAML file under `.github/workflows/` during a real sync o
 extracts calls to this backbone's `.github/workflows/*.yml|yaml`.
 
 The invariant worth holding is one-directional: **every reusable workflow a member calls must appear
-in its `optIn.workflows`.** Listing one it does not call yet is fine and common — `jrm-recipes`,
-`score-king` and `finance` all list workflows they have not adopted, which records the intended
-direction. Calling one that is *not* listed is the error, because the registry then misdescribes
-the member and no other signal exists.
+in its `optIn.workflows`.** Listing one it does not call yet is fine and common — `jrm-recipes` and
+`score-king` list workflows they have not adopted, which records the intended direction. Calling one
+that is *not* listed is the error, because the registry then misdescribes the member and no other
+signal exists.
 
 This check runs against the clone already required by the operation, so it adds no fetch or API
 request. The offline suite supplies synthetic workflow trees and verifies the scanner and
@@ -171,21 +171,18 @@ defines *itself* and calls via `uses: ./.github/workflows/<name>.yml` is invisib
 construction. If that local file happens to share a name with a canon workflow, the two are
 indistinguishable from either side.
 
-`jrmoulckers/finance` is the live instance. It calls **zero** backbone workflows, so its swept list
-is correctly empty — while it carries its own `.github/workflows/reusable-smoke-test.yml` that is
-substantially larger than canon's and **not a superset** of it, and its registry entry lists
-`reusable-smoke-test`. (Measured 2026-08-05: 275 lines against canon's 154. The counts are a
-property of a checkout at a moment; the claim that survives is *different file, same name*.)
+`jrmoulckers/finance` exposed the live instance in August 2026. It called **zero** backbone
+workflows while carrying its own `.github/workflows/reusable-smoke-test.yml`, substantially larger
+than canon's and **not a superset** of it, and its registry entry nevertheless listed
+`reusable-smoke-test`. Finance established that the file was independently authored, renamed it to
+`reusable-release-smoke-test.yml`, and updated both relative callers. The backbone registry now
+records finance's evidence-backed empty workflow set.
 
-Nothing is broken today, and nothing is being written either way, since `workflows` is a native
-kind. The risk is latent and specific: **if finance ever switches that call to
-`uses: jrmoulckers/.github/…@main`, its own definition is silently replaced by a shorter, different
-one** —
-no diff in either repo, no error, and CI stays green while the job changes underneath it.
-
-Whether finance's file is a stale fork of canon or an independent file that collided is genuinely
-unresolvable from outside, and that ambiguity *is* the finding. The rule that avoids it: **give a
-genuinely local workflow a local name, or reference canon — never both.**
+Nothing was written either way, since `workflows` is a native kind. The risk was latent and
+specific: **switching that relative call to `uses: jrmoulckers/.github/…@main` would silently have
+replaced finance's definition with a shorter, different one** — no diff in either repo, no error,
+and CI green while the job changed underneath it. The rule that avoids this: **give a genuinely
+local workflow a local name, or reference canon — never both.**
 
 This is deliberately not asserted in the test suite. Detecting it needs the member's full workflow
 directory, which the offline suite does not have, and pinning each member's local filenames would
