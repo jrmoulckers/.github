@@ -31,16 +31,18 @@ flowchart LR
 
 1. **Trigger** — a scheduled workflow in this repo (e.g. weekly) plus manual `workflow_dispatch`.
 2. **Read the manifest** — parse `studio.config.json`: the `canon` catalog, `sourcePaths`,
-   `targetPaths`, and each `members[].optIn` selection. Schema validation covers `repo`, `optIn`,
-   `localAgents`, and `tokens`; agent integrity also checks each selected roster's handoff closure.
-   Checkout-owning modes separately verify the recorded/descriptive member facts (see
+   `targetPaths`, and each member's mode and `optIn` selection. Schema validation covers `repo`,
+   `mode`, mode-specific facts, `optIn`, `localAgents`, and `tokens`; agent integrity also checks
+   each selected roster's handoff closure. Checkout-owning operations separately verify the
+   recorded/descriptive member facts (see
    [Member entries](../sync/README.md#member-entries)).
 3. **Resolve opt-ins** — for every member, expand `"*"` to the full canon list, honor explicit
    arrays, and skip anything set to `false`.
-4. **Verify recorded facts** — from the member checkout already acquired by a real sync or
-   `--check`, derive its framework, root package manager, and called backbone workflows. A mismatch
-   fails that member before apply/branch/push; other members continue. Manifest-only `--dry-run`
-   performs no clone and cannot certify these claims.
+4. **Verify recorded facts** — from the member checkout already acquired by a real sync, `--check`,
+   or `--work-dir`, enforce its mode-specific framework/root-package-manager contract and derive
+   called backbone workflows. A mismatch fails that member before reading its sync lock or applying,
+   branching, or pushing; other members continue. Manifest-only `--dry-run` performs no clone and
+   cannot certify these claims.
 5. **Copy** — map each opted-in asset from its `sourcePaths` here to the member's `targetPaths`
    (agents → `.github/agents/`, skills → `.github/skills/`, etc.). `base` files (`AGENTS.md`,
    `agency.toml`) land at the member root; product repos keep their own extending `AGENTS.md`
@@ -96,21 +98,25 @@ remains authored and is not a generated copy.
 ## The member registry
 
 `members[]` in [`studio.config.json`](../studio.config.json) is the registry. Validation covers
-`repo` (must match `owner/name`), `optIn` (keys against `KINDS`, names against the canon catalog),
-`localAgents` (local handoff targets that cannot overlap selected canon), and `tokens` (shape).
+`repo` (must match `owner/name`), `mode` (one of `application`, `infrastructure`, or
+`pre-bootstrap`), mode-specific framework/package-manager facts, `optIn` (keys against `KINDS`,
+names against the canon catalog), `localAgents` (local handoff targets that cannot overlap selected
+canon), and `tokens` (shape).
 The full per-field table is in
 [`sync/README.md`](../sync/README.md#member-entries).
 
-**`framework`, `packageManager` and `notes` remain descriptive: none decides a write.**
-`framework` and `packageManager` feed the dry-run plan label, while `notes` supplies human/agent
-context. Schema validation leaves them free-form so the registry can describe new stacks without a
-schema release.
+**Mode and facts verify repository shape but never decide a write.** `application` requires and
+strictly matches both framework and root package-manager evidence. `infrastructure` permits either
+fact to be absent only when checkout inspection also finds it absent; every detected or declared
+fact must match. `pre-bootstrap` requires both facts to be absent and fails actionably as soon as
+either supported signal appears, forcing a mode/fact upgrade before sync proceeds. Omitted legacy
+modes default to `application`; canonical entries are explicit.
 
-Real syncs and `--check` now add evidence without turning these labels into executed configuration.
-They derive the root package manager from root lockfiles, derive supported frameworks from
-repository signatures, and scan `.github/workflows/**/*.yml|yaml` for calls to this backbone. A
-disagreement fails that member before any apply, branch, push, or PR and prints both claim and
-evidence; remaining members continue.
+Real syncs, `--check`, and `--work-dir` derive root package managers from root lockfiles, derive
+supported frameworks from repository signatures, and scan `.github/workflows/**/*.yml|yaml` for
+calls to this backbone. Repository identity checks remain in force. A disagreement, ambiguity,
+malformed package manifest, or unlisted workflow call fails before any member write and prints the
+claim plus evidence. This is a shape-aware contract, not an `allowUnverified` path or fallback.
 
 Manifest-only `--dry-run` remains network-free and prints claims without certifying them. The
 offline test suite uses synthetic checkouts rather than hand-typed member expected values, avoiding
@@ -120,8 +126,8 @@ follow:
 - **Verify member facts against the repo's default branch**, never an onboarding PR. `cartridge`
   was registered as a pnpm Next.js app from its PR #1, which was closed without merging; `main` is
   an npm Svelte PWA.
-- **Use a real sync or `--check` to certify checkout-derived facts.** Offline dry-run validates the
-  manifest and plan only.
+- **Use a real sync, `--check`, or verified `--work-dir` to certify checkout-derived facts.**
+  Manifest-only dry-run validates the manifest and plan only.
 
 `optIn` **is** validated, but only for names — not for intent. `"*"` means "take all canon of this
 kind, re-evaluated every run", so on a member that deliberately omits canon it re-adds the omitted

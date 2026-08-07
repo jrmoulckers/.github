@@ -9,11 +9,11 @@
 // the manifest, but they never produce written files (GitHub inherits health files;
 // reusable workflows are called via `uses: …@main`).
 
-import { NATIVE_KINDS, DIR_KINDS } from './manifest.mjs';
+import { NATIVE_KINDS, DIR_KINDS, memberMode } from './manifest.mjs';
 
 /**
  * @returns {{
- *   repo: string, framework?: string, packageManager?: string, notes?: string,
+ *   repo: string, mode: string, framework?: string, packageManager?: string, notes?: string,
  *   groups: Array<{kind, mode, names, sourceBase, targetBase, native, external?}>,
  *   tokens: null | {enabled, sourceRepo, package, sourceBase, targetBase},
  * }}
@@ -53,6 +53,7 @@ export function resolveMember(manifest, member) {
 
   return {
     repo: member.repo,
+    mode: memberMode(member),
     framework: member.framework,
     packageManager: member.packageManager,
     notes: member.notes,

@@ -33,11 +33,32 @@ function withFixture(files, fn) {
 function member(overrides = {}) {
   return {
     repo: 'owner/member',
+    mode: 'application',
     framework: 'svelte',
     packageManager: 'npm',
     groups: [{ kind: 'workflows', names: ['reusable-ci-web', 'planned-workflow'] }],
     ...overrides,
   };
+}
+
+function infrastructure(overrides = {}) {
+  return member({
+    mode: 'infrastructure',
+    framework: undefined,
+    packageManager: undefined,
+    groups: [{ kind: 'workflows', names: [] }],
+    ...overrides,
+  });
+}
+
+function preBootstrap(overrides = {}) {
+  return member({
+    mode: 'pre-bootstrap',
+    framework: undefined,
+    packageManager: undefined,
+    groups: [{ kind: 'workflows', names: [] }],
+    ...overrides,
+  });
 }
 
 test('derives package manager from the root lockfile, not nested package locks', () => {
@@ -179,6 +200,117 @@ test('scalar mismatch diagnostics name the claim, derivation, and evidence', () 
           return true;
         },
       );
+    },
+  );
+});
+
+test('infrastructure mode verifies each applicable fact and accepts evidence-backed absence', () => {
+  withFixture(
+    {
+      'pnpm-lock.yaml': 'lockfileVersion: 9\n',
+      'tools/package-lock.json': '{}\n',
+    },
+    (root) => {
+      assert.doesNotThrow(() =>
+        assertMemberFacts(root, infrastructure({ packageManager: 'pnpm' }), BACKBONE),
+      );
+      assert.throws(
+        () => assertMemberFacts(root, infrastructure(), BACKBONE),
+        /packageManager is omitted in infrastructure mode but checkout derives "pnpm"/,
+      );
+    },
+  );
+
+  withFixture({ 'tools/package-lock.json': '{}\n' }, (root) => {
+    assert.doesNotThrow(() => assertMemberFacts(root, infrastructure(), BACKBONE));
+    assert.throws(
+      () =>
+        assertMemberFacts(
+          root,
+          infrastructure({ framework: 'svelte', packageManager: 'npm' }),
+          BACKBONE,
+        ),
+      (error) => {
+        assert.match(error.message, /framework claims "svelte" but checkout has no supported/);
+        assert.match(error.message, /packageManager claims "npm" but checkout has no supported/);
+        return true;
+      },
+    );
+  });
+});
+
+test('pre-bootstrap mode rejects supported framework or package-manager transition evidence', () => {
+  withFixture({ 'README.md': '# Empty product\n' }, (root) => {
+    assert.doesNotThrow(() => assertMemberFacts(root, preBootstrap(), BACKBONE));
+  });
+
+  withFixture(
+    {
+      'package.json': JSON.stringify({ devDependencies: { svelte: '5.0.0' } }),
+      'pnpm-lock.yaml': 'lockfileVersion: 9\n',
+    },
+    (root) => {
+      assert.throws(
+        () => assertMemberFacts(root, preBootstrap(), BACKBONE),
+        (error) => {
+          assert.match(error.message, /pre-bootstrap mode is no longer valid/);
+          assert.match(error.message, /framework "svelte"/);
+          assert.match(error.message, /packageManager "pnpm"/);
+          assert.match(error.message, /upgrade mode and declared facts before syncing/);
+          return true;
+        },
+      );
+    },
+  );
+});
+
+test('non-application modes still verify called reusable workflows', () => {
+  const files = {
+    '.github/workflows/ci.yml': `
+jobs:
+  shared:
+    uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@main
+`,
+  };
+  withFixture(files, (root) => {
+    for (const candidate of [infrastructure(), preBootstrap()]) {
+      assert.throws(
+        () => assertMemberFacts(root, candidate, BACKBONE),
+        /optIn\.workflows does not list checkout call "reusable-ci-lint"/,
+      );
+    }
+  });
+});
+
+test('pre-bootstrap transition aborts the clone-owning sync before writes', () => {
+  withFixture(
+    {
+      'package.json': JSON.stringify({ devDependencies: { svelte: '5.0.0' } }),
+      'pnpm-lock.yaml': 'lockfileVersion: 9\n',
+    },
+    (root) => {
+      let applied = false;
+      assert.throws(
+        () =>
+          syncMemberRepo(
+            {
+              repo: 'owner/member',
+              member: preBootstrap(),
+              writes: [{ targetPath: 'AGENTS.md' }],
+              token: 'test-token',
+              date: '2026-08-07',
+              force: false,
+              backbone: BACKBONE,
+            },
+            (args) => {
+              args.inspectCheckout(root);
+              applied = true;
+              return { status: 'unchanged', report: { drift: [] } };
+            },
+          ),
+        /pre-bootstrap mode is no longer valid/,
+      );
+      assert.equal(applied, false);
     },
   );
 });

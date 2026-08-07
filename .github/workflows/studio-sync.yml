@@ -12,7 +12,7 @@
 #   The default `GITHUB_TOKEN` is scoped to THIS repo only; it CANNOT push branches or open
 #   PRs in other repositories. Cross-repo sync therefore requires a Personal Access Token
 #   stored as the `STUDIO_SYNC_TOKEN` secret. Use a FINE-GRAINED token with exactly:
-#     - Contents: Read and write   — the 5 member repos + `jrmoulckers/jrmoulckers`
+#     - Contents: Read and write   — all registered member repos + `jrmoulckers/jrmoulckers`
 #     - Pull requests: Read and write — same set
 #     - Contents: Read             — `jrmoulckers/studio` (private @jrm/tokens source)
 #   Do NOT grant the classic `workflow` scope. The engine never writes under

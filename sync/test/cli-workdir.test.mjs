@@ -58,7 +58,7 @@ function run(args) {
   return { code: r.status, out: `${r.stdout}${r.stderr}` };
 }
 
-const MEMBER = 'jrmoulckers/finance';
+const MEMBER = 'jrmoulckers/windows';
 
 test('every --work-dir mode refuses a checkout with the wrong origin', () => {
   withTmp((root) => {
@@ -134,6 +134,38 @@ test('a checkout whose origin is the member is not blocked', () => {
     assert.equal(code, 0, out);
     assert.doesNotMatch(out, /identity check overridden/);
     assert.match(out, new RegExp(MEMBER.replace('/', '\\/')));
+  });
+});
+
+test('manifest dry-run reports infrastructure mode and keeps disabled members write-free', () => {
+  const { code, out } = run(['--dry-run', '--members', 'jrmoulckers/studio']);
+
+  assert.equal(code, 0, out);
+  assert.match(out, /jrmoulckers\/studio  \(infrastructure · pnpm\)/);
+  assert.match(out, /Σ 0 file\(s\) would be written/);
+  assert.match(out, /no files written and no network operations performed/);
+});
+
+test('member fact verification failure occurs before any work-dir write', () => {
+  withTmp((root) => {
+    const member = 'jrmoulckers/docket';
+    const dir = seededRepo(root, 'docket', `https://github.com/${member}.git`);
+    writeFileSync(
+      join(dir, 'package.json'),
+      JSON.stringify({ dependencies: { next: '15.0.0' } }),
+      'utf8',
+    );
+    writeFileSync(join(dir, 'pnpm-lock.yaml'), 'lockfileVersion: 9\n', 'utf8');
+    const before = git(['status', '--porcelain'], dir);
+
+    const { code, out } = run(['--work-dir', dir, '--members', member]);
+    assert.equal(code, 1, out);
+    assert.equal(code, 1, out);
+    assert.match(out, /framework claims "svelte" but checkout derives "nextjs"/);
+    assert.equal(git(['status', '--porcelain'], dir), before, 'the checkout must be untouched');
+    assert.equal(readdirSync(dir).includes('.studio-sync.lock.json'), false);
+    assert.equal(readdirSync(dir).includes('.github'), false);
+    assert.equal(readdirSync(dir).includes('agency.toml'), false);
   });
 });
 

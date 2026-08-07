@@ -5,7 +5,14 @@ import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { readdirSync, existsSync } from 'node:fs';
-import { loadManifest, KINDS, NATIVE_KINDS, validateManifest } from '../lib/manifest.mjs';
+import {
+  applyManifestDefaults,
+  loadManifest,
+  KINDS,
+  MEMBER_MODES,
+  NATIVE_KINDS,
+  validateManifest,
+} from '../lib/manifest.mjs';
 import { resolveAll } from '../lib/resolve.mjs';
 import { enumerateTargets } from '../lib/assets.mjs';
 
@@ -25,7 +32,100 @@ test('every studio member is registered', () => {
     'jrmoulckers/libro',
     'jrmoulckers/cartridge',
     'jrmoulckers/docket',
+    'jrmoulckers/studio',
+    'jrmoulckers/homelab',
+    'jrmoulckers/windows',
   ]);
+  assert.ok(!repos.includes('jrmoulckers/.github'), 'the backbone is not its own consumer');
+});
+
+test('member modes have an application default and a closed schema', () => {
+  assert.deepEqual(MEMBER_MODES, ['application', 'infrastructure', 'pre-bootstrap']);
+
+  const legacy = structuredClone(manifest);
+  const recipes = legacy.members.find((member) => member.repo === 'jrmoulckers/jrm-recipes');
+  delete recipes.mode;
+  applyManifestDefaults(legacy);
+  assert.equal(recipes.mode, 'application');
+  assert.doesNotThrow(() => validateManifest(legacy));
+
+  const invalid = structuredClone(manifest);
+  invalid.members[0].mode = 'unverified';
+  assert.throws(
+    () => validateManifest(invalid),
+    /mode must be one of "application", "infrastructure", "pre-bootstrap"/,
+  );
+});
+
+test('mode schema requires application facts and reserves them until pre-bootstrap upgrades', () => {
+  const missingApplicationFact = structuredClone(manifest);
+  delete missingApplicationFact.members[0].framework;
+  assert.throws(
+    () => validateManifest(missingApplicationFact),
+    /framework is required in application mode/,
+  );
+
+  const prematurePreBootstrapFact = structuredClone(manifest);
+  const docket = prematurePreBootstrapFact.members.find(
+    (member) => member.repo === 'jrmoulckers/docket',
+  );
+  docket.mode = 'pre-bootstrap';
+  docket.packageManager = 'pnpm';
+  assert.throws(
+    () => validateManifest(prematurePreBootstrapFact),
+    /packageManager must be omitted in pre-bootstrap mode/,
+  );
+});
+
+test('non-application registrations are disabled pending overlay preparation', () => {
+  for (const repo of ['jrmoulckers/studio', 'jrmoulckers/homelab', 'jrmoulckers/windows']) {
+    const member = manifest.members.find((candidate) => candidate.repo === repo);
+    assert.equal(member.mode, 'infrastructure');
+    assert.deepEqual(member.optIn, {
+      base: false,
+      health: false,
+      agents: false,
+      skills: false,
+      prompts: false,
+      instructions: false,
+      workflows: false,
+    });
+    assert.deepEqual(member.tokens, { enabled: false });
+
+    const [resolved] = resolveAll(manifest, [repo]);
+    const { writes, native } = enumerateTargets(resolved, REPO_ROOT);
+    assert.deepEqual(writes, [], `${repo} has no managed writes`);
+    assert.deepEqual(native, [], `${repo} has no native selections`);
+  }
+
+  const studio = manifest.members.find((member) => member.repo === 'jrmoulckers/studio');
+  assert.equal(studio.packageManager, 'pnpm');
+  assert.equal(studio.framework, undefined);
+  assert.equal(manifest.tokens.sourceRepo, studio.repo);
+});
+
+test('Homelab local-agent metadata remains compatible while canon agents are disabled', () => {
+  const homelab = manifest.members.find((member) => member.repo === 'jrmoulckers/homelab');
+  assert.equal(homelab.optIn.agents, false);
+  assert.deepEqual(homelab.localAgents, [
+    'automation-steward',
+    'backup-warden',
+    'edge-warden',
+    'host-operator',
+    'inventory-scribe',
+    'media-steward',
+    'security-warden',
+    'service-steward',
+  ]);
+  assert.doesNotThrow(() => validateManifest(manifest));
+});
+
+test('Docket records its completed transition from pre-bootstrap to application', () => {
+  const docket = manifest.members.find((member) => member.repo === 'jrmoulckers/docket');
+  assert.equal(docket.mode, 'application');
+  assert.equal(docket.framework, 'svelte');
+  assert.equal(docket.packageManager, 'pnpm');
+  assert.deepEqual(docket.tokens, { enabled: true }, 'preserve Docket token adoption');
 });
 
 test('libro, cartridge, and docket use the root-default vendored tokens path', () => {
