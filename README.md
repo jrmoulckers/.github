@@ -33,6 +33,24 @@ here plus `@jrm` npm packages.
    └─ workflows/              # reusable-*.yml (called by product repos)
 ```
 
+## Authority map
+
+JRM Studio uses four canonical authorities so operational placement never obscures source
+ownership:
+
+| Authority | Canonical domain |
+| --- | --- |
+| **Studio** | Design and user-facing UI principles and implementations |
+| **Engineering** | Engineering principles, mechanisms, evidence, configurations, and libraries |
+| **Product** | Product and operations obligations, outcomes, decisions, and implementations |
+| **`.github`** | GitHub governance and Actions; Copilot and AI assets; fleet sync and provenance |
+
+Product defines the obligation and outcome, Engineering defines the mechanism and evidence, Studio
+defines the user-facing expression, and `.github` automates checks and distribution. Operational
+reading or distribution does not transfer source ownership. See
+[ADR-0003](docs/architecture/0003-four-authority-topology.md) for dependency directions and
+ownership boundaries.
+
 > **Profile note.** `jrmoulckers` is a GitHub **User**, not an Org, so `profile/README.md` does
 > **not** render on the account page (that's an Org-only mechanism). It's authored here as the
 > canonical, self-contained studio identity; a separate `jrmoulckers/jrmoulckers` repo mirrors it
