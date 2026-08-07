@@ -161,7 +161,7 @@
         "skills": false,
         "prompts": false,
         "instructions": false,
-        "workflows": ["reusable-ci-lint", "reusable-smoke-test"]
+        "workflows": []
       },
       "tokens": { "enabled": true, "targetPath": "apps/web/vendor/@jrm/tokens" }
     },
