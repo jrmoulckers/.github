@@ -45,6 +45,27 @@ test('finance keeps its custom tokens path and AI-layer opt-outs', () => {
   }
 });
 
+test('wildcard members receive the expanded agent roster while explicit subsets stay pinned', () => {
+  for (const member of manifest.members.filter((candidate) => candidate.optIn.agents === '*')) {
+    const [resolved] = resolveAll(manifest, [member.repo]);
+    const agents = resolved.groups.find((group) => group.kind === 'agents');
+    assert.deepEqual(agents.names, manifest.canon.agents, `${member.repo} expands wildcard agents`);
+  }
+
+  const scoreKing = manifest.members.find((member) => member.repo === 'jrmoulckers/score-king');
+  const [resolvedScoreKing] = resolveAll(manifest, [scoreKing.repo]);
+  const scoreKingAgents = resolvedScoreKing.groups.find((group) => group.kind === 'agents');
+  assert.deepEqual(scoreKingAgents.names, scoreKing.optIn.agents, 'score-king stays explicit');
+  assert.deepEqual(scoreKing.localAgents, ['design-engineer']);
+  assert.equal(scoreKing.optIn.skills, '*', 'score-king keeps selected-agent skill closure');
+  assert.ok(scoreKing.optIn.prompts.includes('team'), 'score-king includes the declared team prompt');
+  assert.deepEqual(
+    scoreKingAgents.names,
+    manifest.canon.agents.filter((name) => name !== 'design-engineer'),
+    'score-king receives canon except its declared local design replacement',
+  );
+});
+
 // This test is also what backs a security claim: STUDIO_SYNC_TOKEN is documented as needing NO
 // `workflow` scope, because no write ever lands under `.github/workflows/` in any member. If this
 // assertion ever fails, fix the native-kind handling — do not widen the token.
@@ -73,8 +94,8 @@ test('native kinds are reported but never produce a write', () => {
   }
 });
 
-// cartridge briefly carried explicit agent/skill/prompt lists, on the reasoning that its partial
-// canon set (11 of 19 agents) was a deliberate fit decision for an offline catalogue. That was
+// cartridge briefly carried explicit agent/skill/prompt lists, on the reasoning that its initial
+// canon set (11 of the then-current 19 agents) was a deliberate fit decision for an offline catalogue. That was
 // retracted. The author of that tree confirmed the list came from a hand-typed OPT_IN object in a
 // one-off scaffold script — deliberate in mechanism, a first-pass guess in substance, reasoned from
 // "client-side PWA" in the same commit that added a Cloudflare Worker doing an OAuth exchange, KV
@@ -111,6 +132,16 @@ test('an unknown name in an explicit optIn list fails validation', () => {
   const bad = structuredClone(manifest);
   bad.members.find((m) => m.repo === 'jrmoulckers/cartridge').optIn.agents = ['backend-enginer'];
   assert.throws(() => validateManifest(bad), /unknown agents "backend-enginer"/);
+});
+
+test('a local replacement cannot overlap synced canon', () => {
+  const bad = structuredClone(manifest);
+  const scoreKing = bad.members.find((member) => member.repo === 'jrmoulckers/score-king');
+  scoreKing.optIn.agents.push('design-engineer');
+  assert.throws(
+    () => validateManifest(bad),
+    /localAgents "design-engineer" overlaps optIn\.agents/,
+  );
 });
 
 // canon is hand-maintained. A name with no file resolves to a missing source; a file with no name

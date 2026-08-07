@@ -47,6 +47,7 @@ Each entry in `studio.config.json`'s `members[]` array describes one product rep
 | `repo` | ✅ must match `owner/name` | Clone target, `--members` filter, PR destination. |
 | `optIn.base` / `.agents` / `.skills` / `.prompts` / `.instructions` | ✅ keys against `KINDS`, names against `canon.<kind>` | **Executed** — what canon the member receives. |
 | `optIn.health` / `optIn.workflows` | ✅ same validation; called workflows are checkout-verified | **Recorded only** — native kinds, never copied (see below). |
+| `localAgents` | ✅ kebab-case list; cannot overlap selected canon | Locally authored roles/replacements available for handoffs but never synced. |
 | `tokens` | ✅ shape (`enabled` boolean, optional string `targetPath`) | Vendored `@jrm/tokens` opt-in + destination. |
 | `framework` | ❌ free-form schema; checkout-verified | Descriptive — `--dry-run` label; checked against repository signatures during real sync/`--check`. |
 | `packageManager` | ❌ free-form schema; checkout-verified | Descriptive — `--dry-run` label; checked against the root lockfile during real sync/`--check`. |
@@ -99,10 +100,11 @@ expands `"*"` to `[...canonList]`, so on a curated repo it re-adds every omitted
 block in the next sync PR. Nothing distinguishes "this member never had these" from "this member
 decided against these", so a considered omission looks exactly like drift and gets undone.
 
-The bar for "deliberately" is the part worth stating, because we got it wrong once. `cartridge`
-carries 11 of 19 agents, 11 of 15 skills and 5 of 7 prompts, and that subset reads as a coherent
-fit decision: every business, backend, data and i18n role is absent from what looks like an offline
-game catalogue. It was registered with explicit arrays on that reading, and the reading was wrong.
+The bar for "deliberately" is the part worth stating, because we got it wrong once. `cartridge`'s
+hand-seeded tree carried 11 of the then-current 19 agents, 11 of 15 skills and 5 of 7 prompts, and
+that subset read as a coherent fit decision: every business, backend, data and i18n role was absent
+from what looked like an offline game catalogue. It was registered with explicit arrays on that
+reading, and the reading was wrong.
 
 The author of that tree has since answered directly, and the answer is more instructive than the
 guesswork: the file list came from a **hand-typed `OPT_IN` object at the top of a one-off scaffold
@@ -224,6 +226,26 @@ Two more asset classes are synced but are **not** `optIn` kinds:
 | --- | --- | --- | --- |
 | Vendored `@jrm/tokens` | `members[].tokens` (`{ "enabled": true, "targetPath"?: … }`) plus the top-level `tokens` block | `vendor/@jrm/tokens/` (per-member overridable) | **External** — vendored from the private `jrmoulckers/studio` repo, not backbone canon. See below. |
 | Profile README | not configurable per member — always `profile/README.md` in this repo | `jrmoulckers/jrmoulckers` `README.md` | Mirrored to the user profile repo once per run, and **only on unfiltered runs**: passing `--members` skips the mirror entirely. `--dry-run` reports the mirror as skipped under a filter, matching the run it previews. |
+
+### Canonical agents and product overlays
+
+Canonical agent bodies are authored under `agents/` here and written to
+`.github/agents/*.agent.md` in opted-in members. The target files are generated, provenance-stamped
+artifacts: edit canon here, or put product-specific stack/path/risk guidance in the member's root
+`AGENTS.md` outside the managed block and in scoped `.github/instructions/`. Do not edit a generated
+agent file. A distinct local role is allowed; a same-slug replacement must be declared in
+`members[].localAgents` and omitted from the member's explicit `optIn.agents` list.
+
+The operating precedence is mandatory studio safety/human gates, then product root/scoped overlays,
+then the generic canonical role. Product overlays can specialize behavior but cannot relax mandatory
+gates. Declared local replacements remain locally authored and are never overwritten by sync.
+
+Custom-agent discovery still requires repository-local `.github/agents/*.agent.md`; official
+owner-repo inheritance has not been verified. Synced consumer copies therefore remain necessary
+generated artifacts. Existing authored copies of canonical roles can be reduced by moving local
+facts to overlays, but the materialized files themselves must not be removed until inheritance is
+verified end to end. See
+[Canonical agents and local overlays](../docs/sync.md#canonical-agents-and-local-overlays).
 
 Every synced file carries a provenance header
 (`synced from jrmoulckers/.github — canonical source; do not edit here`): an HTML comment
