@@ -162,14 +162,15 @@
       "mode": "application",
       "framework": "kmp-web",
       "packageManager": "npm",
-      "notes": "Origin of most canon; maintains its own richer, product-specific AI layer. Consumes shared health + reusable workflows only.",
+      "notes": "Product-specific platform and risk rules live in root/scoped overlays. The canonical AI layer is materialized atomically while finance-domain remains the only locally authored agent.",
+      "localAgents": ["finance-domain"],
       "optIn": {
         "base": true,
         "health": true,
-        "agents": false,
-        "skills": false,
-        "prompts": false,
-        "instructions": false,
+        "agents": "*",
+        "skills": "*",
+        "prompts": "*",
+        "instructions": "*",
         "workflows": []
       },
       "tokens": { "enabled": true, "targetPath": "apps/web/vendor/@jrm/tokens" }
@@ -229,14 +230,14 @@
       "repo": "jrmoulckers/studio",
       "mode": "infrastructure",
       "packageManager": "pnpm",
-      "notes": "Design and tooling kernel: a pnpm workspace for @jrm/tokens and shared lint, formatting, TypeScript, and Tailwind packages. It is the token source, never its own vendored-token target. Canon selections stay disabled until its authored AI layer is prepared for overlay adoption.",
+      "notes": "Design and tooling kernel with local principles as the authoritative map for canonical roles. The AI layer is materialized without the broad, unpinned base agency.toml; Studio remains the token source, never its own vendored-token target.",
       "optIn": {
         "base": false,
         "health": false,
-        "agents": false,
-        "skills": false,
-        "prompts": false,
-        "instructions": false,
+        "agents": "*",
+        "skills": "*",
+        "prompts": "*",
+        "instructions": "*",
         "workflows": false
       },
       "tokens": { "enabled": false }
@@ -244,7 +245,7 @@
     {
       "repo": "jrmoulckers/homelab",
       "mode": "infrastructure",
-      "notes": "Infrastructure-as-code and operations repository for Proxmox, self-hosted services, automation, backups, and runbooks. JavaScript package metadata is nested under individual tools rather than defining a root application toolchain. Its existing product-specific agents remain local while overlay preparation is pending.",
+      "notes": "Infrastructure-as-code and operations repository for Proxmox, self-hosted services, automation, backups, and runbooks. Its eight product-specific agents remain local alongside the canonical roster; base stays disabled to preserve local AGENTS and runtime/MCP policy.",
       "localAgents": [
         "automation-steward",
         "backup-warden",
@@ -258,10 +259,10 @@
       "optIn": {
         "base": false,
         "health": false,
-        "agents": false,
-        "skills": false,
-        "prompts": false,
-        "instructions": false,
+        "agents": "*",
+        "skills": "*",
+        "prompts": "*",
+        "instructions": "*",
         "workflows": false
       },
       "tokens": { "enabled": false }
@@ -269,14 +270,14 @@
     {
       "repo": "jrmoulckers/windows",
       "mode": "infrastructure",
-      "notes": "Windows device-management repository for shared and per-machine configuration. Its default branch is intentionally empty today; canon selections stay disabled until the configuration and AI overlay are prepared.",
+      "notes": "Windows device-management repository for shared and per-machine configuration. The canonical AI layer is enabled under infrastructure evidence checks while base remains disabled for the intentionally empty/tooling repository.",
       "optIn": {
         "base": false,
         "health": false,
-        "agents": false,
-        "skills": false,
-        "prompts": false,
-        "instructions": false,
+        "agents": "*",
+        "skills": "*",
+        "prompts": "*",
+        "instructions": "*",
         "workflows": false
       },
       "tokens": { "enabled": false }
