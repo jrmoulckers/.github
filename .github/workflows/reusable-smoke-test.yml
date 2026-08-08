@@ -8,7 +8,7 @@
 # Example caller:
 #   jobs:
 #     smoke:
-#       uses: jrmoulckers/.github/.github/workflows/reusable-smoke-test.yml@main
+#       uses: jrmoulckers/.github/.github/workflows/reusable-smoke-test.yml@<reviewed-commit-sha>
 #       with:
 #         version: 1.2.3
 #         package-manager: pnpm

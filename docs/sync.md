@@ -12,8 +12,8 @@ assets propagate very differently:
 
 | Class | Examples | How it reaches product repos |
 | --- | --- | --- |
-| **Native** | Community-health files, reusable workflows | GitHub inherits default health files from this `.github` repo automatically; reusable workflows are called directly with `uses: jrmoulckers/.github/.github/workflows/reusable-*.yml@main`. **No sync needed — and a member must not keep its own copy** (see below). |
-| **Canonical source** | `agents/`, `skills/`, `prompts/`, `instructions/`, `AGENTS.md`, `agency.toml` | Copilot does **not** auto-inherit these across repos. They must be **copied** into each product repo's `.github/…`. **This is what the sync tool does.** |
+| **Native** | Community-health files, reusable workflows | GitHub inherits default health files from this `.github` repo automatically; reusable workflows are called directly with `uses: jrmoulckers/.github/.github/workflows/reusable-*.yml@<reviewed-commit-sha>`. **No sync needed — and a member must not keep its own copy** (see below). |
+| **Canonical source** | `agents/`, `skills/`, `prompts/`, `instructions/`, `AGENTS.md`, `agency.toml` | Copilot does **not** auto-inherit these across repos. The sync tool materializes them as `.github/agents/`, `.github/skills/`, `.github/prompts/`, `.github/instructions/`, and selected root files. Consumer copies are generated and read-only. |
 | **External vendored** | `@jrm/tokens` built outputs (CSS custom properties, Tailwind preset, typed JS) | Live in a *different* private backbone repo (`jrmoulckers/studio`), registry-free. The same engine copies studio's committed `dist/` tree into opted-in members under `vendor/@jrm/tokens/`. See [Vendored tokens](#vendored-tokens-jrmtokens). |
 
 ## Flow (scheduled PR)
@@ -33,9 +33,12 @@ flowchart LR
 2. **Read the manifest** — parse `studio.config.json`: the `canon` catalog, `sourcePaths`,
    `targetPaths`, and each member's mode and `optIn` selection. Schema validation covers `repo`,
    `mode`, mode-specific facts, `optIn`, `localAgents`, and `tokens`; agent integrity checks each
-   selected roster's handoff closure, while prompt integrity checks schema, parameters, runtime
-   dependencies, references, and selected-prompt/available-agent closure. Checkout-owning operations
-   separately verify the recorded/descriptive member facts (see
+   selected roster's handoff closure, instruction integrity checks scopes, ownership, member
+   profiles, precedence, immutable workflow examples, and local-agent collisions, while prompt
+   integrity checks schema, parameters, runtime dependencies, references, and
+   selected-prompt/available-agent closure. Agency integrity rejects mutable packages, deprecated
+   packages, wildcard tools, and unreviewed active server profiles. Checkout-owning operations
+   separately verify recorded/descriptive member facts (see
    [Member entries](../sync/README.md#member-entries)).
 3. **Resolve opt-ins** — for every member, expand `"*"` to the full canon list, honor explicit
    arrays, and skip anything set to `false`.
@@ -53,7 +56,8 @@ flowchart LR
    [AGENTS.md base merge](../sync/README.md#agentsmd-base-merge)). `health` and
    `workflows` are **native** (see the table above): they are resolved and reported but never
    written — health files are inherited from this `.github` repo and reusable workflows are
-   called via `uses: …@main`. A member repo must therefore **not** contain its own copy of
+   called via a reviewed immutable commit SHA or documented versioned-tag update policy. A member
+   repo must therefore **not** contain its own copy of
    either (see [Native kinds have no transport](#native-kinds-have-no-transport)).
 6. **Open a PR** — commit on a `studio-sync/<date>` branch and open a PR titled
    `chore(sync): update studio canon (<date>)` with a summary of changed assets. Never push to
@@ -75,18 +79,24 @@ The supported model separates reusable role behavior from product facts:
    before the sync engine can plan or copy them.
 2. The sync engine materializes opted-in roles as `.github/agents/*.agent.md`. Those files are
    generated artifacts with provenance and lockfile drift detection; do not edit them in a member.
-3. A product's root `AGENTS.md` content outside the managed block, plus its scoped
-   `.github/instructions/*.instructions.md`, owns concise stack, path, command, domain, and
-   product-risk overlays. Product rules may narrow or specialize generic behavior but cannot relax
-   the mandatory studio human gates.
-4. Product-only roles may remain additional local agent files. A member may also declare a
+3. Canonical `skills/` and `instructions/` materialize under `.github/skills/` and
+   `.github/instructions/`. They remain upstream-owned, read-only files in consumers; reusable
+   changes return to this backbone and product-specific facts stay in local overlays.
+4. A product's root `AGENTS.md` content outside the managed block, plus its more-specific scoped
+   instructions, owns concise stack, path, command, domain, schema-extension, and product-risk
+   overlays. Those local authorities override shared defaults for their scope while mandatory human
+   gates remain the floor.
+5. Product-only roles may remain additional local agent files. Their names are declared through
+   `members[].localAgents`, and they may use a locally documented schema instead of the canonical
+   schema. A member may also declare a
    same-slug local replacement in `members[].localAgents` only when an explicit `optIn.agents` list
    omits that canonical role; selecting both is invalid because discovery would be ambiguous.
 
-When guidance intersects, apply mandatory studio safety first, then the product's root/scoped
-overlay, then the canonical generic role; choose the more restrictive rule if the sources conflict.
-The sync engine merges the root `AGENTS.md` managed block, but it does **not** merge individual agent
-files. Move reusable behavior upstream and keep product facts in the supported overlay surfaces.
+When guidance intersects, mandatory human gates remain the floor; then root/local `AGENTS.md` and
+more-specific scoped instructions override shared defaults. Choose the more restrictive rule when
+two applicable safety rules conflict. The sync engine merges the root `AGENTS.md` managed block, but
+it does **not** merge individual agent, skill, prompt, or instruction files. Move reusable behavior
+upstream and keep product facts in supported overlay surfaces.
 
 **Current discovery limitation:** Copilot custom agents are discovered from repository-local
 `.github/agents/*.agent.md` files. Owner-level custom-agent inheritance from this backbone has not
@@ -160,6 +170,32 @@ first-pass guess in a scaffold script, reasoned from "client-side PWA" in the sa
 a Cloudflare Worker handling OAuth. Deliberate in mechanism, not in substance. `"*"` is the default
 because adding canon is reversible and a frozen list is not.
 See [`sync/README.md`](../sync/README.md#-vs-an-explicit-list).
+
+### Curated instruction profiles
+
+Instructions are curated by repository authority model rather than wildcarded:
+
+| Members | Selected instructions |
+| --- | --- |
+| Six application members | `agents`, `docs`, `skills`, `tokens`, `workflow` |
+| `jrmoulckers/studio` | `agents`, `docs`, `skills`, `tokens`, `workflow` |
+| `jrmoulckers/homelab` | `agents`, `infrastructure-operations` |
+| `jrmoulckers/windows` | `agents`, `docs`, `infrastructure-operations`, `skills` |
+
+`infrastructure-operations` is a routing and safety contract, not host authority. It establishes
+repo-first and host-first modes, explicit confirmation, last-known-good/rollback/second-access-path
+requirements, live-to-repo reconciliation, drift checks, and operations logging. The member's
+root/scoped policy and declared local operators decide tools and live authority; generic canonical
+agents receive none.
+
+Homelab intentionally excludes generic docs, skills, tokens, and product workflow instructions so
+its exact infrastructure facts, confirmation protocol, and flat local skill/agent schemas remain
+authoritative. Its `agents` instruction is retained only because that instruction explicitly exempts
+declared `localAgents` from the canonical schema and preserves slug-collision guards. Windows keeps
+agent/skill/docs ownership rules alongside infrastructure safety, but excludes token and product
+fleet workflow policy. Studio remains a token author, not a live-Homelab operator.
+
+See [ADR-0004](architecture/0004-curated-instruction-profiles.md).
 
 ## Native kinds have no transport
 
@@ -518,7 +554,9 @@ validation. The mirror is unconditional (subject to the filter rule above) and d
 ## Out of scope (for now)
 
 - Two-way sync — flow is one-way: backbone → product repos.
-- Pruning: assets a member later opts out of are not deleted from the member repo.
+- Automatic pruning: assets a member later opts out of are not deleted from the member repo. Follow
+  the hash-verified cleanup contract in the sync README; never infer that a deselected path is safe
+  to delete.
 - Publishing `@jrm` packages to any registry — the studio is registry-free; `@jrm/tokens` is
   vendored (above), and the `@jrm` name is only ever an identifier, never resolved from a registry.
 - Producing studio's committed `packages/tokens/dist/` — that build/commit is `jrmoulckers/studio`'s

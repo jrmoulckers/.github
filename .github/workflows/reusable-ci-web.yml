@@ -9,7 +9,7 @@
 # Example caller:
 #   jobs:
 #     web-ci:
-#       uses: jrmoulckers/.github/.github/workflows/reusable-ci-web.yml@main
+#       uses: jrmoulckers/.github/.github/workflows/reusable-ci-web.yml@<reviewed-commit-sha>
 #       with:
 #         package-manager: pnpm
 #         typecheck-command: pnpm typecheck

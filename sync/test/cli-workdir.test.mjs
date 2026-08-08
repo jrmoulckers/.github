@@ -139,13 +139,13 @@ test('a checkout whose origin is the member is not blocked', () => {
 
 test('manifest dry-run reports complete phase-two activation plans', () => {
   const members = [
-    ['jrmoulckers/finance', 'application · kmp-web · npm', 8, 56, true],
-    ['jrmoulckers/studio', 'infrastructure · pnpm', 8, 54, false],
-    ['jrmoulckers/homelab', 'infrastructure', 3, 49, false],
-    ['jrmoulckers/windows', 'infrastructure', 8, 54, false],
+    ['jrmoulckers/finance', 'application · kmp-web · npm', 8, 5, 56, true],
+    ['jrmoulckers/studio', 'infrastructure · pnpm', 8, 5, 54, false],
+    ['jrmoulckers/homelab', 'infrastructure', 3, 2, 46, false],
+    ['jrmoulckers/windows', 'infrastructure', 8, 4, 53, false],
   ];
 
-  for (const [repo, metadata, promptCount, total, hasFinanceBundles] of members) {
+  for (const [repo, metadata, promptCount, instructionCount, total, hasFinanceBundles] of members) {
     const { code, out } = run(['--dry-run', '--members', repo]);
 
     assert.equal(code, 0, out);
@@ -153,7 +153,7 @@ test('manifest dry-run reports complete phase-two activation plans', () => {
     assert.match(out, /agents \(22 files\)/);
     assert.match(out, /skills \(19 files in 15 dirs\)/);
     assert.match(out, new RegExp(`prompts \\(${promptCount} files\\)`));
-    assert.match(out, /instructions \(5 files\)/);
+    assert.match(out, new RegExp(`instructions \\(${instructionCount} files\\)`));
     assert.match(out, new RegExp(`Σ ${total} file\\(s\\) would be written`));
     assert.match(out, /no files written and no network operations performed/);
 

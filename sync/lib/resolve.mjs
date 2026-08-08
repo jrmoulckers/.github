@@ -7,7 +7,7 @@
 //
 // Native kinds (health, workflows) are still resolved and listed so the plan reflects
 // the manifest, but they never produce written files (GitHub inherits health files;
-// reusable workflows are called via `uses: …@main`).
+// reusable workflows are called via `uses: …@<reviewed-immutable-ref>`).
 
 import { NATIVE_KINDS, DIR_KINDS, memberMode } from './manifest.mjs';
 

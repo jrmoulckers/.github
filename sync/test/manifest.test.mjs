@@ -77,7 +77,7 @@ test('mode schema requires application facts and reserves them until pre-bootstr
   );
 });
 
-test('phase-two members resolve dependency-closed canonical AI selections', () => {
+test('phase-two members resolve dependency-closed roles and curated instruction profiles', () => {
   const expectedLocalAgents = new Map([
     ['jrmoulckers/finance', ['finance-domain']],
     ['jrmoulckers/studio', []],
@@ -96,6 +96,12 @@ test('phase-two members resolve dependency-closed canonical AI selections', () =
     ],
     ['jrmoulckers/windows', []],
   ]);
+  const expectedInstructions = new Map([
+    ['jrmoulckers/finance', ['agents', 'docs', 'skills', 'tokens', 'workflow']],
+    ['jrmoulckers/studio', ['agents', 'docs', 'skills', 'tokens', 'workflow']],
+    ['jrmoulckers/homelab', ['agents', 'infrastructure-operations']],
+    ['jrmoulckers/windows', ['agents', 'docs', 'infrastructure-operations', 'skills']],
+  ]);
 
   assert.equal(manifest.canon.agents.length, 22);
   for (const [repo, localAgents] of expectedLocalAgents) {
@@ -103,7 +109,7 @@ test('phase-two members resolve dependency-closed canonical AI selections', () =
     const [resolved] = resolveAll(manifest, [repo]);
 
     assert.deepEqual(member.localAgents ?? [], localAgents, `${repo} keeps its verified local roster`);
-    for (const kind of ['agents', 'skills', 'instructions']) {
+    for (const kind of ['agents', 'skills']) {
       assert.equal(member.optIn[kind], '*', `${repo} keeps ${kind} dependency-closed`);
       assert.deepEqual(
         resolved.groups.find((group) => group.kind === kind).names,
@@ -111,6 +117,12 @@ test('phase-two members resolve dependency-closed canonical AI selections', () =
         `${repo} resolves all canonical ${kind}`,
       );
     }
+    assert.deepEqual(member.optIn.instructions, expectedInstructions.get(repo));
+    assert.deepEqual(
+      resolved.groups.find((group) => group.kind === 'instructions').names,
+      expectedInstructions.get(repo),
+      `${repo} resolves its curated instruction profile`,
+    );
     const resolvedPrompts = resolved.groups.find((group) => group.kind === 'prompts').names;
     if (repo === 'jrmoulckers/homelab') {
       assert.deepEqual(member.optIn.prompts, ['backlog', 'cleanup', 'review']);

@@ -50,7 +50,14 @@
       "ux-testing"
     ],
     "prompts": ["backlog", "bug-bash", "cleanup", "fix-ci", "rebase-all", "review", "sprint", "team"],
-    "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
+    "instructions": [
+      "agents",
+      "docs",
+      "infrastructure-operations",
+      "skills",
+      "tokens",
+      "workflow"
+    ],
     "workflows": [
       "reusable-ci-lint",
       "reusable-ci-web",
@@ -112,7 +119,7 @@
         "agents": "*",
         "skills": "*",
         "prompts": "*",
-        "instructions": "*",
+        "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
         "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
       },
       "tokens": { "enabled": false }
@@ -152,7 +159,7 @@
         ],
         "skills": "*",
         "prompts": ["review", "fix-ci", "cleanup", "backlog", "bug-bash", "sprint", "team"],
-        "instructions": ["workflow", "agents", "skills", "docs", "tokens"],
+        "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
         "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
       },
       "tokens": { "enabled": false }
@@ -170,7 +177,7 @@
         "agents": "*",
         "skills": "*",
         "prompts": "*",
-        "instructions": "*",
+        "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
         "workflows": []
       },
       "tokens": { "enabled": true, "targetPath": "apps/web/vendor/@jrm/tokens" }
@@ -187,7 +194,7 @@
         "agents": "*",
         "skills": "*",
         "prompts": "*",
-        "instructions": "*",
+        "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
         "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
       },
       "tokens": { "enabled": true }
@@ -204,7 +211,7 @@
         "agents": "*",
         "skills": "*",
         "prompts": "*",
-        "instructions": "*",
+        "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
         "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
       },
       "tokens": { "enabled": true }
@@ -221,7 +228,7 @@
         "agents": "*",
         "skills": "*",
         "prompts": "*",
-        "instructions": "*",
+        "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
         "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
       },
       "tokens": { "enabled": true }
@@ -230,14 +237,14 @@
       "repo": "jrmoulckers/studio",
       "mode": "infrastructure",
       "packageManager": "pnpm",
-      "notes": "Design and tooling kernel with local principles as the authoritative map for canonical roles. The AI layer is materialized without the broad, unpinned base agency.toml; Studio remains the token source, never its own vendored-token target.",
+      "notes": "Design and tooling kernel with local principles as the authoritative map for canonical roles. It retains the five general instruction contracts, including token authoring, without Homelab live-operations semantics. The AI layer is materialized without the root agency.toml; Studio remains the token source, never its own vendored-token target.",
       "optIn": {
         "base": false,
         "health": false,
         "agents": "*",
         "skills": "*",
         "prompts": "*",
-        "instructions": "*",
+        "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
         "workflows": false
       },
       "tokens": { "enabled": false }
@@ -245,7 +252,7 @@
     {
       "repo": "jrmoulckers/homelab",
       "mode": "infrastructure",
-      "notes": "Infrastructure-as-code and operations repository for Proxmox, self-hosted services, automation, backups, and runbooks. Its eight product-specific agents remain local alongside the canonical roster; base stays disabled to preserve local AGENTS and runtime/MCP policy. Its audited prompt subset is intentionally read-oriented: backlog, review, and the hardened audit-first cleanup.",
+      "notes": "Infrastructure-as-code and operations repository for Proxmox, self-hosted services, automation, backups, and runbooks. Its eight product-specific agents and local flat schema remain authoritative alongside the canonical roster; only agent compatibility and live infrastructure operations instructions are selected. Generic docs, skills, tokens, product workflow, base, and runtime/MCP policy remain local or excluded. Its audited prompt subset is intentionally read-oriented: backlog, review, and hardened audit-first cleanup.",
       "localAgents": [
         "automation-steward",
         "backup-warden",
@@ -262,7 +269,7 @@
         "agents": "*",
         "skills": "*",
         "prompts": ["backlog", "cleanup", "review"],
-        "instructions": "*",
+        "instructions": ["agents", "infrastructure-operations"],
         "workflows": false
       },
       "tokens": { "enabled": false }
@@ -270,14 +277,14 @@
     {
       "repo": "jrmoulckers/windows",
       "mode": "infrastructure",
-      "notes": "Windows device-management repository for shared and per-machine configuration. The canonical AI layer is enabled under infrastructure evidence checks while base remains disabled for the intentionally empty/tooling repository.",
+      "notes": "Windows device-management repository for shared and per-machine configuration. It selects infrastructure operations plus relevant generated-agent, skill, and docs rules, while excluding token authoring, product fleet workflow, and root runtime policy.",
       "optIn": {
         "base": false,
         "health": false,
         "agents": "*",
         "skills": "*",
         "prompts": "*",
-        "instructions": "*",
+        "instructions": ["agents", "docs", "infrastructure-operations", "skills"],
         "workflows": false
       },
       "tokens": { "enabled": false }

@@ -9,7 +9,7 @@
 # Example caller:
 #   jobs:
 #     preview:
-#       uses: jrmoulckers/.github/.github/workflows/reusable-deploy-preview.yml@main
+#       uses: jrmoulckers/.github/.github/workflows/reusable-deploy-preview.yml@<reviewed-commit-sha>
 #       with:
 #         package-manager: pnpm
 #         build-command: pnpm build
