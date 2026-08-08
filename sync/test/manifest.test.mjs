@@ -77,7 +77,7 @@ test('mode schema requires application facts and reserves them until pre-bootstr
   );
 });
 
-test('phase-two members resolve the full dependency-closed canonical AI layer', () => {
+test('phase-two members resolve dependency-closed canonical AI selections', () => {
   const expectedLocalAgents = new Map([
     ['jrmoulckers/finance', ['finance-domain']],
     ['jrmoulckers/studio', []],
@@ -103,13 +103,21 @@ test('phase-two members resolve the full dependency-closed canonical AI layer', 
     const [resolved] = resolveAll(manifest, [repo]);
 
     assert.deepEqual(member.localAgents ?? [], localAgents, `${repo} keeps its verified local roster`);
-    for (const kind of ['agents', 'skills', 'prompts', 'instructions']) {
+    for (const kind of ['agents', 'skills', 'instructions']) {
       assert.equal(member.optIn[kind], '*', `${repo} keeps ${kind} dependency-closed`);
       assert.deepEqual(
         resolved.groups.find((group) => group.kind === kind).names,
         manifest.canon[kind],
         `${repo} resolves all canonical ${kind}`,
       );
+    }
+    const resolvedPrompts = resolved.groups.find((group) => group.kind === 'prompts').names;
+    if (repo === 'jrmoulckers/homelab') {
+      assert.deepEqual(member.optIn.prompts, ['backlog', 'cleanup', 'review']);
+      assert.deepEqual(resolvedPrompts, member.optIn.prompts);
+    } else {
+      assert.equal(member.optIn.prompts, '*', `${repo} keeps prompts dependency-closed`);
+      assert.deepEqual(resolvedPrompts, manifest.canon.prompts);
     }
 
     const selectedAgents = resolved.groups.find((group) => group.kind === 'agents').names;
@@ -126,6 +134,22 @@ test('phase-two members resolve the full dependency-closed canonical AI layer', 
   }
 
   assert.doesNotThrow(() => validateManifest(manifest));
+});
+
+test('bug-bash is canonical and selected by application wildcard members', () => {
+  assert.ok(manifest.canon.prompts.includes('bug-bash'));
+  for (const member of manifest.members.filter(
+    (candidate) => candidate.mode === 'application' && candidate.optIn.prompts === '*',
+  )) {
+    const [resolved] = resolveAll(manifest, [member.repo]);
+    assert.ok(
+      resolved.groups.find((group) => group.kind === 'prompts').names.includes('bug-bash'),
+      `${member.repo} receives bug-bash`,
+    );
+  }
+
+  const scoreKing = manifest.members.find((member) => member.repo === 'jrmoulckers/score-king');
+  assert.ok(scoreKing.optIn.prompts.includes('bug-bash'));
 });
 
 test('phase-two activation preserves member modes and non-AI bundle intent', () => {

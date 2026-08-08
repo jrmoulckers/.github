@@ -1,5 +1,5 @@
 {
-  "$comment": "JRM Studio manifest. Source of truth for the cross-repo sync engine in sync/ (see docs/sync.md and sync/README.md), which reads this file on every run. Fields fall into three tiers. EXECUTED — repo, optIn.base, optIn.agents/skills/prompts/instructions, targetPaths and tokens decide which files are written where; getting one wrong changes the output. VERIFIED — mode selects the checkout evidence contract; framework, packageManager and called backbone workflows are checked when they apply but never decide a write. RECORDED — localAgents names locally authored roles/replacements used for handoff validation but never copied; optIn.health and optIn.workflows are native kinds (sync/lib/manifest.mjs NATIVE_KINDS), so neither is copied. DESCRIPTIVE — notes supplies human/agent context. Schema validation covers mode, mode-specific facts, repo, optIn, localAgents and tokens. Real syncs, --check, and --work-dir additionally inspect each existing member checkout, then fail that member before writes if its mode or registry claims disagree. Manifest-only --dry-run stays offline and cannot verify checkout facts. See sync/README.md#member-entries.",
+  "$comment": "JRM Studio manifest. Source of truth for the cross-repo sync engine in sync/ (see docs/sync.md and sync/README.md), which reads this file on every run. Fields fall into three tiers. EXECUTED — repo, optIn.base, optIn.agents/skills/prompts/instructions, targetPaths and tokens decide which files are written where; getting one wrong changes the output. VERIFIED — mode selects the checkout evidence contract; framework, packageManager and called backbone workflows are checked when they apply but never decide a write. RECORDED — localAgents names locally authored roles/replacements used for handoff validation but never copied; optIn.health and optIn.workflows are native kinds (sync/lib/manifest.mjs NATIVE_KINDS), so neither is copied. DESCRIPTIVE — notes supplies human/agent context. Schema validation covers mode, mode-specific facts, repo, optIn, localAgents and tokens; integrity validation also enforces canonical agent and prompt roster/dependency closure. Real syncs, --check, and --work-dir additionally inspect each existing member checkout, then fail that member before writes if its mode or registry claims disagree. Manifest-only --dry-run stays offline and cannot verify checkout facts. See sync/README.md#member-entries.",
   "studio": "JRM Studio",
   "owner": "jrmoulckers",
   "ownerType": "user",
@@ -49,7 +49,7 @@
       "sprint-planning",
       "ux-testing"
     ],
-    "prompts": ["backlog", "cleanup", "fix-ci", "rebase-all", "review", "sprint", "team"],
+    "prompts": ["backlog", "bug-bash", "cleanup", "fix-ci", "rebase-all", "review", "sprint", "team"],
     "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
     "workflows": [
       "reusable-ci-lint",
@@ -151,7 +151,7 @@
           "web-engineer"
         ],
         "skills": "*",
-        "prompts": ["review", "fix-ci", "cleanup", "backlog", "sprint", "team"],
+        "prompts": ["review", "fix-ci", "cleanup", "backlog", "bug-bash", "sprint", "team"],
         "instructions": ["workflow", "agents", "skills", "docs", "tokens"],
         "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
       },
@@ -245,7 +245,7 @@
     {
       "repo": "jrmoulckers/homelab",
       "mode": "infrastructure",
-      "notes": "Infrastructure-as-code and operations repository for Proxmox, self-hosted services, automation, backups, and runbooks. Its eight product-specific agents remain local alongside the canonical roster; base stays disabled to preserve local AGENTS and runtime/MCP policy.",
+      "notes": "Infrastructure-as-code and operations repository for Proxmox, self-hosted services, automation, backups, and runbooks. Its eight product-specific agents remain local alongside the canonical roster; base stays disabled to preserve local AGENTS and runtime/MCP policy. Its audited prompt subset is intentionally read-oriented: backlog, review, and the hardened audit-first cleanup.",
       "localAgents": [
         "automation-steward",
         "backup-warden",
@@ -261,7 +261,7 @@
         "health": false,
         "agents": "*",
         "skills": "*",
-        "prompts": "*",
+        "prompts": ["backlog", "cleanup", "review"],
         "instructions": "*",
         "workflows": false
       },

@@ -11,6 +11,7 @@ Zero runtime dependencies — Node.js **≥ 24**, built-ins only (`node:fs`, `no
 
 ```bash
 node sync/index.mjs [options]
+node sync/validate-prompts.mjs
 ```
 
 | Flag | Effect |
@@ -36,6 +37,9 @@ STUDIO_SYNC_TOKEN=github_pat_… node sync/index.mjs --members jrmoulckers/jrm-r
 
 # CI freshness gate across all members.
 STUDIO_SYNC_TOKEN=github_pat_… node sync/index.mjs --check
+
+# Validate prompt schema, runtime dependencies, references, and member closure.
+node sync/validate-prompts.mjs
 ```
 
 ## Member entries
@@ -46,7 +50,7 @@ Each entry in `studio.config.json`'s `members[]` array describes one product rep
 | --- | --- | --- |
 | `repo` | ✅ must match `owner/name` | Clone target, `--members` filter, PR destination. |
 | `mode` | ✅ `application`, `infrastructure`, or `pre-bootstrap`; omitted entries default to `application` | Selects the checkout evidence contract; never selects files. |
-| `optIn.base` / `.agents` / `.skills` / `.prompts` / `.instructions` | ✅ keys against `KINDS`, names against `canon.<kind>` | **Executed** — what canon the member receives. |
+| `optIn.base` / `.agents` / `.skills` / `.prompts` / `.instructions` | ✅ keys against `KINDS`, names against `canon.<kind>`; prompt-to-agent closure is enforced | **Executed** — what canon the member receives. |
 | `optIn.health` / `optIn.workflows` | ✅ same validation; called workflows are checkout-verified | **Recorded only** — native kinds, never copied (see below). |
 | `localAgents` | ✅ kebab-case list; cannot overlap selected canon | Locally authored roles/replacements available for handoffs but never synced. |
 | `tokens` | ✅ shape (`enabled` boolean, optional string `targetPath`) | Vendored `@jrm/tokens` opt-in + destination. |
@@ -260,6 +264,30 @@ generated artifacts. Existing authored copies of canonical roles can be reduced 
 facts to overlays, but the materialized files themselves must not be removed until inheritance is
 verified end to end. See
 [Canonical agents and local overlays](../docs/sync.md#canonical-agents-and-local-overlays).
+
+### Canonical prompt integrity and runtime
+
+Canonical prompts are authored under `prompts/` and materialized as `.github/prompts/*.prompt.md`.
+[`lib/prompt-integrity.mjs`](lib/prompt-integrity.mjs) runs during every manifest load and validates:
+
+- frontmatter schema, unique names, and exact `canon.prompts`/file parity;
+- parameter types, defaults, positive bounds, and interpolation placeholder closure;
+- declared Copilot App/CLI built-ins and known canonical-agent references;
+- supported `gh pr checks --json` fields; and
+- every member's selected-prompt/available-agent dependency closure.
+
+The supported built-in dependency names are `task`, `code-review`, `read_agent`, `list_agents`, and
+`sql_todos`. They describe Copilot App/CLI contracts, not files expected under `.github/agents/`.
+Prompt `parameters` and interpolation are also runtime contracts. If a consumer runtime cannot
+interpolate parameters or provide a declared built-in, it must stop before dispatch or mutation.
+Dynamic fleet roles must additionally pass the consumer's root/scoped `AGENTS.md` and
+`.github/instructions/` routing overlay; materialization alone is not authority.
+
+After a canonical prompt PR merges, materialize the generated consumer copies through the normal
+sync path. Preview one member with
+`node sync/index.mjs --dry-run --members <owner/repo>`, then run the authenticated sync (or the
+scheduled/manual sync workflow) so each affected member receives a reviewable sync PR. Do not edit
+generated consumer prompt copies directly.
 
 Every synced file carries a provenance header
 (`synced from jrmoulckers/.github — canonical source; do not edit here`): an HTML comment

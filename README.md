@@ -25,7 +25,7 @@ here plus `@jrm` npm packages.
 ├─ CODE_OF_CONDUCT.md         # ┘
 ├─ agents/                    # 22 cross-cutting Copilot agents  (canonical source)
 ├─ skills/                    # 15 cross-cutting skills          (canonical source)
-├─ prompts/                   # 7 reusable prompts               (canonical source)
+├─ prompts/                   # 8 reusable prompts               (canonical source)
 ├─ instructions/             # 5 path-scoped instructions       (canonical source)
 ├─ docs/sync.md               # design and operating model for cross-repo sync
 └─ .github/
@@ -107,7 +107,7 @@ flow and **[`sync/README.md`](sync/README.md)** for the implemented engine.
 | --- | --- | --- |
 | `agents/*.agent.md` | 22 | `.github/agents/` |
 | `skills/<name>/SKILL.md` | 15 | `.github/skills/` |
-| `prompts/*.prompt.md` | 7 | `.github/prompts/` |
+| `prompts/*.prompt.md` | 8 | `.github/prompts/` |
 | `instructions/*.instructions.md` | 5 | `.github/instructions/` |
 | `AGENTS.md`, `agency.toml` | — | repo root (product repos extend `AGENTS.md`) |
 
@@ -121,8 +121,23 @@ flow and **[`sync/README.md`](sync/README.md)** for the implemented engine.
   accessibility, design tokens, performance budgets, security review, UX testing, prompt
   engineering, issue/project/sprint management, i18n, onboarding, MCP tooling, go-to-market,
   monetization, and privacy compliance.
-- **Prompts** drive multi-PR and sprint workflows; **instructions** attach path-scoped standards
-  via `applyTo` globs.
+- **Prompts** drive bounded backlog, bug-bash, cleanup, CI repair, rebase, review, sprint, and team
+  workflows; **instructions** attach path-scoped standards via `applyTo` globs.
+
+### Prompt runtime contract
+
+The canonical prompt roster is `backlog`, `bug-bash`, `cleanup`, `fix-ci`, `rebase-all`, `review`,
+`sprint`, and `team`. Prompt frontmatter declares typed parameters, interpolation bounds, Copilot
+App/CLI built-ins, and required canonical agents. The zero-dependency integrity validator rejects
+roster drift, invalid defaults/bounds, unresolved interpolation placeholders, unsupported
+`gh pr checks` fields, unknown agent references, and member selections that omit a required role.
+
+`parameters` and `{{ parameter }}` interpolation are Copilot App/CLI prompt contracts. Likewise,
+`task` and `code-review`, agent polling (`read_agent` / `list_agents`), and SQL todos are runtime
+built-ins; they are not custom-agent slugs from `.github/agents/`. A runtime that cannot provide a
+declared capability or interpolation must fail before dispatch or mutation rather than silently
+degrading. Dynamic team/sprint roles still require the product's root/scoped routing authority;
+discovery of an agent file alone does not make a role applicable.
 
 Design principle: **decide it once, reuse it everywhere.** Proven practice becomes shared canon;
 new products start with the studio's accumulated craft on day one.
