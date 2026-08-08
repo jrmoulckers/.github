@@ -11,6 +11,7 @@
     "sync": "node index.mjs",
     "dry-run": "node index.mjs --dry-run",
     "check": "node index.mjs --check",
+    "validate-prompts": "node validate-prompts.mjs",
     "test": "node --test test/*.test.mjs"
   },
   "engines": {

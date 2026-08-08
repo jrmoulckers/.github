@@ -255,7 +255,6 @@ function validateMemberReferenceClosure(records, manifest, knownAgents, errors) 
     const selected = selection === '*' ? [...knownAgents] : Array.isArray(selection) ? selection : [];
     const available = new Set([...selected, ...(member.localAgents ?? [])]);
     const availableSkills = selectedNames(member.optIn?.skills, manifest.canon?.skills);
-    const availablePrompts = selectedNames(member.optIn?.prompts, manifest.canon?.prompts);
 
     for (const name of selected) {
       const record = byName.get(name);
@@ -273,14 +272,6 @@ function validateMemberReferenceClosure(records, manifest, knownAgents, errors) 
           errors.push(
             `members[${index}] (${member.repo}): selected agent "${name}" requires unavailable ` +
               `skill "${skill}"`,
-          );
-        }
-      }
-      for (const prompt of [...new Set(promptReferences(record.text))].sort()) {
-        if (!availablePrompts.has(prompt)) {
-          errors.push(
-            `members[${index}] (${member.repo}): selected agent "${name}" requires unavailable ` +
-              `prompt "${prompt}"`,
           );
         }
       }

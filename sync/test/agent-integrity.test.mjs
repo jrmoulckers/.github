@@ -44,10 +44,13 @@ test('name, uniqueness, sections, and handoff references fail together with clea
   );
 });
 
-test('manifest parity and related-skill references are enforced', () => {
+test('manifest parity and canonical skill/prompt references are enforced', () => {
   withFixture(
     {
-      'alpha.agent.md': validAgent('alpha', { relatedSkill: 'missing-skill' }),
+      'alpha.agent.md': validAgent('alpha', {
+        relatedSkill: 'missing-skill',
+        extraBody: '\nUse the `missing-prompt` prompt.\n',
+      }),
       'extra.agent.md': validAgent('extra'),
     },
     ['alpha', 'absent'],
@@ -58,6 +61,7 @@ test('manifest parity and related-skill references are enforced', () => {
           assert.match(error.message, /canon\.agents "absent" has no agent file/);
           assert.match(error.message, /extra\.agent\.md is not declared in canon\.agents/);
           assert.match(error.message, /references undeclared related skill "missing-skill"/);
+          assert.match(error.message, /references undeclared prompt "missing-prompt"/);
           return true;
         },
       );
@@ -84,7 +88,7 @@ test('explicit member rosters require referenced canon or a declared local repla
   });
 });
 
-test('explicit member rosters require declared skills and prompts', () => {
+test('explicit member rosters require declared skills while prompt mentions remain optional', () => {
   const files = {
     'alpha.agent.md': validAgent('alpha', {
       relatedSkill: 'known-skill',
@@ -100,15 +104,10 @@ test('explicit member rosters require declared skills and prompts', () => {
     manifest.members = [member];
     assert.throws(
       () => validateAgentIntegrity(root, manifest),
-      (error) => {
-        assert.match(error.message, /requires unavailable skill "known-skill"/);
-        assert.match(error.message, /requires unavailable prompt "known-prompt"/);
-        return true;
-      },
+      /requires unavailable skill "known-skill"/,
     );
 
     member.optIn.skills = ['known-skill'];
-    member.optIn.prompts = ['known-prompt'];
     assert.doesNotThrow(() => validateAgentIntegrity(root, manifest));
   });
 });

@@ -32,9 +32,10 @@ flowchart LR
 1. **Trigger** — a scheduled workflow in this repo (e.g. weekly) plus manual `workflow_dispatch`.
 2. **Read the manifest** — parse `studio.config.json`: the `canon` catalog, `sourcePaths`,
    `targetPaths`, and each member's mode and `optIn` selection. Schema validation covers `repo`,
-   `mode`, mode-specific facts, `optIn`, `localAgents`, and `tokens`; agent integrity also checks
-   each selected roster's handoff closure. Checkout-owning operations separately verify the
-   recorded/descriptive member facts (see
+   `mode`, mode-specific facts, `optIn`, `localAgents`, and `tokens`; agent integrity checks each
+   selected roster's handoff closure, while prompt integrity checks schema, parameters, runtime
+   dependencies, references, and selected-prompt/available-agent closure. Checkout-owning operations
+   separately verify the recorded/descriptive member facts (see
    [Member entries](../sync/README.md#member-entries)).
 3. **Resolve opt-ins** — for every member, expand `"*"` to the full canon list, honor explicit
    arrays, and skip anything set to `false`.
@@ -94,6 +95,26 @@ be removed. If a member currently carries authored copies of canonical roles, re
 product-specific content into overlays and let sync own the materialized files; do not delete the
 generated copies until official inheritance is verified end to end. A declared local replacement
 remains authored and is not a generated copy.
+
+## Canonical prompt runtime
+
+Canonical prompt files are executable workflow specifications, so manifest loading validates them
+before planning or copying. The zero-dependency prompt-integrity pass enforces exact roster parity,
+unique frontmatter names, typed parameter defaults and bounds, interpolation closure, known
+canonical-agent references, declared Copilot App/CLI built-ins, supported GitHub CLI check fields,
+and member dependency closure.
+
+The `parameters` structure and `{{ parameter }}` interpolation are Copilot App/CLI contracts rather
+than portable Markdown features. `task` and `code-review`, agent polling through `read_agent` /
+`list_agents`, and SQL todos are also runtime built-ins, not custom-agent slugs. A runtime without a
+required capability must fail before dispatch or mutation. Repository roles remain subject to the
+consumer's root/scoped `AGENTS.md` and `.github/instructions/` overlay; a materialized agent file
+proves discovery, not applicability or mutation authority.
+
+Prompt copies remain materialized under current discovery. After a canonical prompt change merges,
+preview affected selections with `node sync/index.mjs --dry-run --members <owner/repo>`, then use the
+normal authenticated scheduled/manual sync to open consumer PRs. Never hand-edit the generated
+consumer copies.
 
 ## The member registry
 
