@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "history": {
+    "bootstrapBaseCommit": "7f5214741cb4b26a8df92c7a3e4abb10308dc94f"
+  },
+  "published": {
+    "principles/ai/broken.md": ["GH-AIP-001", "GH-AIP-002"]
+  },
+  "legacySources": {
+    "ai-products.md": {
+      "repository": "jrmoulckers/studio",
+      "ref": "1111111111111111111111111111111111111111",
+      "path": "principles/ai-products.md",
+      "blobSha": "1111111111111111111111111111111111111111",
+      "sections": ["1"]
+    }
+  },
+  "legacyMigrations": []
+}

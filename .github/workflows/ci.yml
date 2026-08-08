@@ -2,9 +2,10 @@
 # CI — backbone repo
 # =============================================================================
 #
-# Runs the sync engine's zero-dependency `node:test` suite on every PR and on pushes to
-# main. The suite covers manifest validation (studio.config.json must always be loadable),
-# copier drift/adoption behavior, and the sync-branch reuse guarantee (no force-push).
+# Runs the principle validator and the sync engine's zero-dependency `node:test` suite on every PR
+# and on pushes to main. An always-running aggregate fails unless both independent jobs succeed.
+# The sync suite covers manifest validation (studio.config.json must always be loadable), copier
+# drift/adoption behavior, and the sync-branch reuse guarantee (no force-push).
 #
 # The tests shell out to `git` against local file-path remotes only — no network, no token.
 # =============================================================================
@@ -23,6 +24,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  principle-tests:
+    name: Principle metadata tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PRINCIPLES_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24'
+
+      - name: Validate principle metadata
+        run: node --test "principles/test/*.test.mjs"
+
   sync-tests:
     name: Sync engine tests
     runs-on: ubuntu-latest
@@ -45,3 +67,16 @@ jobs:
 
       - name: Validate the manifest (dry run, offline)
         run: node sync/index.mjs --dry-run
+
+  ci-gate:
+    name: CI gate
+    if: ${{ always() }}
+    needs: [principle-tests, sync-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Require every CI job
+        run: |
+          test "${{ needs.principle-tests.result }}" = "success"
+          test "${{ needs.sync-tests.result }}" = "success"
