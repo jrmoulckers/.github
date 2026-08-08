@@ -1,5 +1,8 @@
 {
   "schemaVersion": 1,
+  "history": {
+    "bootstrapBaseCommit": "7f5214741cb4b26a8df92c7a3e4abb10308dc94f"
+  },
   "published": {
     "principles/ai/broken.md": ["GH-AIP-001", "GH-AIP-002"]
   },
@@ -11,5 +14,6 @@
       "blobSha": "1111111111111111111111111111111111111111",
       "sections": ["1"]
     }
-  }
+  },
+  "legacyMigrations": []
 }

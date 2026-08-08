@@ -19,6 +19,7 @@ const OWNER_RATIFICATION =
 const IMPERATIVE_VERBS = new Set([
   'Assign',
   'Author',
+  'Bind',
   'Block',
   'Challenge',
   'Define',
@@ -61,6 +62,160 @@ const IMPERATIVE_VERBS = new Set([
 
 const AUTHORITY_REFERENCE = /(?:Product|Engineering|Studio|\.github|repository owner|member owner)/;
 
+const BOOTSTRAP_BASE_COMMIT = '7f5214741cb4b26a8df92c7a3e4abb10308dc94f';
+
+const BOOTSTRAP_PUBLISHED = {
+  'principles/github/repository-governance.md': [
+    'GH-REPO-001',
+    'GH-REPO-002',
+    'GH-REPO-003',
+    'GH-REPO-004',
+    'GH-REPO-005',
+    'GH-REPO-006',
+    'GH-REPO-007',
+  ],
+  'principles/github/actions-and-delivery.md': [
+    'GH-ACT-001',
+    'GH-ACT-002',
+    'GH-ACT-003',
+    'GH-ACT-004',
+    'GH-ACT-005',
+    'GH-ACT-006',
+    'GH-ACT-007',
+  ],
+  'principles/ai/product-ai.md': [
+    'GH-AIP-001',
+    'GH-AIP-002',
+    'GH-AIP-003',
+    'GH-AIP-004',
+    'GH-AIP-005',
+    'GH-AIP-006',
+    'GH-AIP-007',
+    'GH-AIP-008',
+  ],
+  'principles/ai/agent-operations.md': [
+    'GH-AIOPS-001',
+    'GH-AIOPS-002',
+    'GH-AIOPS-003',
+    'GH-AIOPS-004',
+    'GH-AIOPS-005',
+    'GH-AIOPS-006',
+    'GH-AIOPS-007',
+    'GH-AIOPS-008',
+    'GH-AIOPS-009',
+    'GH-AIOPS-010',
+    'GH-AIOPS-011',
+    'GH-AIOPS-012',
+    'GH-AIOPS-013',
+    'GH-AIOPS-014',
+    'GH-AIOPS-015',
+  ],
+  'principles/ai/evidence-and-evals.md': [
+    'GH-AIEVAL-001',
+    'GH-AIEVAL-002',
+    'GH-AIEVAL-003',
+    'GH-AIEVAL-004',
+    'GH-AIEVAL-005',
+    'GH-AIEVAL-006',
+  ],
+};
+
+const BOOTSTRAP_LEGACY_SOURCES = {
+  'ai-process.md': {
+    repository: 'jrmoulckers/studio',
+    ref: '7bccd0eb1cb3092135b9fbf1bef5df4ad07cc972',
+    path: 'principles/ai-process.md',
+    blobSha: '1bea65c83d75aa4f26daaedcce729700175cc080',
+    sections: [
+      '1',
+      '1.1',
+      '2',
+      '3',
+      '4',
+      '5',
+      '6',
+      '7',
+      '8',
+      '9',
+      '10',
+      '11',
+      '12',
+      '13',
+      '14',
+      '16',
+      '17',
+      '18',
+      '19',
+      '20',
+      '21',
+      '22',
+    ],
+  },
+  'ai-products.md': {
+    repository: 'jrmoulckers/studio',
+    ref: '7bccd0eb1cb3092135b9fbf1bef5df4ad07cc972',
+    path: 'principles/ai-products.md',
+    blobSha: '26a2781c27eb2957162b4566d77e1e856595f5cd',
+    sections: ['1', '1.1', '2', '3', '4', '5', '6', '7', '8'],
+  },
+  'compliance.md': {
+    repository: 'jrmoulckers/studio',
+    ref: '7bccd0eb1cb3092135b9fbf1bef5df4ad07cc972',
+    path: 'principles/compliance.md',
+    blobSha: '6760d67c5dad7699b51e54240b42bcea0c731623',
+    sections: ['1', '7', '8'],
+  },
+  'devops.md': {
+    repository: 'jrmoulckers/studio',
+    ref: '7bccd0eb1cb3092135b9fbf1bef5df4ad07cc972',
+    path: 'principles/devops.md',
+    blobSha: '4d1427f6d7cffbc34f9c555be59c1e4fd3c633f3',
+    sections: [
+      '1',
+      '1.1',
+      '1.2',
+      '1.3',
+      '1.4',
+      '2',
+      '3',
+      '8',
+      '11',
+      '12',
+      '13',
+      '14',
+      '15',
+    ],
+  },
+  'featuring.md': {
+    repository: 'jrmoulckers/studio',
+    ref: '7bccd0eb1cb3092135b9fbf1bef5df4ad07cc972',
+    path: 'principles/featuring.md',
+    blobSha: 'ea9c7dc52e9d8d251b213877c4c67b95a851d11d',
+    sections: ['6'],
+  },
+  'process.md': {
+    repository: 'jrmoulckers/studio',
+    ref: '7bccd0eb1cb3092135b9fbf1bef5df4ad07cc972',
+    path: 'principles/process.md',
+    blobSha: 'badcfa128c2dab6b74ad929c9b4d82143ca63265',
+    sections: ['1', '4'],
+  },
+  'security.md': {
+    repository: 'jrmoulckers/studio',
+    ref: '7bccd0eb1cb3092135b9fbf1bef5df4ad07cc972',
+    path: 'principles/security.md',
+    blobSha: '18e4a8780e6c7997662e1ef1add9cf0fdbbbbe07',
+    sections: ['1', '2', '4', '5'],
+  },
+  'testing.md': {
+    repository: 'jrmoulckers/studio',
+    ref: '7bccd0eb1cb3092135b9fbf1bef5df4ad07cc972',
+    path: 'principles/testing.md',
+    blobSha: '4a22fa00dfc62747abf321d966e0cf4a1186a543',
+    sections: ['7', '8', '10'],
+  },
+};
+
 const REPO_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const DEFAULT_MANIFEST = join(REPO_ROOT, 'principles', 'manifest.json');
 
@@ -69,11 +224,42 @@ export function validatePrinciples({
   manifestPath = DEFAULT_MANIFEST,
   readText = (path) => readFileSync(path, 'utf8'),
   baselineManifest,
+  baselineCommit,
 } = {}) {
   const manifest = JSON.parse(readText(manifestPath));
   const errors = validateManifest(manifest);
-  const baseline = baselineManifest ?? readBaselineManifest(repoRoot);
-  if (baseline) errors.push(...validatePublishedEvolution(manifest, baseline));
+  errors.push(...validatePublishedEvolution(manifest, { published: BOOTSTRAP_PUBLISHED }));
+
+  if (baselineManifest !== undefined) {
+    if (baselineManifest) {
+      errors.push(...validatePublishedEvolution(manifest, baselineManifest));
+      errors.push(...validateLegacyEvolution(manifest, baselineManifest));
+    } else {
+      errors.push(
+        ...validateLegacyEvolution(manifest, {
+          legacySources: BOOTSTRAP_LEGACY_SOURCES,
+        }),
+      );
+    }
+  } else {
+    const evidence = readBaselineEvidence(repoRoot, baselineCommit);
+    if (evidence.manifest) {
+      errors.push(...validatePublishedEvolution(manifest, evidence.manifest));
+      errors.push(...validateLegacyEvolution(manifest, evidence.manifest));
+    } else if (evidence.baseCommit !== BOOTSTRAP_BASE_COMMIT) {
+      errors.push(
+        `principles/manifest.json: trustworthy base manifest unavailable${
+          evidence.error ? ` (${evidence.error})` : ''
+        }`,
+      );
+    } else {
+      errors.push(
+        ...validateLegacyEvolution(manifest, {
+          legacySources: BOOTSTRAP_LEGACY_SOURCES,
+        }),
+      );
+    }
+  }
   const seenIds = new Map();
   const publishedPaths = new Set(Object.keys(manifest.published ?? {}));
   let principleCount = 0;
@@ -124,9 +310,9 @@ export function validatePrincipleDocument({
   seenIds = new Map(),
 }) {
   const errors = [];
-  for (const match of text.matchAll(/^## (GH-[^\r\n]+)$/gm)) {
-    if (!/^GH-[A-Z]+-\d{3} — [^\r\n]+$/.test(match[1])) {
-      errors.push(`${relativePath}: malformed principle heading "## ${match[1]}"`);
+  for (const match of text.matchAll(/^( {0,3})## (GH-[^\r\n]+)$/gm)) {
+    if (match[1] || !/^GH-[A-Z]+-\d{3} — [^\r\n]+$/.test(match[2])) {
+      errors.push(`${relativePath}: malformed principle heading "${match[0]}"`);
     }
   }
   const principles = parsePrinciples(text);
@@ -148,9 +334,12 @@ export function validatePrincipleDocument({
 
     const values = {};
     for (const field of REQUIRED_FIELDS) {
-      values[field] = readField(principle.body, field);
-      if (!values[field]) {
+      const occurrences = readFields(principle.body, field);
+      values[field] = occurrences[0] ?? '';
+      if (occurrences.length === 0 || !values[field]) {
         errors.push(`${relativePath} ${principle.id}: missing ${field}`);
+      } else if (occurrences.length > 1) {
+        errors.push(`${relativePath} ${principle.id}: ${field} must appear exactly once`);
       }
     }
 
@@ -215,6 +404,65 @@ export function validatePublishedEvolution(current, baseline) {
   return errors;
 }
 
+export function validateLegacyEvolution(current, baseline) {
+  const errors = [];
+  const baselineMigrations = Array.isArray(baseline.legacyMigrations)
+    ? baseline.legacyMigrations
+    : [];
+  const currentMigrations = Array.isArray(current.legacyMigrations)
+    ? current.legacyMigrations
+    : [];
+  if (
+    !jsonEqual(
+      currentMigrations.slice(0, baselineMigrations.length),
+      baselineMigrations,
+    )
+  ) {
+    errors.push('principles/manifest.json: legacyMigrations history is append-only');
+  }
+  const appendedMigrations = currentMigrations.slice(baselineMigrations.length);
+  const currentSources = current.legacySources ?? {};
+  const baselineSources = baseline.legacySources ?? {};
+  const sourceNames = new Set([
+    ...Object.keys(currentSources),
+    ...Object.keys(baselineSources),
+    ...appendedMigrations.map((migration) => migration.source).filter(Boolean),
+  ]);
+
+  for (const sourceName of sourceNames) {
+    const before = baselineSources[sourceName] ?? null;
+    const after = currentSources[sourceName] ?? null;
+    const migrations = appendedMigrations.filter(
+      (entry) => entry.source === sourceName,
+    );
+    if (jsonEqual(before, after)) {
+      if (migrations.length > 0) {
+        errors.push(`${sourceName}: appended migration does not change the legacy source`);
+      }
+      continue;
+    }
+
+    let cursor = before;
+    for (const [index, migration] of migrations.entries()) {
+      if (!jsonEqual(migration.from, cursor)) {
+        errors.push(
+          `${sourceName}: appended migration ${index} is disconnected from the prior source`,
+        );
+        cursor = undefined;
+        break;
+      }
+      cursor = migration.to;
+    }
+    if (migrations.length === 0 || !jsonEqual(cursor, after)) {
+      errors.push(
+        `${sourceName}: legacy source changes require a connected legacyMigrations chain with review evidence`,
+      );
+    }
+  }
+
+  return errors;
+}
+
 export function verifyLegacySources(manifest, loadSource) {
   const errors = [];
 
@@ -253,8 +501,20 @@ function validateManifest(manifest) {
   if (manifest.schemaVersion !== 1) {
     errors.push('principles/manifest.json: schemaVersion must be 1');
   }
+  if (
+    manifest.history?.bootstrapBaseCommit !== BOOTSTRAP_BASE_COMMIT
+  ) {
+    errors.push(
+      `principles/manifest.json: history.bootstrapBaseCommit must remain ${BOOTSTRAP_BASE_COMMIT}`,
+    );
+  }
   if (!manifest.published || Object.keys(manifest.published).length === 0) {
     errors.push('principles/manifest.json: published must pin at least one principle file');
+  }
+  for (const [file, ids] of Object.entries(manifest.published ?? {})) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      errors.push(`${file}: published IDs must be a nonempty array`);
+    }
   }
 
   for (const [file, source] of Object.entries(manifest.legacySources ?? {})) {
@@ -268,14 +528,39 @@ function validateManifest(manifest) {
     ) {
       errors.push(`${file}: legacy source must define repository, ref, path, blobSha, and sections`);
     }
-    if (new Set(source.sections).size !== source.sections.length) {
+    if (
+      Array.isArray(source.sections) &&
+      new Set(source.sections).size !== source.sections.length
+    ) {
       errors.push(`${file}: legacy source sections must be unique`);
     }
-    if (source.ref && (!/^[0-9a-f]{40}$/.test(source.ref) || /^0+$/.test(source.ref))) {
+    if (source.ref && !isNonzeroSha(source.ref)) {
       errors.push(`${file}: legacy source ref must be a nonzero 40-character commit SHA`);
     }
-    if (source.blobSha && (!/^[0-9a-f]{40}$/.test(source.blobSha) || /^0+$/.test(source.blobSha))) {
+    if (source.blobSha && !isNonzeroSha(source.blobSha)) {
       errors.push(`${file}: legacy source blobSha must be a nonzero Git blob digest`);
+    }
+  }
+
+  if (!Array.isArray(manifest.legacyMigrations)) {
+    errors.push('principles/manifest.json: legacyMigrations must be an array');
+  }
+  const migrations = Array.isArray(manifest.legacyMigrations)
+    ? manifest.legacyMigrations
+    : [];
+  for (const [index, migration] of migrations.entries()) {
+    if (
+      !migration.source ||
+      !('from' in migration) ||
+      !('to' in migration) ||
+      !migration.reason?.trim() ||
+      !/^https:\/\/github\.com\/jrmoulckers\/\.github\/(?:issues|pull)\/\d+$/.test(
+        migration.reviewEvidence ?? '',
+      )
+    ) {
+      errors.push(
+        `principles/manifest.json: legacyMigrations[${index}] must define source, exact from/to, reason, and .github reviewEvidence`,
+      );
     }
   }
 
@@ -293,20 +578,24 @@ function parsePrinciples(text) {
   }));
 }
 
-function readField(body, field) {
+function readFields(body, field) {
   const lines = body.split(/\r?\n/);
-  const prefix = `- **${field}:**`;
-  const start = lines.findIndex((line) => line.startsWith(prefix));
-  if (start < 0) return '';
+  const fieldPattern = new RegExp(`^ {0,3}- \\*\\*${escapeRegExp(field)}:\\*\\*(.*)$`);
+  const values = [];
 
-  const value = [lines[start].slice(prefix.length).trim()];
-  for (let index = start + 1; index < lines.length; index += 1) {
-    const line = lines[index];
-    if (line.startsWith('- **') || line.startsWith('## ')) break;
-    if (line.trim()) value.push(line.trim());
+  for (let start = 0; start < lines.length; start += 1) {
+    const match = fieldPattern.exec(lines[start]);
+    if (!match) continue;
+    const value = [match[1].trim()];
+    for (let index = start + 1; index < lines.length; index += 1) {
+      const line = lines[index];
+      if (/^ {0,3}- \*\*/.test(line) || /^ {0,3}## /.test(line)) break;
+      if (line.trim()) value.push(line.trim());
+    }
+    values.push(value.join(' ').trim());
   }
 
-  return value.join(' ').trim();
+  return values;
 }
 
 function validateLegacyInputs(relativePath, id, value, legacySources) {
@@ -330,7 +619,7 @@ function validateLegacyInputs(relativePath, id, value, legacySources) {
 
     const [, file, section] = match;
     const source = legacySources[file];
-    if (!source || !source.sections.includes(section)) {
+    if (!source || !Array.isArray(source.sections) || !source.sections.includes(section)) {
       errors.push(`${relativePath} ${id}: unresolved legacy reference "${reference}"`);
     }
   }
@@ -342,20 +631,102 @@ function arraysEqual(left, right) {
   return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
-function readBaselineManifest(repoRoot) {
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function jsonEqual(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function isNonzeroSha(value) {
+  return /^[0-9a-f]{40}$/.test(value) && !/^0+$/.test(value);
+}
+
+export function selectBaselineCommit({
+  explicit,
+  mergeBase,
+  head,
+  previous,
+}) {
+  if (explicit) {
+    if (!isNonzeroSha(explicit)) {
+      throw new Error('PRINCIPLES_BASE_SHA must be a nonzero commit SHA');
+    }
+    return explicit;
+  }
+  if (!mergeBase) throw new Error('merge base is unavailable');
+  if (mergeBase !== head) return mergeBase;
+  if (!previous) throw new Error('previous revision is unavailable for a self-baseline');
+  return previous;
+}
+
+function readBaselineEvidence(
+  repoRoot,
+  explicitBaseCommit = process.env.PRINCIPLES_BASE_SHA,
+) {
+  let head;
+  let mergeBase;
+  let previous;
+  try {
+    head = execFileSync(
+      'git',
+      ['rev-parse', 'HEAD'],
+      {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      },
+    ).trim();
+    mergeBase = execFileSync(
+      'git',
+      ['merge-base', 'HEAD', 'origin/main'],
+      {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      },
+    ).trim();
+    if (mergeBase === head) {
+      previous = execFileSync(
+        'git',
+        ['rev-parse', 'HEAD^'],
+        {
+          cwd: repoRoot,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'ignore'],
+        },
+      ).trim();
+    }
+  } catch (error) {
+    return { error: `cannot resolve baseline revisions: ${error.message}` };
+  }
+
+  let baseCommit;
+  try {
+    baseCommit = selectBaselineCommit({
+      explicit: explicitBaseCommit,
+      mergeBase,
+      head,
+      previous,
+    });
+  } catch (error) {
+    return { error: error.message };
+  }
+
   try {
     const text = execFileSync(
       'git',
-      ['show', 'origin/main:principles/manifest.json'],
+      ['show', `${baseCommit}:principles/manifest.json`],
       {
         cwd: repoRoot,
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'ignore'],
       },
     );
-    return JSON.parse(text);
+    return { baseCommit, manifest: JSON.parse(text) };
   } catch {
-    return null;
+    return { baseCommit };
   }
 }
 
@@ -375,7 +746,7 @@ function discoverPrincipleFiles(repoRoot) {
       if (!entry.isFile() || !entry.name.endsWith('.md')) continue;
       const absolutePath = join(absoluteDirectory, entry.name);
       const text = readFileSync(absolutePath, 'utf8');
-      if (/^## GH-[A-Z]+-\d{3} — /m.test(text)) {
+      if (/^ {0,3}## GH-/m.test(text)) {
         files.push(relative(repoRoot, absolutePath).replaceAll('\\', '/'));
       }
     }

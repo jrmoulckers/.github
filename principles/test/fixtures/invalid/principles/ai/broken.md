@@ -12,6 +12,7 @@
 ## GH-AIP-002 — Duplicate identifier
 
 - **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Validate the duplicate.
 - **Rationale:** The fixture must keep a duplicate ID.
 - **Verification / evidence:** The negative test reads this file.

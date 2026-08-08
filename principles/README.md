@@ -30,12 +30,16 @@ node principles/validate.mjs --verify-legacy
 
 [`manifest.json`](manifest.json) pins every published ID and resolves each accepted legacy filename
 to an exact repository, commit, path, Git blob digest, and section set. Against an existing
-base-branch manifest, published ID lists are append-only. The validator rejects deletion,
-renumbering, duplicate IDs, non-Draft status, missing metadata, non-imperative statements,
-owner/ratification wording changes, and unresolved legacy references. Persistent negative fixtures
-and in-memory mutations prove those checks fail closed. The optional live verification command
-requires read access to the legacy Studio repository and confirms every cataloged Git blob and
-section at its pinned commit.
+base-branch manifest, published ID lists are append-only; the initial sets are also fixed in the
+validator and tied to the recorded bootstrap base commit, so a missing base cannot silently disable
+history checks. Legacy source changes require an exact `legacyMigrations` before/after record,
+reason, and `.github` issue or pull-request evidence. The validator rejects deletion, renumbering,
+duplicate IDs, non-Draft status, missing metadata, non-imperative statements, owner/ratification
+wording changes, and unresolved legacy references. Persistent negative fixtures and in-memory
+mutations prove those checks fail closed. The optional live verification command requires read
+access to the legacy Studio repository and confirms every cataloged Git blob and section at its
+pinned commit.
 
 The sync suite remains separate executable evidence for fleet, provenance, drift, reporting, and
-normalization behavior referenced by these principles.
+normalization behavior referenced by these principles. CI runs the principle and sync suites
+independently, then an always-running `CI gate` fails unless both completed successfully.

@@ -209,18 +209,16 @@ GitHub Actions principles.
   paths; `.github` owns the deterministic routing algorithm and dispatch record.
 - **Legacy inputs:** `ai-process.md §12`
 
-## GH-AIOPS-013 — Execute in isolated repository sessions
+## GH-AIOPS-013 — Bind one owning agent to each isolated task
 
 - **Status:** Draft
-- **Statement:** Execute each mutable task in one session, worktree, feature branch, and owning-agent
-  assignment based on the intended revision, and never share mutable checkout state between
-  concurrent implementers.
-- **Rationale:** Isolation makes changes attributable and prevents unrelated sessions from
-  contaminating files, branches, validation, or cleanup.
-- **Verification / evidence:** `GH-REPO-007` remains the repository-isolation rule; session metadata
-  names repository, base, worktree, branch, and owner; dispatch records prevent duplicate
-  assignments, and [`sync/test/workdir.test.mjs`](../../sync/test/workdir.test.mjs) verifies
-  worktree acceptance and repository identity.
+- **Statement:** Bind each mutable task to exactly one owning-agent assignment, and require that
+  assignment to operate through the repository-session isolation defined by `GH-REPO-007`.
+- **Rationale:** Agent accountability must remain singular even when repository isolation permits
+  several unrelated sessions to run concurrently.
+- **Verification / evidence:** The dispatch record names one owner and references session metadata
+  satisfying `GH-REPO-007`; duplicate assignments are refused before implementation. This principle
+  adds agent accountability without redefining worktree, branch, or checkout isolation.
 - **Owner / ratification:** `.github` owns this principle; it remains Draft until the repository
   owner ratifies it through a reviewed pull request.
 - **Cross-authority handoff:** The task authority supplies decisions and review; `.github` owns
