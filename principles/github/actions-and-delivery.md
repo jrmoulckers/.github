@@ -44,7 +44,8 @@ topology.
 
 - **Status:** Draft
 - **Statement:** Pin every third-party Action to an immutable full commit SHA, document the human
-  version, and grant the workflow and each job only the GitHub permissions they exercise.
+  version, and scope each workflow token through explicit workflow- or job-level permissions to only
+  the GitHub operations it exercises.
 - **Rationale:** Immutable references constrain supply-chain change, while explicit least privilege
   limits the impact of a compromised step.
 - **Verification / evidence:** Workflow review finds full-SHA `uses:` references with version
@@ -112,7 +113,7 @@ topology.
 - **Cross-authority handoff:** Product owns release/go-no-go and obligations; Engineering owns build,
   packaging, and release mechanisms; `.github` automates their approved GitHub execution and records
   the result.
-- **Legacy inputs:** `devops.md §8`, `process.md §5`, `process.md §6`
+- **Legacy inputs:** `devops.md §8`
 
 ## GH-ACT-007 — Report partial and refused automation honestly
 

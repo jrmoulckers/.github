@@ -19,8 +19,7 @@ authority topology.
 - **Cross-authority handoff:** Product decides whether a release may proceed; Engineering defines
   build, test, and release mechanisms. `.github` protects the refs through which those decisions and
   mechanisms land.
-- **Legacy inputs:** `process.md §1`, `process.md §1.1`, `process.md §1.2`, `process.md §4`,
-  `process.md §4.1`
+- **Legacy inputs:** none
 
 ## GH-REPO-002 — Make merge evidence explicit
 
@@ -37,7 +36,7 @@ authority topology.
 - **Cross-authority handoff:** Engineering owns what technical evidence means; Product owns
   release/go-no-go obligations. `.github` records and enforces their selected checks without
   redefining them.
-- **Legacy inputs:** `devops.md §1.3`, `process.md §2`, `process.md §4`
+- **Legacy inputs:** `devops.md §1.3`, `process.md §4`
 
 ## GH-REPO-003 — Prefer GitHub-native health inheritance
 
@@ -75,7 +74,7 @@ authority topology.
   owner ratifies it through a reviewed pull request.
 - **Cross-authority handoff:** Each authority owns its source artifacts and repository-local facts;
   `.github` records only the fleet facts and distribution selections needed to operate sync.
-- **Legacy inputs:** `devops.md §15`, `ai-process.md §20`, `ai-process.md §21`
+- **Legacy inputs:** `devops.md §15`
 
 ## GH-REPO-005 — Preserve provenance and refuse ambiguous clobbers
 
@@ -96,7 +95,7 @@ authority topology.
 - **Cross-authority handoff:** The source authority resolves content changes; the member owner
   resolves intentional local divergence. `.github` supplies provenance and a reviewable sync report,
   not a new normative source.
-- **Legacy inputs:** `devops.md §13`, `devops.md §14`, `ai-process.md §20`
+- **Legacy inputs:** `devops.md §13`, `devops.md §14`
 
 ## GH-REPO-006 — Compare normalized rendered content
 
@@ -131,5 +130,4 @@ authority topology.
   owner ratifies it through a reviewed pull request.
 - **Cross-authority handoff:** The authority that owns the task supplies domain decisions and review;
   `.github` owns the GitHub/Copilot branch, worktree, and pull-request operating rule.
-- **Legacy inputs:** `process.md §1`, `process.md §1.2`, `ai-process.md §13`,
-  `ai-process.md §17`
+- **Legacy inputs:** `process.md §1`, `ai-process.md §13`
