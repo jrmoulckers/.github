@@ -77,24 +77,81 @@ test('mode schema requires application facts and reserves them until pre-bootstr
   );
 });
 
-test('non-application registrations are disabled pending overlay preparation', () => {
+test('phase-two members resolve the full dependency-closed canonical AI layer', () => {
+  const expectedLocalAgents = new Map([
+    ['jrmoulckers/finance', ['finance-domain']],
+    ['jrmoulckers/studio', []],
+    [
+      'jrmoulckers/homelab',
+      [
+        'automation-steward',
+        'backup-warden',
+        'edge-warden',
+        'host-operator',
+        'inventory-scribe',
+        'media-steward',
+        'security-warden',
+        'service-steward',
+      ],
+    ],
+    ['jrmoulckers/windows', []],
+  ]);
+
+  assert.equal(manifest.canon.agents.length, 22);
+  for (const [repo, localAgents] of expectedLocalAgents) {
+    const member = manifest.members.find((candidate) => candidate.repo === repo);
+    const [resolved] = resolveAll(manifest, [repo]);
+
+    assert.deepEqual(member.localAgents ?? [], localAgents, `${repo} keeps its verified local roster`);
+    for (const kind of ['agents', 'skills', 'prompts', 'instructions']) {
+      assert.equal(member.optIn[kind], '*', `${repo} keeps ${kind} dependency-closed`);
+      assert.deepEqual(
+        resolved.groups.find((group) => group.kind === kind).names,
+        manifest.canon[kind],
+        `${repo} resolves all canonical ${kind}`,
+      );
+    }
+
+    const selectedAgents = resolved.groups.find((group) => group.kind === 'agents').names;
+    assert.deepEqual(
+      localAgents.filter((name) => selectedAgents.includes(name)),
+      [],
+      `${repo} has no canonical/local slug overlap`,
+    );
+    assert.equal(
+      selectedAgents.length + localAgents.length,
+      22 + localAgents.length,
+      `${repo} has the expected total runtime-agent count`,
+    );
+  }
+
+  assert.doesNotThrow(() => validateManifest(manifest));
+});
+
+test('phase-two activation preserves member modes and non-AI bundle intent', () => {
+  const finance = manifest.members.find((member) => member.repo === 'jrmoulckers/finance');
+  assert.equal(finance.mode, 'application');
+  assert.equal(finance.optIn.base, true);
+  assert.equal(finance.optIn.health, true);
+  assert.deepEqual(finance.optIn.workflows, []);
+  assert.deepEqual(finance.tokens, {
+    enabled: true,
+    targetPath: 'apps/web/vendor/@jrm/tokens',
+  });
+
   for (const repo of ['jrmoulckers/studio', 'jrmoulckers/homelab', 'jrmoulckers/windows']) {
     const member = manifest.members.find((candidate) => candidate.repo === repo);
     assert.equal(member.mode, 'infrastructure');
-    assert.deepEqual(member.optIn, {
-      base: false,
-      health: false,
-      agents: false,
-      skills: false,
-      prompts: false,
-      instructions: false,
-      workflows: false,
-    });
+    assert.equal(member.optIn.base, false);
+    assert.equal(member.optIn.health, false);
+    assert.equal(member.optIn.workflows, false);
     assert.deepEqual(member.tokens, { enabled: false });
 
     const [resolved] = resolveAll(manifest, [repo]);
     const { writes, native } = enumerateTargets(resolved, REPO_ROOT);
-    assert.deepEqual(writes, [], `${repo} has no managed writes`);
+    assert.equal(writes.filter((write) => write.kind === 'agents').length, 22);
+    assert.ok(!writes.some((write) => write.kind === 'base'), `${repo} has no base writes`);
+    assert.ok(!writes.some((write) => write.kind === 'tokens'), `${repo} has no token writes`);
     assert.deepEqual(native, [], `${repo} has no native selections`);
   }
 
@@ -102,22 +159,6 @@ test('non-application registrations are disabled pending overlay preparation', (
   assert.equal(studio.packageManager, 'pnpm');
   assert.equal(studio.framework, undefined);
   assert.equal(manifest.tokens.sourceRepo, studio.repo);
-});
-
-test('Homelab local-agent metadata remains compatible while canon agents are disabled', () => {
-  const homelab = manifest.members.find((member) => member.repo === 'jrmoulckers/homelab');
-  assert.equal(homelab.optIn.agents, false);
-  assert.deepEqual(homelab.localAgents, [
-    'automation-steward',
-    'backup-warden',
-    'edge-warden',
-    'host-operator',
-    'inventory-scribe',
-    'media-steward',
-    'security-warden',
-    'service-steward',
-  ]);
-  assert.doesNotThrow(() => validateManifest(manifest));
 });
 
 test('Docket records its completed transition from pre-bootstrap to application', () => {
@@ -136,12 +177,12 @@ test('libro, cartridge, and docket use the root-default vendored tokens path', (
   }
 });
 
-test('finance keeps its custom tokens path and AI-layer opt-outs', () => {
+test('finance keeps its custom tokens path while activating its AI layer', () => {
   const [finance] = resolveAll(manifest, ['jrmoulckers/finance']);
   assert.equal(finance.tokens.targetBase, 'apps/web/vendor/@jrm/tokens');
   const kinds = finance.groups.map((g) => g.kind);
   for (const kind of ['agents', 'skills', 'prompts', 'instructions']) {
-    assert.ok(!kinds.includes(kind), `finance must stay opted out of ${kind}`);
+    assert.ok(kinds.includes(kind), `finance must opt into ${kind}`);
   }
 });
 

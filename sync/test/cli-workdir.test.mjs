@@ -137,13 +137,37 @@ test('a checkout whose origin is the member is not blocked', () => {
   });
 });
 
-test('manifest dry-run reports infrastructure mode and keeps disabled members write-free', () => {
-  const { code, out } = run(['--dry-run', '--members', 'jrmoulckers/studio']);
+test('manifest dry-run reports complete phase-two activation plans', () => {
+  const members = [
+    ['jrmoulckers/finance', 'application · kmp-web · npm', 55, true],
+    ['jrmoulckers/studio', 'infrastructure · pnpm', 53, false],
+    ['jrmoulckers/homelab', 'infrastructure', 53, false],
+    ['jrmoulckers/windows', 'infrastructure', 53, false],
+  ];
 
-  assert.equal(code, 0, out);
-  assert.match(out, /jrmoulckers\/studio  \(infrastructure · pnpm\)/);
-  assert.match(out, /Σ 0 file\(s\) would be written/);
-  assert.match(out, /no files written and no network operations performed/);
+  for (const [repo, metadata, total, hasFinanceBundles] of members) {
+    const { code, out } = run(['--dry-run', '--members', repo]);
+
+    assert.equal(code, 0, out);
+    assert.ok(out.includes(`▶ ${repo}  (${metadata})`), out);
+    assert.match(out, /agents \(22 files\)/);
+    assert.match(out, /skills \(19 files in 15 dirs\)/);
+    assert.match(out, /prompts \(7 files\)/);
+    assert.match(out, /instructions \(5 files\)/);
+    assert.match(out, new RegExp(`Σ ${total} file\\(s\\) would be written`));
+    assert.match(out, /no files written and no network operations performed/);
+
+    if (hasFinanceBundles) {
+      assert.match(out, /base \(2 files\)/);
+      assert.match(out, /tokens \(0 files\)/);
+      assert.match(out, /health: native/);
+      assert.match(out, /workflows: native/);
+    } else {
+      assert.doesNotMatch(out, /^  base \(/m);
+      assert.doesNotMatch(out, /^  tokens \(/m);
+      assert.doesNotMatch(out, /^  (health|workflows): native/m);
+    }
+  }
 });
 
 test('member fact verification failure occurs before any work-dir write', () => {
