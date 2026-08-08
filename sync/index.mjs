@@ -296,7 +296,7 @@ function printPlan(resolved, targets) {
   for (const nat of targets.native) {
     const how =
       nat.kind === 'workflows'
-        ? 'called via uses:@main'
+        ? 'called at a reviewed immutable ref'
         : 'inherited from backbone .github';
     out(`  ${nat.kind}: native — ${how} (not written)${nat.names.length ? `: ${nat.names.join(', ')}` : ''}`);
   }

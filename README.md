@@ -17,7 +17,7 @@ here plus `@jrm` npm packages.
 .
 ├─ profile/README.md          # JRM Studio account profile
 ├─ AGENTS.md                  # studio-wide base operating guide (product repos extend it)
-├─ agency.toml                # shared MCP servers (context7, playwright, sequential-thinking, memory)
+├─ agency.toml                # pinned MCP servers + reviewed optional browser/memory profiles
 ├─ principles/                # Draft GitHub governance and Actions principles
 ├─ studio.config.json         # manifest: members + per-repo opt-in canon (drives the sync tool)
 ├─ CONTRIBUTING.md            # ┐
@@ -26,7 +26,7 @@ here plus `@jrm` npm packages.
 ├─ agents/                    # 22 cross-cutting Copilot agents  (canonical source)
 ├─ skills/                    # 15 cross-cutting skills          (canonical source)
 ├─ prompts/                   # 8 reusable prompts               (canonical source)
-├─ instructions/             # 5 path-scoped instructions       (canonical source)
+├─ instructions/             # 6 path-scoped instructions       (canonical source)
 ├─ docs/sync.md               # design and operating model for cross-repo sync
 └─ .github/
    ├─ ISSUE_TEMPLATE/         # bug · feature · task · spike · troubleshooting · config
@@ -68,19 +68,21 @@ directions and ownership boundaries.
   `jrmoulckers` that doesn't define its own. Override in a product repo simply by adding that
   file locally.
 - **Reusable workflows.** Product repos call the `reusable-*.yml` workflows by reference — no
-  copying. They're framework-parametric (Node + npm|pnpm; caller supplies commands):
+  copying. Pin a reviewed immutable commit SHA (or use a documented versioned-tag policy with
+  automated review updates); never call a mutable branch. They're framework-parametric (Node +
+  npm|pnpm; caller supplies commands):
 
   ```yaml
   # .github/workflows/ci.yml in a product repo
   jobs:
     lint:
-      uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@main
+      uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@<reviewed-commit-sha>
       with:
         package-manager: pnpm
         lint-command: pnpm lint
         format-check-command: pnpm format:check
     web:
-      uses: jrmoulckers/.github/.github/workflows/reusable-ci-web.yml@main
+      uses: jrmoulckers/.github/.github/workflows/reusable-ci-web.yml@<reviewed-commit-sha>
       with:
         package-manager: pnpm
         build-command: pnpm build
@@ -108,7 +110,7 @@ flow and **[`sync/README.md`](sync/README.md)** for the implemented engine.
 | `agents/*.agent.md` | 22 | `.github/agents/` |
 | `skills/<name>/SKILL.md` | 15 | `.github/skills/` |
 | `prompts/*.prompt.md` | 8 | `.github/prompts/` |
-| `instructions/*.instructions.md` | 5 | `.github/instructions/` |
+| `instructions/*.instructions.md` | 6 | `.github/instructions/` |
 | `AGENTS.md`, `agency.toml` | — | repo root (product repos extend `AGENTS.md`) |
 
 ## The AI layer
@@ -123,6 +125,20 @@ flow and **[`sync/README.md`](sync/README.md)** for the implemented engine.
   monetization, and privacy compliance.
 - **Prompts** drive bounded backlog, bug-bash, cleanup, CI repair, rebase, review, sprint, and team
   workflows; **instructions** attach path-scoped standards via `applyTo` globs.
+
+### MCP runtime policy
+
+`agency.toml` pins every npm package and uses explicit per-server tool names. Context7
+(`@upstash/context7-mcp@4.0.0`) and sequential-thinking
+(`@modelcontextprotocol/server-sequential-thinking@2026.7.4`) are enabled because their published
+servers expose only the bounded documented tools listed in the file.
+
+Playwright (`@playwright/mcp@0.0.79`) and memory
+(`@modelcontextprotocol/server-memory@2026.7.4`) remain pinned, commented opt-in examples.
+`agency.toml` tool-filter enforcement is not documented for the consuming host, so enabling a
+browser-control or persistent-memory server requires a local runtime policy and evidence that the
+host exposes exactly the reviewed allowlist. Never enable wildcard tools or Playwright's unsafe code
+execution/evaluation tools.
 
 ### Prompt runtime contract
 

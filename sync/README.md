@@ -61,7 +61,8 @@ Each entry in `studio.config.json`'s `members[]` array describes one product rep
 **Two keys inside `optIn` do not behave like the rest.** `health` and `workflows` are
 `NATIVE_KINDS` ([`lib/manifest.mjs`](lib/manifest.mjs)): community-health files are inherited from
 this backbone repo by GitHub itself, and reusable workflows are called via
-`uses: jrmoulckers/.github/.github/workflows/*@main`. Both are resolved and reported, then skipped
+`uses: jrmoulckers/.github/.github/workflows/*@<reviewed-commit-sha>`. Both are resolved and
+reported, then skipped
 before any write ([`lib/assets.mjs`](lib/assets.mjs)). So `"agents": "*"` and
 `"workflows": [...]` sit in the same object with the same shape, and one decides which files exist
 while the other is a label. Schema validation catches a *misspelled* name in either. During a real
@@ -165,6 +166,20 @@ Typos in a list are caught: `validateOptIn` rejects any name absent from `canon.
 run starts. `resolveSelection`'s own `filter` would drop an unknown name silently, so validation is
 the guardrail that makes explicit lists safe — pinned by a test.
 
+Instructions use explicit authority profiles:
+
+| Members | `optIn.instructions` |
+| --- | --- |
+| Applications and Studio | `agents`, `docs`, `skills`, `tokens`, `workflow` |
+| Homelab | `agents`, `infrastructure-operations` |
+| Windows | `agents`, `docs`, `infrastructure-operations`, `skills` |
+
+The instruction-integrity validator pins these profiles. Homelab's local eight-role schema remains
+authoritative because `agents.instructions.md` recognizes declared `localAgents` and documented
+local schema extensions; its live authority comes only from local routing and operator policy.
+Windows keeps relevant generated-agent/skill/docs rules but not token or product fleet workflow
+assumptions.
+
 ### `optIn.workflows` vs. what the member actually calls
 
 `workflows` is a native kind: nothing is written, so the list is a *record of intent*. Checkout
@@ -199,10 +214,11 @@ than canon's and **not a superset** of it, and its registry entry nevertheless l
 records finance's evidence-backed empty workflow set.
 
 Nothing was written either way, since `workflows` is a native kind. The risk was latent and
-specific: **switching that relative call to `uses: jrmoulckers/.github/…@main` would silently have
-replaced finance's definition with a shorter, different one** — no diff in either repo, no error,
-and CI green while the job changed underneath it. The rule that avoids this: **give a genuinely
-local workflow a local name, or reference canon — never both.**
+specific: **switching that relative call to a backbone workflow without reviewing the semantic gap
+would silently have replaced finance's definition with a shorter, different one** — no diff in
+either repo, no error, and CI green while the job changed underneath it. The rule that avoids this:
+**give a genuinely local workflow a local name, or reference canon at a reviewed immutable ref —
+never both.**
 
 This is deliberately not asserted in the test suite. Detecting it needs the member's full workflow
 directory, which the offline suite does not have, and pinning each member's local filenames would
@@ -228,7 +244,7 @@ Resolution follows each member's `optIn` in the manifest:
 | `instructions` | `*.instructions.md` files | `.github/instructions/` | |
 | `skills` | `<name>/` directories | `.github/skills/` | Whole folder: `SKILL.md` + any checklists. |
 | `health` | community-health files | — | **Native** — GitHub inherits these from the backbone `.github` repo. Never written; the member must **not** keep its own copy. |
-| `workflows` | reusable workflows | — | **Native** — called via `uses: jrmoulckers/.github/.github/workflows/*@main`. Never written; the member must **not** vendor a copy. |
+| `workflows` | reusable workflows | — | **Native** — called at a reviewed immutable commit SHA or under a documented versioned-tag update policy. Never written; the member must **not** vendor a copy. |
 
 > **Opting in to a native kind installs nothing.** `health` and `workflows` (`NATIVE_KINDS` in
 > [`lib/manifest.mjs`](lib/manifest.mjs)) are resolved and reported so the plan is complete, then
@@ -254,9 +270,9 @@ artifacts: edit canon here, or put product-specific stack/path/risk guidance in 
 agent file. A distinct local role is allowed; a same-slug replacement must be declared in
 `members[].localAgents` and omitted from the member's explicit `optIn.agents` list.
 
-The operating precedence is mandatory studio safety/human gates, then product root/scoped overlays,
-then the generic canonical role. Product overlays can specialize behavior but cannot relax mandatory
-gates. Declared local replacements remain locally authored and are never overwritten by sync.
+Mandatory human gates remain the floor. Root/local `AGENTS.md` and more-specific scoped instructions
+then override shared defaults for routing, paths, tools, schema extensions, and operations. Declared
+local replacements remain locally authored and are never overwritten by sync.
 
 Custom-agent discovery still requires repository-local `.github/agents/*.agent.md`; official
 owner-repo inheritance has not been verified. Synced consumer copies therefore remain necessary
@@ -264,6 +280,42 @@ generated artifacts. Existing authored copies of canonical roles can be reduced 
 facts to overlays, but the materialized files themselves must not be removed until inheritance is
 verified end to end. See
 [Canonical agents and local overlays](../docs/sync.md#canonical-agents-and-local-overlays).
+
+### Deselection cleanup is manual and hash-verified
+
+The engine does not prune. A file omitted from a new selection is absent from the write plan, but its
+existing consumer file **and stale `.studio-sync.lock.json` entry remain untouched**. A later sync
+neither deletes the file nor removes that lock entry.
+
+After this instruction-profile change, later consumer work must make these exact transitions:
+
+| Member | Add through sync | Remove through hash-verified consumer cleanup |
+| --- | --- | --- |
+| Applications and Studio | no new instruction | nothing |
+| Homelab | `.github/instructions/infrastructure-operations.instructions.md` | `.github/instructions/docs.instructions.md`, `.github/instructions/skills.instructions.md`, `.github/instructions/tokens.instructions.md`, `.github/instructions/workflow.instructions.md` |
+| Windows | `.github/instructions/infrastructure-operations.instructions.md` | `.github/instructions/tokens.instructions.md`, `.github/instructions/workflow.instructions.md` |
+
+For each affected consumer, use a focused PR and perform the cleanup atomically:
+
+1. Start from the consumer's current default branch and resolve the new plan from the merged
+   backbone. Enumerate each candidate path explicitly; never delete by directory, wildcard, or
+   recursive command.
+2. Read the candidate's existing lock entry. Normalize the current file to LF and compute SHA-256
+   using the same rule as `hashText`; it must equal that entry's `targetSha256`. A missing entry or
+   mismatch means possible local ownership/drift: stop and reconcile instead of deleting.
+3. In one commit, remove only each verified generated file and its exact lockfile entry. Preserve
+   declared local files and remove a now-empty directory only after listing it and proving it empty.
+   Do not rewrite unrelated lock entries or `generatedAt`.
+4. Run the consumer's validation and a verified
+   `node sync/index.mjs --dry-run --members <owner/repo> --work-dir <consumer-checkout>` from the
+   merged backbone. Confirm the removed paths are absent from both the resolved plan and lockfile,
+   selected files show no drift, and the new infrastructure instruction is planned/present.
+5. Merge the cleanup PR, then run the normal authenticated sync from the merged backbone to update
+   selected canon through its own reviewable PR. Recheck the default branch for the exact final
+   roster and no stale lock entries.
+
+Do not run authenticated cross-repository sync or edit consumers from a backbone policy PR. This
+procedure is the required follow-up until a separately designed prune transaction exists.
 
 ### Canonical prompt integrity and runtime
 
@@ -552,6 +604,8 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; raw-canon stamping; exact historical-output recovery; empty-evidence and one-byte-mutation refusal; recorded targets never use first-sync recovery. |
 | `test/history.test.mjs` | Full-history enforcement and committed-blob enumeration; end-to-end target enumeration recovers a member holding a prior engine rendering. |
 | `test/manifest.test.mjs` | The real `studio.config.json` validates; all nine consumers and their explicit modes are registered; disabled infrastructure members produce no writes; local-agent metadata remains compatible; application defaults, Docket's completed mode transition, and mode-specific fact schema are enforced; `canon` matches disk; native kinds are never written. |
+| `test/instruction-integrity.test.mjs` | Canonical instruction filename/roster parity, deterministic `applyTo` scopes, source/materialized ownership, precedence, curated member compatibility, infrastructure routing, local-agent collision safety, and immutable reusable-workflow examples. |
+| `test/agency-integrity.test.mjs` | Exact reviewed MCP package versions and tools, safe default server profile, pinned optional Playwright/memory profiles, and rejection of mutable specs, the nonexistent Playwright package, and wildcard grants. |
 | `test/member-facts.test.mjs` | Synthetic checkout derivation for each mode, independently optional infrastructure facts, pre-bootstrap transitions, root package managers, supported framework signatures, ambiguous/missing evidence, backbone workflow calls in every mode, and field-specific diagnostics. No member facts or network access are pinned. |
 | `test/provenance.test.mjs` | Every real write equals `inject(targetPath, canon)` and never canon verbatim — so the documented hand-audit baseline stays correct; and that check is line-ending agnostic on the member side. |
 | `test/prbody.test.mjs` | An adoption-only run's PR body says its entire diff is the lockfile, and does not claim that when the run also wrote files (including via `--force`). The drift note states that `--force` is run-wide, offers the by-hand remedy first, and neither appears when the run has no drift. |

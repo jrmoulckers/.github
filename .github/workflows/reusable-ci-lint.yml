@@ -26,7 +26,7 @@
 #
 #   jobs:
 #     lint:
-#       uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@main
+#       uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@<reviewed-commit-sha>
 #       with:
 #         package-manager: pnpm
 #         lint-command: pnpm lint
@@ -35,7 +35,7 @@
 # Semantic PR title only (repo has no linter/formatter):
 #   jobs:
 #     pr-title:
-#       uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@main
+#       uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@<reviewed-commit-sha>
 #       with:
 #         lint-command: ''
 #         format-check-command: ''

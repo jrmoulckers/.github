@@ -8,7 +8,7 @@
 # Example caller:
 #   jobs:
 #     perf:
-#       uses: jrmoulckers/.github/.github/workflows/reusable-perf-budget.yml@main
+#       uses: jrmoulckers/.github/.github/workflows/reusable-perf-budget.yml@<reviewed-commit-sha>
 #       with:
 #         package-manager: pnpm
 #         output-dir: dist

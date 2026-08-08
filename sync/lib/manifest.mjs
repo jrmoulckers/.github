@@ -7,7 +7,9 @@
 
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { validateAgencyIntegrity } from './agency-integrity.mjs';
 import { validateAgentIntegrity } from './agent-integrity.mjs';
+import { validateInstructionIntegrity } from './instruction-integrity.mjs';
 import { validatePromptIntegrity } from './prompt-integrity.mjs';
 
 export const KINDS = ['base', 'agents', 'skills', 'prompts', 'instructions', 'workflows', 'health'];
@@ -36,6 +38,8 @@ export function loadManifest(repoRoot) {
   }
   applyManifestDefaults(parsed);
   validateManifest(parsed);
+  validateAgencyIntegrity(repoRoot);
+  validateInstructionIntegrity(repoRoot, parsed);
   validateAgentIntegrity(repoRoot, parsed);
   validatePromptIntegrity(repoRoot, parsed);
   return parsed;
