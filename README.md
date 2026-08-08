@@ -8,7 +8,8 @@ cross-repo sync. Product repos (`jrm-recipes`, `score-king`, `finance`, and more
 here plus `@jrm` npm packages.
 
 > New to the studio? Start with **[`AGENTS.md`](AGENTS.md)** (base operating guide) and the
-> **[studio profile](profile/README.md)**.
+> **[studio profile](profile/README.md)**. GitHub-owned Draft policy lives in
+> **[`principles/`](principles/README.md)**.
 
 ## What lives here
 
@@ -17,6 +18,7 @@ here plus `@jrm` npm packages.
 ├─ profile/README.md          # JRM Studio account profile
 ├─ AGENTS.md                  # studio-wide base operating guide (product repos extend it)
 ├─ agency.toml                # shared MCP servers (context7, playwright, sequential-thinking, memory)
+├─ principles/                # Draft GitHub governance and Actions principles
 ├─ studio.config.json         # manifest: members + per-repo opt-in canon (drives the sync tool)
 ├─ CONTRIBUTING.md            # ┐
 ├─ SECURITY.md                # ├─ default community-health files (inherited by member repos)
