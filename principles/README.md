@@ -14,17 +14,28 @@ policy.
 | --- | --- | --- |
 | [Repository governance](github/repository-governance.md) | `GH-REPO-001`–`GH-REPO-007` | Branches, pull requests, native repository health, fleet facts, sync provenance, and Copilot session isolation |
 | [Actions and delivery](github/actions-and-delivery.md) | `GH-ACT-001`–`GH-ACT-007` | Required checks, reusable workflows, Actions supply-chain controls, secrets, release automation, and reporting |
+| [Product AI](ai/product-ai.md) | `GH-AIP-001`–`GH-AIP-008` | Model choice, prompt and UX handoffs, guardrails, evals, budgets, disclosure, privacy, and graceful degradation |
+| [Agent operations](ai/agent-operations.md) | `GH-AIOPS-001`–`GH-AIOPS-015` | Canonical AI assets, schemas, permissions, dispatch, workflows, tools, sessions, and overlays |
+| [AI evidence and evals](ai/evidence-and-evals.md) | `GH-AIEVAL-001`–`GH-AIEVAL-006` | Report freshness, decision standing, source verification, proof scope, and attention management |
 
 ## Draft validation
 
-Until a dedicated metadata validator is added, review every new or changed principle manually:
+Run the repository-level principle validator:
 
-1. The ID is unique and matches `GH-<AREA>-NNN`.
-2. Status is `Draft`.
-3. Statement is imperative and GitHub-owned.
-4. Rationale and observable verification are present.
-5. Owner/ratification and cross-authority handoff are explicit.
-6. `Legacy inputs` lists exact legacy section IDs or `none`.
+```bash
+node principles/validate.mjs
+node --test "principles/test/*.test.mjs"
+node principles/validate.mjs --verify-legacy
+```
 
-The existing sync suite remains the executable evidence for fleet, provenance, drift, reporting,
-and normalization behavior referenced by these principles.
+[`manifest.json`](manifest.json) pins every published ID and resolves each accepted legacy filename
+to an exact repository, commit, path, Git blob digest, and section set. Against an existing
+base-branch manifest, published ID lists are append-only. The validator rejects deletion,
+renumbering, duplicate IDs, non-Draft status, missing metadata, non-imperative statements,
+owner/ratification wording changes, and unresolved legacy references. Persistent negative fixtures
+and in-memory mutations prove those checks fail closed. The optional live verification command
+requires read access to the legacy Studio repository and confirms every cataloged Git blob and
+section at its pinned commit.
+
+The sync suite remains separate executable evidence for fleet, provenance, drift, reporting, and
+normalization behavior referenced by these principles.

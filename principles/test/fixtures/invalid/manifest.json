@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "published": {
+    "principles/ai/broken.md": ["GH-AIP-001", "GH-AIP-002"]
+  },
+  "legacySources": {
+    "ai-products.md": {
+      "repository": "jrmoulckers/studio",
+      "ref": "1111111111111111111111111111111111111111",
+      "path": "principles/ai-products.md",
+      "blobSha": "1111111111111111111111111111111111111111",
+      "sections": ["1"]
+    }
+  }
+}
