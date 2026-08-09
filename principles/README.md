@@ -4,13 +4,14 @@ This tree is the canonical home for `.github`-owned principles. Its authority an
 from [ADR-0003](../docs/architecture/0003-four-authority-topology.md); this index does not restate
 that topology.
 
-All principles are **Draft**. Agents may propose changes, but only the repository owner can ratify a
-principle through repository review. Draft principles are directional proposals, not yet normative
-policy.
+The 43 published principles have `Ratified` target status. Ratification is effective only when the
+repository owner merges the protected pull request containing the
+[owner Ratification decision](decisions/0001-github-ai-owner-ratification.md); the proposed record
+does not claim approval before that merge.
 
 ## Principle sets
 
-| Area | Draft principles | Scope |
+| Area | Ratified principles | Scope |
 | --- | --- | --- |
 | [Repository governance](github/repository-governance.md) | `GH-REPO-001`–`GH-REPO-007` | Branches, pull requests, native repository health, fleet facts, sync provenance, and Copilot session isolation |
 | [Actions and delivery](github/actions-and-delivery.md) | `GH-ACT-001`–`GH-ACT-007` | Required checks, reusable workflows, Actions supply-chain controls, secrets, release automation, and reporting |
@@ -18,7 +19,7 @@ policy.
 | [Agent operations](ai/agent-operations.md) | `GH-AIOPS-001`–`GH-AIOPS-015` | Canonical AI assets, schemas, permissions, dispatch, workflows, tools, sessions, and overlays |
 | [AI evidence and evals](ai/evidence-and-evals.md) | `GH-AIEVAL-001`–`GH-AIEVAL-006` | Report freshness, decision standing, source verification, proof scope, and attention management |
 
-## Draft validation
+## Ratification validation
 
 Run the repository-level principle validator:
 
@@ -29,16 +30,14 @@ node principles/validate.mjs --verify-legacy
 ```
 
 [`manifest.json`](manifest.json) pins every published ID and resolves each accepted legacy filename
-to an exact repository, commit, path, Git blob digest, and section set. Against an existing
-base-branch manifest, published ID lists are append-only; the initial sets are also fixed in the
-validator and tied to the recorded bootstrap base commit, so a missing base cannot silently disable
-history checks. Legacy source changes require an exact `legacyMigrations` before/after record,
-reason, and `.github` issue or pull-request evidence. The validator rejects deletion, renumbering,
-duplicate IDs, non-Draft status, missing metadata, non-imperative statements, owner/ratification
-wording changes, and unresolved legacy references. Persistent negative fixtures and in-memory
-mutations prove those checks fail closed. The optional live verification command requires read
-access to the legacy Studio repository and confirms every cataloged Git blob and section at its
-pinned commit.
+to an exact repository, commit, path, Git blob digest, and section set. Its status catalog also pins
+each ID to its path, `Ratified` status, and SHA-256 of all semantic fields except status. Against an
+existing base-branch manifest, published IDs, Ratification decisions, and legacy migrations are
+append-only; the initial sets remain fixed to the bootstrap history. The validator requires an
+exact decision record for every Draft-to-Ratified transition, checks the transition against the
+event base rather than the current head, and rejects unauthorized or mixed status, catalog drift,
+semantic or Legacy-input drift, ambiguous approval, and wrong base evidence. The optional live
+verification command confirms every pinned legacy Git blob and section at its recorded commit.
 
 The sync suite remains separate executable evidence for fleet, provenance, drift, reporting, and
 normalization behavior referenced by these principles. CI runs the principle and sync suites

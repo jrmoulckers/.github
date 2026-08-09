@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 
 const REQUIRED_FIELDS = [
   'Status',
@@ -216,6 +217,43 @@ const BOOTSTRAP_LEGACY_SOURCES = {
   },
 };
 
+const RATIFICATION_BASE_COMMIT = '97ff60ec21321563fa0fc7ba80015261e7dcd6fa';
+const RATIFICATION_IDS = Object.values(BOOTSTRAP_PUBLISHED).flat();
+const EXPECTED_RATIFICATION_DECISION = {
+  recordPath: 'principles/decisions/0001-github-ai-owner-ratification.md',
+  principles: RATIFICATION_IDS,
+  sourcePullRequests: [89, 92],
+  finalReviewEvidence: [
+    {
+      pullRequest: 89,
+      finalHeadCommit: '95293ea98a26228d2ee143fbbb19e04e2aff80b3',
+      mergeCommit: '7f5214741cb4b26a8df92c7a3e4abb10308dc94f',
+      successfulChecks: ['Sync engine tests'],
+    },
+    {
+      pullRequest: 92,
+      finalHeadCommit: '698bc2befb0b697b3946d996471339fbf2b13136',
+      mergeCommit: '3036d5d1ed882a4c5acffe1ccfa0b49165538eef',
+      successfulChecks: [
+        'Principle metadata tests',
+        'Sync engine tests',
+        'CI gate',
+      ],
+    },
+  ],
+  baseCommit: RATIFICATION_BASE_COMMIT,
+  currentApprovalState:
+    'Proposed; this record does not claim repository-owner approval before merge.',
+  effectiveApproval:
+    'Ratification is effective only when repository owner jrmoulckers merges the pull request containing this record after CI gate succeeds.',
+  requiredProtection: {
+    branch: 'main',
+    strictRequiredCheck: 'CI gate',
+    forcePushes: false,
+    deletions: false,
+  },
+};
+
 const REPO_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const DEFAULT_MANIFEST = join(REPO_ROOT, 'principles', 'manifest.json');
 
@@ -229,8 +267,11 @@ export function validatePrinciples({
   const manifest = JSON.parse(readText(manifestPath));
   const errors = validateManifest(manifest);
   errors.push(...validatePublishedEvolution(manifest, { published: BOOTSTRAP_PUBLISHED }));
+  let comparisonManifest;
+  let comparisonCommit = baselineCommit;
 
   if (baselineManifest !== undefined) {
+    comparisonManifest = baselineManifest;
     if (baselineManifest) {
       errors.push(...validatePublishedEvolution(manifest, baselineManifest));
       errors.push(...validateLegacyEvolution(manifest, baselineManifest));
@@ -243,6 +284,8 @@ export function validatePrinciples({
     }
   } else {
     const evidence = readBaselineEvidence(repoRoot, baselineCommit);
+    comparisonManifest = evidence.manifest;
+    comparisonCommit = evidence.baseCommit;
     if (evidence.manifest) {
       errors.push(...validatePublishedEvolution(manifest, evidence.manifest));
       errors.push(...validateLegacyEvolution(manifest, evidence.manifest));
@@ -260,6 +303,15 @@ export function validatePrinciples({
       );
     }
   }
+  errors.push(
+    ...validateRatificationEvolution(
+      manifest,
+      comparisonManifest ?? { published: BOOTSTRAP_PUBLISHED },
+      comparisonCommit,
+    ),
+  );
+  errors.push(...validateDecisionRecords(manifest, repoRoot, readText));
+  errors.push(...validateRatificationSemanticBase(manifest, repoRoot));
   const seenIds = new Map();
   const publishedPaths = new Set(Object.keys(manifest.published ?? {}));
   let principleCount = 0;
@@ -284,6 +336,7 @@ export function validatePrinciples({
       text,
       expectedIds,
       legacySources: manifest.legacySources ?? {},
+      statusCatalog: manifest.statusCatalog ?? {},
       seenIds,
     });
     errors.push(...result.errors);
@@ -307,9 +360,11 @@ export function validatePrincipleDocument({
   text,
   expectedIds,
   legacySources,
+  statusCatalog = {},
   seenIds = new Map(),
 }) {
   const errors = [];
+  const semanticHashes = {};
   for (const match of text.matchAll(/^( {0,3})## (GH-[^\r\n]+)$/gm)) {
     if (match[1] || !/^GH-[A-Z]+-\d{3} — [^\r\n]+$/.test(match[2])) {
       errors.push(`${relativePath}: malformed principle heading "${match[0]}"`);
@@ -343,8 +398,10 @@ export function validatePrincipleDocument({
       }
     }
 
-    if (values.Status && values.Status !== 'Draft') {
-      errors.push(`${relativePath} ${principle.id}: Status must be Draft`);
+    const catalogEntry = statusCatalog[principle.id];
+    const expectedStatus = catalogEntry?.status ?? 'Ratified';
+    if (values.Status && values.Status !== expectedStatus) {
+      errors.push(`${relativePath} ${principle.id}: Status must be ${expectedStatus}`);
     }
 
     if (values.Statement) {
@@ -379,9 +436,26 @@ export function validatePrincipleDocument({
         ),
       );
     }
+
+    if (REQUIRED_FIELDS.every((field) => values[field])) {
+      const semanticHash = semanticContentHash({
+        id: principle.id,
+        title: principle.title,
+        values,
+      });
+      semanticHashes[principle.id] = semanticHash;
+      if (
+        catalogEntry?.semanticContentSha256 &&
+        catalogEntry.semanticContentSha256 !== semanticHash
+      ) {
+        errors.push(
+          `${relativePath} ${principle.id}: semantic content hash must remain ${catalogEntry.semanticContentSha256}, found ${semanticHash}`,
+        );
+      }
+    }
   }
 
-  return { errors, ids };
+  return { errors, ids, semanticHashes };
 }
 
 export function validatePublishedEvolution(current, baseline) {
@@ -397,6 +471,80 @@ export function validatePublishedEvolution(current, baseline) {
     if (!arraysEqual(currentIds.slice(0, baselineIds.length), baselineIds)) {
       errors.push(
         `${relativePath}: published IDs are append-only; baseline [${baselineIds.join(', ')}], current [${currentIds.join(', ')}]`,
+      );
+    }
+  }
+
+  return errors;
+}
+
+export function validateRatificationEvolution(current, baseline, baselineCommit) {
+  const errors = [];
+  const currentDecisions = Array.isArray(current.ratificationDecisions)
+    ? current.ratificationDecisions
+    : [];
+  const baselineDecisions = Array.isArray(baseline.ratificationDecisions)
+    ? baseline.ratificationDecisions
+    : [];
+  if (!jsonEqual(currentDecisions.slice(0, baselineDecisions.length), baselineDecisions)) {
+    errors.push('principles/manifest.json: ratificationDecisions history is append-only');
+  }
+
+  const currentCatalog = current.statusCatalog ?? {};
+  const baselineCatalog = baseline.statusCatalog ?? draftCatalogFromPublished(
+    baseline.published ?? {},
+    currentCatalog,
+  );
+  const changedToRatified = [];
+  for (const [id, before] of Object.entries(baselineCatalog)) {
+    const after = currentCatalog[id];
+    if (!after) {
+      errors.push(`${id}: status catalog entries cannot be deleted`);
+      continue;
+    }
+    if (
+      before.path !== after.path ||
+      before.semanticContentSha256 !== after.semanticContentSha256
+    ) {
+      errors.push(`${id}: status catalog path and semantic hash are immutable`);
+    }
+    if (before.status === after.status) continue;
+    if (before.status === 'Draft' && after.status === 'Ratified') {
+      changedToRatified.push(id);
+    } else {
+      errors.push(`${id}: unauthorized status transition ${before.status} -> ${after.status}`);
+    }
+  }
+
+  const appendedDecisions = currentDecisions.slice(baselineDecisions.length);
+  const coveredIds = appendedDecisions.flatMap((decision) => decision.principles ?? []);
+  if (!arraysEqual(changedToRatified, coveredIds)) {
+    errors.push(
+      `principles/manifest.json: Draft-to-Ratified changes must exactly match newly appended decision IDs; changed [${changedToRatified.join(', ')}], covered [${coveredIds.join(', ')}]`,
+    );
+  }
+  if (
+    appendedDecisions.length > 0 &&
+    baselineCommit &&
+    appendedDecisions.some((decision) => decision.baseCommit !== baselineCommit)
+  ) {
+    errors.push(
+      `principles/manifest.json: Ratification decision baseCommit must match event base ${baselineCommit}`,
+    );
+  }
+
+  const decisionCoverage = new Map();
+  for (const decision of currentDecisions) {
+    for (const id of decision.principles ?? []) {
+      decisionCoverage.set(id, (decisionCoverage.get(id) ?? 0) + 1);
+    }
+  }
+  for (const [id, entry] of Object.entries(currentCatalog)) {
+    if (entry.status !== 'Ratified') continue;
+    const coverage = decisionCoverage.get(id) ?? 0;
+    if (coverage !== 1) {
+      errors.push(
+        `${id}: Ratified status must be covered exactly once by owner Ratification decision history, found ${coverage}`,
       );
     }
   }
@@ -495,11 +643,123 @@ export function verifyLegacySources(manifest, loadSource) {
   return errors;
 }
 
+export function validateDecisionRecords(manifest, repoRoot, readText) {
+  const errors = [];
+  for (const decision of manifest.ratificationDecisions ?? []) {
+    let actual;
+    try {
+      actual = readText(join(repoRoot, decision.recordPath));
+    } catch (error) {
+      errors.push(`${decision.recordPath}: cannot read Ratification decision record (${error.message})`);
+      continue;
+    }
+    const expected = renderRatificationDecision(decision);
+    if (normalizeText(actual) !== normalizeText(expected)) {
+      errors.push(
+        `${decision.recordPath}: Ratification decision record must exactly match manifest evidence and owner-merge approval wording`,
+      );
+    }
+  }
+  return errors;
+}
+
+export function validateRatificationSemanticBase(manifest, repoRoot) {
+  const errors = [];
+  const loaded = new Map();
+  for (const decision of manifest.ratificationDecisions ?? []) {
+    for (const id of decision.principles ?? []) {
+      const entry = manifest.statusCatalog?.[id];
+      if (!entry) continue;
+      const key = `${decision.baseCommit}:${entry.path}`;
+      if (!loaded.has(key)) {
+        try {
+          loaded.set(key, loadGitText(repoRoot, decision.baseCommit, entry.path));
+        } catch (error) {
+          errors.push(
+            `${entry.path}: cannot read Ratification semantic base ${decision.baseCommit} (${error.message})`,
+          );
+          loaded.set(key, null);
+        }
+      }
+      const baselineText = loaded.get(key);
+      if (baselineText === null) continue;
+      const principle = parsePrinciples(baselineText).find((candidate) => candidate.id === id);
+      if (!principle) {
+        errors.push(`${entry.path}: Ratification semantic base has no ${id}`);
+        continue;
+      }
+      const values = Object.fromEntries(
+        REQUIRED_FIELDS.map((field) => [field, readFields(principle.body, field)[0] ?? '']),
+      );
+      const baselineHash = semanticContentHash({
+        id,
+        title: principle.title,
+        values,
+      });
+      if (baselineHash !== entry.semanticContentSha256) {
+        errors.push(
+          `${entry.path} ${id}: semantic catalog must match Ratification base ${decision.baseCommit}; expected ${baselineHash}, found ${entry.semanticContentSha256}`,
+        );
+      }
+    }
+  }
+  return errors;
+}
+
+export function semanticContentHash({ id, title, values }) {
+  const semantic = {
+    id,
+    title,
+    Statement: values.Statement,
+    Rationale: values.Rationale,
+    'Verification / evidence': values['Verification / evidence'],
+    'Owner / ratification': values['Owner / ratification'],
+    'Cross-authority handoff': values['Cross-authority handoff'],
+    'Legacy inputs': values['Legacy inputs'],
+  };
+  return createHash('sha256').update(JSON.stringify(semantic)).digest('hex');
+}
+
+export function renderRatificationDecision(decision) {
+  const evidence89 = decision.finalReviewEvidence[0];
+  const evidence92 = decision.finalReviewEvidence[1];
+  return `# GitHub and AI principle owner Ratification
+
+- **Decision:** Ratify the listed principles only when repository owner \`jrmoulckers\` merges the pull
+  request containing this record after the required \`CI gate\` succeeds.
+- **Current approval state:** ${decision.currentApprovalState.replace(
+    'repository-owner approval before merge.',
+    'repository-owner approval before\n  merge.',
+  )}
+- **Principles:** \`GH-REPO-001\`–\`GH-REPO-007\`, \`GH-ACT-001\`–\`GH-ACT-007\`,
+  \`GH-AIP-001\`–\`GH-AIP-008\`, \`GH-AIOPS-001\`–\`GH-AIOPS-015\`, and
+  \`GH-AIEVAL-001\`–\`GH-AIEVAL-006\`.
+- **Source pull requests:** [#${decision.sourcePullRequests[0]}](https://github.com/jrmoulckers/.github/pull/${decision.sourcePullRequests[0]}) and
+  [#${decision.sourcePullRequests[1]}](https://github.com/jrmoulckers/.github/pull/${decision.sourcePullRequests[1]}).
+- **Final review evidence:** #89 ended at \`${evidence89.finalHeadCommit}\`
+  with \`${evidence89.successfulChecks[0]}\` successful and owner merge
+  \`${evidence89.mergeCommit}\`; #92 ended at
+  \`${evidence92.finalHeadCommit}\` with \`${evidence92.successfulChecks[0]}\`,
+  \`${evidence92.successfulChecks[1]}\`, and \`${evidence92.successfulChecks[2]}\` successful and owner merge
+  \`${evidence92.mergeCommit}\`.
+- **Content and ownership:** IDs, statements, rationale, verification, owner / ratification wording,
+  cross-authority handoffs, Legacy inputs, ordering, and paths are unchanged; only each listed
+  \`Status\` changes from \`Draft\` to \`Ratified\`.
+- **Effective approval:** The repository-owner merge event for the pull request containing this
+  record is the Ratification act. Authorship, agent work, source-PR merges, checks, and this proposed
+  record are evidence, not approval of this Ratification.
+- **Required protection:** \`${decision.requiredProtection.branch}\` strictly requires \`${decision.requiredProtection.strictRequiredCheck}\`; force pushes and branch deletion are
+  disabled. The required check must succeed on the final pull-request head before owner merge.
+- **Non-goals:** This decision does not alter ADR-0003, authority boundaries, legacy evidence,
+  migration history, agents, skills, prompts, instructions, sync behavior, or workflows.
+`;
+}
+
 function validateManifest(manifest) {
   const errors = [];
 
-  if (manifest.schemaVersion !== 1) {
-    errors.push('principles/manifest.json: schemaVersion must be 1');
+  if (manifest.schemaVersion !== 2) {
+    errors.push('principles/manifest.json: schemaVersion must be 2');
   }
   if (
     manifest.history?.bootstrapBaseCommit !== BOOTSTRAP_BASE_COMMIT
@@ -515,6 +775,51 @@ function validateManifest(manifest) {
     if (!Array.isArray(ids) || ids.length === 0) {
       errors.push(`${file}: published IDs must be a nonempty array`);
     }
+  }
+
+  const publishedEntries = Object.entries(manifest.published ?? {}).flatMap(
+    ([path, ids]) => (Array.isArray(ids) ? ids.map((id) => [id, path]) : []),
+  );
+  const publishedIds = publishedEntries.map(([id]) => id);
+  const catalog = manifest.statusCatalog;
+  if (!catalog || typeof catalog !== 'object' || Array.isArray(catalog)) {
+    errors.push('principles/manifest.json: statusCatalog must be an object');
+  } else if (!arraysEqual(Object.keys(catalog), publishedIds)) {
+    errors.push(
+      `principles/manifest.json: statusCatalog IDs must exactly match published order [${publishedIds.join(', ')}]`,
+    );
+  }
+  for (const [id, path] of publishedEntries) {
+    const entry = catalog?.[id];
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      errors.push(`${id}: status catalog entry is required`);
+      continue;
+    }
+    if (entry.path !== path) {
+      errors.push(`${id}: status catalog path must be ${path}`);
+    }
+    if (!['Draft', 'Ratified'].includes(entry.status)) {
+      errors.push(`${id}: status catalog value must be Draft or Ratified`);
+    }
+    if (!/^[0-9a-f]{64}$/.test(entry.semanticContentSha256 ?? '')) {
+      errors.push(`${id}: status catalog semanticContentSha256 must be a SHA-256 digest`);
+    }
+    if (
+      !arraysEqual(
+        Object.keys(entry),
+        ['path', 'status', 'semanticContentSha256'],
+      )
+    ) {
+      errors.push(`${id}: status catalog entry must contain only path, status, semanticContentSha256`);
+    }
+  }
+
+  if (!Array.isArray(manifest.ratificationDecisions)) {
+    errors.push('principles/manifest.json: ratificationDecisions must be an array');
+  } else if (!jsonEqual(manifest.ratificationDecisions[0], EXPECTED_RATIFICATION_DECISION)) {
+    errors.push(
+      'principles/manifest.json: ratificationDecisions[0] must preserve the exact owner-only decision, source review evidence, event base, and CI gate protection',
+    );
   }
 
   for (const [file, source] of Object.entries(manifest.legacySources ?? {})) {
@@ -631,6 +936,25 @@ function arraysEqual(left, right) {
   return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
+function draftCatalogFromPublished(published, currentCatalog) {
+  return Object.fromEntries(
+    Object.entries(published).flatMap(([path, ids]) =>
+      ids.map((id) => [
+        id,
+        {
+          path,
+          status: 'Draft',
+          semanticContentSha256: currentCatalog[id]?.semanticContentSha256,
+        },
+      ]),
+    ),
+  );
+}
+
+function normalizeText(value) {
+  return value.replace(/\r\n/g, '\n').trimEnd();
+}
+
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -649,9 +973,18 @@ export function selectBaselineCommit({
   head,
   previous,
 }) {
+  const expected = mergeBase && mergeBase !== head ? mergeBase : previous;
   if (explicit) {
     if (!isNonzeroSha(explicit)) {
       throw new Error('PRINCIPLES_BASE_SHA must be a nonzero commit SHA');
+    }
+    if (!expected) {
+      throw new Error('cannot verify PRINCIPLES_BASE_SHA against event baseline');
+    }
+    if (explicit !== expected) {
+      throw new Error(
+        `PRINCIPLES_BASE_SHA does not match event baseline; expected ${expected}, found ${explicit}`,
+      );
     }
     return explicit;
   }
@@ -688,15 +1021,26 @@ function readBaselineEvidence(
       },
     ).trim();
     if (mergeBase === head) {
-      previous = execFileSync(
+      const uncommittedPrincipleChanges = execFileSync(
         'git',
-        ['rev-parse', 'HEAD^'],
+        ['diff', '--name-only', 'HEAD', '--', 'principles'],
         {
           cwd: repoRoot,
           encoding: 'utf8',
           stdio: ['ignore', 'pipe', 'ignore'],
         },
       ).trim();
+      previous = uncommittedPrincipleChanges
+        ? head
+        : execFileSync(
+            'git',
+            ['rev-parse', 'HEAD^'],
+            {
+              cwd: repoRoot,
+              encoding: 'utf8',
+              stdio: ['ignore', 'pipe', 'ignore'],
+            },
+          ).trim();
     }
   } catch (error) {
     return { error: `cannot resolve baseline revisions: ${error.message}` };
@@ -728,6 +1072,18 @@ function readBaselineEvidence(
   } catch {
     return { baseCommit };
   }
+}
+
+function loadGitText(repoRoot, commit, relativePath) {
+  return execFileSync(
+    'git',
+    ['show', `${commit}:${relativePath}`],
+    {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
 }
 
 function discoverPrincipleFiles(repoRoot) {
@@ -766,7 +1122,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       }
     }
     console.log(
-      `Validated ${result.principleCount} Draft principles across ${result.fileCount} files.`,
+      `Validated ${result.principleCount} Ratified principles across ${result.fileCount} files.`,
     );
   } catch (error) {
     console.error(error.message);

@@ -6,7 +6,7 @@ case-specific measurements, and unsupported "AI brain" proposals remain in Git h
 
 ## GH-AIEVAL-001 — Supersede corrections explicitly
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Supersede an incorrect or stale agent report explicitly, name the claim and report
   replaced, re-read mutable facts at correction time, and link durable evidence instead of relying
   on message history.
@@ -23,7 +23,7 @@ case-specific measurements, and unsupported "AI brain" proposals remain in Git h
 
 ## GH-AIEVAL-002 — Route decisions to the party with standing
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Route intent, obligation, and acceptance decisions to the authority or repository
   owner with standing to make them, while agents and file owners supply independently checkable
   evidence.
@@ -41,7 +41,7 @@ case-specific measurements, and unsupported "AI brain" proposals remain in Git h
 
 ## GH-AIEVAL-003 — Challenge congenial premises first
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Challenge the premise that most supports the agent's preferred conclusion first,
   trace it to the governing artifact and revision, and include a case that could disprove it.
 - **Rationale:** Agreement encourages unverified summaries to be repeated until repetition is
@@ -57,7 +57,7 @@ case-specific measurements, and unsupported "AI brain" proposals remain in Git h
 
 ## GH-AIEVAL-004 — Treat tools and checkouts as versioned inputs
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Treat every tool, cache, vendored source, checkout, and remote-tracking ref used in
   verification as a versioned input, and fetch or identify its exact revision before reporting.
 - **Rationale:** A local checkout answers confidently from an age and state the current task did not
@@ -73,7 +73,7 @@ case-specific measurements, and unsupported "AI brain" proposals remain in Git h
 
 ## GH-AIEVAL-005 — State exactly what each check proves
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** State the proposition, scope, preconditions, command, and possible failing result
   for each check before using its success as evidence, and do not extend the conclusion beyond them.
 - **Rationale:** A real check against a neighboring proposition creates more false confidence than
@@ -89,7 +89,7 @@ case-specific measurements, and unsupported "AI brain" proposals remain in Git h
 
 ## GH-AIEVAL-006 — Re-run baseline checks after a salient correction
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Re-run ordinary baseline checks after adopting a salient correction, verify each
   side of a comparison independently, and prefer the cheapest real execution over extended
   inference whenever an execution path exists.

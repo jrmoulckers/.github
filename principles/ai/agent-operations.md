@@ -8,7 +8,7 @@ GitHub Actions principles.
 
 ## GH-AIOPS-001 — Author AI configuration once
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Author each shared agent, skill, prompt, instruction, eval, and runtime setting in
   one canonical `.github` source and materialize or reference it through the declared distribution
   path instead of maintaining member copies.
@@ -26,7 +26,7 @@ GitHub Actions principles.
 
 ## GH-AIOPS-002 — Reconcile schemas, files, and capability rosters
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Reconcile every declared agent and dependency with its definition file, required
   schema, allowed values, referenced skills and prompts, and each member's selected capability set
   before dispatch or distribution.
@@ -43,7 +43,7 @@ GitHub Actions principles.
 
 ## GH-AIOPS-003 — Grant least-privilege tools and writes
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Grant each agent only the tools, write scope, paths, credentials, and remote
   operations required by its documented workflow, and require reviewed justification for every
   expansion.
@@ -60,7 +60,7 @@ GitHub Actions principles.
 
 ## GH-AIOPS-004 — Assign one accountable lead per path
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Assign each task and mutable path to one accountable lead agent, declare exclusions
   and handoffs, and prevent concurrent implementers from owning overlapping changes.
 - **Rationale:** Competing ownership produces conflicting edits, unclear review responsibility, and
@@ -77,7 +77,7 @@ GitHub Actions principles.
 
 ## GH-AIOPS-005 — Structure prompts as testable contracts
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Structure prompts and instructions with an explicit goal, inputs, owned files,
   exclusions, tasks, safety limits, validation, and completion output instead of relying on ambient
   or open-ended context.
@@ -95,7 +95,7 @@ GitHub Actions principles.
 
 ## GH-AIOPS-006 — Block behavior changes on agent regressions
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Block agent, skill, prompt, instruction, model, tool, permission, or dispatch
   changes until representative golden, failure, adversarial, and permission-regression cases pass.
 - **Rationale:** AI configuration can regress behavior without producing a syntax or build failure.
@@ -112,7 +112,7 @@ GitHub Actions principles.
 
 ## GH-AIOPS-007 — Stop for human-gated operations
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Stop before any human-gated operation, present the exact action, scope, evidence,
   and risk, and proceed only after the authorized human explicitly approves it.
 - **Rationale:** Agents may prepare evidence but cannot assume standing for protected, destructive,
@@ -128,7 +128,7 @@ GitHub Actions principles.
 
 ## GH-AIOPS-008 — Version every behavior-bearing configuration
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Version prompts, models, agents, skills, instructions, evals, tool definitions, and
   runtime adapters in reviewable source, and identify the exact revisions that produced reported
   behavior.
@@ -145,7 +145,7 @@ GitHub Actions principles.
 
 ## GH-AIOPS-009 — Keep secrets and sensitive data out of context
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Keep secret values, credentials, private URLs, and real personal or confidential
   data out of prompts, instructions, skills, eval fixtures, reports, memory, and committed agent
   context.
@@ -162,7 +162,7 @@ GitHub Actions principles.
 
 ## GH-AIOPS-010 — Stage work from plan through monitoring
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Stage agent work as Plan, Implement, Verify, Ship, and Monitor, and require each
   stage to produce the artifact or evidence needed by the next.
 - **Rationale:** A named sequence prevents implementation before ownership is clear and prevents
@@ -179,7 +179,7 @@ GitHub Actions principles.
 
 ## GH-AIOPS-011 — Factor reusable expertise into focused skills
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Factor reusable agent expertise into composable, single-responsibility skills with
   explicit triggers, inputs, outputs, boundaries, and related-skill references.
 - **Rationale:** Focused skills can be loaded and corrected independently, while duplicated or
@@ -195,7 +195,7 @@ GitHub Actions principles.
 
 ## GH-AIOPS-012 — Dispatch from declared capability
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Dispatch each task deterministically to one declared lead by matching
   `when_to_use`, owned paths, write scope, risk, and required tools, and record why that lead won.
 - **Rationale:** Vague or order-dependent routing sends work to the wrong specialist and makes
@@ -211,7 +211,7 @@ GitHub Actions principles.
 
 ## GH-AIOPS-013 — Bind one owning agent to each isolated task
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Bind each mutable task to exactly one owning-agent assignment, and require that
   assignment to operate through the repository-session isolation defined by `GH-REPO-007`.
 - **Rationale:** Agent accountability must remain singular even when repository isolation permits
@@ -227,7 +227,7 @@ GitHub Actions principles.
 
 ## GH-AIOPS-014 — Vet and pin external AI tools
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Vet each MCP server and external AI tool for source, version, data flow, purpose,
   permissions, and failure behavior; pin an immutable version and expose only required operations.
 - **Rationale:** An external tool is executable supply-chain code and a potential data boundary, not
@@ -243,7 +243,7 @@ GitHub Actions principles.
 
 ## GH-AIOPS-015 — Enforce artifact shapes and local overlays
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Define and validate the required metadata and sections for every AI artifact type,
   and keep product stack, paths, commands, and risks in supported local overlays rather than
   modifying generated canon.

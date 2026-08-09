@@ -6,7 +6,7 @@ authority topology.
 
 ## GH-REPO-001 — Protect canonical branches
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Protect the default branch and any maintained release branch from direct or
   destructive updates; require changes to arrive through reviewable pull requests.
 - **Rationale:** Canonical branches must preserve an attributable, inspectable history and a stable
@@ -23,7 +23,7 @@ authority topology.
 
 ## GH-REPO-002 — Make merge evidence explicit
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Require a pull request to identify its issue, receive the configured review, and
   report every applicable required check before merge.
 - **Rationale:** A merge decision is auditable only when intent, review, and check results are
@@ -40,7 +40,7 @@ authority topology.
 
 ## GH-REPO-003 — Prefer GitHub-native health inheritance
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Author shared issue, pull-request, discussion, contribution, security, and conduct
   defaults in the owner `.github` repository; add a member-local file only as an intentional,
   reviewed override.
@@ -60,7 +60,7 @@ authority topology.
 
 ## GH-REPO-004 — Keep the fleet registry factual
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Record each managed repository and its declared sync selections in the fleet
   registry, and verify checkout-derived facts before any member write.
 - **Rationale:** A registry is trustworthy only when descriptive claims are distinguishable from
@@ -78,7 +78,7 @@ authority topology.
 
 ## GH-REPO-005 — Preserve provenance and refuse ambiguous clobbers
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Stamp generated materializations with source provenance, track their accepted
   baseline, and leave locally changed or ambiguous targets untouched unless an explicitly reviewed
   recovery path authorizes replacement.
@@ -99,7 +99,7 @@ authority topology.
 
 ## GH-REPO-006 — Compare normalized rendered content
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Normalize platform-variant content before hashing, and compare a generated target
   with the exact rendering the generator would emit rather than with raw source.
 - **Rationale:** Line endings and provenance wrappers must not create false drift or conceal real
@@ -116,7 +116,7 @@ authority topology.
 
 ## GH-REPO-007 — Isolate Copilot repository sessions
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Give each Copilot coding session one owning worktree and feature branch based on the
   intended base revision; do not let concurrent sessions share mutable repository state.
 - **Rationale:** Session isolation keeps attribution, review, cleanup, and conflict handling

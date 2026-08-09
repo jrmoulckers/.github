@@ -5,9 +5,12 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   validatePrincipleDocument,
+  validateDecisionRecords,
   validateLegacyEvolution,
   validatePrinciples,
   validatePublishedEvolution,
+  validateRatificationEvolution,
+  validateRatificationSemanticBase,
   selectBaselineCommit,
   verifyLegacySources,
 } from '../validate.mjs';
@@ -41,7 +44,7 @@ test('persistent negative fixtures fail closed with actionable diagnostics', () 
     (error) => {
       assert.match(error.message, /published IDs must be \[GH-AIP-001, GH-AIP-002\]/);
       assert.match(error.message, /duplicate principle ID GH-AIP-002/);
-      assert.match(error.message, /Status must be Draft/);
+      assert.match(error.message, /Status must be Ratified/);
       assert.match(error.message, /Status must appear exactly once/);
       assert.match(error.message, /missing Rationale/);
       assert.match(error.message, /Statement must start with an imperative verb/);
@@ -64,6 +67,7 @@ test('ID, legacy-reference, and ratification mutations are detected', () => {
       text,
       expectedIds: MANIFEST.published[relativePath],
       legacySources: MANIFEST.legacySources,
+      statusCatalog: MANIFEST.statusCatalog,
     }).errors;
 
   assert.deepEqual(validate(original), []);
@@ -85,10 +89,25 @@ test('ID, legacy-reference, and ratification mutations are detected', () => {
   assert.ok(
     validate(
       original.replace(
-        '- **Status:** Draft',
+        '- **Status:** Ratified',
         '- **Status:** Draft\n - **Status:** Ratified',
       ),
     ).some((error) => error.includes('Status must appear exactly once')),
+  );
+  assert.ok(
+    validate(original.replace('- **Status:** Ratified', '- **Status:** Draft')).some(
+      (error) => error.includes('Status must be Ratified'),
+    ),
+  );
+  assert.ok(
+    validate(original.replace('Select the smallest model', 'Select the cheapest model')).some(
+      (error) => error.includes('semantic content hash must remain'),
+    ),
+  );
+  assert.ok(
+    validate(original.replace('`ai-products.md §1.1`', '`ai-products.md §2`')).some(
+      (error) => error.includes('semantic content hash must remain'),
+    ),
   );
   assert.ok(
     validate(`${original}\n## GH-AIP-009 - Bypassed principle\n`).some((error) =>
@@ -139,6 +158,118 @@ test('published IDs cannot be deleted, renumbered, or removed from the manifest'
     validatePublishedEvolution(removedFile, MANIFEST).join('\n'),
     /published principle file cannot be removed/,
   );
+
+  const deletedCatalogEntry = structuredClone(MANIFEST);
+  delete deletedCatalogEntry.statusCatalog['GH-AIP-001'];
+  assert.throws(
+    () =>
+      validatePrinciples({
+        baselineManifest: MANIFEST,
+        readText: corpusReader(deletedCatalogEntry),
+      }),
+    /statusCatalog IDs must exactly match published order|status catalog entries cannot be deleted/,
+  );
+});
+
+test('Ratification status changes require the exact append-only owner decision', () => {
+  const draftBaseline = structuredClone(MANIFEST);
+  draftBaseline.schemaVersion = 1;
+  draftBaseline.statusCatalog = Object.fromEntries(
+    Object.entries(draftBaseline.statusCatalog).map(([id, entry]) => [
+      id,
+      { ...entry, status: 'Draft' },
+    ]),
+  );
+  draftBaseline.ratificationDecisions = [];
+
+  assert.deepEqual(
+    validateRatificationEvolution(
+      MANIFEST,
+      draftBaseline,
+      MANIFEST.ratificationDecisions[0].baseCommit,
+    ),
+    [],
+  );
+
+  const mixed = structuredClone(MANIFEST);
+  mixed.statusCatalog['GH-AIP-001'].status = 'Draft';
+  assert.match(
+    validateRatificationEvolution(
+      mixed,
+      draftBaseline,
+      MANIFEST.ratificationDecisions[0].baseCommit,
+    ).join('\n'),
+    /must exactly match newly appended decision IDs/,
+  );
+
+  const missingDecision = structuredClone(MANIFEST);
+  missingDecision.ratificationDecisions = [];
+  assert.match(
+    validateRatificationEvolution(
+      missingDecision,
+      draftBaseline,
+      MANIFEST.ratificationDecisions[0].baseCommit,
+    ).join('\n'),
+    /must exactly match newly appended decision IDs/,
+  );
+
+  const rolledBack = structuredClone(MANIFEST);
+  rolledBack.statusCatalog['GH-AIP-001'].status = 'Draft';
+  assert.match(
+    validateRatificationEvolution(rolledBack, MANIFEST).join('\n'),
+    /unauthorized status transition Ratified -> Draft/,
+  );
+
+  assert.match(
+    validateRatificationEvolution(
+      MANIFEST,
+      draftBaseline,
+      'a'.repeat(40),
+    ).join('\n'),
+    /baseCommit must match event base/,
+  );
+
+  const bornRatified = structuredClone(MANIFEST);
+  bornRatified.statusCatalog['GH-AIP-009'] = {
+    path: 'principles/ai/product-ai.md',
+    status: 'Ratified',
+    semanticContentSha256: 'a'.repeat(64),
+  };
+  assert.match(
+    validateRatificationEvolution(bornRatified, MANIFEST).join('\n'),
+    /GH-AIP-009: Ratified status must be covered exactly once/,
+  );
+});
+
+test('decision records and semantic hashes remain tied to the pre-Ratification base', () => {
+  assert.deepEqual(validateRatificationSemanticBase(MANIFEST, REPO_ROOT), []);
+  assert.deepEqual(
+    validateDecisionRecords(MANIFEST, REPO_ROOT, (path) => readFileSync(path, 'utf8')),
+    [],
+  );
+
+  const recordPath = join(
+    REPO_ROOT,
+    MANIFEST.ratificationDecisions[0].recordPath,
+  );
+  assert.match(
+    validateDecisionRecords(MANIFEST, REPO_ROOT, (path) => {
+      if (path === recordPath) {
+        return readFileSync(path, 'utf8').replace(
+          'repository owner `jrmoulckers`',
+          'implementing agent',
+        );
+      }
+      return readFileSync(path, 'utf8');
+    }).join('\n'),
+    /must exactly match manifest evidence and owner-merge approval wording/,
+  );
+  assert.match(
+    validateDecisionRecords(MANIFEST, REPO_ROOT, () => {
+      throw new Error('missing decision');
+    }).join('\n'),
+    /cannot read Ratification decision record/,
+  );
 });
 
 test('joint document and manifest mutations fail against the fixed bootstrap baseline', () => {
@@ -164,15 +295,25 @@ test('push and pull-request baselines never select the current push revision', (
   const eventBase = 'a'.repeat(40);
   const head = 'b'.repeat(40);
   const previous = 'c'.repeat(40);
+  const mergeBase = 'd'.repeat(40);
 
   assert.equal(
     selectBaselineCommit({
       explicit: eventBase,
-      mergeBase: head,
+      mergeBase: eventBase,
       head,
       previous,
     }),
     eventBase,
+  );
+  assert.equal(
+    selectBaselineCommit({
+      explicit: previous,
+      mergeBase: head,
+      head,
+      previous,
+    }),
+    previous,
   );
   assert.equal(
     selectBaselineCommit({
@@ -181,6 +322,26 @@ test('push and pull-request baselines never select the current push revision', (
       previous,
     }),
     previous,
+  );
+  assert.throws(
+    () =>
+      selectBaselineCommit({
+        explicit: eventBase,
+        mergeBase: head,
+        head,
+        previous,
+      }),
+    /does not match event baseline/,
+  );
+  assert.throws(
+    () =>
+      selectBaselineCommit({
+        explicit: head,
+        mergeBase,
+        head,
+        previous,
+      }),
+    /does not match event baseline/,
   );
   assert.throws(
     () =>
@@ -202,9 +363,9 @@ test('manifest schema rejection paths fail with specific diagnostics', () => {
     [
       'schema version',
       (manifest) => {
-        manifest.schemaVersion = 2;
+        manifest.schemaVersion = 3;
       },
-      /schemaVersion must be 1/,
+      /schemaVersion must be 2/,
     ],
     [
       'bootstrap base',
@@ -219,6 +380,35 @@ test('manifest schema rejection paths fail with specific diagnostics', () => {
         manifest.published = {};
       },
       /published must pin at least one principle file/,
+    ],
+    [
+      'missing status catalog entry',
+      (manifest) => {
+        delete manifest.statusCatalog['GH-AIP-001'];
+      },
+      /statusCatalog IDs must exactly match published order/,
+    ],
+    [
+      'semantic content drift',
+      (manifest) => {
+        manifest.statusCatalog['GH-AIP-001'].semanticContentSha256 = 'a'.repeat(64);
+      },
+      /semantic content hash must remain|semantic catalog must match Ratification base/,
+    ],
+    [
+      'missing Ratification decision',
+      (manifest) => {
+        manifest.ratificationDecisions = [];
+      },
+      /ratificationDecisions\[0\] must preserve the exact owner-only decision/,
+    ],
+    [
+      'non-owner approval',
+      (manifest) => {
+        manifest.ratificationDecisions[0].effectiveApproval =
+          'Ratification is effective when the implementing agent approves it.';
+      },
+      /ratificationDecisions\[0\] must preserve the exact owner-only decision/,
     ],
     [
       'missing source field',
