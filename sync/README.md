@@ -387,13 +387,18 @@ Opt-in is **per member** and kept separate from `optIn` (the source is an extern
 `.github` canon):
 
 ```jsonc
-"tokens": { "enabled": true, "targetPath": "apps/web/vendor/@jrm/tokens" }  // finance (Vite app under apps/web/)
+"tokens": { "enabled": true, "targetPath": "vendor/@jrm/tokens" }  // explicit repo-root pin
 "tokens": { "enabled": false }                             // declared but off
 "tokens": { "enabled": true }                              // default repo-root vendor/@jrm/tokens
 ```
 
 The whole `sourceBase` tree is mirrored today; the schema leaves room for a future optional
 per-member `include` (sub-globs under `sourceBase`) without a breaking change — not built yet.
+
+The per-member `targetPath` override exists, but every member currently uses the repo-root
+default and multi-platform members must: `@jrm/tokens` ships native Compose and Swift sources
+alongside the web artifacts, so vendoring into a single app directory hides them from the sibling
+native apps.
 
 Each vendored file lands under the member's `targetPath` (default repo-root `vendor/@jrm/tokens/`,
 mirroring studio's `dist/` layout: `css/default/*.css`, `tailwind/default.cjs`, `js/**`) and

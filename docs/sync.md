@@ -484,7 +484,7 @@ Because tokens come from an external repo (not `.github` canon), they get their 
 }
 
 // per member
-"tokens": { "enabled": true, "targetPath": "apps/web/vendor/@jrm/tokens" }  // finance (Vite app under apps/web/)
+"tokens": { "enabled": true, "targetPath": "vendor/@jrm/tokens" }  // explicit repo-root pin
 "tokens": { "enabled": false }             // score-king / jrm-recipes declared but off
 ```
 
@@ -494,9 +494,13 @@ addable without a breaking change; it is intentionally **not** built yet.
 
 Vendored files land under a **`vendor/@jrm/tokens/…`** convention (app assets, not `.github`
 config; `vendor/` signals third-party/generated, and `@jrm/tokens` preserves the package
-identity). The default is repo-root; each member may override — e.g. `finance` is a Vite app, so
-its tokens go to `apps/web/vendor/@jrm/tokens` (co-located so Vite resolves the CSS `@import`
-cleanly). Each file carries a source-aware provenance header —
+identity). The default is repo-root and every member uses it today. An override exists for a
+member whose consumers all live under one sub-tree, but it is a trap for multi-platform repos:
+`@jrm/tokens` ships native Compose and Swift sources next to the web artifacts, so burying the
+vendored tree inside a single app directory puts those sources out of reach of the sibling
+native apps. `finance` (`kmp-web`, with `apps/android`, `apps/ios`, `apps/web`, `apps/windows`)
+previously vendored to `apps/web/vendor/@jrm/tokens` for exactly that reason and was moved back
+to the root. Each file carries a source-aware provenance header —
 `generated + synced from jrmoulckers/studio @jrm/tokens — do not edit here` — as a `/* … */`
 comment for CSS/JS/TS; source maps and JSON are copied verbatim (a comment would corrupt them).
 Token files reuse the same lockfile, drift detection, and PR-per-member flow as the AI layer.
