@@ -133,7 +133,7 @@
         "skills": "*",
         "prompts": "*",
         "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
-        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
+        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget", "reusable-security-ci"]
       },
       "tokens": { "enabled": false }
     },
@@ -175,7 +175,14 @@
         "skills": "*",
         "prompts": ["review", "fix-ci", "cleanup", "backlog", "bug-bash", "sprint", "team"],
         "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
-        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
+        "workflows": [
+          "reusable-ci-lint",
+          "reusable-ci-web",
+          "reusable-deploy-pages",
+          "reusable-deploy-preview",
+          "reusable-perf-budget",
+          "reusable-security-ci"
+        ]
       },
       "tokens": { "enabled": false }
     },
@@ -214,7 +221,7 @@
         "skills": "*",
         "prompts": "*",
         "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
-        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
+        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget", "reusable-security-ci"]
       },
       "tokens": { "enabled": true }
     },
@@ -233,7 +240,7 @@
         "skills": "*",
         "prompts": "*",
         "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
-        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
+        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget", "reusable-security-ci"]
       },
       "tokens": { "enabled": true }
     },
@@ -252,14 +259,16 @@
         "skills": "*",
         "prompts": "*",
         "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
-        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
+        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget", "reusable-security-ci"]
       },
       "tokens": { "enabled": true }
     },
     {
       "repo": "jrmoulckers/engineering",
       "mode": "infrastructure",
-      "notes": "Engineering authority under ADR-0003: architecture, frontend and backend engineering, data systems, security and privacy mechanisms, testing, performance, observability, and build/release engineering. A principles-and-implementations repository with no product toolchain, so it takes the AI layer without base, health, workflows, or vendored tokens. It receives runtime and copilot independently of base so canonical MCP policy and Copilot-surface orientation still apply.",
+      "framework": "svelte",
+      "packageManager": "npm",
+      "notes": "Engineering authority under ADR-0003: architecture, frontend and backend engineering, data systems, security and privacy mechanisms, testing, performance, observability, and build/release engineering. A principles-and-implementations repository, so it takes the AI layer without base, health, workflows, or vendored tokens. It receives runtime and copilot independently of base so canonical MCP policy and Copilot-surface orientation still apply. The declared framework and packageManager are descriptive checkout facts, not an application claim: this is an npm workspace root publishing shared lint/format config packages, and Svelte is a devDependency because those packages lint Svelte consumers.",
       "optIn": {
         "base": false,
         "runtime": true,
@@ -294,7 +303,7 @@
       "repo": "jrmoulckers/studio",
       "mode": "infrastructure",
       "packageManager": "pnpm",
-      "notes": "Design and tooling kernel with local principles as the authoritative map for canonical roles. It retains the five general instruction contracts, including token authoring, without Homelab live-operations semantics. The AI layer is materialized without the root agency.toml; Studio remains the token source, never its own vendored-token target.",
+      "notes": "Design and tooling kernel with local principles as the authoritative map for canonical roles. It retains the five general instruction contracts, including token authoring, without Homelab live-operations semantics. It declines the studio base guide in favor of its local one while still taking canonical MCP policy and Copilot orientation. Studio remains the token source, never its own vendored-token target.",
       "optIn": {
         "base": false,
         "runtime": true,
@@ -304,14 +313,14 @@
         "skills": "*",
         "prompts": "*",
         "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
-        "workflows": false
+        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-security-ci"]
       },
       "tokens": { "enabled": false }
     },
     {
       "repo": "jrmoulckers/homelab",
       "mode": "infrastructure",
-      "notes": "Infrastructure-as-code and operations repository for Proxmox, self-hosted services, automation, backups, and runbooks. Its eight product-specific agents and local flat schema remain authoritative alongside the canonical roster; only agent compatibility and live infrastructure operations instructions are selected. Generic docs, skills, tokens, product workflow, base, and runtime/MCP policy remain local or excluded. Its audited prompt subset is intentionally read-oriented: backlog, review, and hardened audit-first cleanup.",
+      "notes": "Infrastructure-as-code and operations repository for Proxmox, self-hosted services, automation, backups, and runbooks. Its eight product-specific agents and local flat schema remain authoritative alongside the canonical roster; only agent compatibility and live infrastructure operations instructions are selected. Generic docs, skills, tokens, product workflow, and the studio base guide remain local or excluded, while canonical MCP policy and Copilot orientation apply. Its audited prompt subset is intentionally read-oriented: backlog, review, and hardened audit-first cleanup.",
       "localAgents": [
         "automation-steward",
         "backup-warden",
@@ -338,7 +347,7 @@
     {
       "repo": "jrmoulckers/windows",
       "mode": "infrastructure",
-      "notes": "Windows device-management repository for shared and per-machine configuration. It selects infrastructure operations plus relevant generated-agent, skill, and docs rules, while excluding token authoring, product fleet workflow, and root runtime policy.",
+      "notes": "Windows device-management repository for shared and per-machine configuration. It selects infrastructure operations plus relevant generated-agent, skill, and docs rules, along with canonical MCP policy and Copilot orientation, while excluding token authoring, product fleet workflow, and the studio base guide.",
       "optIn": {
         "base": false,
         "runtime": true,
