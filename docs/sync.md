@@ -56,7 +56,7 @@ flowchart LR
    [AGENTS.md base merge](../sync/README.md#agentsmd-base-merge)). `health` and
    `workflows` are **native** (see the table above): they are resolved and reported but never
    written — health files are inherited from this `.github` repo and reusable workflows are
-   called via a reviewed immutable commit SHA or documented versioned-tag update policy. A member
+   called via a reviewed full 40-character commit SHA. A member
    repo must therefore **not** contain its own copy of
    either (see [Native kinds have no transport](#native-kinds-have-no-transport)).
 6. **Open a PR** — commit on a `studio-sync/<date>` branch and open a PR titled
@@ -145,9 +145,11 @@ modes default to `application`; canonical entries are explicit.
 
 Real syncs, `--check`, and `--work-dir` derive root package managers from root lockfiles, derive
 supported frameworks from repository signatures, and scan `.github/workflows/**/*.yml|yaml` for
-calls to this backbone. Repository identity checks remain in force. A disagreement, ambiguity,
-malformed package manifest, or unlisted workflow call fails before any member write and prints the
-claim plus evidence. This is a shape-aware contract, not an `allowUnverified` path or fallback.
+calls to this backbone. Each actual use records workflow name, full commit SHA, file, and line.
+Undeclared or non-SHA uses fail before any member write. Declared availability that is not currently
+called is reported deterministically but remains valid for intentional future adoption. Repository
+identity checks remain in force. This is a shape-aware contract, not an `allowUnverified` path or
+fallback.
 
 Manifest-only `--dry-run` remains network-free and prints claims without certifying them. The
 offline test suite uses synthetic checkouts rather than hand-typed member expected values, avoiding
@@ -205,10 +207,11 @@ before the write list — **no file is ever written for a native kind, on any ru
 
 The rule that follows is not obvious from the opt-in table, so state it plainly:
 
-> **A member repo must not contain its own copy of a native asset.** Opting in to `health` or
-> `workflows` means *"this member relies on the backbone's"*, not *"the engine will install
-> these"*. A local copy is worse than having nothing, because it wins over the inherited version
-> and nothing will ever update it.
+> **A member repo must not contain its own copy of a native asset.** Opting in to `health` records
+> reliance. `optIn.workflows` records workflows available for current or planned use; checkout
+> inspection separately records actual calls. Neither means *"the engine will install these"*.
+> A local copy is worse than having nothing, because it wins over the inherited version and nothing
+> will ever update it.
 
 Why each case is harmful:
 
@@ -506,12 +509,12 @@ Access Token stored as the **`STUDIO_SYNC_TOKEN`** secret.
 
 | Permission | Level | Repositories |
 | --- | --- | --- |
-| Contents | Read and write | the 5 member repos + `jrmoulckers/jrmoulckers` |
+| Contents | Read and write | all 9 member repos + `jrmoulckers/jrmoulckers` |
 | Pull requests | Read and write | same set |
-| Contents | Read | `jrmoulckers/studio` (private `@jrm/tokens` source) |
 
-Contents write covers the branch push; Pull requests write covers opening and reusing the sync PR;
-the `studio` read is the token vendoring. Nothing else is exercised.
+Contents write covers branch pushes; Pull requests write covers opening and reusing sync PRs.
+`jrmoulckers/studio` is one of the nine members and the private token source, so its read needed for
+vendoring is already included in the member Contents grant. Nothing else is exercised.
 
 **Do not grant the classic `workflow` scope.** Scopes should be derived from the paths a tool
 provably writes, not from the category of tool it is — and the engine never writes under

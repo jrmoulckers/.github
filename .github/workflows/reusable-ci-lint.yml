@@ -1,29 +1,15 @@
 # =============================================================================
-# Reusable — Lint
+# Reusable - Lint
 # =============================================================================
 #
-# Framework-agnostic lint/format workflow for product repositories. Callers choose
-# Node.js, npm or pnpm, working directory, and exact lint/format commands.
-#
-# The three checks are independently opt-out, so a repo can take only what it has:
-#   * `lint-command: ''` / `format-check-command: ''` — skip that step. With BOTH empty the
-#     whole lint job is skipped (no checkout, no install) and only the PR-title check runs.
-#     Use this in a repo with no ESLint/Prettier instead of inlining your own title job.
-#   * `semantic-pr-title: false` — skip the PR-title job (e.g. when `pull-requests: read`
-#     cannot be granted).
-#
-# ⚠️ Caller permissions — this workflow needs `pull-requests: read` for its Semantic PR Title
-# job. A `permissions:` block in the CALLER (workflow- or job-level) REPLACES the defaults and
-# zeroes every scope it does not list, and a called workflow can never be granted more than the
-# caller has. So a least-privilege caller that declares only `contents: read` makes this
-# workflow fail at startup — GitHub reports a bare `startup_failure` with no readable log.
-# Always grant BOTH scopes below (or omit `permissions:` entirely and inherit the defaults).
+# Framework-neutral lint and format checks. Command inputs are trusted repository
+# configuration, not event data; they are transported through environment variables
+# rather than interpolated into generated shell source.
 #
 # Example caller:
 #   permissions:
 #     contents: read
-#     pull-requests: read      # required — see the warning above
-#
+#     pull-requests: read
 #   jobs:
 #     lint:
 #       uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@<reviewed-commit-sha>
@@ -31,22 +17,14 @@
 #         package-manager: pnpm
 #         lint-command: pnpm lint
 #         format-check-command: pnpm format:check
-#
-# Semantic PR title only (repo has no linter/formatter):
-#   jobs:
-#     pr-title:
-#       uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@<reviewed-commit-sha>
-#       with:
-#         lint-command: ''
-#         format-check-command: ''
 # =============================================================================
-name: Reusable — Lint
+name: Reusable - Lint
 
 on:
   workflow_call:
     inputs:
       node-version:
-        description: Node.js version to use.
+        description: Numeric Node.js version to use.
         required: false
         type: string
         default: '22'
@@ -56,17 +34,17 @@ on:
         type: string
         default: npm
       working-directory:
-        description: Directory containing the package manifest and lockfile.
+        description: Workspace-relative directory containing the manifest and lockfile.
         required: false
         type: string
         default: .
       lint-command:
-        description: Command that runs lint checks. Pass an empty string to skip the lint step.
+        description: Trusted repository command for lint checks; empty skips the step.
         required: false
         type: string
         default: npm run lint
       format-check-command:
-        description: Command that checks formatting. Pass an empty string to skip the format step.
+        description: Trusted repository command for format checks; empty skips the step.
         required: false
         type: string
         default: npm run format:check
@@ -76,32 +54,46 @@ on:
         type: boolean
         default: true
 
-permissions:
-  contents: read
-  pull-requests: read
+permissions: {}
 
 jobs:
   lint:
     name: Lint and format
-    # A repo with no linter/formatter opts out by passing empty commands; the job then skips
-    # entirely (no checkout, no install) and only the Semantic PR Title job runs.
     if: inputs.lint-command != '' || inputs.format-check-command != ''
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
 
     steps:
+      - name: Validate inputs
+        env:
+          FORMAT_COMMAND: ${{ inputs.format-check-command }}
+          LINT_COMMAND: ${{ inputs.lint-command }}
+          NODE_VERSION: ${{ inputs.node-version }}
+          PACKAGE_MANAGER: ${{ inputs.package-manager }}
+          WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        run: |
+          set -euo pipefail
+          case "$PACKAGE_MANAGER" in
+            npm|pnpm) ;;
+            *) echo "::error::package-manager must be npm or pnpm"; exit 1 ;;
+          esac
+          [[ "$NODE_VERSION" =~ ^[0-9]+([.][0-9]+){0,2}$ ]] ||
+            { echo "::error::node-version must be numeric"; exit 1; }
+          [[ "$WORKING_DIRECTORY" == "." || "$WORKING_DIRECTORY" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ ]] ||
+            { echo "::error::working-directory must be a workspace-relative path"; exit 1; }
+          [[ "$WORKING_DIRECTORY" != ".." && "$WORKING_DIRECTORY" != *"/../"* && "$WORKING_DIRECTORY" != "../"* && "$WORKING_DIRECTORY" != *"/.." ]] ||
+            { echo "::error::working-directory must not traverse parent directories"; exit 1; }
+          for command in "$LINT_COMMAND" "$FORMAT_COMMAND"; do
+            [[ "$command" != *$'\n'* && "$command" != *$'\r'* ]] ||
+              { echo "::error::commands must be single-line trusted repository configuration"; exit 1; }
+          done
+
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - name: Validate package manager
-        run: |
-          case "${{ inputs.package-manager }}" in
-            npm|pnpm) ;;
-            *)
-              echo "::error::package-manager must be 'npm' or 'pnpm'"
-              exit 1
-              ;;
-          esac
+        with:
+          persist-credentials: false
 
       - name: Enable Corepack for pnpm cache
         if: inputs.package-manager == 'pnpm'
@@ -117,6 +109,10 @@ jobs:
             ${{ inputs.working-directory }}/npm-shrinkwrap.json
             ${{ inputs.working-directory }}/pnpm-lock.yaml
 
+      - name: Enable Corepack
+        if: inputs.package-manager == 'pnpm'
+        run: corepack enable
+
       - name: Install dependencies (npm)
         if: inputs.package-manager == 'npm'
         working-directory: ${{ inputs.working-directory }}
@@ -130,18 +126,24 @@ jobs:
       - name: Run lint
         if: inputs.lint-command != ''
         working-directory: ${{ inputs.working-directory }}
-        run: ${{ inputs.lint-command }}
+        env:
+          CHECK_COMMAND: ${{ inputs.lint-command }}
+        run: bash --noprofile --norc -eo pipefail -c "$CHECK_COMMAND"
 
       - name: Check formatting
         if: inputs.format-check-command != ''
         working-directory: ${{ inputs.working-directory }}
-        run: ${{ inputs.format-check-command }}
+        env:
+          CHECK_COMMAND: ${{ inputs.format-check-command }}
+        run: bash --noprofile --norc -eo pipefail -c "$CHECK_COMMAND"
 
   pr-title:
-    name: Semantic PR Title
+    name: Semantic PR title
     if: inputs.semantic-pr-title && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      pull-requests: read
 
     steps:
       - name: Validate PR title

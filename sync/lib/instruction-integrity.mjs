@@ -23,8 +23,8 @@ const APPLICATION_REPOS = new Set([
   'jrmoulckers/cartridge',
   'jrmoulckers/docket',
 ]);
-const MUTABLE_WORKFLOW_REF =
-  /uses:\s*jrmoulckers\/\.github\/\.github\/workflows\/[^\s`'"]+@(main|master|head|latest)\b/i;
+const WORKFLOW_CALL =
+  /uses:\s*jrmoulckers\/\.github\/\.github\/workflows\/[^\s`'"]+@([^\s`'"]+)/gi;
 
 export function validateInstructionIntegrity(repoRoot, manifest) {
   const errors = [];
@@ -224,6 +224,7 @@ function validateSourceTargetReferences(repoRoot, errors) {
 function validateImmutableWorkflowExamples(repoRoot, errors) {
   const paths = [
     'README.md',
+    'principles/github/actions-and-delivery.md',
     'docs/sync.md',
     'sync/README.md',
     'sync/lib/pr.mjs',
@@ -231,15 +232,24 @@ function validateImmutableWorkflowExamples(repoRoot, errors) {
   ];
   for (const relativePath of paths) {
     const text = readText(join(repoRoot, ...relativePath.split('/')));
-    if (MUTABLE_WORKFLOW_REF.test(text)) {
-      errors.push(`${relativePath}: reusable workflow examples must not use a mutable ref`);
+    for (const match of text.matchAll(WORKFLOW_CALL)) {
+      if (match[1] !== '<reviewed-commit-sha>' && !/^[0-9a-f]{40}$/.test(match[1])) {
+        errors.push(
+          `${relativePath}: reusable workflow examples must use <reviewed-commit-sha> or a full commit SHA`,
+        );
+      }
     }
   }
   const workflowDir = join(repoRoot, '.github', 'workflows');
   for (const fileName of readdirSync(workflowDir).filter((name) => /^reusable-.*\.yml$/.test(name))) {
     const relativePath = `.github/workflows/${fileName}`;
-    if (MUTABLE_WORKFLOW_REF.test(readText(join(workflowDir, fileName)))) {
-      errors.push(`${relativePath}: reusable workflow examples must not use a mutable ref`);
+    const text = readText(join(workflowDir, fileName));
+    for (const match of text.matchAll(WORKFLOW_CALL)) {
+      if (match[1] !== '<reviewed-commit-sha>' && !/^[0-9a-f]{40}$/.test(match[1])) {
+        errors.push(
+          `${relativePath}: reusable workflow examples must use <reviewed-commit-sha> or a full commit SHA`,
+        );
+      }
     }
   }
 }

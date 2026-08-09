@@ -1,8 +1,8 @@
 // Derive registry claims from an existing member checkout. Real sync/check runs already own this
 // checkout, so verification adds no network operation; offline tests supply synthetic trees.
 
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join, relative } from 'node:path';
 import { memberMode } from './manifest.mjs';
 
 const PACKAGE_LOCKS = new Map([
@@ -17,7 +17,7 @@ export function deriveMemberFacts(root, backbone) {
   return {
     framework: deriveFramework(root),
     packageManager: derivePackageManager(root),
-    workflows: deriveCalledWorkflows(root, backbone),
+    workflowUses: deriveCalledWorkflows(root, backbone),
   };
 }
 
@@ -25,7 +25,7 @@ export function inspectMemberFacts(root, backbone) {
   return {
     framework: inspectFramework(root),
     packageManager: inspectPackageManager(root),
-    workflows: deriveCalledWorkflows(root, backbone),
+    workflowUses: deriveCalledWorkflows(root, backbone),
   };
 }
 
@@ -47,14 +47,26 @@ export function assertMemberFacts(root, member, backbone) {
     rejectBootstrappedEvidence(errors, actual);
   }
 
-  const claimed = new Set(
-    member.groups?.find((group) => group.kind === 'workflows')?.names ?? [],
+  const available = [
+    ...(member.groups?.find((group) => group.kind === 'workflows')?.names ?? []),
+  ].sort();
+  const claimed = new Set(available);
+  const undeclaredUses = actual.workflowUses.uses.filter((use) => !claimed.has(use.name));
+  const mutableUses = actual.workflowUses.uses.filter((use) => !/^[0-9a-f]{40}$/.test(use.ref));
+  const unusedDeclarations = available.filter(
+    (name) => !actual.workflowUses.value.includes(name),
   );
-  const missing = actual.workflows.value.filter((name) => !claimed.has(name));
-  if (missing.length) {
+  if (undeclaredUses.length) {
     errors.push(
-      `optIn.workflows does not list checkout call${missing.length === 1 ? '' : 's'} ` +
-        `${missing.map(quote).join(', ')} (${actual.workflows.evidence})`,
+      `workflow availability does not declare checkout use${undeclaredUses.length === 1 ? '' : 's'} ` +
+        `${undeclaredUses.map((use) => `${quote(use.name)} at ${use.path}:${use.line}`).join(', ')} ` +
+        `(${actual.workflowUses.evidence})`,
+    );
+  }
+  for (const use of mutableUses) {
+    errors.push(
+      `workflow use ${quote(use.name)} at ${use.path}:${use.line} pins ${quote(use.ref)}; ` +
+        'backbone workflow calls must use a full 40-character commit SHA',
     );
   }
 
@@ -65,7 +77,17 @@ export function assertMemberFacts(root, member, backbone) {
     );
   }
 
-  return actual;
+  return {
+    ...actual,
+    workflowAvailability: {
+      value: available,
+      evidence: 'studio.config.json optIn.workflows availability declaration',
+    },
+    workflowObservations: {
+      unusedDeclarations,
+      undeclaredUses,
+    },
+  };
 }
 
 export function derivePackageManager(root) {
@@ -145,25 +167,100 @@ export function inspectFramework(root) {
 export function deriveCalledWorkflows(root, backbone) {
   const workflowsRoot = join(root, '.github', 'workflows');
   if (!existsSync(workflowsRoot)) {
-    return { value: [], evidence: 'no .github/workflows directory' };
+    return { value: [], uses: [], evidence: 'no .github/workflows directory' };
   }
 
   const escapedBackbone = escapeRegExp(backbone);
-  const call = new RegExp(
-    `^\\s*(?:-\\s*)?uses:\\s*["']?${escapedBackbone}/\\.github/workflows/` +
-      `([^/@\\s"']+)\\.ya?ml@[^\\s"'#]+`,
-    'gim',
+  const target =
+    `${escapedBackbone}/\\.github/workflows/` +
+    `([^/@\\s"'}]+)\\.ya?ml@([^\\s"'#},]+)`;
+  const directUse = new RegExp(
+    `(?:^|[,{])\\s*(?:-\\s*)?["']?uses["']?\\s*:\\s*(?:!!str\\s+)?` +
+      `(?:&([A-Za-z][A-Za-z0-9_-]*)\\s+)?["']?${target}`,
+    'gi',
   );
-  const names = new Set();
+  const anchorDefinition = new RegExp(
+    `&([A-Za-z][A-Za-z0-9_-]*)\\s+(?:!!str\\s+)?["']?${target}`,
+    'gi',
+  );
+  const aliasUse =
+    /(?:^|[,{])\s*(?:-\s*)?["']?uses["']?\s*:\s*\*([A-Za-z][A-Za-z0-9_-]*)/gi;
+  const blockUse =
+    /(?:^|[,{])\s*(?:-\s*)?["']?uses["']?\s*:\s*(?:!!str\s+)?[>|][-+0-9]*\s*$/i;
+  const blockTarget = new RegExp(`^["']?${target}["']?$`, 'i');
+  const uses = [];
   const files = walkFiles(workflowsRoot).filter((path) => /\.ya?ml$/i.test(path));
 
   for (const file of files) {
     const contents = readFileSync(file, 'utf8');
-    for (const match of contents.matchAll(call)) names.add(match[1]);
+    const relativePath = relative(root, file).replaceAll('\\', '/');
+    const lines = contents.split(/\r?\n/);
+    const yamlLines = maskNonUsesScalarBodies(lines);
+    const anchors = new Map();
+    for (const line of yamlLines) {
+      const source = stripYamlComment(line);
+      for (const match of source.matchAll(anchorDefinition)) {
+        anchors.set(match[1], { name: match[2], ref: match[3] });
+      }
+    }
+    for (const [index, line] of yamlLines.entries()) {
+      const source = stripYamlComment(line);
+      for (const match of source.matchAll(directUse)) {
+        uses.push({
+          name: match[2],
+          ref: match[3],
+          path: relativePath,
+          line: index + 1,
+        });
+      }
+      for (const match of source.matchAll(aliasUse)) {
+        const targetUse = anchors.get(match[1]);
+        if (!targetUse) continue;
+        uses.push({
+          ...targetUse,
+          path: relativePath,
+          line: index + 1,
+        });
+      }
+      if (blockUse.test(source)) {
+        const indentation = line.match(/^ */)[0].length;
+        const values = [];
+        let cursor = index + 1;
+        while (cursor < lines.length) {
+          const candidate = lines[cursor];
+          const candidateIndentation = candidate.match(/^ */)[0].length;
+          if (candidate.trim() && candidateIndentation <= indentation) break;
+          if (candidate.trim()) values.push(stripYamlComment(candidate).trim());
+          cursor += 1;
+        }
+        const match = values.join(' ').match(blockTarget);
+        if (match) {
+          uses.push({
+            name: match[1],
+            ref: match[2],
+            path: relativePath,
+            line: index + 1,
+          });
+        }
+      }
+    }
   }
+  const uniqueUses = [
+    ...new Map(
+      uses.map((use) => [`${use.path}\0${use.line}\0${use.name}\0${use.ref}`, use]),
+    ).values(),
+  ];
+  uniqueUses.sort(
+    (a, b) =>
+      a.path.localeCompare(b.path) ||
+      a.line - b.line ||
+      a.name.localeCompare(b.name) ||
+      a.ref.localeCompare(b.ref),
+  );
 
   return {
-    value: [...names].sort(),
+    value: [...new Set(uniqueUses.map((use) => use.name))].sort(),
+    uses: uniqueUses,
     evidence: `${files.length} workflow file${files.length === 1 ? '' : 's'} under .github/workflows`,
   };
 }
@@ -216,10 +313,12 @@ function rejectBootstrappedEvidence(errors, actual) {
 
 function walkFiles(root) {
   const files = [];
-  for (const name of readdirSync(root)) {
-    const path = join(root, name);
-    if (statSync(path).isDirectory()) files.push(...walkFiles(path));
-    else files.push(path);
+  for (const entry of readdirSync(root, { withFileTypes: true }).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  )) {
+    const path = join(root, entry.name);
+    if (entry.isDirectory()) files.push(...walkFiles(path));
+    else if (entry.isFile()) files.push(path);
   }
   return files;
 }
@@ -238,4 +337,44 @@ function quote(value) {
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function stripYamlComment(line) {
+  let singleQuoted = false;
+  let doubleQuoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    if (character === "'" && !doubleQuoted) singleQuoted = !singleQuoted;
+    if (character === '"' && !singleQuoted && line[index - 1] !== '\\') {
+      doubleQuoted = !doubleQuoted;
+    }
+
+    if (character === '#' && !singleQuoted && !doubleQuoted) {
+      return line.slice(0, index);
+    }
+  }
+  return line;
+}
+
+function maskNonUsesScalarBodies(lines) {
+  const masked = [...lines];
+  let scalarIndentation = null;
+  for (const [index, line] of lines.entries()) {
+    const indentation = line.match(/^ */)[0].length;
+    if (scalarIndentation !== null) {
+      if (!line.trim() || indentation > scalarIndentation) {
+        masked[index] = '';
+        continue;
+      }
+      scalarIndentation = null;
+    }
+    const source = stripYamlComment(line);
+    if (
+      /:\s*[>|][-+0-9]*\s*$/.test(source) &&
+      !/(?:^|[,{])\s*(?:-\s*)?["']?uses["']?\s*:/.test(source)
+    ) {
+      scalarIndentation = indentation;
+    }
+  }
+  return masked;
 }

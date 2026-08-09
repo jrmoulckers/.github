@@ -87,9 +87,10 @@ topology.
 - **Rationale:** Direct reuse keeps fixes reviewable at one source; copied workflow files silently
   fork and stop receiving updates.
 - **Verification / evidence:** Member workflows call
-  `jrmoulckers/.github/.github/workflows/reusable-*.yml@<ref>` and do not carry copied
-  `reusable-*.yml` files. The fleet registry records expected calls, checkout verification detects
-  undeclared calls, and native `workflows` entries produce no sync writes.
+  `jrmoulckers/.github/.github/workflows/reusable-*.yml@<reviewed-commit-sha>` and do not carry
+  copied `reusable-*.yml` files. The fleet registry declares available workflows, checkout
+  verification records actual calls and rejects undeclared or non-SHA refs, and native `workflows`
+  entries produce no sync writes.
 - **Owner / ratification:** `.github` owns this principle; it remains Draft until the repository
   owner ratifies it through a reviewed pull request.
 - **Cross-authority handoff:** Engineering owns the invoked build, test, and release commands;

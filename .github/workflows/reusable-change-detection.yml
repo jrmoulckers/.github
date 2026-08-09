@@ -1,0 +1,171 @@
+# =============================================================================
+# Reusable - Change Detection
+# =============================================================================
+#
+# Compares exact immutable commits and classifies changed files against validated
+# literal path prefixes. The JSON implementation uses git argument arrays with no
+# dynamic shell or code evaluation.
+# =============================================================================
+name: Reusable - Change Detection
+
+on:
+  workflow_call:
+    inputs:
+      path-groups-json:
+        description: JSON object mapping kebab-case group names to literal path-prefix arrays.
+        required: false
+        type: string
+        default: '{"all":["."]}'
+      base-sha:
+        description: Optional full base SHA; required for new-branch pushes, otherwise event-derived.
+        required: false
+        type: string
+        default: ''
+      head-sha:
+        description: Optional full head commit SHA; otherwise derived from pull_request or push.
+        required: false
+        type: string
+        default: ''
+    outputs:
+      any-changed:
+        description: Whether any file changed.
+        value: ${{ jobs.detect.outputs.any-changed }}
+      changed-groups-json:
+        description: Sorted JSON array of path groups containing changes.
+        value: ${{ jobs.detect.outputs.changed-groups-json }}
+      changed-files-json:
+        description: Sorted JSON array of changed file paths.
+        value: ${{ jobs.detect.outputs.changed-files-json }}
+      base-sha:
+        description: Validated base commit SHA used for comparison.
+        value: ${{ jobs.detect.outputs.base-sha }}
+      head-sha:
+        description: Validated head commit SHA used for comparison.
+        value: ${{ jobs.detect.outputs.head-sha }}
+
+permissions: {}
+
+jobs:
+  detect:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      any-changed: ${{ steps.detect.outputs.any-changed }}
+      changed-groups-json: ${{ steps.detect.outputs.changed-groups-json }}
+      changed-files-json: ${{ steps.detect.outputs.changed-files-json }}
+      base-sha: ${{ steps.detect.outputs.base-sha }}
+      head-sha: ${{ steps.detect.outputs.head-sha }}
+
+    steps:
+      - name: Checkout history
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate refs and classify paths
+        id: detect
+        env:
+          BASE_SHA: ${{ inputs.base-sha || github.event.pull_request.base.sha || github.event.before || '' }}
+          HEAD_SHA: ${{ inputs.head-sha || github.event.pull_request.head.sha || github.sha }}
+          PATH_GROUPS_JSON: ${{ inputs.path-groups-json }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const { appendFileSync } = require('node:fs');
+          const { spawnSync } = require('node:child_process');
+
+          const base = process.env.BASE_SHA;
+          const head = process.env.HEAD_SHA;
+          const zero = '0'.repeat(40);
+          const shaPattern = /^[0-9a-f]{40}$/;
+          if (base === zero) {
+            throw new Error(
+              'base-sha is required for a new-branch push; refusing to guess a comparison branch',
+            );
+          }
+          if (!shaPattern.test(base) || base === zero) {
+            throw new Error('base-sha must resolve to a non-zero full commit SHA');
+          }
+          if (!shaPattern.test(head) || head === zero) {
+            throw new Error('head-sha must resolve to a non-zero full commit SHA');
+          }
+
+          for (const ref of [base, head]) {
+            const check = spawnSync('git', ['cat-file', '-e', `${ref}^{commit}`], {
+              encoding: 'utf8',
+              shell: false,
+            });
+            if (check.status !== 0) throw new Error(`commit is unavailable after checkout: ${ref}`);
+          }
+
+          if (process.env.PATH_GROUPS_JSON.length > 32768) {
+            throw new Error('path-groups-json exceeds 32768 characters');
+          }
+          const groups = JSON.parse(process.env.PATH_GROUPS_JSON);
+          if (!groups || Array.isArray(groups) || typeof groups !== 'object') {
+            throw new Error('path-groups-json must be an object');
+          }
+          const entries = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+          if (entries.length === 0 || entries.length > 50) {
+            throw new Error('path-groups-json must contain from 1 through 50 groups');
+          }
+          for (const [name, prefixes] of entries) {
+            if (!/^[a-z][a-z0-9-]{0,63}$/.test(name)) {
+              throw new Error(`invalid path group name: ${JSON.stringify(name)}`);
+            }
+            if (!Array.isArray(prefixes) || prefixes.length === 0 || prefixes.length > 100) {
+              throw new Error(`path group ${name} must contain from 1 through 100 prefixes`);
+            }
+            for (const prefix of prefixes) {
+              if (prefix === '.') continue;
+              if (
+                typeof prefix !== 'string' ||
+                !/^[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*\/?$/.test(prefix) ||
+                prefix.split('/').some((part) => part === '..')
+              ) {
+                throw new Error(`path group ${name} contains an unsafe literal prefix`);
+              }
+            }
+          }
+
+          const diff = spawnSync(
+            'git',
+            ['diff', '--no-renames', '--name-only', '-z', '--diff-filter=ACDMRTUXB', base, head, '--'],
+            { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024, shell: false },
+          );
+          if (diff.status !== 0) throw new Error(diff.stderr.trim() || 'git diff failed');
+          const files = [...new Set(diff.stdout.split('\0').filter(Boolean))].sort();
+          if (files.length > 2000) throw new Error('change set exceeds the 2000-file safety limit');
+
+          const matches = (file, prefix) => {
+            if (prefix === '.') return true;
+            const normalized = prefix.replace(/\/$/, '');
+            return file === normalized || file.startsWith(`${normalized}/`);
+          };
+          const changedGroups = entries
+            .filter(([, prefixes]) => files.some((file) => prefixes.some((prefix) => matches(file, prefix))))
+            .map(([name]) => name);
+          const filesJson = JSON.stringify(files);
+          const groupsJson = JSON.stringify(changedGroups);
+          if (filesJson.length > 500000) throw new Error('changed-files-json exceeds 500000 characters');
+
+          appendFileSync(
+            process.env.GITHUB_OUTPUT,
+            [
+              `any-changed=${files.length > 0}`,
+              `changed-groups-json=${groupsJson}`,
+              `changed-files-json=${filesJson}`,
+              `base-sha=${base}`,
+              `head-sha=${head}`,
+              '',
+            ].join('\n'),
+          );
+          appendFileSync(
+            process.env.GITHUB_STEP_SUMMARY,
+            `### Change detection\n\n${files.length} changed file(s); groups: ${groupsJson}\n`,
+          );
+          NODE

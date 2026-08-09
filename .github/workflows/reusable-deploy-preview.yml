@@ -1,112 +1,134 @@
 # =============================================================================
-# Reusable — Deploy Preview
+# Reusable - Preview Artifact
 # =============================================================================
 #
-# Provider-neutral pull request preview workflow for product repositories. The
-# safe default uploads the build output as an artifact; custom providers can run
-# a caller-supplied deploy command with DEPLOY_TOKEN available.
-#
-# Example caller:
-#   jobs:
-#     preview:
-#       uses: jrmoulckers/.github/.github/workflows/reusable-deploy-preview.yml@<reviewed-commit-sha>
-#       with:
-#         package-manager: pnpm
-#         build-command: pnpm build
-#         output-dir: dist
+# Produces or verifies a private same-run preview artifact. The former custom
+# provider, arbitrary preview command, DEPLOY_TOKEN secret, and preview URL output
+# were removed: provider deployment belongs in a separately reviewed, protected
+# environment job that never executes caller-controlled shell with deploy authority.
 # =============================================================================
-name: Reusable — Deploy Preview
+name: Reusable - Preview Artifact
 
 on:
   workflow_call:
     inputs:
       node-version:
-        description: Node.js version to use.
+        description: Numeric Node.js version used by standalone builds.
         required: false
         type: string
         default: '22'
       package-manager:
-        description: Package manager to use (npm or pnpm).
+        description: Package manager for standalone builds (npm or pnpm).
         required: false
         type: string
         default: npm
       working-directory:
-        description: Directory containing the package manifest and lockfile.
+        description: Workspace-relative package directory.
         required: false
         type: string
         default: .
       build-command:
-        description: Command that builds the preview artifact.
+        description: Trusted repository build command used when artifact-name is empty.
         required: false
         type: string
         default: npm run build
       output-dir:
-        description: Build output directory, relative to working-directory.
+        description: Non-root path below working-directory containing the preview.
         required: false
         type: string
         default: dist
-      provider:
-        description: Preview provider (artifact or custom).
-        required: false
-        type: string
-        default: artifact
-      preview-command:
-        description: Custom preview deployment command, run when provider is custom.
+      artifact-name:
+        description: Existing same-run artifact to consume; empty performs a standalone build.
         required: false
         type: string
         default: ''
-    secrets:
-      DEPLOY_TOKEN:
-        description: Optional token for custom preview deployment providers.
+      retention-days:
+        description: Standalone preview artifact retention from 1 through 30 days.
         required: false
+        type: number
+        default: 14
+      standalone-artifact-prefix:
+        description: Prefix for uniquely named standalone preview artifacts.
+        required: false
+        type: string
+        default: preview-build
     outputs:
-      preview-url:
-        description: Preview URL from the custom provider, or blank for artifact previews.
-        value: ${{ jobs.deploy.outputs.preview-url }}
+      artifact-name:
+        description: Existing or newly uploaded preview artifact name.
+        value: ${{ jobs.preview.outputs.artifact-name }}
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
-  deploy:
-    name: Deploy Preview
+  preview:
+    name: Preview artifact
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
     outputs:
-      preview-url: ${{ steps.custom.outputs.preview-url || '' }}
+      artifact-name: ${{ steps.resolve.outputs.artifact-name }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
       - name: Validate inputs
+        env:
+          ARTIFACT_NAME: ${{ inputs.artifact-name }}
+          BUILD_COMMAND: ${{ inputs.build-command }}
+          NODE_VERSION: ${{ inputs.node-version }}
+          OUTPUT_DIR: ${{ inputs.output-dir }}
+          PACKAGE_MANAGER: ${{ inputs.package-manager }}
+          RETENTION_DAYS: ${{ inputs.retention-days }}
+          STANDALONE_ARTIFACT_PREFIX: ${{ inputs.standalone-artifact-prefix }}
+          WORKING_DIRECTORY: ${{ inputs.working-directory }}
         run: |
-          case "${{ inputs.package-manager }}" in
+          set -euo pipefail
+          case "$PACKAGE_MANAGER" in
             npm|pnpm) ;;
-            *)
-              echo "::error::package-manager must be 'npm' or 'pnpm'"
-              exit 1
-              ;;
+            *) echo "::error::package-manager must be npm or pnpm"; exit 1 ;;
           esac
-
-          case "${{ inputs.provider }}" in
-            artifact|custom) ;;
-            *)
-              echo "::error::provider must be 'artifact' or 'custom'"
-              exit 1
-              ;;
-          esac
-
-          if [ "${{ inputs.provider }}" = "custom" ] && [ -z "${{ inputs.preview-command }}" ]; then
-            echo "::error::preview-command is required when provider is 'custom'"
-            exit 1
+          [[ "$NODE_VERSION" =~ ^[0-9]+([.][0-9]+){0,2}$ ]] ||
+            { echo "::error::node-version must be numeric"; exit 1; }
+          [[ "$WORKING_DIRECTORY" == "." || "$WORKING_DIRECTORY" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ ]] ||
+            { echo "::error::working-directory must be workspace-relative"; exit 1; }
+          [[ "$WORKING_DIRECTORY" != ".." && "$WORKING_DIRECTORY" != *"/../"* && "$WORKING_DIRECTORY" != "../"* && "$WORKING_DIRECTORY" != *"/.." ]] ||
+            { echo "::error::working-directory must not traverse parent directories"; exit 1; }
+          [[ "$OUTPUT_DIR" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ && "$OUTPUT_DIR" != "." ]] ||
+            { echo "::error::output-dir must be a non-root relative path"; exit 1; }
+          [[ "$OUTPUT_DIR" != ".." && "$OUTPUT_DIR" != *"/../"* && "$OUTPUT_DIR" != "../"* && "$OUTPUT_DIR" != *"/.." ]] ||
+            { echo "::error::output-dir must not traverse parent directories"; exit 1; }
+          [[ "$RETENTION_DAYS" =~ ^[0-9]+$ ]] && (( RETENTION_DAYS >= 1 && RETENTION_DAYS <= 30 )) ||
+            { echo "::error::retention-days must be an integer from 1 through 30"; exit 1; }
+          [[ "$BUILD_COMMAND" != *$'\n'* && "$BUILD_COMMAND" != *$'\r'* ]] ||
+            { echo "::error::build-command must be single-line trusted repository configuration"; exit 1; }
+          [[ "$STANDALONE_ARTIFACT_PREFIX" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]] ||
+            { echo "::error::standalone-artifact-prefix contains unsupported characters"; exit 1; }
+          if [[ -n "$ARTIFACT_NAME" ]]; then
+            [[ "$ARTIFACT_NAME" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]] ||
+              { echo "::error::artifact-name contains unsupported characters"; exit 1; }
+          else
+            [[ -n "$BUILD_COMMAND" ]] ||
+              { echo "::error::build-command is required for a standalone preview"; exit 1; }
           fi
 
+      - name: Download same-run build artifact
+        if: inputs.artifact-name != ''
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.working-directory }}/${{ inputs.output-dir }}
+
+      - name: Checkout for standalone build
+        if: inputs.artifact-name == ''
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
       - name: Enable Corepack for pnpm cache
-        if: inputs.package-manager == 'pnpm'
+        if: inputs.artifact-name == '' && inputs.package-manager == 'pnpm'
         run: corepack enable
 
       - name: Set up Node.js
+        if: inputs.artifact-name == ''
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: ${{ inputs.node-version }}
@@ -117,47 +139,80 @@ jobs:
             ${{ inputs.working-directory }}/pnpm-lock.yaml
 
       - name: Enable Corepack
-        if: inputs.package-manager == 'pnpm'
+        if: inputs.artifact-name == '' && inputs.package-manager == 'pnpm'
         run: corepack enable
 
       - name: Install dependencies (npm)
-        if: inputs.package-manager == 'npm'
+        if: inputs.artifact-name == '' && inputs.package-manager == 'npm'
         working-directory: ${{ inputs.working-directory }}
         run: npm ci
 
       - name: Install dependencies (pnpm)
-        if: inputs.package-manager == 'pnpm'
+        if: inputs.artifact-name == '' && inputs.package-manager == 'pnpm'
         working-directory: ${{ inputs.working-directory }}
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        working-directory: ${{ inputs.working-directory }}
-        run: ${{ inputs.build-command }}
-
-      - name: Upload preview artifact
-        if: inputs.provider == 'artifact'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: preview-build-${{ github.run_id }}
-          path: ${{ inputs.working-directory }}/${{ inputs.output-dir }}
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Run custom preview deploy
-        id: custom
-        if: inputs.provider == 'custom'
+      - name: Build standalone preview
+        if: inputs.artifact-name == ''
         working-directory: ${{ inputs.working-directory }}
         env:
-          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
-        run: ${{ inputs.preview-command }}
+          BUILD_COMMAND: ${{ inputs.build-command }}
+        run: bash --noprofile --norc -eo pipefail -c "$BUILD_COMMAND"
+
+      - name: Verify preview artifact
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          OUTPUT_DIR: ${{ inputs.output-dir }}
+        run: |
+          set -euo pipefail
+          [[ -d "$OUTPUT_DIR" ]] ||
+            { echo "::error::preview artifact directory does not exist: $OUTPUT_DIR"; exit 1; }
+          find "$OUTPUT_DIR" -mindepth 1 -print -quit | grep -q . ||
+            { echo "::error::preview artifact directory is empty: $OUTPUT_DIR"; exit 1; }
+          if find "$OUTPUT_DIR" -type l -print -quit | grep -q .; then
+            echo "::error::preview artifacts must not contain symbolic links"
+            exit 1
+          fi
+
+      - name: Resolve preview artifact name
+        id: resolve
+        env:
+          EXISTING_ARTIFACT_NAME: ${{ inputs.artifact-name }}
+          RUN_ID: ${{ github.run_id }}
+          STANDALONE_ARTIFACT_PREFIX: ${{ inputs.standalone-artifact-prefix }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$EXISTING_ARTIFACT_NAME" ]]; then
+            echo "artifact-name=$EXISTING_ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
+          else
+            artifact_name="$STANDALONE_ARTIFACT_PREFIX-$RUN_ID-$(cat /proc/sys/kernel/random/uuid)"
+            echo "artifact-name=$artifact_name" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload standalone preview artifact
+        if: inputs.artifact-name == ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.resolve.outputs.artifact-name }}
+          path: ${{ inputs.working-directory }}/${{ inputs.output-dir }}
+          if-no-files-found: error
+          include-hidden-files: false
+          retention-days: ${{ inputs.retention-days }}
 
       - name: Preview summary
         if: always()
+        env:
+          ARTIFACT_NAME: ${{ steps.resolve.outputs.artifact-name }}
+          SOURCE_KIND: ${{ inputs.artifact-name != '' && 'same-run artifact' || 'standalone build' }}
         run: |
-          echo "### 🚀 Preview Deployment" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Provider | ${{ inputs.provider }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Output | \`${{ inputs.working-directory }}/${{ inputs.output-dir }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Preview URL | ${{ steps.custom.outputs.preview-url || 'N/A' }} |" >> "$GITHUB_STEP_SUMMARY"
+          set -euo pipefail
+          {
+            echo "### Preview artifact"
+            echo
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Artifact | \`$ARTIFACT_NAME\` |"
+            echo "| Source | $SOURCE_KIND |"
+            echo
+            echo "Artifacts remain private to repository workflow access; this workflow never receives deployment secrets."
+          } >> "$GITHUB_STEP_SUMMARY"

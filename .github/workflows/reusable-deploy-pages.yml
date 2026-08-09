@@ -1,0 +1,166 @@
+# =============================================================================
+# Reusable - Deploy GitHub Pages
+# =============================================================================
+#
+# The build job has contents read only. The deploy job receives only Pages and
+# OIDC write authority, consumes the fixed github-pages artifact, runs no caller
+# code, and is gated by the repository's github-pages environment.
+# =============================================================================
+name: Reusable - Deploy GitHub Pages
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Numeric Node.js version to use.
+        required: false
+        type: string
+        default: '22'
+      package-manager:
+        description: Package manager to use (npm or pnpm).
+        required: false
+        type: string
+        default: npm
+      working-directory:
+        description: Workspace-relative package directory.
+        required: false
+        type: string
+        default: .
+      build-command:
+        description: Trusted repository command that builds the production site.
+        required: false
+        type: string
+        default: npm run build
+      output-dir:
+        description: Non-root production output path below working-directory.
+        required: false
+        type: string
+        default: dist
+    outputs:
+      page-url:
+        description: URL returned by GitHub Pages deployment.
+        value: ${{ jobs.deploy.outputs.page-url }}
+
+permissions: {}
+
+concurrency:
+  group: pages-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Pages artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - name: Validate trusted deployment inputs
+        env:
+          BUILD_COMMAND: ${{ inputs.build-command }}
+          NODE_VERSION: ${{ inputs.node-version }}
+          OUTPUT_DIR: ${{ inputs.output-dir }}
+          PACKAGE_MANAGER: ${{ inputs.package-manager }}
+          SOURCE_REF: ${{ github.ref }}
+          TRUSTED_REF: refs/heads/${{ github.event.repository.default_branch }}
+          WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_REF" == "$TRUSTED_REF" ]] ||
+            { echo "::error::production Pages deployment must run from the default branch"; exit 1; }
+          case "$PACKAGE_MANAGER" in
+            npm|pnpm) ;;
+            *) echo "::error::package-manager must be npm or pnpm"; exit 1 ;;
+          esac
+          [[ "$NODE_VERSION" =~ ^[0-9]+([.][0-9]+){0,2}$ ]] ||
+            { echo "::error::node-version must be numeric"; exit 1; }
+          [[ "$WORKING_DIRECTORY" == "." || "$WORKING_DIRECTORY" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ ]] ||
+            { echo "::error::working-directory must be workspace-relative"; exit 1; }
+          [[ "$WORKING_DIRECTORY" != ".." && "$WORKING_DIRECTORY" != *"/../"* && "$WORKING_DIRECTORY" != "../"* && "$WORKING_DIRECTORY" != *"/.." ]] ||
+            { echo "::error::working-directory must not traverse parent directories"; exit 1; }
+          [[ "$OUTPUT_DIR" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ && "$OUTPUT_DIR" != "." ]] ||
+            { echo "::error::output-dir must be a non-root relative path"; exit 1; }
+          [[ "$OUTPUT_DIR" != ".." && "$OUTPUT_DIR" != *"/../"* && "$OUTPUT_DIR" != "../"* && "$OUTPUT_DIR" != *"/.." ]] ||
+            { echo "::error::output-dir must not traverse parent directories"; exit 1; }
+          [[ -n "$BUILD_COMMAND" && "$BUILD_COMMAND" != *$'\n'* && "$BUILD_COMMAND" != *$'\r'* ]] ||
+            { echo "::error::build-command must be single-line trusted repository configuration"; exit 1; }
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Enable Corepack for pnpm cache
+        if: inputs.package-manager == 'pnpm'
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: ${{ inputs.package-manager }}
+          cache-dependency-path: |
+            ${{ inputs.working-directory }}/package-lock.json
+            ${{ inputs.working-directory }}/npm-shrinkwrap.json
+            ${{ inputs.working-directory }}/pnpm-lock.yaml
+
+      - name: Enable Corepack
+        if: inputs.package-manager == 'pnpm'
+        run: corepack enable
+
+      - name: Install dependencies (npm)
+        if: inputs.package-manager == 'npm'
+        working-directory: ${{ inputs.working-directory }}
+        run: npm ci
+
+      - name: Install dependencies (pnpm)
+        if: inputs.package-manager == 'pnpm'
+        working-directory: ${{ inputs.working-directory }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Build production site
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          BUILD_COMMAND: ${{ inputs.build-command }}
+        run: bash --noprofile --norc -eo pipefail -c "$BUILD_COMMAND"
+
+      - name: Verify production output
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          OUTPUT_DIR: ${{ inputs.output-dir }}
+        run: |
+          set -euo pipefail
+          [[ -d "$OUTPUT_DIR" ]] ||
+            { echo "::error::Pages output directory does not exist: $OUTPUT_DIR"; exit 1; }
+          find "$OUTPUT_DIR" -mindepth 1 -print -quit | grep -q . ||
+            { echo "::error::Pages output directory is empty: $OUTPUT_DIR"; exit 1; }
+          if find "$OUTPUT_DIR" -type l -print -quit | grep -q .; then
+            echo "::error::Pages output must not contain symbolic links"
+            exit 1
+          fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: ${{ inputs.working-directory }}/${{ inputs.output-dir }}
+          retention-days: 1
+
+  deploy:
+    name: Deploy Pages artifact
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page-url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0

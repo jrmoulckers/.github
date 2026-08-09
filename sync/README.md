@@ -51,7 +51,8 @@ Each entry in `studio.config.json`'s `members[]` array describes one product rep
 | `repo` | ✅ must match `owner/name` | Clone target, `--members` filter, PR destination. |
 | `mode` | ✅ `application`, `infrastructure`, or `pre-bootstrap`; omitted entries default to `application` | Selects the checkout evidence contract; never selects files. |
 | `optIn.base` / `.agents` / `.skills` / `.prompts` / `.instructions` | ✅ keys against `KINDS`, names against `canon.<kind>`; prompt-to-agent closure is enforced | **Executed** — what canon the member receives. |
-| `optIn.health` / `optIn.workflows` | ✅ same validation; called workflows are checkout-verified | **Recorded only** — native kinds, never copied (see below). |
+| `optIn.health` | ✅ native-kind shape | **Recorded reliance only** — never copied. |
+| `optIn.workflows` | ✅ names against canon; actual calls are checkout-verified | **Availability declaration** — current or planned use, never copied. |
 | `localAgents` | ✅ kebab-case list; cannot overlap selected canon | Locally authored roles/replacements available for handoffs but never synced. |
 | `tokens` | ✅ shape (`enabled` boolean, optional string `targetPath`) | Vendored `@jrm/tokens` opt-in + destination. |
 | `framework` | ✅ non-empty string when allowed; checkout-verified | Descriptive — `--dry-run` label; checked against supported repository signatures. |
@@ -65,9 +66,10 @@ this backbone repo by GitHub itself, and reusable workflows are called via
 reported, then skipped
 before any write ([`lib/assets.mjs`](lib/assets.mjs)). So `"agents": "*"` and
 `"workflows": [...]` sit in the same object with the same shape, and one decides which files exist
-while the other is a label. Schema validation catches a *misspelled* name in either. During a real
-sync or `--check`, checkout inspection also catches any backbone workflow the member actually calls
-but does not list. Extra listed workflows remain valid because they record intended adoption.
+while the other declares availability. Schema validation catches a *misspelled* name in either.
+During a real sync or `--check`, checkout inspection records each actual backbone use with its
+workflow name, ref, file, and line. Undeclared or non-SHA uses fail. Extra declarations are reported
+as currently unused but remain valid because they can record intended adoption.
 
 ### Member modes and evidence
 
@@ -182,15 +184,16 @@ assumptions.
 
 ### `optIn.workflows` vs. what the member actually calls
 
-`workflows` is a native kind: nothing is written, so the list is a *record of intent*. Checkout
-inspection scans every YAML file under `.github/workflows/` during a real sync or `--check` and
-extracts calls to this backbone's `.github/workflows/*.yml|yaml`.
+`workflows` is a native kind: nothing is written, so `optIn.workflows` is an *availability
+declaration*. Checkout inspection separately scans every YAML file under `.github/workflows/`
+during a real sync or `--check` and records each use of this backbone's
+`.github/workflows/*.yml|yaml` with its full ref, file, and line.
 
-The invariant worth holding is one-directional: **every reusable workflow a member calls must appear
-in its `optIn.workflows`.** Listing one it does not call yet is fine and common — `jrm-recipes` and
-`score-king` list workflows they have not adopted, which records the intended direction. Calling one
-that is *not* listed is the error, because the registry then misdescribes the member and no other
-signal exists.
+Two invariants are enforced: **every reusable workflow a member calls must appear in
+`optIn.workflows`, and every call must pin a full 40-character commit SHA.** Listing one it does not
+call yet is fine and common — it is reported as available-but-unused without failing because the
+entry can record an intended direction. An undeclared or mutable call is an error because the
+registry or executable provenance is then false.
 
 This check runs against the clone already required by the operation, so it adds no fetch or API
 request. The offline suite supplies synthetic workflow trees and verifies the scanner and
@@ -244,12 +247,13 @@ Resolution follows each member's `optIn` in the manifest:
 | `instructions` | `*.instructions.md` files | `.github/instructions/` | |
 | `skills` | `<name>/` directories | `.github/skills/` | Whole folder: `SKILL.md` + any checklists. |
 | `health` | community-health files | — | **Native** — GitHub inherits these from the backbone `.github` repo. Never written; the member must **not** keep its own copy. |
-| `workflows` | reusable workflows | — | **Native** — called at a reviewed immutable commit SHA or under a documented versioned-tag update policy. Never written; the member must **not** vendor a copy. |
+| `workflows` | reusable workflows | — | **Native** — availability only; actual calls must use a reviewed full commit SHA. Never written; the member must **not** vendor a copy. |
 
 > **Opting in to a native kind installs nothing.** `health` and `workflows` (`NATIVE_KINDS` in
 > [`lib/manifest.mjs`](lib/manifest.mjs)) are resolved and reported so the plan is complete, then
-> dropped before the write list. Opting in means *"this member relies on the backbone's"*. A local
-> copy of either is **worse than having none**: a member's own health file overrides the one
+> dropped before the write list. Health records reliance; workflows record current or planned
+> availability while checkout inspection records actual use. A local copy of either is **worse than
+> having none**: a member's own health file overrides the one
 > inherited from `jrmoulckers/.github` and freezes it, and a vendored `reusable-*.yml` is a silent
 > fork with no update path. The engine cannot detect or fix either, because it never writes them.
 > See [Native kinds have no transport](../docs/sync.md#native-kinds-have-no-transport).
@@ -561,8 +565,8 @@ open. If an active branch moves mid-run, the push is rejected loudly instead of 
 **One member's failure no longer aborts the run.** Each member is synced inside its own
 try/catch ([`lib/runner.mjs`](lib/runner.mjs)): a git or network error is reported, that member is
 skipped, and the remaining members — and the profile mirror — still run. The process exits non-zero
-with a summary of every failed target. The engine touches up to six separate repos over the
-network, so treating the first error as fatal turned one transient failure into a total outage.
+with a summary of every failed target. The engine touches nine member repositories plus the profile destination over the network, so
+treating the first error as fatal turned one transient failure into a total outage.
 
 **Recovering from a bad run:** pass a fresh `--date`. The branch is `studio-sync/<date>`, so a new
 date means a new branch and a new PR, leaving the previous attempt untouched for inspection.
@@ -570,8 +574,8 @@ date means a new branch and a new PR, leaving the previous attempt untouched for
 ## Authentication
 
 Set `STUDIO_SYNC_TOKEN` to a **fine-grained** PAT with Contents + Pull requests **Read and write**
-on the member repos and `jrmoulckers/jrmoulckers`, plus Contents: **Read** on the private token
-source repo `jrmoulckers/studio` (needed when a member opts into `tokens`). The default
+on all nine member repos and `jrmoulckers/jrmoulckers`. `jrmoulckers/studio` is both a member and
+the private token source, so the member Contents grant includes the read needed for vendoring. The default
 `GITHUB_TOKEN` is scoped to the backbone repo only and **cannot** operate cross-repo.
 
 **No `workflow` scope.** The engine never writes under `.github/workflows/` — `workflows` and
@@ -606,7 +610,8 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/manifest.test.mjs` | The real `studio.config.json` validates; all nine consumers and their explicit modes are registered; disabled infrastructure members produce no writes; local-agent metadata remains compatible; application defaults, Docket's completed mode transition, and mode-specific fact schema are enforced; `canon` matches disk; native kinds are never written. |
 | `test/instruction-integrity.test.mjs` | Canonical instruction filename/roster parity, deterministic `applyTo` scopes, source/materialized ownership, precedence, curated member compatibility, infrastructure routing, local-agent collision safety, and immutable reusable-workflow examples. |
 | `test/agency-integrity.test.mjs` | Exact reviewed MCP package versions and tools, safe default server profile, pinned optional Playwright/memory profiles, and rejection of mutable specs, the nonexistent Playwright package, and wildcard grants. |
-| `test/member-facts.test.mjs` | Synthetic checkout derivation for each mode, independently optional infrastructure facts, pre-bootstrap transitions, root package managers, supported framework signatures, ambiguous/missing evidence, backbone workflow calls in every mode, and field-specific diagnostics. No member facts or network access are pinned. |
+| `test/member-facts.test.mjs` | Synthetic checkout derivation for each mode, independently optional infrastructure facts, pre-bootstrap transitions, root package managers, supported framework signatures, ambiguous/missing evidence, SHA-pinned backbone workflow calls (including aliases, flow mappings, quoted keys, and block scalars), shell-scalar exclusion, and field-specific diagnostics. No member facts or network access are pinned. |
+| `test/workflow-integrity.test.mjs` | Canon/file parity, practical zero-dependency YAML surface checks, full-SHA action refs and version comments, permissions ceilings, timeouts, concurrency ownership, checkout credentials, shell interpolation, artifact contracts, Pages authority split, digest-pinned security scanning, change detection, and private-by-default Lighthouse behavior. |
 | `test/provenance.test.mjs` | Every real write equals `inject(targetPath, canon)` and never canon verbatim — so the documented hand-audit baseline stays correct; and that check is line-ending agnostic on the member side. |
 | `test/prbody.test.mjs` | An adoption-only run's PR body says its entire diff is the lockfile, and does not claim that when the run also wrote files (including via `--force`). The drift note states that `--force` is run-wide, offers the by-hand remedy first, and neither appears when the run has no drift. |
 | `test/workdir.test.mjs` | `--work-dir` guards: a parent directory, a missing path and a file are all rejected; a git worktree (whose `.git` is a file) is accepted; identity resolves to `match` / `mismatch` / `unverifiable` across URL spellings and case, both failing verdicts abort, the refusal names the self-certifying lockfile, and `--allow-unverified-work-dir` overrides them without ever marking a matching checkout as overridden. |

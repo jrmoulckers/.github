@@ -39,7 +39,7 @@ export function syncRepo({ repo, writes, token, date, force, backbone, title, in
   const tmp = mkdtempSync(join(tmpdir(), 'studio-sync-'));
   try {
     const defaultBranch = cloneShallow(repo, token, tmp);
-    inspectCheckout?.(tmp);
+    const inspection = inspectCheckout?.(tmp);
     const datedBranch = branchName(date);
     const existing = findOpenPr(repo, datedBranch, token, tmp);
     const base = prepareSyncBranch(tmp, existing?.branch ?? datedBranch, {
@@ -60,12 +60,14 @@ export function syncRepo({ repo, writes, token, date, force, backbone, title, in
 
     const lock = readLock(tmp, backbone);
     const { report } = apply(tmp, writes, lock, { force, write: true });
-    if (!report.changed) return { status: 'unchanged', report };
+    if (!report.changed) return { status: 'unchanged', report, inspection };
 
-    if (!commitAll(tmp, commitMessage(date))) return { status: 'unchanged', report };
+    if (!commitAll(tmp, commitMessage(date))) return { status: 'unchanged', report, inspection };
 
     push(tmp, branch);
-    if (existing) return { status: 'pr', prUrl: existing.url, branch, reused: true, report };
+    if (existing) {
+      return { status: 'pr', prUrl: existing.url, branch, reused: true, report, inspection };
+    }
 
     const bodyFile = join(tmp, '.studio-sync-pr-body.md');
     writeFileSync(bodyFile, buildPrBody(report, { date, intro }), 'utf8');
@@ -74,7 +76,7 @@ export function syncRepo({ repo, writes, token, date, force, backbone, title, in
       { base: defaultBranch, head: branch, title: title ?? commitTitle(date), bodyFile },
       token,
     );
-    return { status: 'pr', prUrl, branch, report };
+    return { status: 'pr', prUrl, branch, report, inspection };
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
