@@ -15,26 +15,36 @@ const PERMISSION_CEILINGS = new Map([
   ['studio-sync.yml', new Map([['sync', new Map([['contents', 'read']])]])],
   ['reusable-change-detection.yml', new Map([['detect', new Map([['contents', 'read']])]])],
   ['reusable-ci-lint.yml', new Map([
-    ['lint', new Map([['contents', 'read']])],
+    ['lint', new Map([['contents', 'read'], ['packages', 'read']])],
     ['pr-title', new Map([['pull-requests', 'read']])],
   ])],
-  ['reusable-ci-web.yml', new Map([['web', new Map([['contents', 'read']])]])],
+  ['reusable-ci-web.yml', new Map([
+    ['web', new Map([['contents', 'read'], ['packages', 'read']])],
+  ])],
   ['reusable-deploy-pages.yml', new Map([
-    ['build', new Map([['contents', 'read']])],
+    ['build', new Map([['contents', 'read'], ['packages', 'read']])],
     ['deploy', new Map([['pages', 'write'], ['id-token', 'write']])],
   ])],
-  ['reusable-deploy-preview.yml', new Map([['preview', new Map([['contents', 'read']])]])],
-  ['reusable-perf-budget.yml', new Map([['performance', new Map([['contents', 'read']])]])],
+  ['reusable-deploy-preview.yml', new Map([
+    ['preview', new Map([['contents', 'read'], ['packages', 'read']])],
+  ])],
+  ['reusable-perf-budget.yml', new Map([
+    ['performance', new Map([['contents', 'read'], ['packages', 'read']])],
+  ])],
   ['reusable-security-ci.yml', new Map([
     ['package-audit', new Map([['contents', 'read']])],
     ['secret-scan', new Map([['contents', 'read']])],
     ['dependency-review', new Map([['contents', 'read']])],
   ])],
   ['reusable-smoke-test.yml', new Map([
-    ['smoke', new Map([['contents', 'read']])],
+    ['smoke', new Map([['contents', 'read'], ['packages', 'read']])],
     ['summary', new Map()],
   ])],
 ]);
+
+// The only credential a canonical reusable workflow may accept. It is a registry read token
+// consumed by npm and pnpm during install; nothing else may enter through workflow_call.
+const ALLOWED_CALL_SECRETS = new Set(['NODE_AUTH_TOKEN']);
 
 export function validateWorkflowIntegrity(repoRoot, manifest) {
   const errors = [];
@@ -198,6 +208,11 @@ export function inspectWorkflowSource(relativePath, text, { reusable = false } =
     if (!/^\s{2}workflow_call:\s*$/m.test(text)) {
       errors.push(`${relativePath}: reusable workflows require workflow_call`);
     }
+    for (const name of extractCallSecrets(lines)) {
+      if (!ALLOWED_CALL_SECRETS.has(name)) {
+        errors.push(`${relativePath}: workflow_call secret "${name}" is outside the allowed contract`);
+      }
+    }
     const ownsDeploymentConcurrency = fileName === 'reusable-deploy-pages.yml';
     if (ownsDeploymentConcurrency) {
       if (
@@ -256,7 +271,6 @@ function validateArtifactContracts(sources, errors) {
   const preview = sources.get('reusable-deploy-preview.yml') ?? '';
   if (
     /^\s{6}(?:provider|preview-command):/m.test(preview) ||
-    /^\s{4}secrets:\s*$/m.test(preview) ||
     /^\s{6}DEPLOY_TOKEN:/m.test(preview)
   ) {
     errors.push('reusable-deploy-preview.yml: arbitrary provider commands and deploy secrets are forbidden');
@@ -366,6 +380,24 @@ function extractUses(lines) {
     if (target) uses.push({ target, comment, line: index + 1 });
   }
   return uses;
+}
+
+function extractCallSecrets(lines) {
+  const callIndex = lines.findIndex((line) => /^ {2}workflow_call:\s*$/.test(line));
+  if (callIndex === -1) return [];
+  const secretsIndex = lines.findIndex(
+    (line, index) => index > callIndex && /^ {4}secrets:\s*$/.test(line),
+  );
+  if (secretsIndex === -1) return [];
+  const names = [];
+  for (let index = secretsIndex + 1; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (!line.trim()) continue;
+    if (line.match(/^ */)[0].length <= 4) break;
+    const match = line.match(/^ {6}([A-Za-z_][A-Za-z0-9_-]*):\s*$/);
+    if (match) names.push(match[1]);
+  }
+  return names;
 }
 
 function extractJobBlocks(lines) {

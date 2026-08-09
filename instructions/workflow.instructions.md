@@ -101,18 +101,19 @@ Grant every scope the callee declares:
 
 | Reusable workflow | Scopes the caller must grant |
 | --- | --- |
-| `reusable-ci-lint` | `contents: read` **and `pull-requests: read`** (Semantic PR Title job) |
-| `reusable-ci-web` | `contents: read` |
-| `reusable-perf-budget` | `contents: read` |
-| `reusable-smoke-test` | `contents: read` |
-| `reusable-deploy-preview` | `contents: read` |
+| `reusable-ci-lint` | `contents: read`, **`packages: read`**, **and `pull-requests: read`** (Semantic PR Title job) |
+| `reusable-ci-web` | `contents: read`, `packages: read` |
+| `reusable-perf-budget` | `contents: read`, `packages: read` |
+| `reusable-smoke-test` | `contents: read`, `packages: read` |
+| `reusable-deploy-preview` | `contents: read`, `packages: read` |
 | `reusable-change-detection` | `contents: read` |
 | `reusable-security-ci` | `contents: read` |
-| `reusable-deploy-pages` | `contents: read`, `pages: write`, and `id-token: write` |
+| `reusable-deploy-pages` | `contents: read`, `packages: read`, `pages: write`, and `id-token: write` |
 
 ```yaml
 permissions:
   contents: read
+  packages: read          # required by every Node-installing reusable workflow
   pull-requests: read      # required by reusable-ci-lint
 
 jobs:
@@ -200,14 +201,53 @@ and its environment-gated deploy job only calls GitHub's deploy action with `pag
 
 - Reusable commands are trusted repository configuration. Pass literal workflow values, never event
   titles, branch names, issue text, or other untrusted data.
-- Never use `secrets: inherit`. Canonical PR build, security, preview, performance, smoke, and change
-  detection workflows declare no secrets.
+- Never use `secrets: inherit`. `NODE_AUTH_TOKEN` is the only secret any canonical reusable workflow
+  accepts, and it must be passed explicitly.
 - Preview canon is artifact-only. The removed `provider`, `preview-command`, `DEPLOY_TOKEN`, and
   `preview-url` contracts must not be recreated. Provider deployments require a separate reviewed
   job, a protected environment, explicit secrets, and no PR-controlled arbitrary shell.
 - Lighthouse reports remain private GitHub artifacts by default. Enable
   `lighthouse-public-upload` only for an intentionally public, unauthenticated URL after accepting
   that report data will leave GitHub's private artifact boundary.
+
+### Installing from a private registry
+
+`reusable-ci-lint`, `reusable-ci-web`, `reusable-deploy-pages`, `reusable-deploy-preview`,
+`reusable-perf-budget`, and `reusable-smoke-test` accept optional `registry-url` and
+`registry-scope` inputs plus an optional `NODE_AUTH_TOKEN` secret. Leave all three unset and the
+run is unchanged: `actions/setup-node` ignores an empty `registry-url` entirely and writes no
+`.npmrc`.
+
+```yaml
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  web:
+    uses: jrmoulckers/.github/.github/workflows/reusable-ci-web.yml@<reviewed-commit-sha>
+    with:
+      package-manager: pnpm
+      registry-url: https://npm.pkg.github.com
+      registry-scope: '@jrmoulckers'
+    secrets:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+Rules and interactions:
+
+- `packages: read` is required for `GITHUB_TOKEN` to read a GitHub Packages package at all, and a
+  caller `permissions:` block must grant it or the run fails at startup.
+- `registry-scope` requires `registry-url`. Setting `registry-url` without a scope replaces the
+  **default** registry for every package and emits a warning.
+- `actions/setup-node` writes its `.npmrc` to `$RUNNER_TEMP/.npmrc` and exports
+  `NPM_CONFIG_USERCONFIG`, so it is **user**-level config. A repo's own committed `.npmrc` is
+  **project**-level and outranks it on every key it sets, for both npm and pnpm. A project `.npmrc`
+  that points the same scope at a different registry wins and the install still fails; either delete
+  that line or keep it byte-identical. A project `.npmrc` that only sets unrelated keys is fine.
+- pnpm reads `NPM_CONFIG_USERCONFIG` and expands `${NODE_AUTH_TOKEN}` the same way npm does, so no
+  extra pnpm-specific step is needed. `setup-node` always exports `NODE_AUTH_TOKEN` (a placeholder
+  when the secret is absent), which keeps pnpm's env-expansion from erroring.
 
 ### Never vendor a backbone workflow or health file
 

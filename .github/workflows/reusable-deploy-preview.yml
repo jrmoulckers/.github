@@ -6,6 +6,32 @@
 # provider, arbitrary preview command, DEPLOY_TOKEN secret, and preview URL output
 # were removed: provider deployment belongs in a separately reviewed, protected
 # environment job that never executes caller-controlled shell with deploy authority.
+#
+# Optional private registry (standalone build mode only): set registry-url and registry-scope
+# and pass the NODE_AUTH_TOKEN secret to install scoped packages from a private registry.
+# actions/setup-node then writes a user-level npmrc to $RUNNER_TEMP/.npmrc and exports
+# NPM_CONFIG_USERCONFIG; npm and pnpm both honour that file. A caller's own committed .npmrc is
+# project-level and outranks it on every key it sets, so a repo .npmrc must not point the same
+# scope at a different registry. NODE_AUTH_TOKEN is a registry read credential only; this
+# workflow still receives no deployment secrets.
+#
+# The preview job requests packages: read. A caller with an explicit permissions block must grant
+# packages: read too, or the run fails at startup.
+#
+# Example caller:
+#   permissions:
+#     contents: read
+#     packages: read
+#   jobs:
+#     preview:
+#       uses: jrmoulckers/.github/.github/workflows/reusable-deploy-preview.yml@<reviewed-commit-sha>
+#       with:
+#         package-manager: pnpm
+#         build-command: pnpm build
+#         registry-url: https://npm.pkg.github.com
+#         registry-scope: '@jrmoulckers'
+#       secrets:
+#         NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 # =============================================================================
 name: Reusable - Preview Artifact
 
@@ -52,6 +78,20 @@ on:
         required: false
         type: string
         default: preview-build
+      registry-url:
+        description: Optional HTTPS private registry to authenticate against; empty disables registry auth.
+        required: false
+        type: string
+        default: ''
+      registry-scope:
+        description: Lowercase npm scope the private registry serves, such as @jrmoulckers.
+        required: false
+        type: string
+        default: ''
+    secrets:
+      NODE_AUTH_TOKEN:
+        description: Registry read token for standalone builds; unused when registry-url is empty.
+        required: false
     outputs:
       artifact-name:
         description: Existing or newly uploaded preview artifact name.
@@ -66,6 +106,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      packages: read
     outputs:
       artifact-name: ${{ steps.resolve.outputs.artifact-name }}
 
@@ -77,6 +118,8 @@ jobs:
           NODE_VERSION: ${{ inputs.node-version }}
           OUTPUT_DIR: ${{ inputs.output-dir }}
           PACKAGE_MANAGER: ${{ inputs.package-manager }}
+          REGISTRY_SCOPE: ${{ inputs.registry-scope }}
+          REGISTRY_URL: ${{ inputs.registry-url }}
           RETENTION_DAYS: ${{ inputs.retention-days }}
           STANDALONE_ARTIFACT_PREFIX: ${{ inputs.standalone-artifact-prefix }}
           WORKING_DIRECTORY: ${{ inputs.working-directory }}
@@ -109,6 +152,19 @@ jobs:
             [[ -n "$BUILD_COMMAND" ]] ||
               { echo "::error::build-command is required for a standalone preview"; exit 1; }
           fi
+          if [[ -n "$REGISTRY_URL" ]]; then
+            [[ "$REGISTRY_URL" =~ ^https://[^[:space:]@/]+(:[0-9]+)?(/[^[:space:]]*)?$ ]] ||
+              { echo "::error::registry-url must be HTTPS, credential-free, and contain no whitespace"; exit 1; }
+            [[ -n "$REGISTRY_SCOPE" ]] ||
+              echo "::warning::registry-url without registry-scope replaces the default registry for every package"
+          elif [[ -n "$REGISTRY_SCOPE" ]]; then
+            echo "::error::registry-scope requires registry-url"
+            exit 1
+          fi
+          if [[ -n "$REGISTRY_SCOPE" ]]; then
+            [[ "$REGISTRY_SCOPE" =~ ^@?[a-z0-9][a-z0-9._-]*$ ]] ||
+              { echo "::error::registry-scope must be a lowercase npm scope such as @jrmoulckers"; exit 1; }
+          fi
 
       - name: Download same-run build artifact
         if: inputs.artifact-name != ''
@@ -133,6 +189,8 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
           cache: ${{ inputs.package-manager }}
+          registry-url: ${{ inputs.registry-url }}
+          scope: ${{ inputs.registry-scope }}
           cache-dependency-path: |
             ${{ inputs.working-directory }}/package-lock.json
             ${{ inputs.working-directory }}/npm-shrinkwrap.json
@@ -145,11 +203,15 @@ jobs:
       - name: Install dependencies (npm)
         if: inputs.artifact-name == '' && inputs.package-manager == 'npm'
         working-directory: ${{ inputs.working-directory }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         run: npm ci
 
       - name: Install dependencies (pnpm)
         if: inputs.artifact-name == '' && inputs.package-manager == 'pnpm'
         working-directory: ${{ inputs.working-directory }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         run: pnpm install --frozen-lockfile
 
       - name: Build standalone preview
