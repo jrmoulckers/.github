@@ -18,13 +18,14 @@ here plus `@jrm` npm packages.
 ├─ profile/README.md          # JRM Studio account profile
 ├─ AGENTS.md                  # studio-wide base operating guide (product repos extend it)
 ├─ agency.toml                # pinned MCP servers + reviewed optional browser/memory profiles
+├─ copilot-instructions.md    # Copilot-surface orientation → .github/copilot-instructions.md
 ├─ principles/                # Draft GitHub governance and Actions principles
 ├─ studio.config.json         # manifest: members + per-repo opt-in canon (drives the sync tool)
 ├─ CONTRIBUTING.md            # ┐
 ├─ SECURITY.md                # ├─ default community-health files (inherited by member repos)
 ├─ CODE_OF_CONDUCT.md         # ┘
 ├─ agents/                    # 22 cross-cutting Copilot agents  (canonical source)
-├─ skills/                    # 15 cross-cutting skills          (canonical source)
+├─ skills/                    # 17 cross-cutting skills          (canonical source)
 ├─ prompts/                   # 8 reusable prompts               (canonical source)
 ├─ instructions/             # 6 path-scoped instructions       (canonical source)
 ├─ docs/sync.md               # design and operating model for cross-repo sync
@@ -117,18 +118,25 @@ directions and ownership boundaries.
 ### 2. Synced canon — distributed by the sync tool
 
 Copilot **does not** auto-inherit `agents/`, `skills/`, `prompts/`, `instructions/`, `AGENTS.md`,
-or `agency.toml` across repos. They are the **canonical source** that a scheduled sync tool copies
-into each product repo's `.github/…`, based on what that repo opts into in
+`agency.toml`, or `copilot-instructions.md` across repos. They are the **canonical source** that a
+scheduled sync tool copies into each product repo's `.github/…`, based on what that repo opts into in
 [`studio.config.json`](studio.config.json). See **[`docs/sync.md`](docs/sync.md)** for the intended
 flow and **[`sync/README.md`](sync/README.md)** for the implemented engine.
 
 | Canon | Count | Synced to (in product repo) |
 | --- | --- | --- |
 | `agents/*.agent.md` | 22 | `.github/agents/` |
-| `skills/<name>/SKILL.md` | 15 | `.github/skills/` |
+| `skills/<name>/SKILL.md` | 17 | `.github/skills/` |
 | `prompts/*.prompt.md` | 8 | `.github/prompts/` |
 | `instructions/*.instructions.md` | 6 | `.github/instructions/` |
-| `AGENTS.md`, `agency.toml` | — | repo root (product repos extend `AGENTS.md`) |
+| `AGENTS.md` | — | repo root — managed region; members extend it around the markers |
+| `agency.toml` | — | repo root — whole-file copy |
+| `copilot-instructions.md` | — | `.github/copilot-instructions.md` — managed region |
+
+`AGENTS.md`, `agency.toml`, and `copilot-instructions.md` are selected by three **independent**
+booleans (`base`, `runtime`, `copilot`), so declining the studio operating guide does not also
+decline MCP policy or Copilot orientation — see
+[ADR-0006](docs/architecture/0006-runtime-and-copilot-canon-kinds.md).
 
 ## The AI layer
 

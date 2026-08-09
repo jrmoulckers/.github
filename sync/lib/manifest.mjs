@@ -13,14 +13,37 @@ import { validateInstructionIntegrity } from './instruction-integrity.mjs';
 import { validatePromptIntegrity } from './prompt-integrity.mjs';
 import { validateWorkflowIntegrity } from './workflow-integrity.mjs';
 
-export const KINDS = ['base', 'agents', 'skills', 'prompts', 'instructions', 'workflows', 'health'];
+export const KINDS = [
+  'base',
+  'runtime',
+  'copilot',
+  'agents',
+  'skills',
+  'prompts',
+  'instructions',
+  'workflows',
+  'health',
+];
 export const MEMBER_MODES = ['application', 'infrastructure', 'pre-bootstrap'];
 export const DEFAULT_MEMBER_MODE = 'application';
+
+// Kinds selected by a plain boolean rather than "*" / a name array. Each one is a fixed,
+// single-purpose file set, so there is nothing to select within it.
+export const BOOLEAN_KINDS = new Set(['base', 'runtime', 'copilot', 'health']);
 
 // Kinds that produce written files vs. those inherited natively by GitHub/Copilot.
 export const NATIVE_KINDS = new Set(['health', 'workflows']);
 export const FILE_KINDS = new Set(['agents', 'prompts', 'instructions']);
 export const DIR_KINDS = new Set(['skills']);
+
+// Canon files materialized through the managed-region merge in basemerge.mjs, keyed by kind.
+// The member keeps everything outside the markers; only the region between them is replaced.
+// Each kind contributes exactly one managed file, because a marker pair identifies a region
+// within a file, not which file it belongs to.
+export const MANAGED_MERGE_TARGETS = new Map([
+  ['base', 'AGENTS.md'],
+  ['copilot', '.github/copilot-instructions.md'],
+]);
 
 export function manifestPath(repoRoot) {
   return join(repoRoot, 'studio.config.json');
@@ -107,9 +130,37 @@ export function validateManifest(m) {
   }
 
   validateTokens(m, errors);
+  validateManagedKinds(m, errors);
 
   if (errors.length) {
     throw new Error(`Invalid studio.config.json:\n  - ${errors.join('\n  - ')}`);
+  }
+}
+
+/**
+ * A managed-merge kind owns a region inside one member file, identified by a single marker
+ * pair. Two canon entries for the same kind would both claim that region and the second would
+ * silently overwrite the first, so the one-file rule is enforced here rather than discovered
+ * as a confusing drift report at sync time. The resolved target path is also checked against
+ * MANAGED_MERGE_TARGETS so a stray sourcePaths/targetPaths edit cannot relocate a managed file
+ * away from the location Copilot actually reads.
+ */
+function validateManagedKinds(m, errors) {
+  if (!isObject(m.canon) || !isObject(m.sourcePaths) || !isObject(m.targetPaths)) return;
+
+  for (const [kind, expectedTarget] of MANAGED_MERGE_TARGETS) {
+    const names = m.canon[kind];
+    if (!Array.isArray(names)) continue;
+    if (names.length !== 1) {
+      errors.push(`canon.${kind} must list exactly one managed file, got ${names.length}`);
+      continue;
+    }
+    const targetBase = m.targetPaths[kind];
+    if (typeof targetBase !== 'string') continue;
+    const actual = [targetBase, names[0]].filter((part) => part && part !== '.').join('/');
+    if (actual !== expectedTarget) {
+      errors.push(`canon.${kind} must materialize to ${expectedTarget}, got ${actual}`);
+    }
   }
 }
 
@@ -234,7 +285,7 @@ function validateOptIn(member, i, manifest, errors) {
       errors.push(`members[${i}].optIn.${kind} is not a known kind`);
       continue;
     }
-    if (kind === 'base' || kind === 'health') {
+    if (BOOLEAN_KINDS.has(kind)) {
       if (typeof sel !== 'boolean') errors.push(`members[${i}].optIn.${kind} must be a boolean`);
       continue;
     }

@@ -50,7 +50,7 @@ Each entry in `studio.config.json`'s `members[]` array describes one product rep
 | --- | --- | --- |
 | `repo` | ✅ must match `owner/name` | Clone target, `--members` filter, PR destination. |
 | `mode` | ✅ `application`, `infrastructure`, or `pre-bootstrap`; omitted entries default to `application` | Selects the checkout evidence contract; never selects files. |
-| `optIn.base` / `.agents` / `.skills` / `.prompts` / `.instructions` | ✅ keys against `KINDS`, names against `canon.<kind>`; prompt-to-agent closure is enforced | **Executed** — what canon the member receives. |
+| `optIn.base` / `.runtime` / `.copilot` / `.agents` / `.skills` / `.prompts` / `.instructions` | ✅ keys against `KINDS`, names against `canon.<kind>`; boolean-only kinds rejected if given arrays; prompt-to-agent closure is enforced | **Executed** — what canon the member receives. |
 | `optIn.health` | ✅ native-kind shape | **Recorded reliance only** — never copied. |
 | `optIn.workflows` | ✅ names against canon; actual calls are checkout-verified | **Availability declaration** — current or planned use, never copied. |
 | `localAgents` | ✅ kebab-case list; cannot overlap selected canon | Locally authored roles/replacements available for handoffs but never synced. |
@@ -233,21 +233,30 @@ as an operational caveat instead.
 Resolution follows each member's `optIn` in the manifest:
 
 - `"*"` → the full canon of that kind, an array → those names, `false`/omitted → opt out.
-- `base` and `health` are booleans.
-- The **only** valid `optIn` keys are `base`, `agents`, `skills`, `prompts`, `instructions`,
-  `workflows`, `health` (`KINDS` in [`lib/manifest.mjs`](lib/manifest.mjs)). Anything else — notably
-  `optIn.tokens` or `optIn.profile` — fails validation with *"is not a known kind"*. Tokens and the
-  profile README are configured elsewhere; see the two rows below the table.
+- `base`, `runtime`, `copilot` and `health` are booleans (`BOOLEAN_KINDS` in
+  [`lib/manifest.mjs`](lib/manifest.mjs)).
+- The **only** valid `optIn` keys are `base`, `runtime`, `copilot`, `agents`, `skills`, `prompts`,
+  `instructions`, `workflows`, `health` (`KINDS` in [`lib/manifest.mjs`](lib/manifest.mjs)). Anything
+  else — notably `optIn.tokens` or `optIn.profile` — fails validation with *"is not a known kind"*.
+  Tokens and the profile README are configured elsewhere; see the two rows below the table.
 
 | Kind | Shape | Target | Notes |
 | --- | --- | --- | --- |
-| `base` | `AGENTS.md`, `agency.toml` | member root | `AGENTS.md` is **merged** (see below); `agency.toml` copied wholesale. |
+| `base` | `AGENTS.md` | member root | **Merged** into a managed region (see below); member content outside the markers is never touched. |
+| `runtime` | `agency.toml` | member root | Copied wholesale. Reviewed MCP servers and tool allowlists. |
+| `copilot` | `copilot-instructions.md` | `.github/` | **Merged** into a managed region, same mechanism as `AGENTS.md`. |
 | `agents` | `*.agent.md` files | `.github/agents/` | |
 | `prompts` | `*.prompt.md` files | `.github/prompts/` | |
 | `instructions` | `*.instructions.md` files | `.github/instructions/` | |
 | `skills` | `<name>/` directories | `.github/skills/` | Whole folder: `SKILL.md` + any checklists. |
 | `health` | community-health files | — | **Native** — GitHub inherits these from the backbone `.github` repo. Never written; the member must **not** keep its own copy. |
 | `workflows` | reusable workflows | — | **Native** — availability only; actual calls must use a reviewed full commit SHA. Never written; the member must **not** vendor a copy. |
+
+> **`base`, `runtime` and `copilot` are three independent booleans.** They were one kind until
+> [ADR-0006](../docs/architecture/0006-runtime-and-copilot-canon-kinds.md). Bundling them meant an
+> infrastructure member that declined the studio operating guide — reasonably, because its own root
+> guide is authoritative — also silently declined reviewed MCP policy. Three members were in that
+> state. Declining one of these kinds now says nothing about the other two.
 
 > **Opting in to a native kind installs nothing.** `health` and `workflows` (`NATIVE_KINDS` in
 > [`lib/manifest.mjs`](lib/manifest.mjs)) are resolved and reported so the plan is complete, then
@@ -396,22 +405,34 @@ Token files flow through the same lockfile, drift detection, and `chore(sync)` P
 the rest of the canon. See [`docs/sync.md`](../docs/sync.md#the-dist-path-contract-interface-between-the-two-repos)
 for the exact `dist/` path contract the studio repo must match.
 
-### AGENTS.md base merge
+### Managed-region merge (`AGENTS.md`, `.github/copilot-instructions.md`)
 
-Product repos keep their own extending `AGENTS.md`. The tool manages only a marked region:
+Two canonical files must coexist with member-authored content in the same file, so the tool manages
+only a marked region within each:
 
 ```markdown
 <!-- studio:base:start -->
-…canonical base guide…
+…canonical content…
 <!-- studio:base:end -->
 ```
 
-Everything outside the markers is product-local and never touched. Editing inside the block
-is treated as drift; editing outside it is ignored. If a member has no `AGENTS.md`, one is
-created containing just the managed block.
+Everything outside the markers is member-local and never touched. Editing inside the block is
+treated as drift; editing outside it is ignored. If a member has neither file, one is created
+containing just the managed block; if it already has one without markers, the block is appended and
+all existing content is preserved.
+
+Which files use this is declared by `MANAGED_MERGE_TARGETS` in [`lib/manifest.mjs`](lib/manifest.mjs),
+and manifest validation enforces that each managed kind declares exactly one file resolving to
+exactly its mapped path. A managed kind cannot list two files — both would claim the same marker
+pair and the second would overwrite the first — and cannot be relocated to a path the tooling does
+not actually read.
+
+The split of content between the two is deliberate: `AGENTS.md` owns policy, and the Copilot block
+owns Copilot-surface orientation and defers to `AGENTS.md` for every rule. See
+[ADR-0006](../docs/architecture/0006-runtime-and-copilot-canon-kinds.md).
 
 **A marker only counts when it starts at column 0 on a line of its own, outside any fenced code
-block.** That strictness exists because the natural thing for a product `AGENTS.md` to do is
+block.** That strictness exists because the natural thing for a member `AGENTS.md` to do is
 *explain* this convention — quoting `` `<!-- studio:base:start -->` `` inline, showing both markers
 in a ```` ```markdown ```` example exactly as the block above does, or indenting them four spaces as
 a code block. Under a looser match that prose formed a **phantom managed block**: `extractBlock`
@@ -427,8 +448,9 @@ must be at column 0 — masking only understands ``` / ~~~ fences, so the indent
 that one. The engine always writes markers at column 0, so nothing legitimate is excluded.
 
 As a second line of defense, drift on a managed block that is a small fraction of canon's size is
-reported with an explicit *"check AGENTS.md for stray `studio:base` markers"* note, and a skipped
-`AGENTS.md` gets its own warning line rather than being one entry in a drift list.
+reported with an explicit *"check `<target>` for stray `studio:base` markers"* note naming the
+offending file, and a skipped `AGENTS.md` gets its own warning line rather than being one entry in a
+drift list.
 
 ## Idempotency & drift — `.studio-sync.lock.json`
 

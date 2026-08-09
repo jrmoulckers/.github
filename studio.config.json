@@ -7,7 +7,9 @@
   "backbone": "jrmoulckers/.github",
   "version": 1,
   "canon": {
-    "base": ["AGENTS.md", "agency.toml"],
+    "base": ["AGENTS.md"],
+    "runtime": ["agency.toml"],
+    "copilot": ["copilot-instructions.md"],
     "agents": [
       "accessibility-reviewer",
       "ai-ops-engineer",
@@ -36,6 +38,8 @@
       "accessibility-testing",
       "design-tokens",
       "dev-onboarding",
+      "edge-sync",
+      "fleet-orchestration",
       "go-to-market",
       "i18n-localization",
       "issue-management",
@@ -80,6 +84,8 @@
   },
   "sourcePaths": {
     "base": ".",
+    "runtime": ".",
+    "copilot": ".",
     "agents": "agents",
     "skills": "skills",
     "prompts": "prompts",
@@ -90,6 +96,8 @@
   },
   "targetPaths": {
     "base": ".",
+    "runtime": ".",
+    "copilot": ".github",
     "agents": ".github/agents",
     "skills": ".github/skills",
     "prompts": ".github/prompts",
@@ -99,8 +107,8 @@
     "profile": "profile"
   },
   "optInSyntax": {
-    "$comment": "Each member.optIn.<kind> is either the string \"*\" (all canon of that kind), an array of names, or false (opt out). base/health are booleans.",
-    "kinds": ["base", "agents", "skills", "prompts", "instructions", "workflows", "health"]
+    "$comment": "Each member.optIn.<kind> is either the string \"*\" (all canon of that kind), an array of names, or false (opt out). base/runtime/copilot/health are booleans. base (AGENTS.md), runtime (agency.toml) and copilot (.github/copilot-instructions.md) are three INDEPENDENT booleans: an infrastructure member that declines the studio operating guide must still be able to receive canonical MCP policy and Copilot-surface orientation.",
+    "kinds": ["base", "runtime", "copilot", "agents", "skills", "prompts", "instructions", "workflows", "health"]
   },
   "tokens": {
     "$comment": "Vendored design tokens from the OTHER private backbone repo jrmoulckers/studio (package @jrm/tokens). Registry-free: the sync engine copies studio's committed dist/ tree verbatim into each opted-in member (Option A). The whole sourceBase tree is mirrored today; a future optional per-member `include` (array of sub-globs under sourceBase) may narrow this without a breaking schema change. Per-member opt-in lives in members[].tokens, kept separate from optIn because the source is an external repo, not the .github canon.",
@@ -118,6 +126,8 @@
       "notes": "New consumer web product. Adopts the full canonical layer.",
       "optIn": {
         "base": true,
+        "runtime": true,
+        "copilot": true,
         "health": true,
         "agents": "*",
         "skills": "*",
@@ -136,6 +146,8 @@
       "localAgents": ["design-engineer"],
       "optIn": {
         "base": true,
+        "runtime": true,
+        "copilot": true,
         "health": true,
         "agents": [
           "accessibility-reviewer",
@@ -176,6 +188,8 @@
       "localAgents": ["finance-domain"],
       "optIn": {
         "base": true,
+        "runtime": true,
+        "copilot": true,
         "health": true,
         "agents": "*",
         "skills": "*",
@@ -193,6 +207,8 @@
       "notes": "Pure-client media hub for books and audiobooks. Svelte/Vite PWA at repo root; first member to consume vendored @jrm/tokens.",
       "optIn": {
         "base": true,
+        "runtime": true,
+        "copilot": true,
         "health": true,
         "agents": "*",
         "skills": "*",
@@ -210,6 +226,8 @@
       "notes": "Local-first game library PWA. Svelte 5 + Vite at repo root, IndexedDB via idb, vite-plugin-pwa. Separate bridge/ Cloudflare Worker (OAuth token exchange, KV cache, CORS allowlist) with its own toolchain, so this member is not backend-free. Opted in with \"*\": its partial canon set came from a hand-typed list in a scaffold script, not a curation decision, so freezing it would preserve a first-pass guess.",
       "optIn": {
         "base": true,
+        "runtime": true,
+        "copilot": true,
         "health": true,
         "agents": "*",
         "skills": "*",
@@ -227,6 +245,8 @@
       "notes": "Native-first task system with a Svelte PWA, pnpm workspace, shared domain/contracts packages, Hono/SQLite server, and planned SwiftUI client. Upgraded from pre-bootstrap immediately when its application and root toolchain evidence landed.",
       "optIn": {
         "base": true,
+        "runtime": true,
+        "copilot": true,
         "health": true,
         "agents": "*",
         "skills": "*",
@@ -237,12 +257,48 @@
       "tokens": { "enabled": true }
     },
     {
+      "repo": "jrmoulckers/engineering",
+      "mode": "infrastructure",
+      "notes": "Engineering authority under ADR-0003: architecture, frontend and backend engineering, data systems, security and privacy mechanisms, testing, performance, observability, and build/release engineering. A principles-and-implementations repository with no product toolchain, so it takes the AI layer without base, health, workflows, or vendored tokens. It receives runtime and copilot independently of base so canonical MCP policy and Copilot-surface orientation still apply.",
+      "optIn": {
+        "base": false,
+        "runtime": true,
+        "copilot": true,
+        "health": false,
+        "agents": "*",
+        "skills": "*",
+        "prompts": "*",
+        "instructions": ["agents", "docs", "skills", "workflow"],
+        "workflows": false
+      },
+      "tokens": { "enabled": false }
+    },
+    {
+      "repo": "jrmoulckers/product",
+      "mode": "infrastructure",
+      "notes": "Product authority under ADR-0003: strategy, planning, business, discovery, experimentation, metrics, compliance obligations, delivery decisions, content operations, and product templates. Like Engineering it is a principles-and-implementations repository with no product toolchain, so base, health, workflows, and tokens stay off while the AI layer, MCP policy, and Copilot orientation are canonical. Token authoring instructions are excluded because Studio owns tokens.",
+      "optIn": {
+        "base": false,
+        "runtime": true,
+        "copilot": true,
+        "health": false,
+        "agents": "*",
+        "skills": "*",
+        "prompts": "*",
+        "instructions": ["agents", "docs", "skills", "workflow"],
+        "workflows": false
+      },
+      "tokens": { "enabled": false }
+    },
+    {
       "repo": "jrmoulckers/studio",
       "mode": "infrastructure",
       "packageManager": "pnpm",
       "notes": "Design and tooling kernel with local principles as the authoritative map for canonical roles. It retains the five general instruction contracts, including token authoring, without Homelab live-operations semantics. The AI layer is materialized without the root agency.toml; Studio remains the token source, never its own vendored-token target.",
       "optIn": {
         "base": false,
+        "runtime": true,
+        "copilot": true,
         "health": false,
         "agents": "*",
         "skills": "*",
@@ -268,6 +324,8 @@
       ],
       "optIn": {
         "base": false,
+        "runtime": true,
+        "copilot": true,
         "health": false,
         "agents": "*",
         "skills": "*",
@@ -283,6 +341,8 @@
       "notes": "Windows device-management repository for shared and per-machine configuration. It selects infrastructure operations plus relevant generated-agent, skill, and docs rules, while excluding token authoring, product fleet workflow, and root runtime policy.",
       "optIn": {
         "base": false,
+        "runtime": true,
+        "copilot": true,
         "health": false,
         "agents": "*",
         "skills": "*",

@@ -287,8 +287,6 @@ function printPlan(resolved, targets) {
     const items = byKind.get(group.kind) ?? [];
     if (group.kind === 'skills') {
       out(`  skills (${items.length} files in ${group.names.length} dirs):`);
-    } else if (group.kind === 'base') {
-      out(`  base (${items.length} files):`);
     } else if (group.kind === 'tokens') {
       out(`  tokens (${items.length} files) ⟵ vendored from ${group.sourceRepo} ${group.package}:`);
       if (!items.length) {
@@ -298,7 +296,7 @@ function printPlan(resolved, targets) {
       out(`  ${group.kind} (${items.length} files):`);
     }
     for (const item of items) {
-      const note = item.type === 'agents-md' ? '   ⟵ managed block merge' : '';
+      const note = item.type === 'managed-md' ? '   ⟵ managed block merge' : '';
       out(`    ${item.targetPath}${note}`);
     }
   }
