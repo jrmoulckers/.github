@@ -5,6 +5,31 @@
 # Standalone mode installs, builds, and tests. Artifact mode consumes a same-run
 # build without reinstalling or rebuilding, verifies optional release files, and can
 # retry an HTTPS endpoint while checking expected response text.
+#
+# Optional private registry (standalone mode only): set registry-url and registry-scope and pass
+# the NODE_AUTH_TOKEN secret to install scoped packages from a private registry. actions/setup-node
+# then writes a user-level npmrc to $RUNNER_TEMP/.npmrc and exports NPM_CONFIG_USERCONFIG; npm and
+# pnpm both honour that file. A caller's own committed .npmrc is project-level and outranks it on
+# every key it sets, so a repo .npmrc must not point the same scope at a different registry.
+#
+# The smoke job requests packages: read. A caller with an explicit permissions block must grant
+# packages: read too, or the run fails at startup.
+#
+# Example caller:
+#   permissions:
+#     contents: read
+#     packages: read
+#   jobs:
+#     smoke:
+#       uses: jrmoulckers/.github/.github/workflows/reusable-smoke-test.yml@<reviewed-commit-sha>
+#       with:
+#         version: ${{ github.ref_name }}
+#         package-manager: pnpm
+#         build-command: pnpm build
+#         registry-url: https://npm.pkg.github.com
+#         registry-scope: '@jrmoulckers'
+#       secrets:
+#         NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 # =============================================================================
 name: Reusable - Smoke Test
 
@@ -75,6 +100,20 @@ on:
         required: false
         type: number
         default: 5
+      registry-url:
+        description: Optional HTTPS private registry to authenticate against; empty disables registry auth.
+        required: false
+        type: string
+        default: ''
+      registry-scope:
+        description: Lowercase npm scope the private registry serves, such as @jrmoulckers.
+        required: false
+        type: string
+        default: ''
+    secrets:
+      NODE_AUTH_TOKEN:
+        description: Registry read token for standalone mode; unused when registry-url is empty.
+        required: false
     outputs:
       result:
         description: Overall smoke test result (pass or fail).
@@ -89,6 +128,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      packages: read
 
     steps:
       - name: Validate inputs
@@ -102,6 +142,8 @@ jobs:
           HTTP_DELAY_SECONDS: ${{ inputs.http-delay-seconds }}
           NODE_VERSION: ${{ inputs.node-version }}
           PACKAGE_MANAGER: ${{ inputs.package-manager }}
+          REGISTRY_SCOPE: ${{ inputs.registry-scope }}
+          REGISTRY_URL: ${{ inputs.registry-url }}
           REQUIRED_ARTIFACT_FILE: ${{ inputs.required-artifact-file }}
           TEST_COMMAND: ${{ inputs.test-command }}
           VERSION: ${{ inputs.version }}
@@ -154,6 +196,19 @@ jobs:
             echo "::error::expected-response-text requires base-url"
             exit 1
           fi
+          if [[ -n "$REGISTRY_URL" ]]; then
+            [[ "$REGISTRY_URL" =~ ^https://[^[:space:]@/]+(:[0-9]+)?(/[^[:space:]]*)?$ ]] ||
+              { echo "::error::registry-url must be HTTPS, credential-free, and contain no whitespace"; exit 1; }
+            [[ -n "$REGISTRY_SCOPE" ]] ||
+              echo "::warning::registry-url without registry-scope replaces the default registry for every package"
+          elif [[ -n "$REGISTRY_SCOPE" ]]; then
+            echo "::error::registry-scope requires registry-url"
+            exit 1
+          fi
+          if [[ -n "$REGISTRY_SCOPE" ]]; then
+            [[ "$REGISTRY_SCOPE" =~ ^@?[a-z0-9][a-z0-9._-]*$ ]] ||
+              { echo "::error::registry-scope must be a lowercase npm scope such as @jrmoulckers"; exit 1; }
+          fi
 
       - name: Download same-run build artifact
         if: inputs.artifact-name != ''
@@ -199,6 +254,8 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
           cache: ${{ inputs.package-manager }}
+          registry-url: ${{ inputs.registry-url }}
+          scope: ${{ inputs.registry-scope }}
           cache-dependency-path: |
             ${{ inputs.working-directory }}/package-lock.json
             ${{ inputs.working-directory }}/npm-shrinkwrap.json
@@ -211,11 +268,15 @@ jobs:
       - name: Install dependencies (npm)
         if: inputs.artifact-name == '' && inputs.package-manager == 'npm'
         working-directory: ${{ inputs.working-directory }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         run: npm ci
 
       - name: Install dependencies (pnpm)
         if: inputs.artifact-name == '' && inputs.package-manager == 'pnpm'
         working-directory: ${{ inputs.working-directory }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         run: pnpm install --frozen-lockfile
 
       - name: Build

@@ -6,9 +6,19 @@
 # configuration, not event data; they are transported through environment variables
 # rather than interpolated into generated shell source.
 #
+# Optional private registry: set registry-url and registry-scope and pass the NODE_AUTH_TOKEN
+# secret to install scoped packages from a private registry. actions/setup-node then writes a
+# user-level npmrc to $RUNNER_TEMP/.npmrc and exports NPM_CONFIG_USERCONFIG; npm and pnpm both
+# honour that file. A caller's own committed .npmrc is project-level and outranks it on every
+# key it sets, so a repo .npmrc must not point the same scope at a different registry.
+#
+# The lint job requests packages: read. A caller with an explicit permissions block must grant
+# packages: read too, or the run fails at startup.
+#
 # Example caller:
 #   permissions:
 #     contents: read
+#     packages: read
 #     pull-requests: read
 #   jobs:
 #     lint:
@@ -17,6 +27,10 @@
 #         package-manager: pnpm
 #         lint-command: pnpm lint
 #         format-check-command: pnpm format:check
+#         registry-url: https://npm.pkg.github.com
+#         registry-scope: '@jrmoulckers'
+#       secrets:
+#         NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 # =============================================================================
 name: Reusable - Lint
 
@@ -53,6 +67,20 @@ on:
         required: false
         type: boolean
         default: true
+      registry-url:
+        description: Optional HTTPS private registry to authenticate against; empty disables registry auth.
+        required: false
+        type: string
+        default: ''
+      registry-scope:
+        description: Lowercase npm scope the private registry serves, such as @jrmoulckers.
+        required: false
+        type: string
+        default: ''
+    secrets:
+      NODE_AUTH_TOKEN:
+        description: Token used to authenticate against registry-url; unused when registry-url is empty.
+        required: false
 
 permissions: {}
 
@@ -64,6 +92,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+      packages: read
 
     steps:
       - name: Validate inputs
@@ -72,6 +101,8 @@ jobs:
           LINT_COMMAND: ${{ inputs.lint-command }}
           NODE_VERSION: ${{ inputs.node-version }}
           PACKAGE_MANAGER: ${{ inputs.package-manager }}
+          REGISTRY_SCOPE: ${{ inputs.registry-scope }}
+          REGISTRY_URL: ${{ inputs.registry-url }}
           WORKING_DIRECTORY: ${{ inputs.working-directory }}
         run: |
           set -euo pipefail
@@ -89,6 +120,19 @@ jobs:
             [[ "$command" != *$'\n'* && "$command" != *$'\r'* ]] ||
               { echo "::error::commands must be single-line trusted repository configuration"; exit 1; }
           done
+          if [[ -n "$REGISTRY_URL" ]]; then
+            [[ "$REGISTRY_URL" =~ ^https://[^[:space:]@/]+(:[0-9]+)?(/[^[:space:]]*)?$ ]] ||
+              { echo "::error::registry-url must be HTTPS, credential-free, and contain no whitespace"; exit 1; }
+            [[ -n "$REGISTRY_SCOPE" ]] ||
+              echo "::warning::registry-url without registry-scope replaces the default registry for every package"
+          elif [[ -n "$REGISTRY_SCOPE" ]]; then
+            echo "::error::registry-scope requires registry-url"
+            exit 1
+          fi
+          if [[ -n "$REGISTRY_SCOPE" ]]; then
+            [[ "$REGISTRY_SCOPE" =~ ^@?[a-z0-9][a-z0-9._-]*$ ]] ||
+              { echo "::error::registry-scope must be a lowercase npm scope such as @jrmoulckers"; exit 1; }
+          fi
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -104,6 +148,8 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
           cache: ${{ inputs.package-manager }}
+          registry-url: ${{ inputs.registry-url }}
+          scope: ${{ inputs.registry-scope }}
           cache-dependency-path: |
             ${{ inputs.working-directory }}/package-lock.json
             ${{ inputs.working-directory }}/npm-shrinkwrap.json
@@ -116,11 +162,15 @@ jobs:
       - name: Install dependencies (npm)
         if: inputs.package-manager == 'npm'
         working-directory: ${{ inputs.working-directory }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         run: npm ci
 
       - name: Install dependencies (pnpm)
         if: inputs.package-manager == 'pnpm'
         working-directory: ${{ inputs.working-directory }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         run: pnpm install --frozen-lockfile
 
       - name: Run lint

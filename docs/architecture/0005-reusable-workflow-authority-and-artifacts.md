@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted
+Accepted. Amended by
+[ADR-0007](0007-private-registry-authentication.md), which permits a single optional registry read
+secret (`NODE_AUTH_TOKEN`) in the Node-installing reusable workflows.
 
 ## Context
 

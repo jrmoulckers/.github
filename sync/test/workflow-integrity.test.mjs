@@ -56,3 +56,45 @@ jobs:
   assert.ok(errors.some((error) => error.includes('timeout-minutes')));
   assert.ok(errors.some((error) => error.includes('flow collections')));
 });
+
+test('reusable workflow_call secrets are limited to the registry read token', () => {
+  const source = (secretName) => `name: Reusable - Sample
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Numeric Node.js version to use.
+        required: false
+        type: string
+        default: '22'
+    secrets:
+      ${secretName}:
+        description: A secret.
+        required: false
+
+permissions: {}
+
+jobs:
+  sample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Noop
+        run: 'true'
+`;
+
+  const allowed = inspectWorkflowSource('.github/workflows/reusable-sample.yml', source('NODE_AUTH_TOKEN'), {
+    reusable: true,
+  });
+  assert.equal(
+    allowed.filter((error) => error.includes('workflow_call secret')).length,
+    0,
+  );
+
+  const rejected = inspectWorkflowSource('.github/workflows/reusable-sample.yml', source('DEPLOY_TOKEN'), {
+    reusable: true,
+  });
+  assert.ok(rejected.some((error) => error.includes('workflow_call secret "DEPLOY_TOKEN"')));
+});
