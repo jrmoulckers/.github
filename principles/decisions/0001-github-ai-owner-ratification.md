@@ -14,7 +14,10 @@
   `7f5214741cb4b26a8df92c7a3e4abb10308dc94f`; #92 ended at
   `698bc2befb0b697b3946d996471339fbf2b13136` with `Principle metadata tests`,
   `Sync engine tests`, and `CI gate` successful and owner merge
-  `3036d5d1ed882a4c5acffe1ccfa0b49165538eef`.
+  `3036d5d1ed882a4c5acffe1ccfa0b49165538eef`; #97 finalized `GH-ACT-005` at
+  `73a5bf6769a4d4235b55057453d896d876f71069` with `Principle metadata tests`,
+  `Sync engine tests`, and `CI gate` successful and owner merge
+  `97ff60ec21321563fa0fc7ba80015261e7dcd6fa`.
 - **Content and ownership:** IDs, statements, rationale, verification, owner / ratification wording,
   cross-authority handoffs, Legacy inputs, ordering, and paths are unchanged; only each listed
   `Status` changes from `Draft` to `Ratified`.

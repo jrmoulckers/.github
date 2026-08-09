@@ -240,6 +240,16 @@ const EXPECTED_RATIFICATION_DECISION = {
         'CI gate',
       ],
     },
+    {
+      pullRequest: 97,
+      finalHeadCommit: '73a5bf6769a4d4235b55057453d896d876f71069',
+      mergeCommit: '97ff60ec21321563fa0fc7ba80015261e7dcd6fa',
+      successfulChecks: [
+        'Principle metadata tests',
+        'Sync engine tests',
+        'CI gate',
+      ],
+    },
   ],
   baseCommit: RATIFICATION_BASE_COMMIT,
   currentApprovalState:
@@ -311,7 +321,7 @@ export function validatePrinciples({
     ),
   );
   errors.push(...validateDecisionRecords(manifest, repoRoot, readText));
-  errors.push(...validateRatificationSemanticBase(manifest, repoRoot));
+  errors.push(...validateRatificationSemanticBase(manifest, repoRoot, readText));
   const seenIds = new Map();
   const publishedPaths = new Set(Object.keys(manifest.published ?? {}));
   let principleCount = 0;
@@ -663,9 +673,14 @@ export function validateDecisionRecords(manifest, repoRoot, readText) {
   return errors;
 }
 
-export function validateRatificationSemanticBase(manifest, repoRoot) {
+export function validateRatificationSemanticBase(
+  manifest,
+  repoRoot,
+  readText = (path) => readFileSync(path, 'utf8'),
+) {
   const errors = [];
   const loaded = new Map();
+  const comparedDocuments = new Set();
   for (const decision of manifest.ratificationDecisions ?? []) {
     for (const id of decision.principles ?? []) {
       const entry = manifest.statusCatalog?.[id];
@@ -683,6 +698,25 @@ export function validateRatificationSemanticBase(manifest, repoRoot) {
       }
       const baselineText = loaded.get(key);
       if (baselineText === null) continue;
+      if (!comparedDocuments.has(key)) {
+        comparedDocuments.add(key);
+        let currentText;
+        try {
+          currentText = readText(join(repoRoot, entry.path));
+        } catch (error) {
+          errors.push(`${entry.path}: cannot read current Ratification document (${error.message})`);
+          currentText = null;
+        }
+        if (
+          currentText !== null &&
+          normalizeRatificationStatus(currentText) !==
+            normalizeRatificationStatus(baselineText)
+        ) {
+          errors.push(
+            `${entry.path}: Ratification document must match semantic base ${decision.baseCommit} outside exact Status fields`,
+          );
+        }
+      }
       const principle = parsePrinciples(baselineText).find((candidate) => candidate.id === id);
       if (!principle) {
         errors.push(`${entry.path}: Ratification semantic base has no ${id}`);
@@ -723,6 +757,7 @@ export function semanticContentHash({ id, title, values }) {
 export function renderRatificationDecision(decision) {
   const evidence89 = decision.finalReviewEvidence[0];
   const evidence92 = decision.finalReviewEvidence[1];
+  const evidence97 = decision.finalReviewEvidence[2];
   return `# GitHub and AI principle owner Ratification
 
 - **Decision:** Ratify the listed principles only when repository owner \`jrmoulckers\` merges the pull
@@ -741,7 +776,10 @@ export function renderRatificationDecision(decision) {
   \`${evidence89.mergeCommit}\`; #92 ended at
   \`${evidence92.finalHeadCommit}\` with \`${evidence92.successfulChecks[0]}\`,
   \`${evidence92.successfulChecks[1]}\`, and \`${evidence92.successfulChecks[2]}\` successful and owner merge
-  \`${evidence92.mergeCommit}\`.
+  \`${evidence92.mergeCommit}\`; #97 finalized \`GH-ACT-005\` at
+  \`${evidence97.finalHeadCommit}\` with \`${evidence97.successfulChecks[0]}\`,
+  \`${evidence97.successfulChecks[1]}\`, and \`${evidence97.successfulChecks[2]}\` successful and owner merge
+  \`${evidence97.mergeCommit}\`.
 - **Content and ownership:** IDs, statements, rationale, verification, owner / ratification wording,
   cross-authority handoffs, Legacy inputs, ordering, and paths are unchanged; only each listed
   \`Status\` changes from \`Draft\` to \`Ratified\`.
@@ -816,6 +854,10 @@ function validateManifest(manifest) {
 
   if (!Array.isArray(manifest.ratificationDecisions)) {
     errors.push('principles/manifest.json: ratificationDecisions must be an array');
+  } else if (manifest.ratificationDecisions.length !== 1) {
+    errors.push(
+      'principles/manifest.json: must contain exactly one nonempty Ratification decision for the published corpus',
+    );
   } else if (!jsonEqual(manifest.ratificationDecisions[0], EXPECTED_RATIFICATION_DECISION)) {
     errors.push(
       'principles/manifest.json: ratificationDecisions[0] must preserve the exact owner-only decision, source review evidence, event base, and CI gate protection',
@@ -953,6 +995,13 @@ function draftCatalogFromPublished(published, currentCatalog) {
 
 function normalizeText(value) {
   return value.replace(/\r\n/g, '\n').trimEnd();
+}
+
+function normalizeRatificationStatus(value) {
+  return normalizeText(value).replace(
+    /^- \*\*Status:\*\* (?:Draft|Ratified)$/gm,
+    '- **Status:** <excluded>',
+  );
 }
 
 function escapeRegExp(value) {

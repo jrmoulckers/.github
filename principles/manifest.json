@@ -340,6 +340,16 @@
             "Sync engine tests",
             "CI gate"
           ]
+        },
+        {
+          "pullRequest": 97,
+          "finalHeadCommit": "73a5bf6769a4d4235b55057453d896d876f71069",
+          "mergeCommit": "97ff60ec21321563fa0fc7ba80015261e7dcd6fa",
+          "successfulChecks": [
+            "Principle metadata tests",
+            "Sync engine tests",
+            "CI gate"
+          ]
         }
       ],
       "baseCommit": "97ff60ec21321563fa0fc7ba80015261e7dcd6fa",

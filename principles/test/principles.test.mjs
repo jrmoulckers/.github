@@ -270,6 +270,34 @@ test('decision records and semantic hashes remain tied to the pre-Ratification b
     }).join('\n'),
     /cannot read Ratification decision record/,
   );
+
+  const relativePath = 'principles/ai/product-ai.md';
+  const semanticAddition = readFileSync(join(REPO_ROOT, relativePath), 'utf8').replace(
+    '- **Status:** Ratified',
+    '- **Scope override:** unrestricted\n- **Status:** Ratified',
+  );
+  assert.throws(
+    () =>
+      validatePrinciples({
+        baselineManifest: MANIFEST,
+        readText: corpusReader(MANIFEST, { [relativePath]: semanticAddition }),
+      }),
+    /Ratification document must match semantic base .* outside exact Status fields/,
+  );
+
+  const duplicateDecision = structuredClone(MANIFEST);
+  duplicateDecision.ratificationDecisions.push({
+    ...structuredClone(MANIFEST.ratificationDecisions[0]),
+    principles: [],
+  });
+  assert.throws(
+    () =>
+      validatePrinciples({
+        baselineManifest: MANIFEST,
+        readText: corpusReader(duplicateDecision),
+      }),
+    /must contain exactly one nonempty Ratification decision/,
+  );
 });
 
 test('joint document and manifest mutations fail against the fixed bootstrap baseline', () => {
@@ -400,7 +428,7 @@ test('manifest schema rejection paths fail with specific diagnostics', () => {
       (manifest) => {
         manifest.ratificationDecisions = [];
       },
-      /ratificationDecisions\[0\] must preserve the exact owner-only decision/,
+      /must contain exactly one nonempty Ratification decision/,
     ],
     [
       'non-owner approval',
