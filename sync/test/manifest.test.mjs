@@ -182,7 +182,6 @@ test('phase-two activation preserves member modes and non-AI bundle intent', () 
     assert.equal(member.mode, 'infrastructure');
     assert.equal(member.optIn.base, false);
     assert.equal(member.optIn.health, false);
-    assert.equal(member.optIn.workflows, false);
     assert.deepEqual(member.tokens, { enabled: false });
 
     const [resolved] = resolveAll(manifest, [repo]);
@@ -190,7 +189,11 @@ test('phase-two activation preserves member modes and non-AI bundle intent', () 
     assert.equal(writes.filter((write) => write.kind === 'agents').length, 22);
     assert.ok(!writes.some((write) => write.kind === 'base'), `${repo} has no base writes`);
     assert.ok(!writes.some((write) => write.kind === 'tokens'), `${repo} has no token writes`);
-    assert.deepEqual(native, [], `${repo} has no native selections`);
+    assert.deepEqual(
+      native.map((selection) => selection.kind),
+      member.optIn.workflows === false ? [] : ['workflows'],
+      `${repo} selects only the workflow availability declaration natively`,
+    );
 
     // The reason runtime and copilot were split out of base: declining the studio operating
     // guide must not also decline canonical MCP policy or Copilot-surface orientation.

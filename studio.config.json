@@ -133,7 +133,13 @@
         "skills": "*",
         "prompts": "*",
         "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
-        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
+        "workflows": [
+          "reusable-ci-lint",
+          "reusable-ci-web",
+          "reusable-deploy-preview",
+          "reusable-perf-budget",
+          "reusable-security-ci"
+        ]
       },
       "tokens": { "enabled": false }
     },
@@ -175,7 +181,14 @@
         "skills": "*",
         "prompts": ["review", "fix-ci", "cleanup", "backlog", "bug-bash", "sprint", "team"],
         "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
-        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
+        "workflows": [
+          "reusable-ci-lint",
+          "reusable-ci-web",
+          "reusable-deploy-pages",
+          "reusable-deploy-preview",
+          "reusable-perf-budget",
+          "reusable-security-ci"
+        ]
       },
       "tokens": { "enabled": false }
     },
@@ -214,7 +227,13 @@
         "skills": "*",
         "prompts": "*",
         "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
-        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
+        "workflows": [
+          "reusable-ci-lint",
+          "reusable-ci-web",
+          "reusable-deploy-preview",
+          "reusable-perf-budget",
+          "reusable-security-ci"
+        ]
       },
       "tokens": { "enabled": true }
     },
@@ -233,7 +252,13 @@
         "skills": "*",
         "prompts": "*",
         "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
-        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
+        "workflows": [
+          "reusable-ci-lint",
+          "reusable-ci-web",
+          "reusable-deploy-preview",
+          "reusable-perf-budget",
+          "reusable-security-ci"
+        ]
       },
       "tokens": { "enabled": true }
     },
@@ -252,7 +277,13 @@
         "skills": "*",
         "prompts": "*",
         "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
-        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget"]
+        "workflows": [
+          "reusable-ci-lint",
+          "reusable-ci-web",
+          "reusable-deploy-preview",
+          "reusable-perf-budget",
+          "reusable-security-ci"
+        ]
       },
       "tokens": { "enabled": true }
     },
@@ -294,7 +325,7 @@
       "repo": "jrmoulckers/studio",
       "mode": "infrastructure",
       "packageManager": "pnpm",
-      "notes": "Design and tooling kernel with local principles as the authoritative map for canonical roles. It retains the five general instruction contracts, including token authoring, without Homelab live-operations semantics. The AI layer is materialized without the root agency.toml; Studio remains the token source, never its own vendored-token target.",
+      "notes": "Design and tooling kernel with local principles as the authoritative map for canonical roles. It retains the five general instruction contracts, including token authoring, without Homelab live-operations semantics. The AI layer is materialized without the root agency.toml; Studio remains the token source, never its own vendored-token target. Unlike the other infrastructure members it carries a pnpm toolchain and calls the canonical lint, web, and security workflows, so its availability declaration is an array rather than false.",
       "optIn": {
         "base": false,
         "runtime": true,
@@ -304,7 +335,7 @@
         "skills": "*",
         "prompts": "*",
         "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
-        "workflows": false
+        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-security-ci"]
       },
       "tokens": { "enabled": false }
     },
