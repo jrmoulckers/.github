@@ -137,6 +137,26 @@ test('a checkout whose origin is the member is not blocked', () => {
   });
 });
 
+test('--work-dir reports available workflows that the checkout does not call', () => {
+  withTmp((root) => {
+    const member = 'jrmoulckers/jrm-recipes';
+    const dir = seededRepo(root, 'recipes', `https://github.com/${member}.git`);
+    writeFileSync(
+      join(dir, 'package.json'),
+      JSON.stringify({ dependencies: { next: '15.0.0' } }),
+      'utf8',
+    );
+    writeFileSync(join(dir, 'pnpm-lock.yaml'), 'lockfileVersion: 9\n', 'utf8');
+
+    const { code, out } = run(['--dry-run', '--work-dir', dir, '--members', member]);
+
+    assert.equal(code, 0, out);
+    assert.match(out, /reusable workflow availability not currently called/);
+    assert.match(out, /reusable-ci-lint/);
+    assert.match(out, /reusable-ci-web/);
+  });
+});
+
 test('manifest dry-run reports complete phase-two activation plans', () => {
   const members = [
     ['jrmoulckers/finance', 'application · kmp-web · npm', 8, 5, 56, true],

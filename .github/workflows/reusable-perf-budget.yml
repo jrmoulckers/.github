@@ -1,98 +1,163 @@
 # =============================================================================
-# Reusable — Performance Budget
+# Reusable - Performance Budget
 # =============================================================================
 #
-# Generic web performance budget workflow. It builds the caller's app, enforces a
-# bundle-size budget, and optionally runs Lighthouse CI against a supplied URL.
-#
-# Example caller:
-#   jobs:
-#     perf:
-#       uses: jrmoulckers/.github/.github/workflows/reusable-perf-budget.yml@<reviewed-commit-sha>
-#       with:
-#         package-manager: pnpm
-#         output-dir: dist
-#         bundle-budget-kb: 2048
+# Enforces a bundle-size budget and optionally runs Lighthouse. A same-run build
+# artifact avoids reinstalling and rebuilding. Lighthouse reports stay in GitHub
+# artifacts by default; temporary public storage requires an explicit warned opt-in.
 # =============================================================================
-name: Reusable — Performance Budget
+name: Reusable - Performance Budget
 
 on:
   workflow_call:
     inputs:
       node-version:
-        description: Node.js version to use.
+        description: Numeric Node.js version used by standalone builds.
         required: false
         type: string
         default: '22'
       package-manager:
-        description: Package manager to use (npm or pnpm).
+        description: Package manager for standalone builds (npm or pnpm).
         required: false
         type: string
         default: npm
       working-directory:
-        description: Directory containing the package manifest and lockfile.
+        description: Workspace-relative package directory.
         required: false
         type: string
         default: .
       build-command:
-        description: Command that builds the web app.
+        description: Trusted repository build command used when artifact-name is empty.
         required: false
         type: string
         default: npm run build
       output-dir:
-        description: Build output directory, relative to working-directory.
+        description: Non-root path below working-directory containing built output.
         required: false
         type: string
         default: dist
+      artifact-name:
+        description: Existing same-run artifact to consume; empty performs a standalone build.
+        required: false
+        type: string
+        default: ''
       bundle-budget-kb:
         description: Maximum built output directory size in KB.
         required: false
         type: number
         default: 2048
       url:
-        description: Optional URL or preview URL for Lighthouse CI.
+        description: Optional public HTTPS URL for Lighthouse CI.
         required: false
         type: string
         default: ''
       lhci-min-performance:
-        description: Minimum Lighthouse performance score.
+        description: Minimum Lighthouse performance score from 0 through 100.
         required: false
         type: number
         default: 90
       lhci-min-accessibility:
-        description: Minimum Lighthouse accessibility score.
+        description: Minimum Lighthouse accessibility score from 0 through 100.
         required: false
         type: number
         default: 95
+      lighthouse-public-upload:
+        description: WARNING - publish Lighthouse results to temporary public storage.
+        required: false
+        type: boolean
+        default: false
+      lighthouse-artifact-prefix:
+        description: Prefix for uniquely named private Lighthouse artifacts.
+        required: false
+        type: string
+        default: lighthouse-results
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   performance:
-    name: Performance Budget
+    name: Performance budget
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    permissions:
+      contents: read
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - name: Validate package manager
+      - name: Validate inputs
+        env:
+          ARTIFACT_NAME: ${{ inputs.artifact-name }}
+          BUILD_COMMAND: ${{ inputs.build-command }}
+          BUNDLE_BUDGET_KB: ${{ inputs.bundle-budget-kb }}
+          LIGHTHOUSE_PUBLIC_UPLOAD: ${{ inputs.lighthouse-public-upload }}
+          LIGHTHOUSE_ARTIFACT_PREFIX: ${{ inputs.lighthouse-artifact-prefix }}
+          MIN_ACCESSIBILITY: ${{ inputs.lhci-min-accessibility }}
+          MIN_PERFORMANCE: ${{ inputs.lhci-min-performance }}
+          NODE_VERSION: ${{ inputs.node-version }}
+          OUTPUT_DIR: ${{ inputs.output-dir }}
+          PACKAGE_MANAGER: ${{ inputs.package-manager }}
+          TARGET_URL: ${{ inputs.url }}
+          WORKING_DIRECTORY: ${{ inputs.working-directory }}
         run: |
-          case "${{ inputs.package-manager }}" in
+          set -euo pipefail
+          case "$PACKAGE_MANAGER" in
             npm|pnpm) ;;
-            *)
-              echo "::error::package-manager must be 'npm' or 'pnpm'"
-              exit 1
-              ;;
+            *) echo "::error::package-manager must be npm or pnpm"; exit 1 ;;
           esac
+          [[ "$NODE_VERSION" =~ ^[0-9]+([.][0-9]+){0,2}$ ]] ||
+            { echo "::error::node-version must be numeric"; exit 1; }
+          [[ "$WORKING_DIRECTORY" == "." || "$WORKING_DIRECTORY" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ ]] ||
+            { echo "::error::working-directory must be workspace-relative"; exit 1; }
+          [[ "$WORKING_DIRECTORY" != ".." && "$WORKING_DIRECTORY" != *"/../"* && "$WORKING_DIRECTORY" != "../"* && "$WORKING_DIRECTORY" != *"/.." ]] ||
+            { echo "::error::working-directory must not traverse parent directories"; exit 1; }
+          [[ "$OUTPUT_DIR" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ && "$OUTPUT_DIR" != "." ]] ||
+            { echo "::error::output-dir must be a non-root relative path"; exit 1; }
+          [[ "$OUTPUT_DIR" != ".." && "$OUTPUT_DIR" != *"/../"* && "$OUTPUT_DIR" != "../"* && "$OUTPUT_DIR" != *"/.." ]] ||
+            { echo "::error::output-dir must not traverse parent directories"; exit 1; }
+          [[ "$BUNDLE_BUDGET_KB" =~ ^[0-9]+$ ]] && (( BUNDLE_BUDGET_KB >= 1 && BUNDLE_BUDGET_KB <= 1048576 )) ||
+            { echo "::error::bundle-budget-kb must be an integer from 1 through 1048576"; exit 1; }
+          for score in "$MIN_PERFORMANCE" "$MIN_ACCESSIBILITY"; do
+            [[ "$score" =~ ^[0-9]+([.][0-9]+)?$ ]] &&
+              awk -v score="$score" 'BEGIN { exit !(score >= 0 && score <= 100) }' ||
+              { echo "::error::Lighthouse scores must be from 0 through 100"; exit 1; }
+          done
+          [[ "$BUILD_COMMAND" != *$'\n'* && "$BUILD_COMMAND" != *$'\r'* ]] ||
+            { echo "::error::build-command must be single-line trusted repository configuration"; exit 1; }
+          if [[ -n "$ARTIFACT_NAME" ]]; then
+            [[ "$ARTIFACT_NAME" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]] ||
+              { echo "::error::artifact-name contains unsupported characters"; exit 1; }
+          else
+            [[ -n "$BUILD_COMMAND" ]] ||
+              { echo "::error::build-command is required when artifact-name is empty"; exit 1; }
+          fi
+          if [[ -n "$TARGET_URL" ]]; then
+            [[ "$TARGET_URL" =~ ^https://[^[:space:]@/]+(:[0-9]+)?(/[^[:space:]]*)?$ ]] ||
+              { echo "::error::url must be HTTPS, credential-free, and contain no whitespace"; exit 1; }
+          fi
+          if [[ "$LIGHTHOUSE_PUBLIC_UPLOAD" == "true" ]]; then
+            echo "::warning::Lighthouse temporary public storage is enabled. Never use it for private or authenticated previews."
+          fi
+          [[ "$LIGHTHOUSE_ARTIFACT_PREFIX" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$ ]] ||
+            { echo "::error::lighthouse-artifact-prefix contains unsupported characters"; exit 1; }
+
+      - name: Download same-run build artifact
+        if: inputs.artifact-name != ''
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.working-directory }}/${{ inputs.output-dir }}
+
+      - name: Checkout for standalone build
+        if: inputs.artifact-name == ''
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Enable Corepack for pnpm cache
-        if: inputs.package-manager == 'pnpm'
+        if: inputs.artifact-name == '' && inputs.package-manager == 'pnpm'
         run: corepack enable
 
       - name: Set up Node.js
+        if: inputs.artifact-name == ''
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: ${{ inputs.node-version }}
@@ -103,93 +168,112 @@ jobs:
             ${{ inputs.working-directory }}/pnpm-lock.yaml
 
       - name: Enable Corepack
-        if: inputs.package-manager == 'pnpm'
+        if: inputs.artifact-name == '' && inputs.package-manager == 'pnpm'
         run: corepack enable
 
       - name: Install dependencies (npm)
-        if: inputs.package-manager == 'npm'
+        if: inputs.artifact-name == '' && inputs.package-manager == 'npm'
         working-directory: ${{ inputs.working-directory }}
         run: npm ci
 
       - name: Install dependencies (pnpm)
-        if: inputs.package-manager == 'pnpm'
+        if: inputs.artifact-name == '' && inputs.package-manager == 'pnpm'
         working-directory: ${{ inputs.working-directory }}
         run: pnpm install --frozen-lockfile
 
       - name: Build
+        if: inputs.artifact-name == ''
         working-directory: ${{ inputs.working-directory }}
-        run: ${{ inputs.build-command }}
+        env:
+          BUILD_COMMAND: ${{ inputs.build-command }}
+        run: bash --noprofile --norc -eo pipefail -c "$BUILD_COMMAND"
 
-      - name: Bundle size budget
+      - name: Verify build artifact
         working-directory: ${{ inputs.working-directory }}
+        env:
+          OUTPUT_DIR: ${{ inputs.output-dir }}
         run: |
-          OUTPUT_DIR="${{ inputs.output-dir }}"
-          BUDGET_KB="${{ inputs.bundle-budget-kb }}"
-
-          if [ ! -d "$OUTPUT_DIR" ]; then
-            echo "::error::Output directory '$OUTPUT_DIR' does not exist"
+          set -euo pipefail
+          [[ -d "$OUTPUT_DIR" ]] ||
+            { echo "::error::build artifact directory does not exist: $OUTPUT_DIR"; exit 1; }
+          find "$OUTPUT_DIR" -mindepth 1 -print -quit | grep -q . ||
+            { echo "::error::build artifact directory is empty: $OUTPUT_DIR"; exit 1; }
+          if find "$OUTPUT_DIR" -type l -print -quit | grep -q .; then
+            echo "::error::build artifacts must not contain symbolic links"
             exit 1
           fi
 
-          SIZE_KB=$(du -sk "$OUTPUT_DIR" | cut -f1)
-
-          echo "### 📦 Bundle Size Budget" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Output directory | \`$OUTPUT_DIR\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Actual size | ${SIZE_KB} KB |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Budget | ${BUDGET_KB} KB |" >> "$GITHUB_STEP_SUMMARY"
-
-          if [ "$SIZE_KB" -gt "$BUDGET_KB" ]; then
-            echo "::error::Bundle size ${SIZE_KB}KB exceeds budget ${BUDGET_KB}KB"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "**❌ Bundle exceeds budget.**" >> "$GITHUB_STEP_SUMMARY"
+      - name: Enforce bundle size
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          BUDGET_KB: ${{ inputs.bundle-budget-kb }}
+          OUTPUT_DIR: ${{ inputs.output-dir }}
+        run: |
+          set -euo pipefail
+          size_kb="$(du -sk "$OUTPUT_DIR" | cut -f1)"
+          {
+            echo "### Bundle size budget"
+            echo
+            echo "| Metric | Value |"
+            echo "| --- | --- |"
+            echo "| Actual size | ${size_kb} KB |"
+            echo "| Budget | ${BUDGET_KB} KB |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if (( size_kb > BUDGET_KB )); then
+            echo "::error::Bundle size ${size_kb} KB exceeds budget ${BUDGET_KB} KB"
             exit 1
           fi
 
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**✅ Bundle is within budget.**" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Write Lighthouse CI config
+      - name: Write Lighthouse configuration
         if: inputs.url != ''
         working-directory: ${{ inputs.working-directory }}
+        env:
+          MIN_ACCESSIBILITY: ${{ inputs.lhci-min-accessibility }}
+          MIN_PERFORMANCE: ${{ inputs.lhci-min-performance }}
+          TARGET_URL: ${{ inputs.url }}
         run: |
-          PERFORMANCE_SCORE=$(awk "BEGIN { printf \"%.2f\", ${{ inputs.lhci-min-performance }} / 100 }")
-          ACCESSIBILITY_SCORE=$(awk "BEGIN { printf \"%.2f\", ${{ inputs.lhci-min-accessibility }} / 100 }")
-
-          cat > .lighthouserc.json <<JSON
-          {
-            "ci": {
-              "collect": {
-                "url": ["${{ inputs.url }}"],
-                "numberOfRuns": 1
-              },
-              "assert": {
-                "assertions": {
-                  "categories:performance": ["error", { "minScore": $PERFORMANCE_SCORE }],
-                  "categories:accessibility": ["error", { "minScore": $ACCESSIBILITY_SCORE }]
+          set -euo pipefail
+          node -e '
+            const fs = require("node:fs");
+            const config = {
+              ci: {
+                collect: { url: [process.env.TARGET_URL], numberOfRuns: 1 },
+                assert: {
+                  assertions: {
+                    "categories:performance": ["error", { minScore: Number(process.env.MIN_PERFORMANCE) / 100 }],
+                    "categories:accessibility": ["error", { minScore: Number(process.env.MIN_ACCESSIBILITY) / 100 }]
+                  }
                 }
-              },
-              "upload": {
-                "target": "temporary-public-storage"
               }
-            }
-          }
-          JSON
+            };
+            fs.writeFileSync(".lighthouserc.json", JSON.stringify(config));
+          '
 
       - name: Lighthouse CI
+        if: inputs.url != ''
+        id: lighthouse
+        env:
+          LIGHTHOUSE_ARTIFACT_PREFIX: ${{ inputs.lighthouse-artifact-prefix }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          echo "name=$LIGHTHOUSE_ARTIFACT_PREFIX-$RUN_ID-$(cat /proc/sys/kernel/random/uuid)" >> "$GITHUB_OUTPUT"
+
+      - name: Run Lighthouse CI
         if: inputs.url != ''
         uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12.6.2
         with:
           urls: ${{ inputs.url }}
           configPath: ${{ inputs.working-directory }}/.lighthouserc.json
           uploadArtifacts: true
-          temporaryPublicStorage: true
+          artifactName: ${{ steps.lighthouse.outputs.name }}
+          temporaryPublicStorage: ${{ inputs.lighthouse-public-upload }}
 
       - name: Lighthouse skipped
         if: inputs.url == ''
         run: |
-          echo "### 🔦 Lighthouse CI" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Skipped because no \`url\` input was provided." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Lighthouse CI"
+            echo
+            echo "Skipped because no URL input was provided."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -2,7 +2,7 @@
 //
 // Extracted from the CLI so failure isolation is testable: a member whose push or PR call
 // fails must not take down the members after it, nor the profile mirror. The engine talks to
-// five separate repos over the network — treating the first git error as fatal to the whole
+// nine member repos plus the profile destination — treating the first git error as fatal to the whole
 // run makes a transient failure look like a total outage and silently skips work that would
 // have succeeded.
 
@@ -37,6 +37,12 @@ export function syncMembers(plans, ctx, syncOne = syncMemberRepo) {
       }
       if (result.report?.hasDrift) {
         log.warn(formatDriftWarning(resolved.repo, result.report.drift));
+      }
+      const unused = result.inspection?.workflowObservations?.unusedDeclarations ?? [];
+      if (unused.length) {
+        log.info(
+          `${resolved.repo}: reusable workflow availability not currently called: ${unused.join(', ')}`,
+        );
       }
     } catch (err) {
       failures.push({ repo: resolved.repo, message: err.message });

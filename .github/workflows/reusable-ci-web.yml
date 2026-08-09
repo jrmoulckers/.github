@@ -1,28 +1,29 @@
 # =============================================================================
-# Reusable — Web CI
+# Reusable - Web CI
 # =============================================================================
 #
-# Framework-agnostic web CI for product repositories. Callers choose Node.js, npm
-# or pnpm, working directory, install/typecheck/test/build commands, and optional
-# build-time environment as JSON.
+# Framework-neutral web CI with an optional build-artifact contract. A caller can
+# pass the artifact output to preview, performance, or smoke jobs in the same run.
 #
 # Example caller:
 #   jobs:
-#     web-ci:
+#     web:
 #       uses: jrmoulckers/.github/.github/workflows/reusable-ci-web.yml@<reviewed-commit-sha>
 #       with:
 #         package-manager: pnpm
 #         typecheck-command: pnpm typecheck
 #         test-command: pnpm test
 #         build-command: pnpm build
+#         artifact-name: web-build
+#         artifact-path: dist
 # =============================================================================
-name: Reusable — Web CI
+name: Reusable - Web CI
 
 on:
   workflow_call:
     inputs:
       node-version:
-        description: Node.js version to use.
+        description: Numeric Node.js version to use.
         required: false
         type: string
         default: '22'
@@ -32,58 +33,128 @@ on:
         type: string
         default: npm
       working-directory:
-        description: Directory containing the package manifest and lockfile.
+        description: Workspace-relative directory containing the manifest and lockfile.
         required: false
         type: string
         default: .
-      install-command:
-        description: Optional custom dependency install command.
-        required: false
-        type: string
-        default: ''
       typecheck-command:
-        description: Command that runs type checking; skipped when empty.
+        description: Trusted repository typecheck command; empty skips the step.
         required: false
         type: string
         default: npm run typecheck
       test-command:
-        description: Command that runs tests; skipped when empty.
+        description: Trusted repository test command; empty skips the step.
         required: false
         type: string
         default: npm test
       build-command:
-        description: Command that builds the web app; skipped when empty.
+        description: Trusted repository build command; empty skips the step.
         required: false
         type: string
         default: npm run build
       build-env-json:
-        description: JSON object of additional environment variables for the build step.
+        description: JSON object of scalar build environment values; reserved variables are rejected.
         required: false
         type: string
         default: '{}'
+      artifact-name:
+        description: Optional artifact name. Empty disables artifact upload.
+        required: false
+        type: string
+        default: ''
+      artifact-path:
+        description: Workspace-relative build path below working-directory to upload.
+        required: false
+        type: string
+        default: dist
+      artifact-retention-days:
+        description: Artifact retention from 1 through 30 days.
+        required: false
+        type: number
+        default: 7
+    outputs:
+      artifact-name:
+        description: Uploaded artifact name, or blank when upload is disabled.
+        value: ${{ jobs.web.outputs.artifact-name }}
+      artifact-id:
+        description: Uploaded artifact ID, or blank when upload is disabled.
+        value: ${{ jobs.web.outputs.artifact-id }}
+      artifact-digest:
+        description: Uploaded artifact SHA-256 digest, or blank when upload is disabled.
+        value: ${{ jobs.web.outputs.artifact-digest }}
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   web:
     name: Web CI
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    outputs:
+      artifact-name: ${{ inputs.artifact-name }}
+      artifact-id: ${{ steps.artifact.outputs.artifact-id || '' }}
+      artifact-digest: ${{ steps.artifact.outputs.artifact-digest || '' }}
 
     steps:
+      - name: Validate inputs
+        env:
+          ARTIFACT_NAME: ${{ inputs.artifact-name }}
+          ARTIFACT_PATH: ${{ inputs.artifact-path }}
+          BUILD_COMMAND: ${{ inputs.build-command }}
+          BUILD_ENV_JSON: ${{ inputs.build-env-json }}
+          FORMAT_RETENTION_DAYS: ${{ inputs.artifact-retention-days }}
+          NODE_VERSION: ${{ inputs.node-version }}
+          PACKAGE_MANAGER: ${{ inputs.package-manager }}
+          TEST_COMMAND: ${{ inputs.test-command }}
+          TYPECHECK_COMMAND: ${{ inputs.typecheck-command }}
+          WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        run: |
+          set -euo pipefail
+          case "$PACKAGE_MANAGER" in
+            npm|pnpm) ;;
+            *) echo "::error::package-manager must be npm or pnpm"; exit 1 ;;
+          esac
+          [[ "$NODE_VERSION" =~ ^[0-9]+([.][0-9]+){0,2}$ ]] ||
+            { echo "::error::node-version must be numeric"; exit 1; }
+          [[ "$WORKING_DIRECTORY" == "." || "$WORKING_DIRECTORY" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ ]] ||
+            { echo "::error::working-directory must be a workspace-relative path"; exit 1; }
+          [[ "$WORKING_DIRECTORY" != ".." && "$WORKING_DIRECTORY" != *"/../"* && "$WORKING_DIRECTORY" != "../"* && "$WORKING_DIRECTORY" != *"/.." ]] ||
+            { echo "::error::working-directory must not traverse parent directories"; exit 1; }
+          [[ "$ARTIFACT_PATH" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ && "$ARTIFACT_PATH" != "." ]] ||
+            { echo "::error::artifact-path must be a non-root workspace-relative path"; exit 1; }
+          [[ "$ARTIFACT_PATH" != ".." && "$ARTIFACT_PATH" != *"/../"* && "$ARTIFACT_PATH" != "../"* && "$ARTIFACT_PATH" != *"/.." ]] ||
+            { echo "::error::artifact-path must not traverse parent directories"; exit 1; }
+          [[ "$FORMAT_RETENTION_DAYS" =~ ^[0-9]+$ ]] &&
+            (( FORMAT_RETENTION_DAYS >= 1 && FORMAT_RETENTION_DAYS <= 30 )) ||
+            { echo "::error::artifact-retention-days must be an integer from 1 through 30"; exit 1; }
+          if [[ -n "$ARTIFACT_NAME" ]]; then
+            [[ "$ARTIFACT_NAME" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]] ||
+              { echo "::error::artifact-name contains unsupported characters"; exit 1; }
+            [[ -n "$BUILD_COMMAND" ]] ||
+              { echo "::error::build-command is required when artifact upload is enabled"; exit 1; }
+          fi
+          for command in "$TYPECHECK_COMMAND" "$TEST_COMMAND" "$BUILD_COMMAND"; do
+            [[ "$command" != *$'\n'* && "$command" != *$'\r'* ]] ||
+              { echo "::error::commands must be single-line trusted repository configuration"; exit 1; }
+          done
+          jq -e '
+            type == "object" and
+            all(to_entries[];
+              (.key | test("^[A-Za-z_][A-Za-z0-9_]*$")) and
+              (.key | test("^(GITHUB_|RUNNER_|ACTIONS_)") | not) and
+              (.key as $key | ["CI", "NODE_OPTIONS", "BASH_ENV", "ENV", "LD_PRELOAD"] | index($key) | not) and
+              (.value | type == "string" or type == "number" or type == "boolean") and
+              (.value | tostring | test("[\\r\\n]") | not)
+            )
+          ' >/dev/null <<< "$BUILD_ENV_JSON" ||
+            { echo "::error::build-env-json must contain safe scalar environment values"; exit 1; }
+
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - name: Validate package manager
-        run: |
-          case "${{ inputs.package-manager }}" in
-            npm|pnpm) ;;
-            *)
-              echo "::error::package-manager must be 'npm' or 'pnpm'"
-              exit 1
-              ;;
-          esac
+        with:
+          persist-credentials: false
 
       - name: Enable Corepack for pnpm cache
         if: inputs.package-manager == 'pnpm'
@@ -103,42 +174,69 @@ jobs:
         if: inputs.package-manager == 'pnpm'
         run: corepack enable
 
-      - name: Install dependencies (custom)
-        if: inputs.install-command != ''
-        working-directory: ${{ inputs.working-directory }}
-        run: ${{ inputs.install-command }}
-
       - name: Install dependencies (npm)
-        if: inputs.install-command == '' && inputs.package-manager == 'npm'
+        if: inputs.package-manager == 'npm'
         working-directory: ${{ inputs.working-directory }}
         run: npm ci
 
       - name: Install dependencies (pnpm)
-        if: inputs.install-command == '' && inputs.package-manager == 'pnpm'
+        if: inputs.package-manager == 'pnpm'
         working-directory: ${{ inputs.working-directory }}
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck
         if: inputs.typecheck-command != ''
         working-directory: ${{ inputs.working-directory }}
-        run: ${{ inputs.typecheck-command }}
+        env:
+          CHECK_COMMAND: ${{ inputs.typecheck-command }}
+        run: bash --noprofile --norc -eo pipefail -c "$CHECK_COMMAND"
 
       - name: Test
         if: inputs.test-command != ''
         working-directory: ${{ inputs.working-directory }}
-        run: ${{ inputs.test-command }}
+        env:
+          CHECK_COMMAND: ${{ inputs.test-command }}
+        run: bash --noprofile --norc -eo pipefail -c "$CHECK_COMMAND"
 
       - name: Build
         if: inputs.build-command != ''
         working-directory: ${{ inputs.working-directory }}
         env:
+          BUILD_COMMAND: ${{ inputs.build-command }}
           BUILD_ENV_JSON: ${{ inputs.build-env-json }}
         run: |
-          if [ -n "$BUILD_ENV_JSON" ] && [ "$BUILD_ENV_JSON" != "{}" ]; then
-            echo "$BUILD_ENV_JSON" | jq -e 'type == "object"' > /dev/null
-            while IFS='=' read -r key value; do
-              export "$key=$value"
-            done < <(echo "$BUILD_ENV_JSON" | jq -r 'to_entries[] | "\(.key)=\(.value | tostring)"')
+          set -euo pipefail
+          while IFS= read -r entry; do
+            key="$(jq -r '.key' <<< "$entry")"
+            value="$(jq -r '.value | tostring' <<< "$entry")"
+            printf -v "$key" '%s' "$value"
+            export "$key"
+          done < <(jq -c 'to_entries[]' <<< "$BUILD_ENV_JSON")
+          bash --noprofile --norc -eo pipefail -c "$BUILD_COMMAND"
+
+      - name: Verify artifact path
+        if: inputs.artifact-name != ''
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          ARTIFACT_PATH: ${{ inputs.artifact-path }}
+        run: |
+          set -euo pipefail
+          [[ -d "$ARTIFACT_PATH" ]] ||
+            { echo "::error::artifact path does not exist: $ARTIFACT_PATH"; exit 1; }
+          find "$ARTIFACT_PATH" -mindepth 1 -print -quit | grep -q . ||
+            { echo "::error::artifact path is empty: $ARTIFACT_PATH"; exit 1; }
+          if find "$ARTIFACT_PATH" -type l -print -quit | grep -q .; then
+            echo "::error::artifact path must not contain symbolic links"
+            exit 1
           fi
 
-          ${{ inputs.build-command }}
+      - name: Upload build artifact
+        id: artifact
+        if: inputs.artifact-name != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.working-directory }}/${{ inputs.artifact-path }}
+          if-no-files-found: error
+          include-hidden-files: false
+          retention-days: ${{ inputs.artifact-retention-days }}

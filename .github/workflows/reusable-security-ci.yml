@@ -1,0 +1,195 @@
+# =============================================================================
+# Reusable - Security CI
+# =============================================================================
+#
+# Runs package audit, TruffleHog secret scanning, and pull-request dependency
+# review in isolated least-privilege jobs. The workflow declares no secrets and
+# callers must not use secrets inheritance.
+# =============================================================================
+name: Reusable - Security CI
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Numeric Node.js version for package audit.
+        required: false
+        type: string
+        default: '22'
+      package-manager:
+        description: Package manager for package audit (npm or pnpm).
+        required: false
+        type: string
+        default: npm
+      working-directory:
+        description: Workspace-relative package directory.
+        required: false
+        type: string
+        default: .
+      audit-command:
+        description: Trusted package-audit override; empty selects the package-manager default.
+        required: false
+        type: string
+        default: ''
+      run-package-audit:
+        description: Run the package audit job.
+        required: false
+        type: boolean
+        default: true
+      run-secret-scan:
+        description: Scan the relevant Git history for verified secrets.
+        required: false
+        type: boolean
+        default: true
+      run-dependency-review:
+        description: Review dependency changes when the caller event is pull_request.
+        required: false
+        type: boolean
+        default: true
+      dependency-fail-severity:
+        description: Dependency severity threshold (low, moderate, high, or critical).
+        required: false
+        type: string
+        default: high
+
+permissions: {}
+
+jobs:
+  package-audit:
+    name: Package audit
+    if: inputs.run-package-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Validate package audit inputs
+        env:
+          AUDIT_COMMAND: ${{ inputs.audit-command }}
+          NODE_VERSION: ${{ inputs.node-version }}
+          PACKAGE_MANAGER: ${{ inputs.package-manager }}
+          WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        run: |
+          set -euo pipefail
+          case "$PACKAGE_MANAGER" in
+            npm|pnpm) ;;
+            *) echo "::error::package-manager must be npm or pnpm"; exit 1 ;;
+          esac
+          [[ "$NODE_VERSION" =~ ^[0-9]+([.][0-9]+){0,2}$ ]] ||
+            { echo "::error::node-version must be numeric"; exit 1; }
+          [[ "$WORKING_DIRECTORY" == "." || "$WORKING_DIRECTORY" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ ]] ||
+            { echo "::error::working-directory must be workspace-relative"; exit 1; }
+          [[ "$WORKING_DIRECTORY" != ".." && "$WORKING_DIRECTORY" != *"/../"* && "$WORKING_DIRECTORY" != "../"* && "$WORKING_DIRECTORY" != *"/.." ]] ||
+            { echo "::error::working-directory must not traverse parent directories"; exit 1; }
+          [[ "$AUDIT_COMMAND" != *$'\n'* && "$AUDIT_COMMAND" != *$'\r'* ]] ||
+            { echo "::error::audit-command override must be single-line trusted repository configuration"; exit 1; }
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Enable Corepack for pnpm
+        if: inputs.package-manager == 'pnpm'
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Run package audit
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          AUDIT_COMMAND: ${{ inputs.audit-command }}
+          PACKAGE_MANAGER: ${{ inputs.package-manager }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$AUDIT_COMMAND" ]]; then
+            bash --noprofile --norc -eo pipefail -c "$AUDIT_COMMAND"
+          elif [[ "$PACKAGE_MANAGER" == "pnpm" ]]; then
+            pnpm audit --audit-level=high
+          else
+            npm audit --audit-level=high
+          fi
+
+  secret-scan:
+    name: Secret scan
+    if: inputs.run-secret-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve trusted scan range
+        id: refs
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then BASE_SHA=""; fi
+          if [[ -n "$BASE_SHA" && ! "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::resolved secret-scan base is not a full commit SHA"
+            exit 1
+          fi
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] ||
+            { echo "::error::resolved secret-scan head is not a full commit SHA"; exit 1; }
+          echo "base=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          echo "head=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Scan for verified secrets
+        env:
+          BASE_SHA: ${{ steps.refs.outputs.base }}
+          HEAD_SHA: ${{ steps.refs.outputs.head }}
+          TRUFFLEHOG_IMAGE: ghcr.io/trufflesecurity/trufflehog@sha256:aa821cf4ace8861c7d096d83818cdf7bb9719028a52d37a52eaad44086a52577 # v3.96.0
+        run: |
+          set -euo pipefail
+          args=(
+            git file:///workspace/
+            --branch "$HEAD_SHA"
+            --fail
+            --no-update
+            --github-actions
+            --only-verified
+            --fail-on-scan-errors
+          )
+          if [[ -n "$BASE_SHA" ]]; then
+            args+=(--since-commit "$BASE_SHA")
+          fi
+          docker run --rm --cap-drop=ALL --security-opt=no-new-privileges \
+            --volume "$GITHUB_WORKSPACE:/workspace:ro" \
+            "$TRUFFLEHOG_IMAGE" "${args[@]}"
+
+  dependency-review:
+    name: Dependency review
+    if: inputs.run-dependency-review && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Validate dependency review inputs
+        env:
+          FAIL_SEVERITY: ${{ inputs.dependency-fail-severity }}
+        run: |
+          set -euo pipefail
+          case "$FAIL_SEVERITY" in
+            low|moderate|high|critical) ;;
+            *) echo "::error::dependency-fail-severity must be low, moderate, high, or critical"; exit 1 ;;
+          esac
+
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: ${{ inputs.dependency-fail-severity }}
+          comment-summary-in-pr: never

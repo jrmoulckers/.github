@@ -26,9 +26,10 @@ test('canonical instruction scopes, ownership, precedence, and member profiles p
   );
 });
 
-test('workflow and documentation surfaces contain no mutable reusable workflow examples', () => {
+test('workflow and documentation surfaces use immutable reusable workflow examples', () => {
   for (const relativePath of [
     'README.md',
+    'principles/github/actions-and-delivery.md',
     'docs/sync.md',
     'sync/README.md',
     'sync/lib/pr.mjs',
@@ -37,7 +38,7 @@ test('workflow and documentation surfaces contain no mutable reusable workflow e
     const text = readFileSync(join(REPO_ROOT, ...relativePath.split('/')), 'utf8');
     assert.doesNotMatch(
       text,
-      /uses:\s*jrmoulckers\/\.github\/\.github\/workflows\/[^\s`'"]+@(main|master|head|latest)\b/i,
+      /uses:\s*jrmoulckers\/\.github\/\.github\/workflows\/[^\s`'"]+@(?!<reviewed-commit-sha>|[0-9a-f]{40}(?:\s|$))/i,
       relativePath,
     );
   }
@@ -48,7 +49,7 @@ test('workflow and documentation surfaces contain no mutable reusable workflow e
     const text = readFileSync(join(REPO_ROOT, '.github', 'workflows', fileName), 'utf8');
     assert.doesNotMatch(
       text,
-      /uses:\s*jrmoulckers\/\.github\/\.github\/workflows\/[^\s`'"]+@(main|master|head|latest)\b/i,
+      /uses:\s*jrmoulckers\/\.github\/\.github\/workflows\/[^\s`'"]+@(?!<reviewed-commit-sha>|[0-9a-f]{40}(?:\s|$))/i,
       relativePath,
     );
   }

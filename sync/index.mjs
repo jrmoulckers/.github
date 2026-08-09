@@ -26,10 +26,10 @@
 //   --help               Show this help.
 //
 // Env: STUDIO_SYNC_TOKEN — fine-grained PAT with Contents + Pull requests read/write on
-// member repos (required for real syncs and for --check without --work-dir). Also needs
-// Contents read on the token source repo (jrmoulckers/studio) when a member opts into
-// tokens. No `workflow` scope and no blanket `repo` scope — see docs/sync.md. The default
-// GITHUB_TOKEN cannot push to other repos.
+// all nine members and the profile destination (required for real syncs and for --check
+// without --work-dir). Studio is both a member and the private token source, so that grant
+// includes vendoring reads. No `workflow` scope and no blanket `repo` scope — see docs/sync.md.
+// The default GITHUB_TOKEN cannot push to other repos.
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { loadManifest } from './lib/manifest.mjs';
@@ -175,7 +175,8 @@ function runDryRun(plans, opts, manifest, backboneRoot, date) {
 function runWorkDir(plans, opts, manifest, date) {
   const { resolved, targets } = plans[0];
   const write = !opts.dryRun;
-  assertMemberFacts(opts.workDir, resolved, manifest.backbone);
+  const facts = assertMemberFacts(opts.workDir, resolved, manifest.backbone);
+  reportWorkflowObservations(resolved.repo, facts);
   const lock = readLock(opts.workDir, manifest.backbone);
   const { report } = apply(opts.workDir, targets.writes, lock, { force: opts.force, write });
   log.step(`${resolved.repo} → ${opts.workDir}${write ? '' : '  (dry-run: no writes)'}`);
@@ -190,7 +191,8 @@ function runCheck(plans, opts, manifest, token) {
     let checkout;
     try {
       checkout = memberRootForCheck(resolved.repo, opts, token, manifest.backbone);
-      assertMemberFacts(checkout.root, resolved, manifest.backbone);
+      const facts = assertMemberFacts(checkout.root, resolved, manifest.backbone);
+      reportWorkflowObservations(resolved.repo, facts);
       const lock = readLock(checkout.root, manifest.backbone);
       const { report } = apply(checkout.root, targets.writes, lock, { force: false, write: false });
       const stale = report.changed || report.hasDrift;
@@ -218,6 +220,13 @@ function runCheck(plans, opts, manifest, token) {
     log.ok('All members up to date.');
   }
   return process.exitCode ?? 0;
+}
+
+function reportWorkflowObservations(repo, facts) {
+  const unused = facts.workflowObservations?.unusedDeclarations ?? [];
+  if (unused.length) {
+    log.info(`${repo}: reusable workflow availability not currently called: ${unused.join(', ')}`);
+  }
 }
 
 function runSync(plans, opts, manifest, token, date) {
@@ -296,7 +305,7 @@ function printPlan(resolved, targets) {
   for (const nat of targets.native) {
     const how =
       nat.kind === 'workflows'
-        ? 'called at a reviewed immutable ref'
+        ? 'availability declared; actual SHA-pinned calls require checkout verification'
         : 'inherited from backbone .github';
     out(`  ${nat.kind}: native — ${how} (not written)${nat.names.length ? `: ${nat.names.join(', ')}` : ''}`);
   }
@@ -360,8 +369,9 @@ Usage: node sync/index.mjs [options]
   --date <YYYY-MM-DD>  Override the sync date used for branch/commit naming.
   --help               Show this help.
 
-Env: STUDIO_SYNC_TOKEN — fine-grained PAT: Contents + Pull requests read/write on members,
-Contents read on jrmoulckers/studio. No workflow scope, no blanket repo scope. See docs/sync.md.`);
+Env: STUDIO_SYNC_TOKEN — fine-grained PAT: Contents + Pull requests read/write on all nine
+members and the profile destination. Studio is both a member and token source. No workflow
+scope, no blanket repo scope. See docs/sync.md.`);
   return 0;
 }
 

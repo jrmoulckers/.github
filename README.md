@@ -68,9 +68,10 @@ directions and ownership boundaries.
   `jrmoulckers` that doesn't define its own. Override in a product repo simply by adding that
   file locally.
 - **Reusable workflows.** Product repos call the `reusable-*.yml` workflows by reference — no
-  copying. Pin a reviewed immutable commit SHA (or use a documented versioned-tag policy with
-  automated review updates); never call a mutable branch. They're framework-parametric (Node +
-  npm|pnpm; caller supplies commands):
+  copying. Pin a reviewed full commit SHA; branches and tags are not immutable enough for executable
+  CI. Configure consumer automation to propose SHA update PRs, then review the upstream diff and
+  release notes before merging. The workflows are framework-parametric (Node + npm|pnpm; trusted
+  repository configuration supplies commands):
 
   ```yaml
   # .github/workflows/ci.yml in a product repo
@@ -93,9 +94,25 @@ directions and ownership boundaries.
   | --- | --- |
   | `reusable-ci-lint.yml` | ESLint/Prettier + semantic PR title |
   | `reusable-ci-web.yml` | install → typecheck → test → build |
-  | `reusable-deploy-preview.yml` | build + PR preview (artifact or custom provider) |
-  | `reusable-smoke-test.yml` | post-build web smoke check (`result` output) |
-  | `reusable-perf-budget.yml` | bundle-size budget + optional Lighthouse CI |
+  | `reusable-change-detection.yml` | immutable base/head diff with validated literal path groups |
+  | `reusable-deploy-pages.yml` | production Pages build/artifact/deploy with split authority |
+  | `reusable-deploy-preview.yml` | private preview artifact build or same-run artifact verification |
+  | `reusable-perf-budget.yml` | bundle budget + optional private-by-default Lighthouse reports |
+  | `reusable-security-ci.yml` | package audit + secret scan + PR dependency review |
+  | `reusable-smoke-test.yml` | standalone or artifact-based release/HTTP smoke check |
+
+  `reusable-ci-web` can upload a named build artifact. Preview, performance, and smoke jobs can
+  consume that artifact in the same workflow run when the caller declares `needs`; otherwise each
+  retains a frozen-install standalone mode. Artifacts from untrusted PRs never enter a job with
+  deployment secrets or write authority.
+
+  Consumer workflows own CI concurrency so parallel reusable jobs do not cancel sibling calls.
+  Production Pages is the exception: canon serializes repository deployments without cancelling an
+  in-progress deploy.
+
+  **Breaking preview change:** `provider`, `preview-command`, `DEPLOY_TOKEN`, and `preview-url` were
+  removed. Preview canon is artifact-only. Provider deployments belong in reviewed,
+  environment-gated consumer jobs that do not execute PR-controlled shell with credentials.
 
 ### 2. Synced canon — distributed by the sync tool
 

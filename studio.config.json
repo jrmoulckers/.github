@@ -1,5 +1,5 @@
 {
-  "$comment": "JRM Studio manifest. Source of truth for the cross-repo sync engine in sync/ (see docs/sync.md and sync/README.md), which reads this file on every run. Fields fall into three tiers. EXECUTED — repo, optIn.base, optIn.agents/skills/prompts/instructions, targetPaths and tokens decide which files are written where; getting one wrong changes the output. VERIFIED — mode selects the checkout evidence contract; framework, packageManager and called backbone workflows are checked when they apply but never decide a write. RECORDED — localAgents names locally authored roles/replacements used for handoff validation but never copied; optIn.health and optIn.workflows are native kinds (sync/lib/manifest.mjs NATIVE_KINDS), so neither is copied. DESCRIPTIVE — notes supplies human/agent context. Schema validation covers mode, mode-specific facts, repo, optIn, localAgents and tokens; integrity validation also enforces canonical agent and prompt roster/dependency closure. Real syncs, --check, and --work-dir additionally inspect each existing member checkout, then fail that member before writes if its mode or registry claims disagree. Manifest-only --dry-run stays offline and cannot verify checkout facts. See sync/README.md#member-entries.",
+  "$comment": "JRM Studio manifest. Source of truth for the cross-repo sync engine in sync/ (see docs/sync.md and sync/README.md), which reads this file on every run. Fields fall into three tiers. EXECUTED — repo, optIn.base, optIn.agents/skills/prompts/instructions, targetPaths and tokens decide which files are written where; getting one wrong changes the output. VERIFIED — mode selects the checkout evidence contract; framework and packageManager are checked when they apply but never decide a write. RECORDED — localAgents names locally authored roles/replacements used for handoff validation but never copied; optIn.health is native reliance, while optIn.workflows is the workflow availability declaration. Checkout inspection records actual backbone workflow uses with file, line, and immutable SHA; undeclared uses fail and available-but-unused entries are reported without failing because future adoption is intentional. Neither native kind is copied. DESCRIPTIVE — notes supplies human/agent context. Schema validation covers mode, mode-specific facts, repo, optIn, localAgents and tokens; integrity validation also enforces canonical agent, prompt, instruction, and workflow contracts. Real syncs, --check, and --work-dir inspect each existing member checkout before writes. Manifest-only --dry-run stays offline and cannot verify checkout facts. See sync/README.md#member-entries.",
   "studio": "JRM Studio",
   "owner": "jrmoulckers",
   "ownerType": "user",
@@ -59,10 +59,13 @@
       "workflow"
     ],
     "workflows": [
+      "reusable-change-detection",
       "reusable-ci-lint",
       "reusable-ci-web",
+      "reusable-deploy-pages",
       "reusable-deploy-preview",
       "reusable-perf-budget",
+      "reusable-security-ci",
       "reusable-smoke-test"
     ],
     "health": [

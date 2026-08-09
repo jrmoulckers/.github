@@ -1,91 +1,200 @@
 # =============================================================================
-# Reusable — Smoke Test
+# Reusable - Smoke Test
 # =============================================================================
 #
-# Generic web smoke test workflow. It builds, tests, optionally checks an HTTP
-# URL, and exposes a pass/fail output for release or deployment workflows.
-#
-# Example caller:
-#   jobs:
-#     smoke:
-#       uses: jrmoulckers/.github/.github/workflows/reusable-smoke-test.yml@<reviewed-commit-sha>
-#       with:
-#         version: 1.2.3
-#         package-manager: pnpm
-#         base-url: https://example.com/health
+# Standalone mode installs, builds, and tests. Artifact mode consumes a same-run
+# build without reinstalling or rebuilding, verifies optional release files, and can
+# retry an HTTPS endpoint while checking expected response text.
 # =============================================================================
-name: Reusable — Smoke Test
+name: Reusable - Smoke Test
 
 on:
   workflow_call:
     inputs:
       version:
-        description: Version being smoke tested.
+        description: Release or build version being smoke tested.
         required: true
         type: string
       node-version:
-        description: Node.js version to use.
+        description: Numeric Node.js version used by standalone mode.
         required: false
         type: string
         default: '22'
       package-manager:
-        description: Package manager to use (npm or pnpm).
+        description: Package manager for standalone mode (npm or pnpm).
         required: false
         type: string
         default: npm
       working-directory:
-        description: Directory containing the package manifest and lockfile.
+        description: Workspace-relative package directory.
         required: false
         type: string
         default: .
       build-command:
-        description: Command that builds the web app.
+        description: Trusted build command used when artifact-name is empty.
         required: false
         type: string
         default: npm run build
       test-command:
-        description: Command that runs tests.
+        description: Trusted test command used when artifact-name is empty; empty skips tests.
         required: false
         type: string
         default: npm test
-      base-url:
-        description: Optional URL for an HTTP smoke check.
+      artifact-name:
+        description: Existing same-run build artifact; empty selects standalone mode.
         required: false
         type: string
         default: ''
+      artifact-path:
+        description: Non-root destination path below working-directory for artifact mode.
+        required: false
+        type: string
+        default: dist
+      required-artifact-file:
+        description: Optional relative file that must exist inside the consumed artifact.
+        required: false
+        type: string
+        default: ''
+      base-url:
+        description: Optional credential-free HTTPS endpoint for release smoke checks.
+        required: false
+        type: string
+        default: ''
+      expected-response-text:
+        description: Optional literal text required in the HTTP response body.
+        required: false
+        type: string
+        default: ''
+      http-attempts:
+        description: HTTP attempts from 1 through 10.
+        required: false
+        type: number
+        default: 5
+      http-delay-seconds:
+        description: Delay between HTTP attempts from 0 through 60 seconds.
+        required: false
+        type: number
+        default: 5
     outputs:
       result:
-        description: Overall smoke test result (pass/fail).
+        description: Overall smoke test result (pass or fail).
         value: ${{ jobs.summary.outputs.result }}
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
-  web:
-    name: Web Smoke
+  smoke:
+    name: Release smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    permissions:
+      contents: read
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - name: Validate package manager
+      - name: Validate inputs
+        env:
+          ARTIFACT_NAME: ${{ inputs.artifact-name }}
+          ARTIFACT_PATH: ${{ inputs.artifact-path }}
+          BASE_URL: ${{ inputs.base-url }}
+          BUILD_COMMAND: ${{ inputs.build-command }}
+          EXPECTED_RESPONSE_TEXT: ${{ inputs.expected-response-text }}
+          HTTP_ATTEMPTS: ${{ inputs.http-attempts }}
+          HTTP_DELAY_SECONDS: ${{ inputs.http-delay-seconds }}
+          NODE_VERSION: ${{ inputs.node-version }}
+          PACKAGE_MANAGER: ${{ inputs.package-manager }}
+          REQUIRED_ARTIFACT_FILE: ${{ inputs.required-artifact-file }}
+          TEST_COMMAND: ${{ inputs.test-command }}
+          VERSION: ${{ inputs.version }}
+          WORKING_DIRECTORY: ${{ inputs.working-directory }}
         run: |
-          case "${{ inputs.package-manager }}" in
+          set -euo pipefail
+          case "$PACKAGE_MANAGER" in
             npm|pnpm) ;;
-            *)
-              echo "::error::package-manager must be 'npm' or 'pnpm'"
-              exit 1
-              ;;
+            *) echo "::error::package-manager must be npm or pnpm"; exit 1 ;;
           esac
+          [[ "$NODE_VERSION" =~ ^[0-9]+([.][0-9]+){0,2}$ ]] ||
+            { echo "::error::node-version must be numeric"; exit 1; }
+          [[ -n "$VERSION" && "$VERSION" != *$'\n'* && "$VERSION" != *$'\r'* ]] ||
+            { echo "::error::version must be a non-empty single-line value"; exit 1; }
+          [[ "$WORKING_DIRECTORY" == "." || "$WORKING_DIRECTORY" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ ]] ||
+            { echo "::error::working-directory must be workspace-relative"; exit 1; }
+          [[ "$WORKING_DIRECTORY" != ".." && "$WORKING_DIRECTORY" != *"/../"* && "$WORKING_DIRECTORY" != "../"* && "$WORKING_DIRECTORY" != *"/.." ]] ||
+            { echo "::error::working-directory must not traverse parent directories"; exit 1; }
+          [[ "$ARTIFACT_PATH" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ && "$ARTIFACT_PATH" != "." ]] ||
+            { echo "::error::artifact-path must be a non-root relative path"; exit 1; }
+          [[ "$ARTIFACT_PATH" != ".." && "$ARTIFACT_PATH" != *"/../"* && "$ARTIFACT_PATH" != "../"* && "$ARTIFACT_PATH" != *"/.." ]] ||
+            { echo "::error::artifact-path must not traverse parent directories"; exit 1; }
+          if [[ -n "$REQUIRED_ARTIFACT_FILE" ]]; then
+            [[ "$REQUIRED_ARTIFACT_FILE" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ ]] ||
+              { echo "::error::required-artifact-file must be relative"; exit 1; }
+            [[ "$REQUIRED_ARTIFACT_FILE" != ".." && "$REQUIRED_ARTIFACT_FILE" != *"/../"* && "$REQUIRED_ARTIFACT_FILE" != "../"* && "$REQUIRED_ARTIFACT_FILE" != *"/.." ]] ||
+              { echo "::error::required-artifact-file must not traverse parent directories"; exit 1; }
+          fi
+          [[ "$HTTP_ATTEMPTS" =~ ^[0-9]+$ ]] && (( HTTP_ATTEMPTS >= 1 && HTTP_ATTEMPTS <= 10 )) ||
+            { echo "::error::http-attempts must be an integer from 1 through 10"; exit 1; }
+          [[ "$HTTP_DELAY_SECONDS" =~ ^[0-9]+$ ]] && (( HTTP_DELAY_SECONDS >= 0 && HTTP_DELAY_SECONDS <= 60 )) ||
+            { echo "::error::http-delay-seconds must be an integer from 0 through 60"; exit 1; }
+          for command in "$BUILD_COMMAND" "$TEST_COMMAND"; do
+            [[ "$command" != *$'\n'* && "$command" != *$'\r'* ]] ||
+              { echo "::error::commands must be single-line trusted repository configuration"; exit 1; }
+          done
+          [[ "$EXPECTED_RESPONSE_TEXT" != *$'\n'* && "$EXPECTED_RESPONSE_TEXT" != *$'\r'* ]] ||
+            { echo "::error::expected-response-text must be single-line"; exit 1; }
+          if [[ -n "$ARTIFACT_NAME" ]]; then
+            [[ "$ARTIFACT_NAME" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]] ||
+              { echo "::error::artifact-name contains unsupported characters"; exit 1; }
+          else
+            [[ -n "$BUILD_COMMAND" ]] ||
+              { echo "::error::build-command is required in standalone mode"; exit 1; }
+          fi
+          if [[ -n "$BASE_URL" ]]; then
+            [[ "$BASE_URL" =~ ^https://[^[:space:]@/]+(:[0-9]+)?(/[^[:space:]]*)?$ ]] ||
+              { echo "::error::base-url must be HTTPS, credential-free, and contain no whitespace"; exit 1; }
+          elif [[ -n "$EXPECTED_RESPONSE_TEXT" ]]; then
+            echo "::error::expected-response-text requires base-url"
+            exit 1
+          fi
+
+      - name: Download same-run build artifact
+        if: inputs.artifact-name != ''
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.working-directory }}/${{ inputs.artifact-path }}
+
+      - name: Verify downloaded artifact
+        if: inputs.artifact-name != ''
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          ARTIFACT_PATH: ${{ inputs.artifact-path }}
+          REQUIRED_ARTIFACT_FILE: ${{ inputs.required-artifact-file }}
+        run: |
+          set -euo pipefail
+          [[ -d "$ARTIFACT_PATH" ]] ||
+            { echo "::error::artifact directory does not exist: $ARTIFACT_PATH"; exit 1; }
+          find "$ARTIFACT_PATH" -mindepth 1 -print -quit | grep -q . ||
+            { echo "::error::artifact directory is empty: $ARTIFACT_PATH"; exit 1; }
+          if find "$ARTIFACT_PATH" -type l -print -quit | grep -q .; then
+            echo "::error::smoke artifacts must not contain symbolic links"
+            exit 1
+          fi
+          if [[ -n "$REQUIRED_ARTIFACT_FILE" && ! -f "$ARTIFACT_PATH/$REQUIRED_ARTIFACT_FILE" ]]; then
+            echo "::error::required artifact file is missing: $REQUIRED_ARTIFACT_FILE"
+            exit 1
+          fi
+
+      - name: Checkout for standalone smoke
+        if: inputs.artifact-name == ''
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Enable Corepack for pnpm cache
-        if: inputs.package-manager == 'pnpm'
+        if: inputs.artifact-name == '' && inputs.package-manager == 'pnpm'
         run: corepack enable
 
       - name: Set up Node.js
+        if: inputs.artifact-name == ''
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: ${{ inputs.node-version }}
@@ -96,59 +205,87 @@ jobs:
             ${{ inputs.working-directory }}/pnpm-lock.yaml
 
       - name: Enable Corepack
-        if: inputs.package-manager == 'pnpm'
+        if: inputs.artifact-name == '' && inputs.package-manager == 'pnpm'
         run: corepack enable
 
       - name: Install dependencies (npm)
-        if: inputs.package-manager == 'npm'
+        if: inputs.artifact-name == '' && inputs.package-manager == 'npm'
         working-directory: ${{ inputs.working-directory }}
         run: npm ci
 
       - name: Install dependencies (pnpm)
-        if: inputs.package-manager == 'pnpm'
+        if: inputs.artifact-name == '' && inputs.package-manager == 'pnpm'
         working-directory: ${{ inputs.working-directory }}
         run: pnpm install --frozen-lockfile
 
       - name: Build
+        if: inputs.artifact-name == ''
         working-directory: ${{ inputs.working-directory }}
-        run: ${{ inputs.build-command }}
+        env:
+          BUILD_COMMAND: ${{ inputs.build-command }}
+        run: bash --noprofile --norc -eo pipefail -c "$BUILD_COMMAND"
 
       - name: Test
+        if: inputs.artifact-name == '' && inputs.test-command != ''
         working-directory: ${{ inputs.working-directory }}
-        run: ${{ inputs.test-command }}
+        env:
+          TEST_COMMAND: ${{ inputs.test-command }}
+        run: bash --noprofile --norc -eo pipefail -c "$TEST_COMMAND"
 
-      - name: HTTP smoke check
+      - name: HTTP release smoke
         if: inputs.base-url != ''
-        run: curl --fail --silent --show-error --location --max-time 30 "${{ inputs.base-url }}" > /dev/null
+        env:
+          ATTEMPTS: ${{ inputs.http-attempts }}
+          BASE_URL: ${{ inputs.base-url }}
+          DELAY_SECONDS: ${{ inputs.http-delay-seconds }}
+          EXPECTED_RESPONSE_TEXT: ${{ inputs.expected-response-text }}
+        run: |
+          set -euo pipefail
+          response="$RUNNER_TEMP/smoke-response.txt"
+          for (( attempt = 1; attempt <= ATTEMPTS; attempt++ )); do
+            if curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+              --proto-redir '=https' --max-time 30 "$BASE_URL" --output "$response"; then
+              if [[ -z "$EXPECTED_RESPONSE_TEXT" ]] ||
+                grep --fixed-strings --quiet -- "$EXPECTED_RESPONSE_TEXT" "$response"; then
+                exit 0
+              fi
+              echo "::warning::HTTP attempt $attempt succeeded but expected response text was absent"
+            else
+              echo "::warning::HTTP smoke attempt $attempt failed"
+            fi
+            if (( attempt < ATTEMPTS )); then sleep "$DELAY_SECONDS"; fi
+          done
+          echo "::error::HTTP release smoke failed after $ATTEMPTS attempts"
+          exit 1
 
   summary:
-    name: Smoke Test Summary
-    needs: web
+    name: Smoke test summary
+    needs: smoke
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions: {}
     outputs:
       result: ${{ steps.result.outputs.result }}
 
     steps:
       - name: Evaluate smoke result
         id: result
+        env:
+          SMOKE_RESULT: ${{ needs.smoke.result }}
+          VERSION: ${{ inputs.version }}
         run: |
-          WEB_RESULT="${{ needs.web.result }}"
-
-          echo "### 🧪 Smoke Test Results — v${{ inputs.version }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Check | Result |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|-------|--------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Web | ${WEB_RESULT} |" >> "$GITHUB_STEP_SUMMARY"
-
-          if [ "$WEB_RESULT" = "success" ]; then
+          set -euo pipefail
+          {
+            echo "### Smoke test results - $VERSION"
+            echo
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| Release smoke | $SMOKE_RESULT |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$SMOKE_RESULT" == "success" ]]; then
             echo "result=pass" >> "$GITHUB_OUTPUT"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "**✅ Smoke test passed.**" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "result=fail" >> "$GITHUB_OUTPUT"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "**❌ Smoke test failed.**" >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi

@@ -15,6 +15,7 @@ import {
 import { syncMemberRepo } from '../lib/pr.mjs';
 
 const BACKBONE = 'jrmoulckers/.github';
+const REVIEWED_SHA = '0123456789abcdef0123456789abcdef01234567';
 
 function withFixture(files, fn) {
   const root = mkdtempSync(join(tmpdir(), 'studio-member-facts-'));
@@ -126,7 +127,7 @@ test('derives called backbone workflows from all workflow YAML and ignores looka
       '.github/workflows/ci.yml': `
 jobs:
   shared:
-    uses: jrmoulckers/.github/.github/workflows/reusable-ci-web.yml@main
+    uses: jrmoulckers/.github/.github/workflows/reusable-ci-web.yml@${REVIEWED_SHA}
   local:
     uses: ./.github/workflows/reusable-ci-lint.yml
 # uses: jrmoulckers/.github/.github/workflows/commented.yml@main
@@ -134,7 +135,7 @@ jobs:
       '.github/workflows/nested/release.yaml': `
 jobs:
   deploy:
-    uses: "jrmoulckers/.github/.github/workflows/reusable-deploy-preview.yaml@v2"
+    uses: "jrmoulckers/.github/.github/workflows/reusable-deploy-preview.yaml@${REVIEWED_SHA}"
   action:
     steps:
       - uses: jrmoulckers/.github/some-action@main
@@ -149,18 +150,63 @@ jobs:
   );
 });
 
-test('comparison permits planned workflows but rejects checkout calls missing from the registry', () => {
+test('derives anchored and flow-style workflow uses without trusting comments', () => {
+  withFixture(
+    {
+      '.github/workflows/ci.yml': `
+jobs:
+  first:
+    uses: &web jrmoulckers/.github/.github/workflows/reusable-ci-web.yml@${REVIEWED_SHA}
+  second:
+    uses: *web
+  flow: { uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@${REVIEWED_SHA} }
+  quoted:
+    "uses": !!str jrmoulckers/.github/.github/workflows/reusable-security-ci.yml@${REVIEWED_SHA}
+  folded:
+    uses: >-
+      jrmoulckers/.github/.github/workflows/reusable-smoke-test.yml@${REVIEWED_SHA}
+  shell:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |-
+          echo "uses: jrmoulckers/.github/.github/workflows/not-a-call.yml@main"
+  ignored: value #, uses: jrmoulckers/.github/.github/workflows/reusable-smoke-test.yml@main
+`,
+    },
+    (root) => {
+      assert.deepEqual(
+        deriveCalledWorkflows(root, BACKBONE).uses.map((use) => ({
+          name: use.name,
+          ref: use.ref,
+          line: use.line,
+        })),
+        [
+          { name: 'reusable-ci-web', ref: REVIEWED_SHA, line: 4 },
+          { name: 'reusable-ci-web', ref: REVIEWED_SHA, line: 6 },
+          { name: 'reusable-ci-lint', ref: REVIEWED_SHA, line: 7 },
+          { name: 'reusable-security-ci', ref: REVIEWED_SHA, line: 9 },
+          { name: 'reusable-smoke-test', ref: REVIEWED_SHA, line: 11 },
+        ],
+      );
+    },
+  );
+});
+
+test('comparison reports unused availability and rejects checkout uses missing from the registry', () => {
   const files = {
     'package.json': JSON.stringify({ devDependencies: { svelte: '5.0.0' } }),
     'package-lock.json': '{}\n',
     '.github/workflows/ci.yml': `
 jobs:
   shared:
-    uses: jrmoulckers/.github/.github/workflows/reusable-ci-web.yml@main
+    uses: jrmoulckers/.github/.github/workflows/reusable-ci-web.yml@${REVIEWED_SHA}
 `,
   };
   withFixture(files, (root) => {
-    assert.doesNotThrow(() => assertMemberFacts(root, member(), BACKBONE));
+    const facts = assertMemberFacts(root, member(), BACKBONE);
+    assert.deepEqual(facts.workflowAvailability.value, ['planned-workflow', 'reusable-ci-web']);
+    assert.deepEqual(facts.workflowObservations.unusedDeclarations, ['planned-workflow']);
+    assert.deepEqual(facts.workflowObservations.undeclaredUses, []);
     assert.throws(
       () =>
         assertMemberFacts(
@@ -170,12 +216,51 @@ jobs:
         ),
       (error) => {
         assert.match(error.message, /owner\/member/);
-        assert.match(error.message, /optIn\.workflows/);
+        assert.match(error.message, /workflow availability/);
         assert.match(error.message, /"reusable-ci-web"/);
+        assert.match(error.message, /\.github\/workflows\/ci\.yml:4/);
         return true;
       },
     );
   });
+});
+
+test('workflow uses require full immutable commit SHAs and include deterministic evidence', () => {
+  withFixture(
+    {
+      'package.json': JSON.stringify({ devDependencies: { svelte: '5.0.0' } }),
+      'package-lock.json': '{}\n',
+      '.github/workflows/z-release.yml': `
+jobs:
+  release:
+    uses: jrmoulckers/.github/.github/workflows/reusable-ci-web.yml@v2
+`,
+      '.github/workflows/a-ci.yml': `
+jobs:
+  ci:
+    uses: jrmoulckers/.github/.github/workflows/reusable-ci-web.yml@main
+`,
+    },
+    (root) => {
+      const derived = deriveCalledWorkflows(root, BACKBONE);
+      assert.deepEqual(
+        derived.uses.map((use) => `${use.path}:${use.line}@${use.ref}`),
+        [
+          '.github/workflows/a-ci.yml:4@main',
+          '.github/workflows/z-release.yml:4@v2',
+        ],
+      );
+      assert.throws(
+        () => assertMemberFacts(root, member(), BACKBONE),
+        (error) => {
+          assert.match(error.message, /a-ci\.yml:4 pins "main"/);
+          assert.match(error.message, /z-release\.yml:4 pins "v2"/);
+          assert.match(error.message, /full 40-character commit SHA/);
+          return true;
+        },
+      );
+    },
+  );
 });
 
 test('scalar mismatch diagnostics name the claim, derivation, and evidence', () => {
@@ -269,14 +354,14 @@ test('non-application modes still verify called reusable workflows', () => {
     '.github/workflows/ci.yml': `
 jobs:
   shared:
-    uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@main
+    uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@${REVIEWED_SHA}
 `,
   };
   withFixture(files, (root) => {
     for (const candidate of [infrastructure(), preBootstrap()]) {
       assert.throws(
         () => assertMemberFacts(root, candidate, BACKBONE),
-        /optIn\.workflows does not list checkout call "reusable-ci-lint"/,
+        /workflow availability does not declare checkout use "reusable-ci-lint"/,
       );
     }
   });
