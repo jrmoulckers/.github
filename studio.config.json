@@ -191,7 +191,7 @@
       "mode": "application",
       "framework": "kmp-web",
       "packageManager": "npm",
-      "notes": "Product-specific platform and risk rules live in root/scoped overlays. The canonical AI layer is materialized atomically while finance-domain remains the only locally authored agent.",
+      "notes": "Product-specific platform and risk rules live in root/scoped overlays. The canonical AI layer is materialized atomically while finance-domain remains the only locally authored agent. Vendored tokens land at the repo root because @jrm/tokens now ships native Compose and Swift sources alongside the web artifacts, and all four platform apps (android, ios, web, windows) must reach one copy.",
       "localAgents": ["finance-domain"],
       "optIn": {
         "base": true,
@@ -204,7 +204,7 @@
         "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
         "workflows": []
       },
-      "tokens": { "enabled": true, "targetPath": "apps/web/vendor/@jrm/tokens" }
+      "tokens": { "enabled": true, "targetPath": "vendor/@jrm/tokens" }
     },
     {
       "repo": "jrmoulckers/libro",

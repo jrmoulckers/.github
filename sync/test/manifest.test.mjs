@@ -174,7 +174,7 @@ test('phase-two activation preserves member modes and non-AI bundle intent', () 
   assert.deepEqual(finance.optIn.workflows, []);
   assert.deepEqual(finance.tokens, {
     enabled: true,
-    targetPath: 'apps/web/vendor/@jrm/tokens',
+    targetPath: 'vendor/@jrm/tokens',
   });
 
   for (const repo of ['jrmoulckers/studio', 'jrmoulckers/homelab', 'jrmoulckers/windows']) {
@@ -338,9 +338,14 @@ test('libro, cartridge, and docket use the root-default vendored tokens path', (
   }
 });
 
-test('finance keeps its custom tokens path while activating its AI layer', () => {
+test('finance vendors tokens at the repo root so every platform app can reach them', () => {
   const [finance] = resolveAll(manifest, ['jrmoulckers/finance']);
-  assert.equal(finance.tokens.targetBase, 'apps/web/vendor/@jrm/tokens');
+  assert.equal(finance.tokens.targetBase, 'vendor/@jrm/tokens');
+  assert.equal(
+    finance.tokens.targetBase,
+    manifest.tokens.targetPath,
+    'a kmp-web member with android/ios/web/windows apps must not bury native token output inside apps/web',
+  );
   const kinds = finance.groups.map((g) => g.kind);
   for (const kind of ['agents', 'skills', 'prompts', 'instructions']) {
     assert.ok(kinds.includes(kind), `finance must opt into ${kind}`);
