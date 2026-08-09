@@ -202,7 +202,8 @@ and its environment-gated deploy job only calls GitHub's deploy action with `pag
 - Reusable commands are trusted repository configuration. Pass literal workflow values, never event
   titles, branch names, issue text, or other untrusted data.
 - Never use `secrets: inherit`. `NODE_AUTH_TOKEN` is the only secret any canonical reusable workflow
-  accepts, and it must be passed explicitly.
+  accepts, it is optional, and it must be passed explicitly when it is passed at all. When it is
+  omitted the workflow falls back to the job's `GITHUB_TOKEN`.
 - Preview canon is artifact-only. The removed `provider`, `preview-command`, `DEPLOY_TOKEN`, and
   `preview-url` contracts must not be recreated. Provider deployments require a separate reviewed
   job, a protected environment, explicit secrets, and no PR-controlled arbitrary shell.
@@ -216,7 +217,9 @@ and its environment-gated deploy job only calls GitHub's deploy action with `pag
 `reusable-perf-budget`, and `reusable-smoke-test` accept optional `registry-url` and
 `registry-scope` inputs plus an optional `NODE_AUTH_TOKEN` secret. Leave all three unset and the
 run is unchanged: `actions/setup-node` ignores an empty `registry-url` entirely and writes no
-`.npmrc`.
+`.npmrc`, and no token is placed in the install step's environment.
+
+For GitHub Packages this is zero-config — pass no secret at all:
 
 ```yaml
 permissions:
@@ -230,8 +233,16 @@ jobs:
       package-manager: pnpm
       registry-url: https://npm.pkg.github.com
       registry-scope: '@jrmoulckers'
+```
+
+`NODE_AUTH_TOKEN` resolves as `secrets.NODE_AUTH_TOKEN || github.token`, so the job's
+`GITHUB_TOKEN` is used unless the caller passes its own. Grant the consuming repository read access
+to each package under the package's **Manage Actions access** settings; GitHub recommends this over
+storing a PAT. Pass an explicit secret only for a registry `GITHUB_TOKEN` cannot reach:
+
+```yaml
     secrets:
-      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      NODE_AUTH_TOKEN: ${{ secrets.MY_REGISTRY_PAT }}
 ```
 
 Rules and interactions:
@@ -248,6 +259,17 @@ Rules and interactions:
 - pnpm reads `NPM_CONFIG_USERCONFIG` and expands `${NODE_AUTH_TOKEN}` the same way npm does, so no
   extra pnpm-specific step is needed. `setup-node` always exports `NODE_AUTH_TOKEN` (a placeholder
   when the secret is absent), which keeps pnpm's env-expansion from erroring.
+- The token reaches the install step only when `registry-url` is set. A run that does not configure
+  a private registry gets an empty `NODE_AUTH_TOKEN`, so a `GITHUB_TOKEN` is never exposed to
+  dependency lifecycle scripts on the default path. A consequence worth knowing: passing
+  `NODE_AUTH_TOKEN` *without* `registry-url` has no effect, because there is no `.npmrc` to consume
+  it.
+- `reusable-security-ci` needs none of this. `npm audit` and `pnpm audit` send the bulk advisory
+  request to the **default** registry, never to a scoped one, so a private scoped package in the
+  lockfile does not trigger a `401`. Pointing the *default* registry at GitHub Packages does break
+  audit, but with `ENDPOINT_NOT_EXISTS` (no audit endpoint) rather than an auth error — a token
+  would not fix it. Note that audit does transmit private package names and versions to the default
+  registry.
 
 ### Never vendor a backbone workflow or health file
 
