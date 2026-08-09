@@ -6,7 +6,7 @@ topology; each handoff below applies that topology without restating or transfer
 
 ## GH-AIP-001 — Select the smallest passing model
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Select the smallest model and pinned version that passes the feature's Product-supplied
   quality bar, and configure a bounded fallback chain for timeout, refusal, or unavailability.
 - **Rationale:** Excess capability raises cost and latency, while an unversioned single-provider
@@ -23,7 +23,7 @@ topology; each handoff below applies that topology without restating or transfer
 
 ## GH-AIP-002 — Design prompts through the user experience
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Design each product prompt as a versioned contract whose user inputs, steering,
   correction, cancellation, and output states are handed to Studio for accessible UX expression.
 - **Rationale:** A technically effective prompt still fails users when expectations, control, and
@@ -40,7 +40,7 @@ topology; each handoff below applies that topology without restating or transfer
 
 ## GH-AIP-003 — Constrain model inputs, outputs, and actions
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Validate and bound every model input, parse every output against an explicit
   contract, and allow model-proposed tools or privileged actions only through reviewed allowlists
   and required confirmation.
@@ -58,7 +58,7 @@ topology; each handoff below applies that topology without restating or transfer
 
 ## GH-AIP-004 — Gate AI changes on representative evals
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Gate every shipped AI capability and every prompt, model, parameter, retrieval, or
   guardrail change on a versioned eval set with a Product-approved threshold.
 - **Rationale:** A convincing example cannot reveal regressions across representative, failure, and
@@ -75,7 +75,7 @@ topology; each handoff below applies that topology without restating or transfer
 
 ## GH-AIP-005 — Budget latency and cost before release
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Record explicit per-request and aggregate cost limits plus end-to-end and tail
   latency limits before enabling a production AI path, and refuse release when measured evidence
   exceeds them.
@@ -93,7 +93,7 @@ topology; each handoff below applies that topology without restating or transfer
 
 ## GH-AIP-006 — Disclose AI involvement and limits
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Disclose when a user-visible result is AI-generated or AI-assisted, distinguish it
   from human-authored content, and expose material limits or uncertainty without claiming authority
   the evidence does not support.
@@ -110,7 +110,7 @@ topology; each handoff below applies that topology without restating or transfer
 
 ## GH-AIP-007 — Minimize and authorize user data sent to models
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Minimize user data included in model context, require the Product-defined
   obligation and consent posture before transmission, and prohibit raw sensitive data from prompts,
   logs, eval fixtures, retention, or provider training unless explicitly authorized.
@@ -128,7 +128,7 @@ topology; each handoff below applies that topology without restating or transfer
 
 ## GH-AIP-008 — Preserve a non-AI completion path
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Keep AI capabilities optional and provider-swappable, and preserve a tested
   non-AI or clearly unavailable path that lets the surrounding product complete its essential job.
 - **Rationale:** A hosted model should not turn provider failure, budget pressure, or product scope

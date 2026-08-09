@@ -7,7 +7,7 @@ topology.
 
 ## GH-ACT-001 — Automate authority-owned commands
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Make workflows invoke the versioned commands and checks defined by the responsible
   authority; do not let workflow wiring become a second definition of build, test, security, or
   release behavior.
@@ -25,7 +25,7 @@ topology.
 
 ## GH-ACT-002 — Give every required check a terminal result
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Trigger each required workflow for every pull request in its protected scope, and
   put conditional execution inside jobs or steps so the required check reports success, failure, or
   an intentional skip.
@@ -42,7 +42,7 @@ topology.
 
 ## GH-ACT-003 — Pin Actions and minimize permissions
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Pin every third-party Action to an immutable full commit SHA, document the human
   version, and scope each workflow token through explicit workflow- or job-level permissions to only
   the GitHub operations it exercises.
@@ -60,7 +60,7 @@ topology.
 
 ## GH-ACT-004 — Keep secrets out of untrusted automation
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Store automation credentials in GitHub secret or environment controls, expose them
   only to the smallest trusted job and event scope, and never require real secrets to validate an
   untrusted pull request.
@@ -80,7 +80,7 @@ topology.
 
 ## GH-ACT-005 — Own reusable workflows once
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Maintain shared GitHub Actions behavior as reusable workflows in `.github`, call it
   by repository reference, and reject member-local copies unless the member intentionally owns a
   distinct workflow.
@@ -99,7 +99,7 @@ topology.
 
 ## GH-ACT-006 — Keep release automation subordinate to release authority
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Let GitHub automation prepare, attest, and publish only the artifacts authorized by
   an explicit Product release decision and produced by Engineering-owned mechanisms; do not infer
   readiness from workflow success alone.
@@ -118,7 +118,7 @@ topology.
 
 ## GH-ACT-007 — Report partial and refused automation honestly
 
-- **Status:** Draft
+- **Status:** Ratified
 - **Statement:** Surface every failed, skipped, drifted, or refused target with enough GitHub-visible
   context for a reviewer to act, and never present a partial run as complete success.
 - **Rationale:** Safety mechanisms are useful only when their refusal and remaining work are visible

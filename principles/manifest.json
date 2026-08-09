@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "history": {
     "bootstrapBaseCommit": "7f5214741cb4b26a8df92c7a3e4abb10308dc94f"
   },
@@ -58,6 +58,311 @@
       "GH-AIEVAL-006"
     ]
   },
+  "statusCatalog": {
+    "GH-REPO-001": {
+      "path": "principles/github/repository-governance.md",
+      "status": "Ratified",
+      "semanticContentSha256": "f379e5714ab31b6deec4f22f8d47b0890bdd4d349730d19ba748fb808c973db8"
+    },
+    "GH-REPO-002": {
+      "path": "principles/github/repository-governance.md",
+      "status": "Ratified",
+      "semanticContentSha256": "5fb3394fcee38f603b9f4591f80731f2ac1d2eff4f375142691f6a405870562d"
+    },
+    "GH-REPO-003": {
+      "path": "principles/github/repository-governance.md",
+      "status": "Ratified",
+      "semanticContentSha256": "22cec75ed3c9027f4f30de1749ab36f1714eba65844ec93c491b4b6120d29823"
+    },
+    "GH-REPO-004": {
+      "path": "principles/github/repository-governance.md",
+      "status": "Ratified",
+      "semanticContentSha256": "25313ec99faa13011280388a6cf058a07bb3c3bc8178c001c6f3a475fae7a9ff"
+    },
+    "GH-REPO-005": {
+      "path": "principles/github/repository-governance.md",
+      "status": "Ratified",
+      "semanticContentSha256": "e6e933112e0b41e93422851dd93d85a91b7686e59a05234f94fe1428429a2a82"
+    },
+    "GH-REPO-006": {
+      "path": "principles/github/repository-governance.md",
+      "status": "Ratified",
+      "semanticContentSha256": "eb62f3009b888c3578fce1ee2e4f9969bf3ad87171c849e73e1ca55764f4adbc"
+    },
+    "GH-REPO-007": {
+      "path": "principles/github/repository-governance.md",
+      "status": "Ratified",
+      "semanticContentSha256": "acf3f32a65ba0117ede2c20d059078eaa16e56aae3873285fe05583a8ac13853"
+    },
+    "GH-ACT-001": {
+      "path": "principles/github/actions-and-delivery.md",
+      "status": "Ratified",
+      "semanticContentSha256": "16e0adc0bd5601ad0750c4dfda46289f15cc0058831236db6f35f636cf31716e"
+    },
+    "GH-ACT-002": {
+      "path": "principles/github/actions-and-delivery.md",
+      "status": "Ratified",
+      "semanticContentSha256": "afc28ed4a1684db78e4e9daf9a6e70aa12db0820f676e00514467fe0b16a6045"
+    },
+    "GH-ACT-003": {
+      "path": "principles/github/actions-and-delivery.md",
+      "status": "Ratified",
+      "semanticContentSha256": "e4dee837d0ddb86e7459052df2f4440bb25f3d3cf83054e75bab052a13827d77"
+    },
+    "GH-ACT-004": {
+      "path": "principles/github/actions-and-delivery.md",
+      "status": "Ratified",
+      "semanticContentSha256": "025ad4a25021b3bb36a80aa0a50353e32f617d05922b35cc9f5c36d25cf0648c"
+    },
+    "GH-ACT-005": {
+      "path": "principles/github/actions-and-delivery.md",
+      "status": "Ratified",
+      "semanticContentSha256": "0466a1aa5c376d03642fe0d616f24df49bcfa57adc0b93b8fb89dd877128ff47"
+    },
+    "GH-ACT-006": {
+      "path": "principles/github/actions-and-delivery.md",
+      "status": "Ratified",
+      "semanticContentSha256": "43d7fa0be7744566bbfe58d21245b4b238f31a9acf1c312b31e0fe11f5c49ffc"
+    },
+    "GH-ACT-007": {
+      "path": "principles/github/actions-and-delivery.md",
+      "status": "Ratified",
+      "semanticContentSha256": "db46ca6778fd2489eb76e29fba7e283df6d941bf7340850e3ab3f110319fa488"
+    },
+    "GH-AIP-001": {
+      "path": "principles/ai/product-ai.md",
+      "status": "Ratified",
+      "semanticContentSha256": "6e0874e3c9d20115c2dc9ea63b1501745423909037d45ed7a44e0e6e6d7bf0a9"
+    },
+    "GH-AIP-002": {
+      "path": "principles/ai/product-ai.md",
+      "status": "Ratified",
+      "semanticContentSha256": "5ebc81ad5e4b3b666704f11ab72a1bb7da50145fef2fe6c5f44dd077500b3f8d"
+    },
+    "GH-AIP-003": {
+      "path": "principles/ai/product-ai.md",
+      "status": "Ratified",
+      "semanticContentSha256": "75ff119ef914fa1e2b03bc262e1e1c0f74ba9b238488e5c111b02ad480202b76"
+    },
+    "GH-AIP-004": {
+      "path": "principles/ai/product-ai.md",
+      "status": "Ratified",
+      "semanticContentSha256": "9b807262530813b72281bd11ad5a291c7893d3e2d87ccafc79e1d075ca7d04d3"
+    },
+    "GH-AIP-005": {
+      "path": "principles/ai/product-ai.md",
+      "status": "Ratified",
+      "semanticContentSha256": "060801a0f85bf165759636593e7ac97f0bcf56341914e232a496e24b2d9ecfa6"
+    },
+    "GH-AIP-006": {
+      "path": "principles/ai/product-ai.md",
+      "status": "Ratified",
+      "semanticContentSha256": "fa1c02b1d92608d895fc8991cee437b7cf26fb2fbb5569e012f05a1531eb2cf6"
+    },
+    "GH-AIP-007": {
+      "path": "principles/ai/product-ai.md",
+      "status": "Ratified",
+      "semanticContentSha256": "94bc50f4c5fe3c2cec35378422bde2e54af6222efd66a5f1ddb6e40d3de6b3b1"
+    },
+    "GH-AIP-008": {
+      "path": "principles/ai/product-ai.md",
+      "status": "Ratified",
+      "semanticContentSha256": "7ac5e577e1fed77a627fab7502db794d8c164c7b6443e31870d9747b5a1bfd10"
+    },
+    "GH-AIOPS-001": {
+      "path": "principles/ai/agent-operations.md",
+      "status": "Ratified",
+      "semanticContentSha256": "05af461bd8900796b80d9084fec4fc0147f507c0a5f7c09f0d0f8aedbd84fa71"
+    },
+    "GH-AIOPS-002": {
+      "path": "principles/ai/agent-operations.md",
+      "status": "Ratified",
+      "semanticContentSha256": "c8c7dfdbfc7a786339cec95cdc6a3e980deef64221d701a1c44a02b56dbc3d19"
+    },
+    "GH-AIOPS-003": {
+      "path": "principles/ai/agent-operations.md",
+      "status": "Ratified",
+      "semanticContentSha256": "69bae780e72aca48858009a3a75da774662c0d29f7cdb4e40b5178961fcfe1ea"
+    },
+    "GH-AIOPS-004": {
+      "path": "principles/ai/agent-operations.md",
+      "status": "Ratified",
+      "semanticContentSha256": "067181b19919aa26c0e72508fd8478dfdc881dced79d0550d4256680305b7930"
+    },
+    "GH-AIOPS-005": {
+      "path": "principles/ai/agent-operations.md",
+      "status": "Ratified",
+      "semanticContentSha256": "55033c6573b55c5346954990e67c35665967c94d1587d0c435d4ea7d4d9d1432"
+    },
+    "GH-AIOPS-006": {
+      "path": "principles/ai/agent-operations.md",
+      "status": "Ratified",
+      "semanticContentSha256": "f0c064716388949e8ed0c97c937dc33e0a7a07288b7fc7a4c8c3ce67791219fe"
+    },
+    "GH-AIOPS-007": {
+      "path": "principles/ai/agent-operations.md",
+      "status": "Ratified",
+      "semanticContentSha256": "f200dd1241e7d6420629d3e5eb2af8eefb34810a041c35f682458081a6c24061"
+    },
+    "GH-AIOPS-008": {
+      "path": "principles/ai/agent-operations.md",
+      "status": "Ratified",
+      "semanticContentSha256": "303d1cd8d87f84d8979af89c7fd8b3ab2d084690663a7514869d594418b3fe83"
+    },
+    "GH-AIOPS-009": {
+      "path": "principles/ai/agent-operations.md",
+      "status": "Ratified",
+      "semanticContentSha256": "71e84042501602a871b52708de88331bcf13431dc7af566c5957883c0f21d137"
+    },
+    "GH-AIOPS-010": {
+      "path": "principles/ai/agent-operations.md",
+      "status": "Ratified",
+      "semanticContentSha256": "5b7b036688045db994a3addba805389ff00d00c0d753a497bfbf7f786006cae0"
+    },
+    "GH-AIOPS-011": {
+      "path": "principles/ai/agent-operations.md",
+      "status": "Ratified",
+      "semanticContentSha256": "af770dadea3e57cfa377d9e5e0fec4346089c2aa97684928bb911bbb5af8b093"
+    },
+    "GH-AIOPS-012": {
+      "path": "principles/ai/agent-operations.md",
+      "status": "Ratified",
+      "semanticContentSha256": "69a8bcd8a01db9cb682faf44abedf4046e70bebea02909dfc75bd930893a9b6d"
+    },
+    "GH-AIOPS-013": {
+      "path": "principles/ai/agent-operations.md",
+      "status": "Ratified",
+      "semanticContentSha256": "0368e7408c56a492914d1a7b838bfce08f8fb2b0045656a89020eb16cbf291fc"
+    },
+    "GH-AIOPS-014": {
+      "path": "principles/ai/agent-operations.md",
+      "status": "Ratified",
+      "semanticContentSha256": "958880b34eaa2f8a846489bba288650761b4def5ffeabb9b66380022190536d9"
+    },
+    "GH-AIOPS-015": {
+      "path": "principles/ai/agent-operations.md",
+      "status": "Ratified",
+      "semanticContentSha256": "566f97d520c417b10d7e4b63fb2c9c323ee5a70756cba35d5dc478040bd5da59"
+    },
+    "GH-AIEVAL-001": {
+      "path": "principles/ai/evidence-and-evals.md",
+      "status": "Ratified",
+      "semanticContentSha256": "04fd2c487a59183f9ca6e8fc14e60846ed5ca848422bd391be82d2716d955a4c"
+    },
+    "GH-AIEVAL-002": {
+      "path": "principles/ai/evidence-and-evals.md",
+      "status": "Ratified",
+      "semanticContentSha256": "67e017610aafb3352e1ff901b7cfed2574fd836892ec5b9997086a7a0c27ca0e"
+    },
+    "GH-AIEVAL-003": {
+      "path": "principles/ai/evidence-and-evals.md",
+      "status": "Ratified",
+      "semanticContentSha256": "0bada75fa2965657d8245feccb5d75533016160f26b39edff5a2b32d6b1c07be"
+    },
+    "GH-AIEVAL-004": {
+      "path": "principles/ai/evidence-and-evals.md",
+      "status": "Ratified",
+      "semanticContentSha256": "abb5d739bf4b00dc193714edadb48d426e2b2a59149212c202582abb084f3133"
+    },
+    "GH-AIEVAL-005": {
+      "path": "principles/ai/evidence-and-evals.md",
+      "status": "Ratified",
+      "semanticContentSha256": "aa956d04a25f0fc2619484e0ac5e1d085f1e2776ab3807308d6c4e1df9681e32"
+    },
+    "GH-AIEVAL-006": {
+      "path": "principles/ai/evidence-and-evals.md",
+      "status": "Ratified",
+      "semanticContentSha256": "fd024fecab5c1b4799157bb8088e2f618ecefe618c4d29bd81cb0cb6e9bd382f"
+    }
+  },
+  "ratificationDecisions": [
+    {
+      "recordPath": "principles/decisions/0001-github-ai-owner-ratification.md",
+      "principles": [
+        "GH-REPO-001",
+        "GH-REPO-002",
+        "GH-REPO-003",
+        "GH-REPO-004",
+        "GH-REPO-005",
+        "GH-REPO-006",
+        "GH-REPO-007",
+        "GH-ACT-001",
+        "GH-ACT-002",
+        "GH-ACT-003",
+        "GH-ACT-004",
+        "GH-ACT-005",
+        "GH-ACT-006",
+        "GH-ACT-007",
+        "GH-AIP-001",
+        "GH-AIP-002",
+        "GH-AIP-003",
+        "GH-AIP-004",
+        "GH-AIP-005",
+        "GH-AIP-006",
+        "GH-AIP-007",
+        "GH-AIP-008",
+        "GH-AIOPS-001",
+        "GH-AIOPS-002",
+        "GH-AIOPS-003",
+        "GH-AIOPS-004",
+        "GH-AIOPS-005",
+        "GH-AIOPS-006",
+        "GH-AIOPS-007",
+        "GH-AIOPS-008",
+        "GH-AIOPS-009",
+        "GH-AIOPS-010",
+        "GH-AIOPS-011",
+        "GH-AIOPS-012",
+        "GH-AIOPS-013",
+        "GH-AIOPS-014",
+        "GH-AIOPS-015",
+        "GH-AIEVAL-001",
+        "GH-AIEVAL-002",
+        "GH-AIEVAL-003",
+        "GH-AIEVAL-004",
+        "GH-AIEVAL-005",
+        "GH-AIEVAL-006"
+      ],
+      "sourcePullRequests": [89, 92],
+      "finalReviewEvidence": [
+        {
+          "pullRequest": 89,
+          "finalHeadCommit": "95293ea98a26228d2ee143fbbb19e04e2aff80b3",
+          "mergeCommit": "7f5214741cb4b26a8df92c7a3e4abb10308dc94f",
+          "successfulChecks": ["Sync engine tests"]
+        },
+        {
+          "pullRequest": 92,
+          "finalHeadCommit": "698bc2befb0b697b3946d996471339fbf2b13136",
+          "mergeCommit": "3036d5d1ed882a4c5acffe1ccfa0b49165538eef",
+          "successfulChecks": [
+            "Principle metadata tests",
+            "Sync engine tests",
+            "CI gate"
+          ]
+        },
+        {
+          "pullRequest": 97,
+          "finalHeadCommit": "73a5bf6769a4d4235b55057453d896d876f71069",
+          "mergeCommit": "97ff60ec21321563fa0fc7ba80015261e7dcd6fa",
+          "successfulChecks": [
+            "Principle metadata tests",
+            "Sync engine tests",
+            "CI gate"
+          ]
+        }
+      ],
+      "baseCommit": "97ff60ec21321563fa0fc7ba80015261e7dcd6fa",
+      "currentApprovalState": "Proposed; this record does not claim repository-owner approval before merge.",
+      "effectiveApproval": "Ratification is effective only when repository owner jrmoulckers merges the pull request containing this record after CI gate succeeds.",
+      "requiredProtection": {
+        "branch": "main",
+        "strictRequiredCheck": "CI gate",
+        "forcePushes": false,
+        "deletions": false
+      }
+    }
+  ],
   "legacySources": {
     "ai-process.md": {
       "repository": "jrmoulckers/studio",
