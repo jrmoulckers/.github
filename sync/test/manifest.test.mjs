@@ -32,6 +32,8 @@ test('every studio member is registered', () => {
     'jrmoulckers/libro',
     'jrmoulckers/cartridge',
     'jrmoulckers/docket',
+    'jrmoulckers/engineering',
+    'jrmoulckers/product',
     'jrmoulckers/studio',
     'jrmoulckers/homelab',
     'jrmoulckers/windows',
@@ -189,6 +191,19 @@ test('phase-two activation preserves member modes and non-AI bundle intent', () 
     assert.ok(!writes.some((write) => write.kind === 'base'), `${repo} has no base writes`);
     assert.ok(!writes.some((write) => write.kind === 'tokens'), `${repo} has no token writes`);
     assert.deepEqual(native, [], `${repo} has no native selections`);
+
+    // The reason runtime and copilot were split out of base: declining the studio operating
+    // guide must not also decline canonical MCP policy or Copilot-surface orientation.
+    assert.deepEqual(
+      writes.filter((write) => write.kind === 'runtime').map((write) => write.targetPath),
+      ['agency.toml'],
+      `${repo} still receives canonical MCP policy`,
+    );
+    assert.deepEqual(
+      writes.filter((write) => write.kind === 'copilot').map((write) => write.targetPath),
+      ['.github/copilot-instructions.md'],
+      `${repo} still receives Copilot-surface orientation`,
+    );
   }
 
   const studio = manifest.members.find((member) => member.repo === 'jrmoulckers/studio');
@@ -197,8 +212,91 @@ test('phase-two activation preserves member modes and non-AI bundle intent', () 
   assert.equal(manifest.tokens.sourceRepo, studio.repo);
 });
 
-test('Docket records its completed transition from pre-bootstrap to application', () => {
-  const docket = manifest.members.find((member) => member.repo === 'jrmoulckers/docket');
+test('every member receives runtime and copilot regardless of base', () => {
+  for (const member of manifest.members) {
+    assert.equal(member.optIn.runtime, true, `${member.repo} opts into runtime`);
+    assert.equal(member.optIn.copilot, true, `${member.repo} opts into copilot`);
+  }
+});
+
+test('runtime and copilot are independently selectable booleans', () => {
+  for (const kind of ['runtime', 'copilot']) {
+    const off = structuredClone(manifest);
+    off.members[0].optIn[kind] = false;
+    assert.doesNotThrow(() => validateManifest(off), `${kind} may be declined`);
+
+    const [resolved] = resolveAll(off, [off.members[0].repo]);
+    assert.ok(
+      !resolved.groups.some((group) => group.kind === kind),
+      `declining ${kind} removes its group`,
+    );
+
+    const bad = structuredClone(manifest);
+    bad.members[0].optIn[kind] = '*';
+    assert.throws(() => validateManifest(bad), new RegExp(`optIn\\.${kind} must be a boolean`));
+  }
+});
+
+test('managed-merge kinds own exactly one file at a fixed, Copilot-visible path', () => {
+  // Two canon entries would both claim the same marker pair, and a relocated target would be
+  // written somewhere Copilot never reads. Both fail loudly rather than silently.
+  const extra = structuredClone(manifest);
+  extra.canon.copilot = ['copilot-instructions.md', 'extra.md'];
+  assert.throws(() => validateManifest(extra), /canon\.copilot must list exactly one managed file/);
+
+  const moved = structuredClone(manifest);
+  moved.targetPaths.copilot = 'docs';
+  assert.throws(
+    () => validateManifest(moved),
+    /canon\.copilot must materialize to \.github\/copilot-instructions\.md, got docs\/copilot-instructions\.md/,
+  );
+
+  const movedBase = structuredClone(manifest);
+  movedBase.targetPaths.base = 'docs';
+  assert.throws(() => validateManifest(movedBase), /canon\.base must materialize to AGENTS\.md/);
+});
+
+test('runtime is a whole-file copy while copilot merges a managed region', () => {
+  const [finance] = resolveAll(manifest, ['jrmoulckers/finance']);
+  const { writes } = enumerateTargets(finance, REPO_ROOT);
+
+  const runtime = writes.find((write) => write.kind === 'runtime');
+  assert.equal(runtime.targetPath, 'agency.toml');
+  assert.equal(runtime.type, 'file', 'agency.toml is copied wholesale, not marker-merged');
+
+  for (const [kind, targetPath] of [
+    ['base', 'AGENTS.md'],
+    ['copilot', '.github/copilot-instructions.md'],
+  ]) {
+    const spec = writes.find((write) => write.kind === kind);
+    assert.equal(spec.targetPath, targetPath);
+    assert.equal(spec.type, 'managed-md', `${kind} merges into a managed region`);
+  }
+});
+
+test('engineering and product take the AI layer without a product toolchain', () => {
+  for (const repo of ['jrmoulckers/engineering', 'jrmoulckers/product']) {
+    const member = manifest.members.find((candidate) => candidate.repo === repo);
+    assert.equal(member.mode, 'infrastructure', `${repo} is an authority, not a product`);
+    assert.equal(member.optIn.base, false);
+    assert.equal(member.optIn.health, false);
+    assert.equal(member.optIn.workflows, false);
+    assert.deepEqual(member.tokens, { enabled: false }, `${repo} is not a token target`);
+    assert.ok(
+      !member.optIn.instructions.includes('tokens'),
+      `${repo} does not author tokens — Studio owns them`,
+    );
+
+    const [resolved] = resolveAll(manifest, [repo]);
+    const { writes, native } = enumerateTargets(resolved, REPO_ROOT);
+    assert.equal(writes.filter((write) => write.kind === 'agents').length, 22);
+    assert.equal(writes.filter((write) => write.kind === 'runtime').length, 1);
+    assert.equal(writes.filter((write) => write.kind === 'copilot').length, 1);
+    assert.deepEqual(native, [], `${repo} has no native selections`);
+  }
+});
+
+test('Docket records its completed transition from pre-bootstrap to application', () => {  const docket = manifest.members.find((member) => member.repo === 'jrmoulckers/docket');
   assert.equal(docket.mode, 'application');
   assert.equal(docket.framework, 'svelte');
   assert.equal(docket.packageManager, 'pnpm');

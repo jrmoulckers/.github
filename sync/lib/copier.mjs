@@ -45,8 +45,8 @@ export function apply(memberRoot, writes, lock, opts = {}) {
 
   for (const spec of writes) {
     const res =
-      spec.type === 'agents-md'
-        ? planAgentsMd(memberRoot, spec, entries, force)
+      spec.type === 'managed-md'
+        ? planManagedMd(memberRoot, spec, entries, force)
         : planFile(memberRoot, spec, entries, force);
     const item = { targetPath: spec.targetPath, kind: spec.kind, name: spec.name };
 
@@ -108,8 +108,13 @@ function planFile(memberRoot, spec, entries, force) {
   return { action: 'update', newContent: rendered, newEntry };
 }
 
-function planAgentsMd(memberRoot, spec, entries, force) {
-  const abs = join(memberRoot, 'AGENTS.md');
+/**
+ * Plan a managed-region target (AGENTS.md, .github/copilot-instructions.md): only the block
+ * between the studio markers is ours, so drift is judged on the block inner rather than the
+ * whole file and the member's surrounding content is always preserved.
+ */
+function planManagedMd(memberRoot, spec, entries, force) {
+  const abs = join(memberRoot, ...spec.targetPath.split('/'));
   const inner = canonicalizeInner(spec.content);
   const renderedHash = hashText(inner);
   const newEntry = entry(spec.sourceSha256, renderedHash);
@@ -126,7 +131,7 @@ function planAgentsMd(memberRoot, spec, entries, force) {
   if (isLocallyModified(entries[spec.targetPath], currentHash, renderedHash)) {
     return force
       ? { action: 'forced', newContent: buildFile(existing, inner), newEntry }
-      : { action: 'drift', note: suspectBlockNote(currentInner, inner) };
+      : { action: 'drift', note: suspectBlockNote(spec.targetPath, currentInner, inner) };
   }
   if (currentHash === renderedHash) return { action: 'unchanged', newEntry };
   return { action: 'update', newContent: buildFile(existing, inner), newEntry };
@@ -135,13 +140,13 @@ function planAgentsMd(memberRoot, spec, entries, force) {
 /**
  * A managed block a small fraction of canon's size is far more likely to be a stray pair
  * of marker strings in prose than a deliberate edit. Say so, because the alternative is a
- * generic drift line for the single most important file the sync delivers.
+ * generic drift line for the most important files the sync delivers.
  */
-function suspectBlockNote(currentInner, canonInner) {
+function suspectBlockNote(targetPath, currentInner, canonInner) {
   if (currentInner.length >= Math.min(512, canonInner.length / 4)) return undefined;
   return (
     `managed block is only ${currentInner.length} char(s) vs ${canonInner.length} in canon — ` +
-    'check AGENTS.md for stray studio:base markers'
+    `check ${targetPath} for stray studio:base markers`
   );
 }
 

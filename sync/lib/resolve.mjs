@@ -2,14 +2,14 @@
 // layer can enumerate.
 //
 // Selection semantics per kind:
-//   - base / health : boolean
+//   - base / runtime / copilot / health : boolean
 //   - other kinds   : "*" (all canon of that kind) | string[] (explicit names) | false/omitted (opt out)
 //
 // Native kinds (health, workflows) are still resolved and listed so the plan reflects
 // the manifest, but they never produce written files (GitHub inherits health files;
 // reusable workflows are called via `uses: …@<reviewed-immutable-ref>`).
 
-import { NATIVE_KINDS, DIR_KINDS, memberMode } from './manifest.mjs';
+import { NATIVE_KINDS, DIR_KINDS, MANAGED_MERGE_TARGETS, memberMode } from './manifest.mjs';
 
 /**
  * @returns {{
@@ -22,9 +22,19 @@ export function resolveMember(manifest, member) {
   const optIn = member.optIn ?? {};
   const groups = [];
 
-  // base (AGENTS.md merge + agency.toml copy)
-  if (optIn.base === true) {
-    groups.push(makeGroup(manifest, 'base', manifest.canon.base, 'base', false));
+  // base (AGENTS.md managed-region merge), runtime (agency.toml copy) and copilot
+  // (.github/copilot-instructions.md managed-region merge).
+  //
+  // These are three independent booleans on purpose. runtime and copilot used to be reachable
+  // only through base, which meant an infrastructure member that declined the studio operating
+  // guide also silently declined canonical MCP policy and Copilot-surface orientation.
+  for (const kind of ['base', 'runtime', 'copilot']) {
+    if (optIn[kind] === true) {
+      // Canon entries for these kinds are literal file names, not bare asset names, so the
+      // asset layer must not append a `.agent.md`-style suffix to them.
+      const mode = MANAGED_MERGE_TARGETS.has(kind) ? 'managed' : 'literal';
+      groups.push(makeGroup(manifest, kind, manifest.canon[kind] ?? [], mode, false));
+    }
   }
 
   // health — native/no-op, listed only

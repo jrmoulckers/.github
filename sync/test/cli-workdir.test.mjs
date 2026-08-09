@@ -158,11 +158,13 @@ test('--work-dir reports available workflows that the checkout does not call', (
 });
 
 test('manifest dry-run reports complete phase-two activation plans', () => {
+  // `hasBase` is now distinct from receiving runtime/copilot: every member gets canonical MCP
+  // policy and Copilot orientation, but only product repos take the studio operating guide.
   const members = [
-    ['jrmoulckers/finance', 'application · kmp-web · npm', 8, 5, 56, true],
-    ['jrmoulckers/studio', 'infrastructure · pnpm', 8, 5, 54, false],
-    ['jrmoulckers/homelab', 'infrastructure', 3, 2, 46, false],
-    ['jrmoulckers/windows', 'infrastructure', 8, 4, 53, false],
+    ['jrmoulckers/finance', 'application · kmp-web · npm', 8, 5, 59, true],
+    ['jrmoulckers/studio', 'infrastructure · pnpm', 8, 5, 58, false],
+    ['jrmoulckers/homelab', 'infrastructure', 3, 2, 50, false],
+    ['jrmoulckers/windows', 'infrastructure', 8, 4, 57, false],
   ];
 
   for (const [repo, metadata, promptCount, instructionCount, total, hasFinanceBundles] of members) {
@@ -171,14 +173,22 @@ test('manifest dry-run reports complete phase-two activation plans', () => {
     assert.equal(code, 0, out);
     assert.ok(out.includes(`▶ ${repo}  (${metadata})`), out);
     assert.match(out, /agents \(22 files\)/);
-    assert.match(out, /skills \(19 files in 15 dirs\)/);
+    assert.match(out, /skills \(21 files in 17 dirs\)/);
     assert.match(out, new RegExp(`prompts \\(${promptCount} files\\)`));
     assert.match(out, new RegExp(`instructions \\(${instructionCount} files\\)`));
     assert.match(out, new RegExp(`Σ ${total} file\\(s\\) would be written`));
     assert.match(out, /no files written and no network operations performed/);
 
+    // Independent of base, for every member.
+    assert.match(out, /^ {2}runtime \(1 files\):\n {4}agency\.toml$/m, out);
+    assert.match(
+      out,
+      /^ {2}copilot \(1 files\):\n {4}\.github\/copilot-instructions\.md {3}⟵ managed block merge$/m,
+      out,
+    );
+
     if (hasFinanceBundles) {
-      assert.match(out, /base \(2 files\)/);
+      assert.match(out, /^ {2}base \(1 files\):\n {4}AGENTS\.md {3}⟵ managed block merge$/m, out);
       assert.match(out, /tokens \(0 files\)/);
       assert.match(out, /health: native/);
       assert.match(out, /workflows: native/);

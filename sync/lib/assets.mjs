@@ -1,9 +1,9 @@
 // Asset enumeration + rendering.
 //
 // Given a resolved member, walk the backbone source tree and produce the concrete list
-// of target files to write. Handles both file-assets (agents/prompts/instructions, plus
-// agency.toml) and directory-assets (skills = a folder of SKILL.md + checklists), and
-// the special AGENTS.md managed-block target.
+// of target files to write. Handles file-assets (agents/prompts/instructions), directory-assets
+// (skills = a folder of SKILL.md + checklists), literal root files (agency.toml), and the
+// managed-region targets (AGENTS.md, .github/copilot-instructions.md).
 //
 // Each write carries the rendered content (source normalized to LF + provenance) and the
 // canonical source hash, so the copier can perform drift detection without re-reading
@@ -24,7 +24,7 @@ const FILE_SUFFIX = {
 /**
  * @returns {{ writes: TargetSpec[], native: Array<{kind, names}> }}
  * TargetSpec = { kind, name, sourcePath, targetPath, sourceSha256, content, type }
- *   type: 'file' | 'agents-md'
+ *   type: 'file' | 'managed-md'
  */
 export function enumerateTargets(resolved, backboneRoot) {
   const writes = [];
@@ -37,8 +37,8 @@ export function enumerateTargets(resolved, backboneRoot) {
       if (group.native) native.push({ kind: group.kind, names: group.names });
       continue;
     }
-    if (group.kind === 'base') {
-      writes.push(...enumerateBase(group, backboneRoot));
+    if (group.mode === 'managed' || group.mode === 'literal') {
+      writes.push(...enumerateLiteralKind(group, backboneRoot));
     } else if (group.mode === 'dir') {
       writes.push(...enumerateDirKind(group, backboneRoot));
     } else {
@@ -50,28 +50,31 @@ export function enumerateTargets(resolved, backboneRoot) {
   return { writes, native };
 }
 
-function enumerateBase(group, backboneRoot) {
-  const out = [];
-  for (const fileName of group.names) {
+/**
+ * Kinds whose canon entries are literal file names (`AGENTS.md`, `agency.toml`,
+ * `copilot-instructions.md`) rather than bare asset names.
+ *
+ * A `managed` group additionally materializes through the marker merge in basemerge.mjs: the
+ * spec carries only the block *inner*, and the copier splices it into whatever the member
+ * already has. A `literal` group is an ordinary whole-file copy.
+ */
+function enumerateLiteralKind(group, backboneRoot) {
+  const managed = group.mode === 'managed';
+  return group.names.map((fileName) => {
     const sourcePath = posixJoin(group.sourceBase, fileName);
+    const targetPath = posixJoin(group.targetBase, fileName);
     const raw = readSource(backboneRoot, sourcePath);
-    if (fileName === 'AGENTS.md') {
-      // The managed block inner = canonical AGENTS.md with provenance.
-      const inner = inject('AGENTS.md', raw);
-      out.push({
-        kind: 'base',
-        name: fileName,
-        sourcePath,
-        targetPath: 'AGENTS.md',
-        sourceSha256: hashText(raw),
-        content: inner,
-        type: 'agents-md',
-      });
-    } else {
-      out.push(fileSpec('base', fileName, sourcePath, fileName, raw));
-    }
-  }
-  return out;
+    if (!managed) return fileSpec(group.kind, fileName, sourcePath, targetPath, raw);
+    return {
+      kind: group.kind,
+      name: fileName,
+      sourcePath,
+      targetPath,
+      sourceSha256: hashText(raw),
+      content: inject(targetPath, raw),
+      type: 'managed-md',
+    };
+  });
 }
 
 function enumerateFileKind(group, backboneRoot) {

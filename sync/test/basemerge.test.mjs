@@ -31,7 +31,7 @@ function agentsSpec(content = CANON) {
     targetPath: 'AGENTS.md',
     sourceSha256: hashText(content),
     content,
-    type: 'agents-md',
+    type: 'managed-md',
   };
 }
 
