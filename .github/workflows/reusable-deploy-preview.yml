@@ -8,12 +8,19 @@
 # environment job that never executes caller-controlled shell with deploy authority.
 #
 # Optional private registry (standalone build mode only): set registry-url and registry-scope
-# and pass the NODE_AUTH_TOKEN secret to install scoped packages from a private registry.
+# to install scoped packages from a private registry.
 # actions/setup-node then writes a user-level npmrc to $RUNNER_TEMP/.npmrc and exports
 # NPM_CONFIG_USERCONFIG; npm and pnpm both honour that file. A caller's own committed .npmrc is
 # project-level and outranks it on every key it sets, so a repo .npmrc must not point the same
 # scope at a different registry. NODE_AUTH_TOKEN is a registry read credential only; this
 # workflow still receives no deployment secrets.
+#
+# Authentication is zero-config for GitHub Packages: NODE_AUTH_TOKEN falls back to the job's
+# GITHUB_TOKEN, so a caller that has granted this repository package access via the package's
+# Manage Actions access settings passes no secret at all. Pass the NODE_AUTH_TOKEN secret only for
+# a registry GITHUB_TOKEN cannot reach. The token is supplied to the install step only when
+# registry-url is set, so runs without a private registry never expose a token to dependency
+# lifecycle scripts.
 #
 # The preview job requests packages: read. A caller with an explicit permissions block must grant
 # packages: read too, or the run fails at startup.
@@ -30,8 +37,10 @@
 #         build-command: pnpm build
 #         registry-url: https://npm.pkg.github.com
 #         registry-scope: '@jrmoulckers'
-#       secrets:
-#         NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       # No secrets block needed: NODE_AUTH_TOKEN falls back to GITHUB_TOKEN. Add
+#       #   secrets:
+#       #     NODE_AUTH_TOKEN: ${{ secrets.MY_REGISTRY_PAT }}
+#       # only for a registry GITHUB_TOKEN cannot reach.
 # =============================================================================
 name: Reusable - Preview Artifact
 
@@ -204,14 +213,14 @@ jobs:
         if: inputs.artifact-name == '' && inputs.package-manager == 'npm'
         working-directory: ${{ inputs.working-directory }}
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ inputs.registry-url != '' && (secrets.NODE_AUTH_TOKEN || github.token) || '' }}
         run: npm ci
 
       - name: Install dependencies (pnpm)
         if: inputs.artifact-name == '' && inputs.package-manager == 'pnpm'
         working-directory: ${{ inputs.working-directory }}
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ inputs.registry-url != '' && (secrets.NODE_AUTH_TOKEN || github.token) || '' }}
         run: pnpm install --frozen-lockfile
 
       - name: Build standalone preview

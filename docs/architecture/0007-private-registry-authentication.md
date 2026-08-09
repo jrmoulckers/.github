@@ -36,6 +36,22 @@ exception has to be stated rather than assumed.
 5. Empty inputs are a genuine no-op: `actions/setup-node` guards its auth configuration behind
    `if (registryUrl)`, so an empty `registry-url` writes no `.npmrc` and exports nothing. A caller
    that adopts none of the new surface produces the run it produced before.
+6. `NODE_AUTH_TOKEN` resolves as
+   `${{ inputs.registry-url != '' && (secrets.NODE_AUTH_TOKEN || github.token) || '' }}`. The
+   `secrets.X || github.token` fallback makes GitHub Packages zero-config: a caller that has granted
+   package access via **Manage Actions access** passes no secret, which is the path GitHub
+   recommends over storing a PAT. An explicit secret still wins, so a third-party registry or a
+   PAT-based flow is unaffected. This was verified with a live three-scenario workflow run: with the
+   `secrets:` block omitted and with `secrets: inherit`, `secrets.NODE_AUTH_TOKEN` is the empty
+   string and the fallback yields `github.token`; with an explicit value, that value is used.
+7. The `inputs.registry-url != ''` guard is deliberate. Without it, every caller — including the
+   majority that use no private registry — would place a `GITHUB_TOKEN` in the environment of a step
+   that executes arbitrary dependency lifecycle scripts. Gating on `registry-url` confines the token
+   to runs that opted into a registry and keeps the default path's environment byte-identical.
+8. `reusable-security-ci` is deliberately **not** changed. Its `npm audit` / `pnpm audit` step sends
+   the bulk advisory request to the default registry only (`@npmcli/arborist` uses
+   `options.auditRegistry || options.registry`, never a per-scope registry), so a private scoped
+   package in the lockfile does not cause a `401`. Verified empirically for both package managers.
 
 ## Consequences
 
@@ -64,3 +80,12 @@ byte-for-byte identical without a second copy to drift.
 
 **Make the registry inputs required, or infer them.** Rejected because most callers install only
 public packages, and a required input would break every existing caller.
+
+**Hardcode `registry-url: https://npm.pkg.github.com` and `scope: '@jrmoulckers'`.** Rejected. The
+backbone must not encode a sibling authority's package scope; ADR-0003 keeps those authorities
+separable, and hardcoding would make these workflows unusable for any caller consuming a different
+private registry. Inputs cost nothing and preserve both properties.
+
+**Fall back to `github.token` unconditionally, without the `registry-url` guard.** Rejected. It
+would hand a `GITHUB_TOKEN` to dependency lifecycle scripts on every run, including the majority
+that configure no registry, in exchange for no benefit those runs can use.
