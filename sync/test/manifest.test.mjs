@@ -182,15 +182,21 @@ test('phase-two activation preserves member modes and non-AI bundle intent', () 
     assert.equal(member.mode, 'infrastructure');
     assert.equal(member.optIn.base, false);
     assert.equal(member.optIn.health, false);
-    assert.equal(member.optIn.workflows, false);
     assert.deepEqual(member.tokens, { enabled: false });
 
     const [resolved] = resolveAll(manifest, [repo]);
-    const { writes, native } = enumerateTargets(resolved, REPO_ROOT);
+    const { writes } = enumerateTargets(resolved, REPO_ROOT);
     assert.equal(writes.filter((write) => write.kind === 'agents').length, 22);
     assert.ok(!writes.some((write) => write.kind === 'base'), `${repo} has no base writes`);
     assert.ok(!writes.some((write) => write.kind === 'tokens'), `${repo} has no token writes`);
-    assert.deepEqual(native, [], `${repo} has no native selections`);
+    if (repo !== 'jrmoulckers/studio') {
+      assert.equal(member.optIn.workflows, false);
+      assert.deepEqual(
+        enumerateTargets(resolved, REPO_ROOT).native,
+        [],
+        `${repo} has no native selections`,
+      );
+    }
 
     // The reason runtime and copilot were split out of base: declining the studio operating
     // guide must not also decline canonical MCP policy or Copilot-surface orientation.
@@ -210,6 +216,27 @@ test('phase-two activation preserves member modes and non-AI bundle intent', () 
   assert.equal(studio.packageManager, 'pnpm');
   assert.equal(studio.framework, undefined);
   assert.equal(manifest.tokens.sourceRepo, studio.repo);
+});
+
+test('every member that calls reusable CI declares reusable-security-ci', () => {
+  // The first real distribution run failed six of twelve targets because members had adopted
+  // reusable-security-ci without the manifest recording it. Declared workflow availability is a
+  // verified fact, so a stale array blocks the whole member — not just its workflow selection.
+  for (const member of manifest.members) {
+    const declared = member.optIn.workflows;
+    if (!Array.isArray(declared) || declared.length === 0) continue;
+    assert.ok(
+      declared.includes('reusable-security-ci'),
+      `${member.repo} calls backbone CI, so it must declare reusable-security-ci`,
+    );
+    for (const name of declared) {
+      assert.ok(
+        manifest.canon.workflows.includes(name),
+        `${member.repo} declares unknown workflow ${name}`,
+      );
+    }
+    assert.deepEqual([...declared].sort(), declared, `${member.repo} lists workflows in order`);
+  }
 });
 
 test('every member receives runtime and copilot regardless of base', () => {

@@ -160,14 +160,15 @@ test('--work-dir reports available workflows that the checkout does not call', (
 test('manifest dry-run reports complete phase-two activation plans', () => {
   // `hasBase` is now distinct from receiving runtime/copilot: every member gets canonical MCP
   // policy and Copilot orientation, but only product repos take the studio operating guide.
+  // `natives` is separate again: Studio declines base yet still calls backbone reusable CI.
   const members = [
-    ['jrmoulckers/finance', 'application · kmp-web · npm', 8, 5, 59, true],
-    ['jrmoulckers/studio', 'infrastructure · pnpm', 8, 5, 58, false],
-    ['jrmoulckers/homelab', 'infrastructure', 3, 2, 50, false],
-    ['jrmoulckers/windows', 'infrastructure', 8, 4, 57, false],
+    ['jrmoulckers/finance', 'application · kmp-web · npm', 8, 5, 59, true, ['health', 'workflows']],
+    ['jrmoulckers/studio', 'infrastructure · pnpm', 8, 5, 58, false, ['workflows']],
+    ['jrmoulckers/homelab', 'infrastructure', 3, 2, 50, false, []],
+    ['jrmoulckers/windows', 'infrastructure', 8, 4, 57, false, []],
   ];
 
-  for (const [repo, metadata, promptCount, instructionCount, total, hasFinanceBundles] of members) {
+  for (const [repo, metadata, promptCount, instructionCount, total, hasBase, natives] of members) {
     const { code, out } = run(['--dry-run', '--members', repo]);
 
     assert.equal(code, 0, out);
@@ -187,15 +188,18 @@ test('manifest dry-run reports complete phase-two activation plans', () => {
       out,
     );
 
-    if (hasFinanceBundles) {
+    if (hasBase) {
       assert.match(out, /^ {2}base \(1 files\):\n {4}AGENTS\.md {3}⟵ managed block merge$/m, out);
       assert.match(out, /tokens \(0 files\)/);
-      assert.match(out, /health: native/);
-      assert.match(out, /workflows: native/);
     } else {
       assert.doesNotMatch(out, /^  base \(/m);
       assert.doesNotMatch(out, /^  tokens \(/m);
-      assert.doesNotMatch(out, /^  (health|workflows): native/m);
+    }
+
+    for (const kind of ['health', 'workflows']) {
+      const line = new RegExp(`^ {2}${kind}: native`, 'm');
+      if (natives.includes(kind)) assert.match(out, line, out);
+      else assert.doesNotMatch(out, line, out);
     }
   }
 });
