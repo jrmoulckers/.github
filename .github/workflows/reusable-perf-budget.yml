@@ -6,6 +6,21 @@
 # artifact avoids reinstalling and rebuilding. Lighthouse reports stay in GitHub
 # artifacts by default; temporary public storage requires an explicit warned opt-in.
 #
+# The budget measures the whole output directory by default. Builds that emit source maps
+# into that directory therefore spend most of the budget on bytes no user downloads, which
+# both fails honest PRs and hides real payload growth. Pass exclude-glob to measure shipped
+# bytes instead:
+#
+#       with:
+#         exclude-glob: '*.map'
+#         bundle-budget-kb: 512
+#
+# The glob is handed to du --exclude, so it matches path components (a bare '*.map' covers
+# nested directories; a '**/*.map' spelling works too, but the prefix is not required).
+# When it is set the summary reports the whole directory, the excluded amount, and the
+# measured size, so nothing is silently dropped. Leaving it empty keeps the previous
+# whole-directory measurement exactly.
+#
 # Optional private registry (standalone build mode only): set registry-url and registry-scope
 # to install scoped packages from a private registry.
 # actions/setup-node then writes a user-level npmrc to $RUNNER_TEMP/.npmrc and exports
@@ -80,6 +95,13 @@ on:
         required: false
         type: number
         default: 2048
+      exclude-glob:
+        description: >-
+          Optional du glob excluded from the bundle measurement, such as '*.map'. Empty
+          measures the whole output directory.
+        required: false
+        type: string
+        default: ''
       url:
         description: Optional public HTTPS URL for Lighthouse CI.
         required: false
@@ -137,6 +159,7 @@ jobs:
           ARTIFACT_NAME: ${{ inputs.artifact-name }}
           BUILD_COMMAND: ${{ inputs.build-command }}
           BUNDLE_BUDGET_KB: ${{ inputs.bundle-budget-kb }}
+          EXCLUDE_GLOB: ${{ inputs.exclude-glob }}
           LIGHTHOUSE_PUBLIC_UPLOAD: ${{ inputs.lighthouse-public-upload }}
           LIGHTHOUSE_ARTIFACT_PREFIX: ${{ inputs.lighthouse-artifact-prefix }}
           MIN_ACCESSIBILITY: ${{ inputs.lhci-min-accessibility }}
@@ -166,6 +189,10 @@ jobs:
             { echo "::error::output-dir must not traverse parent directories"; exit 1; }
           [[ "$BUNDLE_BUDGET_KB" =~ ^[0-9]+$ ]] && (( BUNDLE_BUDGET_KB >= 1 && BUNDLE_BUDGET_KB <= 1048576 )) ||
             { echo "::error::bundle-budget-kb must be an integer from 1 through 1048576"; exit 1; }
+          if [[ -n "$EXCLUDE_GLOB" ]]; then
+            [[ "$EXCLUDE_GLOB" =~ ^[A-Za-z0-9._*?/-]{1,128}$ ]] ||
+              { echo "::error::exclude-glob must be a whitespace-free glob of up to 128 characters, such as '*.map'"; exit 1; }
+          fi
           for score in "$MIN_PERFORMANCE" "$MIN_ACCESSIBILITY"; do
             [[ "$score" =~ ^[0-9]+([.][0-9]+)?$ ]] &&
               awk -v score="$score" 'BEGIN { exit !(score >= 0 && score <= 100) }' ||
@@ -277,16 +304,26 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
         env:
           BUDGET_KB: ${{ inputs.bundle-budget-kb }}
+          EXCLUDE_GLOB: ${{ inputs.exclude-glob }}
           OUTPUT_DIR: ${{ inputs.output-dir }}
         run: |
           set -euo pipefail
-          size_kb="$(du -sk "$OUTPUT_DIR" | cut -f1)"
+          total_kb="$(du -sk "$OUTPUT_DIR" | cut -f1)"
+          if [[ -n "$EXCLUDE_GLOB" ]]; then
+            size_kb="$(du -sk --exclude="$EXCLUDE_GLOB" "$OUTPUT_DIR" | cut -f1)"
+          else
+            size_kb="$total_kb"
+          fi
           {
             echo "### Bundle size budget"
             echo
             echo "| Metric | Value |"
             echo "| --- | --- |"
-            echo "| Actual size | ${size_kb} KB |"
+            if [[ -n "$EXCLUDE_GLOB" ]]; then
+              echo "| Whole output directory | ${total_kb} KB |"
+              echo "| Excluded by \`${EXCLUDE_GLOB}\` | $(( total_kb - size_kb )) KB |"
+            fi
+            echo "| Measured size | ${size_kb} KB |"
             echo "| Budget | ${BUDGET_KB} KB |"
           } >> "$GITHUB_STEP_SUMMARY"
           if (( size_kb > BUDGET_KB )); then
