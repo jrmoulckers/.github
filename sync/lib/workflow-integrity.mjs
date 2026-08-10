@@ -36,6 +36,10 @@ const PERMISSION_CEILINGS = new Map([
     ['windows', new Map([['contents', 'read']])],
     ['summary', new Map()],
   ])],
+  ['native-smoke-harness.yml', new Map([
+    ['smoke', new Map([['contents', 'read'], ['packages', 'read']])],
+    ['assert', new Map()],
+  ])],
   ['reusable-perf-budget.yml', new Map([
     ['performance', new Map([['contents', 'read'], ['packages', 'read']])],
   ])],
@@ -172,7 +176,11 @@ export function inspectWorkflowSource(relativePath, text, { reusable = false } =
   const permissionCeilings = PERMISSION_CEILINGS.get(fileName);
   if (jobBlocks.length === 0) errors.push(`${relativePath}: requires at least one job`);
   for (const block of jobBlocks) {
-    if (!/^\s{4}timeout-minutes:\s*[1-9][0-9]*\s*$/m.test(block.text)) {
+    // A job that calls a reusable workflow cannot carry timeout-minutes: GitHub rejects the key
+    // outright, so requiring it here would make caller jobs unwritable. The called workflow bounds
+    // its own jobs, which is where the runtime actually is.
+    const callsReusableWorkflow = /^\s{4}uses:\s*\S/m.test(block.text);
+    if (!callsReusableWorkflow && !/^\s{4}timeout-minutes:\s*[1-9][0-9]*\s*$/m.test(block.text)) {
       errors.push(`${relativePath}: job "${block.name}" requires a bounded timeout-minutes`);
     }
     if (!/^\s{4}permissions:\s*(?:\{\}|$)/m.test(block.text)) {

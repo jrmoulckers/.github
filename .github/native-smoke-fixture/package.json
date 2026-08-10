@@ -1,0 +1,11 @@
+{
+  "name": "@jrmoulckers/native-smoke-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Minimal package used only by native-smoke-harness.yml, to give reusable-native-smoke-test.yml a real execution on a runner. Not canon and not synced to members.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node test.mjs"
+  }
+}

@@ -147,3 +147,48 @@ test('a writable Gradle cache in release smoke builds is rejected', () => {
     validateNativeSmokeContract(mutated).some((error) => error.includes('read-only')),
   );
 });
+
+test('a reusable-workflow caller job is exempt from timeout-minutes but not from permissions', () => {
+  // GitHub rejects timeout-minutes on a job that uses another workflow, so the bound lives in the
+  // called workflow. Permissions still apply: a caller job caps what the called jobs may request.
+  const source = (permissions) => `name: Harness
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  smoke:
+    uses: ./.github/workflows/reusable-native-smoke-test.yml
+${permissions}    with:
+      version: harness
+`;
+
+  const withPermissions = inspectWorkflowSource(
+    '.github/workflows/native-smoke-harness.yml',
+    source('    permissions:\n      contents: read\n      packages: read\n'),
+  );
+  assert.deepEqual(withPermissions, []);
+
+  const withoutPermissions = inspectWorkflowSource(
+    '.github/workflows/native-smoke-harness.yml',
+    source(''),
+  );
+  assert.ok(withoutPermissions.some((error) => error.includes('requires explicit permissions')));
+  assert.equal(
+    withoutPermissions.filter((error) => error.includes('timeout-minutes')).length,
+    0,
+    'the exemption must not be conditional on the job being otherwise valid',
+  );
+});
+
+test('the harness asserts on the reusable workflow result rather than merely calling it', () => {
+  const text = readFileSync(
+    join(REPO_ROOT, '.github', 'workflows', 'native-smoke-harness.yml'),
+    'utf8',
+  );
+  // A caller that ignores the output would go green even if summary reported a failure, which is
+  // the one thing the harness exists to observe.
+  assert.match(text, /SMOKE_RESULT:\s*\${{\s*needs\.smoke\.outputs\.result\s*}}/);
+  assert.match(text, /"\$SMOKE_RESULT" != "pass"/);
+});
