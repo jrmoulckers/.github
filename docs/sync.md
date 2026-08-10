@@ -462,6 +462,26 @@ will report false failures — both were live in `jrmoulckers/homelab` on first 
 - **The provenance marker is not always an HTML comment.** It follows the target's own comment
   syntax, per the list above. A checker hardcoding `<!-- … -->` reports `agency.toml` as unstamped.
 
+### What belongs in the member's own region
+
+Everything above concerns the *managed* region. The region **outside** the markers is the part
+members actually author, and it carries an ownership rule that no tooling enforces:
+
+**Root `AGENTS.md` owns policy. A member's local section is a pointer, never a second copy.** Keep
+only what exists nowhere else in Copilot's default context — pointers to repository-specific
+documents, exact local commands, and facts true of this repository alone. Delete anything that
+restates a rule `AGENTS.md` or canon already owns, rather than paraphrasing or relocating it.
+
+This matters because Copilot reads the *whole* file, not just the managed block, so a local section
+that restates policy reintroduces exactly the drift the canon split removes. The failure is quiet:
+drift detection hashes only the inner block, so duplicated policy outside the markers is invisible
+to the sync engine and to member asset checkers alike. It is a review-time obligation.
+
+The risk comes from **product overlays**, not from canon. The live example was a member holding the
+same product design rules in three places — its `DESIGN.md`, a "Product design constraints" section
+in root `AGENTS.md`, and its local section of `.github/copilot-instructions.md`. Name one owner and
+let the other two point at it.
+
 ## Idempotency & drift
 
 - The tool is **idempotent**: once a member carries a lockfile, re-running with no upstream change
