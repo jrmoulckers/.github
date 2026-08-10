@@ -377,9 +377,15 @@ scheduled/manual sync workflow) so each affected member receives a reviewable sy
 generated consumer prompt copies directly.
 
 Every synced file carries a provenance header
-(`synced from jrmoulckers/.github — canonical source; do not edit here`): an HTML comment
-after the YAML frontmatter (or at the top of plain Markdown), or a leading `#` line for
-`.toml`/`.yml`.
+(`synced from jrmoulckers/.github — canonical source; do not edit here`), rendered in the comment
+syntax the target's own parser accepts: an HTML comment after the YAML frontmatter (or at the top of
+plain Markdown), a leading `#` line for `.toml`/`.yml`/`.gitattributes`, a `/* … */` block for
+`.css`/`.js`/`.ts`/`.kt`/`.swift`, and nothing for `.json`/`.map`.
+
+The fallback is HTML. That is right for prose and silently wrong for source: an unclassified source
+extension is written with `<!-- … -->` at the top and stops compiling, while the engine reports it
+as perfectly in sync. When a distribution grows a new source file type, classify it in
+`sync/lib/provenance.mjs` — this is exactly how `@jrm/tokens`' native Compose/Swift output arrived.
 
 ### Vendored design tokens (`@jrm/tokens`)
 
@@ -423,7 +429,8 @@ alongside the web artifacts, so vendoring into a single app directory hides them
 native apps.
 
 Each vendored file lands under the member's `targetPath` (default repo-root `vendor/@jrm/tokens/`,
-mirroring studio's `dist/` layout: `css/default/*.css`, `tailwind/default.cjs`, `js/**`) and
+mirroring studio's `dist/` layout: `css/default/*.css`, `tailwind/default.cjs`, `js/**`,
+`native/compose/*.kt`, `native/swift/*.swift`) and
 carries a source-aware provenance header
 (`generated + synced from jrmoulckers/studio @jrm/tokens — do not edit here`): a `/* … */`
 comment for `.css`/`.js`/`.cjs`/`.ts`. Source maps and JSON (`.map`/`.json`) are copied verbatim

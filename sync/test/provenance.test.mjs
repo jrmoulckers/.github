@@ -67,3 +67,38 @@ test('the documented audit check is line-ending agnostic on the member side', ()
   assert.notEqual(asCheckedOutOnWindows, rendered, 'the CRLF form really is different bytes');
   assert.equal(toLF(asCheckedOutOnWindows), rendered, 'toLF reconciles it — hence the docs');
 });
+
+// The provenance header's comment syntax is chosen by file type, and the fallback is HTML. That is
+// correct for Markdown and silently catastrophic for anything with a real grammar: an unclassified
+// source extension gets `<!-- … -->` prepended and stops compiling. Nothing in the engine would
+// notice, because the file is still written, still hashed, and still drift-free — it just does not
+// build in the member repo, which is where the failure surfaces.
+//
+// The concrete case: `@jrm/tokens` grew a native distribution (`native/compose/JrmTokens.kt`,
+// `native/swift/JRMTokens.swift`) that is vendored into multi-platform members alongside the web
+// artifacts. Neither extension was classified, so both were written as broken files. The `dist/`
+// contract table in docs/sync.md described a web-only distribution, which is why the gap was not
+// obvious from the docs either.
+test('every vendored @jrm/tokens file type gets a header its own compiler accepts', () => {
+  const cases = [
+    ['native/compose/JrmTokens.kt', 'block'],
+    ['native/swift/JRMTokens.swift', 'block'],
+    ['css/default/tokens.css', 'block'],
+    ['js/default/tokens.high-contrast-dark.js', 'block'],
+    ['js/default/tokens.high-contrast-dark.d.ts', 'block'],
+    ['tailwind/default.cjs', 'block'],
+    ['js/default/tokens.js.map', 'none'],
+    ['tokens.json', 'none'],
+  ];
+
+  for (const [path, expected] of cases) {
+    const out = inject(path, 'CONTENT\n', { note: 'vendored' });
+    assert.ok(!out.startsWith('<!--'), `${path}: an HTML comment here is not a comment`);
+
+    if (expected === 'none') {
+      assert.equal(out, 'CONTENT\n', `${path}: uncommentable types pass through unchanged`);
+    } else {
+      assert.equal(out, '/* vendored */\nCONTENT\n', `${path}: needs a block comment`);
+    }
+  }
+});
