@@ -319,6 +319,15 @@ product repo must contain **no copy of its own**:
   `jrmoulckers/.github`, so a verbatim copy overrides the inherited file and freezes it at the day
   it was copied.
 
+  If you *are* overriding deliberately — because the repo needs product-specific security content
+  that cannot live in canon — that is allowed, but you own the consequence: the file is a fork with
+  no update path, and canon changes will never reach it. Re-read canon when it moves.
+  **Do not restate canon's policy in your own words in order to differ from it in one place**; check
+  first whether canon already offers a variant you can select. Its security policy defines two
+  support postures precisely so that a continuously-deployed product can *select* the right one
+  rather than file a deviation against the other
+  ([ADR-0010](https://github.com/jrmoulckers/.github/blob/main/docs/architecture/0010-selectable-support-postures.md)).
+
 In both cases a local copy is **worse than having nothing**, and the sync engine cannot rescue you
 — it never writes native kinds, so it can neither update the copy nor report it as drift. If you
 find one in a member repo, delete it; that is the whole fix.

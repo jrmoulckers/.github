@@ -3,14 +3,49 @@
 JRM Studio takes security seriously across its open-source and product repositories. We appreciate responsible reports that help keep projects and their users safe.
 
 ## Supported Versions
-
-Unless a product repository documents a different policy, security fixes are applied to the default branch and the latest actively maintained release line.
-
-| Version or branch | Supported |
-| --- | --- |
-| Default branch | :white_check_mark: Active |
-| Latest release line | :white_check_mark: Active, when releases exist |
-| Older releases | :x: Upgrade to a supported version |
+
+Product repositories differ in how they ship, so this policy defines **two support postures**.
+Select the one that matches how the repository actually delivers software, and state that choice in
+the repository's own policy. Both are canonical: **selecting a posture is conformance, not a
+deviation**, and does not need to be recorded as an exception.
+
+### Posture A — Release line
+
+Applies when the repository publishes versioned releases that consumers pin to and run
+independently of the default branch: packages, libraries, SDKs, CLIs, or anything with an installed
+version that can lag `main`.
+
+Security fixes are applied to the default branch and backported to the latest actively maintained
+release line.
+
+| Version or branch | Supported |
+| --- | --- |
+| Default branch | :white_check_mark: Active |
+| Latest release line | :white_check_mark: Active |
+| Older releases | :x: Upgrade to a supported version |
+
+### Posture B — Continuously deployed
+
+Applies when the repository is deployed continuously from its default branch and there is no
+released version that users run independently: web applications, hosted services, and internal
+tools. A pre-1.0 product with no maintained release line also selects this posture.
+
+**The deployed default branch is the only supported version, and there is no backport target** —
+no older line is maintained that could receive one. Security fixes land on the default branch and
+reach users through the repository's normal deployment path.
+
+| Version or branch | Supported |
+| --- | --- |
+| Deployed default branch | :white_check_mark: Active |
+| Older commits, tags, forks, or archived builds | :x: Upgrade to the deployed default branch |
+
+A repository that later begins publishing maintained releases should move to Posture A at that
+point.
+
+### Neither posture
+
+A repository whose support model fits neither may document its own instead. That case *is* a
+deviation from this policy and should be recorded as one.
 
 ## Reporting a Vulnerability
 
