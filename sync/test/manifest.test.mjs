@@ -493,3 +493,54 @@ test('tokens and profile are not optIn kinds', () => {
     /optIn\.profile is not a known kind/,
   );
 });
+
+// The `excluded` list records repositories the owner has deliberately decided not to govern, so
+// that absence from `members` can be told apart from an oversight. It is inert by construction:
+// nothing in the engine reads it, which is what stops it becoming a way to suppress real drift.
+// The tests below pin the two properties that make it trustworthy — a reason is mandatory, and a
+// repository cannot be both governed and deliberately ungoverned.
+test('game-library is recorded as a deliberate exclusion, not a member', () => {
+  const repos = manifest.members.map((m) => m.repo);
+  assert.ok(!repos.includes('jrmoulckers/game-library'), 'game-library must not be a member');
+
+  const entry = manifest.excluded.find((e) => e.repo === 'jrmoulckers/game-library');
+  assert.ok(entry, 'game-library must be recorded in `excluded` so a sweep does not re-flag it');
+  assert.match(entry.reason, /\S/);
+});
+
+test('every excluded entry carries a reason', () => {
+  for (const entry of manifest.excluded ?? []) {
+    assert.match(entry.repo, /^[^/]+\/[^/]+$/);
+    assert.ok(
+      typeof entry.reason === 'string' && entry.reason.trim(),
+      `excluded entry "${entry.repo}" must say why it is not governed`,
+    );
+  }
+});
+
+test('an exclusion without a reason is rejected', () => {
+  const bad = structuredClone(manifest);
+  bad.excluded = [{ repo: 'jrmoulckers/example' }];
+  assert.throws(() => validateManifest(bad), /must be a non-empty string saying why/);
+});
+
+test('a repository cannot be both a member and excluded', () => {
+  const contradiction = structuredClone(manifest);
+  contradiction.excluded = [{ repo: manifest.members[0].repo, reason: 'contradictory' }];
+  assert.throws(
+    () => validateManifest(contradiction),
+    /appears in both `members` and `excluded`/,
+  );
+});
+
+test('excluded is optional and never affects what is synced', () => {
+  const without = structuredClone(manifest);
+  delete without.excluded;
+  assert.doesNotThrow(() => validateManifest(without));
+
+  // The engine resolves from `members` alone, so removing the record changes no output at all.
+  assert.deepEqual(
+    resolveAll(applyManifestDefaults(without)),
+    resolveAll(applyManifestDefaults(structuredClone(manifest))),
+  );
+});

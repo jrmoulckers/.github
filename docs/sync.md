@@ -150,6 +150,14 @@ canon), and `tokens` (shape).
 The full per-field table is in
 [`sync/README.md`](../sync/README.md#member-entries).
 
+**Absence from `members[]` has two meanings, and the manifest distinguishes them.** A repository the
+owner has deliberately decided not to govern is recorded in the top-level `excluded` array with a
+mandatory `reason`, so an org sweep that finds it ungoverned reads a closed decision instead of
+drift. The engine never reads that list — it skips nothing and suppresses no report, because a
+repository is synced for being in `members` and untouched for not being there. Validation requires
+the reason and rejects any repository listed in both. `jrmoulckers/game-library` is the current
+entry. See [ADR-0012](architecture/0012-recorded-exclusions.md).
+
 **Mode and facts verify repository shape but never decide a write.** `application` requires and
 strictly matches both framework and root package-manager evidence. `infrastructure` permits either
 fact to be absent only when checkout inspection also finds it absent; every detected or declared

@@ -1,5 +1,5 @@
 {
-  "$comment": "JRM Studio manifest. Source of truth for the cross-repo sync engine in sync/ (see docs/sync.md and sync/README.md), which reads this file on every run. Fields fall into three tiers. EXECUTED — repo, optIn.base, optIn.agents/skills/prompts/instructions, targetPaths and tokens decide which files are written where; getting one wrong changes the output. VERIFIED — mode selects the checkout evidence contract; framework and packageManager are checked when they apply but never decide a write. RECORDED — localAgents names locally authored roles/replacements used for handoff validation but never copied; optIn.health is native reliance, while optIn.workflows is the workflow availability declaration. Checkout inspection records actual backbone workflow uses with file, line, and immutable SHA; undeclared uses fail and available-but-unused entries are reported without failing because future adoption is intentional. Neither native kind is copied. DESCRIPTIVE — notes supplies human/agent context. Schema validation covers mode, mode-specific facts, repo, optIn, localAgents and tokens; integrity validation also enforces canonical agent, prompt, instruction, and workflow contracts. Real syncs, --check, and --work-dir inspect each existing member checkout before writes. Manifest-only --dry-run stays offline and cannot verify checkout facts. See sync/README.md#member-entries.",
+  "$comment": "JRM Studio manifest. Source of truth for the cross-repo sync engine in sync/ (see docs/sync.md and sync/README.md), which reads this file on every run. Fields fall into three tiers. EXECUTED — repo, optIn.base, optIn.agents/skills/prompts/instructions, targetPaths and tokens decide which files are written where; getting one wrong changes the output. VERIFIED — mode selects the checkout evidence contract; framework and packageManager are checked when they apply but never decide a write. RECORDED — localAgents names locally authored roles/replacements used for handoff validation but never copied; optIn.health is native reliance, while optIn.workflows is the workflow availability declaration. Checkout inspection records actual backbone workflow uses with file, line, and immutable SHA; undeclared uses fail and available-but-unused entries are reported without failing because future adoption is intentional. Neither native kind is copied. DESCRIPTIVE — notes supplies human/agent context, and the top-level `excluded` list records repositories the owner has deliberately decided not to govern, so that absence from `members` can be told apart from an oversight. The engine never reads `excluded`; it is a record, not a filter. Schema validation covers mode, mode-specific facts, repo, optIn, localAgents and tokens; integrity validation also enforces canonical agent, prompt, instruction, and workflow contracts. Real syncs, --check, and --work-dir inspect each existing member checkout before writes. Manifest-only --dry-run stays offline and cannot verify checkout facts. See sync/README.md#member-entries.",
   "studio": "JRM Studio",
   "owner": "jrmoulckers",
   "ownerType": "user",
@@ -121,6 +121,13 @@
     "sourceBase": "packages/tokens/dist",
     "targetPath": "vendor/@jrm/tokens"
   },
+  "excluded": [
+    {
+      "repo": "jrmoulckers/game-library",
+      "reason": "Private Go CLI tooling, deliberately ungoverned by owner decision. Not a member: no canon, no health files, and no .gitattributes is to be hand-added. It appears in ADR-0009 and ADR-0011 only as the real-world fixture that motivated strengthening an existing `* text=auto` rule rather than overwriting it; that citation describes a merge behaviour and is not a claim that the repository should be onboarded. Recorded so an org sweep that finds it ungoverned reads a closed decision rather than drift.",
+      "decided": "2026-08-10"
+    }
+  ],
   "members": [
     {
       "repo": "jrmoulckers/jrm-recipes",

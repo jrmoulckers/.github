@@ -132,10 +132,13 @@ each opted-in member's root through the **managed-region merge** rather than a w
 - The `TargetSpec` type formerly written as `managed-md` is now `managed`, since the mechanism is no
   longer specific to Markdown. This is internal to the engine and the lockfile does not record it.
 - **`game-library` is not a member of `studio.config.json`**, so the sync does not reach it and its
-  weaker rule stands until someone acts. Adding it as a member is a deliberate decision requiring
-  facts this ADR does not have — `mode`, `framework`, `packageManager`, and the exact
-  `optIn.instructions` array that `instruction-integrity.mjs` pins — so it is left open rather than
-  guessed.
+  weaker rule stands. This ADR originally left onboarding open rather than guessing at the facts it
+  would need. **That question is now closed: the owner has decided `game-library` stays out
+  entirely** — private tooling, deliberately ungoverned, with no hand-added `.gitattributes`. The
+  decision is recorded in the manifest's top-level `excluded` list and in ADR-0012. `game-library`
+  remains cited throughout this ADR and ADR-0011 as the fixture that motivated *strengthening* an
+  existing `* text=auto` rule instead of overwriting it; that reasoning is about merge behaviour and
+  survives unchanged. It is not an argument that the repository should be onboarded.
 - **`windows` has no `.github/workflows` directory at all.** Nothing here depends on that: the
   `attributes` kind adds no workflow and enforces nothing at CI time, so it is inert where there is
   no CI to run a format check.
