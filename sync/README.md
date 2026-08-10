@@ -71,6 +71,42 @@ During a real sync or `--check`, checkout inspection records each actual backbon
 workflow name, ref, file, and line. Undeclared or non-SHA uses fail. Extra declarations are reported
 as currently unused but remain valid because they can record intended adoption.
 
+### Repositories that are deliberately not members
+
+The engine only ever touches `members[]`. Every other repository in the org is untouched, which
+means a repo nobody has onboarded yet and a repo the owner has decided to leave alone look
+identical from outside the manifest — and only one of the two is a gap.
+
+The top-level `excluded` array records the second case so it does not get re-flagged as drift:
+
+```jsonc
+"excluded": [
+  { "repo": "jrmoulckers/game-library", "reason": "Private Go CLI tooling, deliberately ungoverned...", "decided": "2026-08-10" }
+]
+```
+
+| Field | Validated? | Used for |
+| --- | --- | --- |
+| `repo` | ✅ must match `owner/name`; must not also appear in `members` | Identifies the excluded repository. |
+| `reason` | ✅ must be a non-empty string | Why it is not governed. |
+| `decided` | ❌ free-form | When the call was made. |
+
+**The engine never reads this list.** It skips nothing, filters nothing, and suppresses no report —
+a repository is synced because it is in `members`, and an unlisted one is untouched because it is
+not. The field is inert by construction, deliberately: a list that *could* suppress a write would be
+a way to silence drift, and recording a decision must not share a mechanism with hiding a failure.
+
+`reason` is mandatory because an exclusion without one is the same unexplained absence the list
+exists to remove. Validation also rejects a repository appearing in both `members` and `excluded`,
+so onboarding an excluded repo later cannot leave a stale contradiction behind. Nothing detects a
+repository that is neither listed nor excluded; the backbone has no inventory of the org. See
+[ADR-0012](../docs/architecture/0012-recorded-exclusions.md).
+
+Note that `game-library` appears throughout [ADR-0009](../docs/architecture/0009-canonical-line-ending-normalization.md)
+and [ADR-0011](../docs/architecture/0011-managed-region-placement.md) as the real-world case that
+motivated *strengthening* an existing `* text=auto` rule instead of overwriting it. That reasoning is
+about merge behaviour and stands on its own; it is not an argument that the repository should be
+onboarded.
 ### Member modes and evidence
 
 `mode` has three closed-schema values. Omitted legacy entries default to `application`, but the

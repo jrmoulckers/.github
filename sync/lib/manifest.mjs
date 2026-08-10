@@ -133,6 +133,7 @@ export function validateManifest(m) {
 
   validateTokens(m, errors);
   validateManagedKinds(m, errors);
+  validateExcluded(m, errors);
 
   if (errors.length) {
     throw new Error(`Invalid studio.config.json:\n  - ${errors.join('\n  - ')}`);
@@ -303,6 +304,61 @@ function validateOptIn(member, i, manifest, errors) {
     }
     errors.push(`members[${i}].optIn.${kind} must be "*", an array, or false`);
   }
+}
+
+/**
+ * `excluded` records repositories the owner has deliberately decided not to govern. It exists so
+ * that a repository absent from `members` reads as a closed decision rather than an oversight: an
+ * org-wide sweep that finds an ungoverned repo can consult this list instead of re-opening a
+ * question that has already been answered. Absence and exclusion look identical from outside the
+ * manifest, and only one of them is a gap.
+ *
+ * The engine never reads this list. Nothing is skipped, filtered, or suppressed because of it — a
+ * repository is synced because it appears in `members`, and an unlisted repository is untouched
+ * because it does not. The field is therefore inert by construction, which is deliberate: a
+ * denylist that could suppress a real write would be a way to silence drift rather than a way to
+ * record a decision, and the two must not share a mechanism.
+ *
+ * `reason` is required because an exclusion without one is the same unexplained absence the field
+ * exists to eliminate. The single enforced invariant is that a repository cannot be both governed
+ * and deliberately ungoverned; that contradiction would otherwise sit in the file indefinitely,
+ * and whichever entry a reader happened to see first would look authoritative.
+ */
+function validateExcluded(m, errors) {
+  if (!('excluded' in m)) return;
+  if (!Array.isArray(m.excluded)) {
+    errors.push('`excluded` must be an array');
+    return;
+  }
+
+  const members = new Set(
+    Array.isArray(m.members) ? m.members.filter(isObject).map((member) => member.repo) : [],
+  );
+  const seen = new Set();
+
+  m.excluded.forEach((entry, i) => {
+    if (!isObject(entry)) {
+      errors.push(`excluded[${i}] must be an object`);
+      return;
+    }
+    if (typeof entry.repo !== 'string' || !/^[^/]+\/[^/]+$/.test(entry.repo)) {
+      errors.push(`excluded[${i}].repo must be "owner/name"`);
+      return;
+    }
+    if (typeof entry.reason !== 'string' || !entry.reason.trim()) {
+      errors.push(
+        `excluded[${i}].reason must be a non-empty string saying why "${entry.repo}" is not governed`,
+      );
+    }
+    if (seen.has(entry.repo)) errors.push(`excluded[${i}].repo "${entry.repo}" is listed twice`);
+    seen.add(entry.repo);
+    if (members.has(entry.repo)) {
+      errors.push(
+        `"${entry.repo}" appears in both \`members\` and \`excluded\`; a repository cannot be ` +
+          'both governed and deliberately ungoverned',
+      );
+    }
+  });
 }
 
 function isObject(v) {
