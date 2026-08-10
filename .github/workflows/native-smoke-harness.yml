@@ -1,0 +1,62 @@
+# =============================================================================
+# Native Smoke Harness
+#
+# reusable-native-smoke-test.yml is validated statically by
+# sync/lib/workflow-integrity.mjs, but static validation cannot see whether the
+# workflow actually runs. This harness calls it with a trivial single-platform
+# input set so the parts with no prior art get exercised on a real runner:
+#
+#   - the validate job's CSV -> JSON array normalisation
+#   - the fromJSON(...) gating that selects web and skips android, ios, windows
+#   - the summary job treating skipped platform jobs as a pass
+#   - the result output actually reaching a caller
+#
+# The fixture under .github/native-smoke-fixture is a real npm package so
+# `npm ci` and the bundle budget check run for real. Neither this workflow nor
+# the fixture is canon; the sync engine copies only canon-declared files, so
+# nothing here reaches a member repository.
+# =============================================================================
+name: Native Smoke Harness
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/reusable-native-smoke-test.yml
+      - .github/workflows/native-smoke-harness.yml
+      - .github/native-smoke-fixture/**
+
+permissions: {}
+
+jobs:
+  smoke:
+    name: Call the native smoke test
+    uses: ./.github/workflows/reusable-native-smoke-test.yml
+    permissions:
+      contents: read
+      packages: read
+    with:
+      version: harness-${{ github.run_id }}
+      platforms: web
+      working-directory: .github/native-smoke-fixture
+      build-command: npm run build
+      test-command: npm test
+      bundle-budget-kb: 64
+
+  assert:
+    name: Assert the harness result
+    needs: smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    env:
+      SMOKE_RESULT: ${{ needs.smoke.outputs.result }}
+    steps:
+      - name: Require a pass result
+        run: |
+          set -euo pipefail
+          echo "reusable-native-smoke-test.yml reported: ${SMOKE_RESULT:-<empty>}"
+          if [[ "$SMOKE_RESULT" != "pass" ]]; then
+            echo "::error::expected the result output to be pass, got ${SMOKE_RESULT:-<empty>}"
+            exit 1
+          fi

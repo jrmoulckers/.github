@@ -68,6 +68,16 @@ third variant, and the shared layer keeps having nothing to offer them.
   Node dependencies, following ADR-0007.
 - The macOS and Windows runners this workflow uses are billed at a higher rate than Linux. Callers
   should narrow `platforms` on non-release runs.
+- Static validation cannot observe execution. `.github/workflows/native-smoke-harness.yml` calls
+  this workflow with a trivial single-platform input set and asserts on its `result` output, so the
+  normalisation, `fromJSON` gating, skipped-counts-as-pass, and output plumbing are proven on a
+  runner rather than in a YAML parser. The harness and its fixture are not canon and are not synced;
+  they exist so the first real execution does not happen inside a member's migration, where a
+  workflow bug and a migration bug would be indistinguishable.
+- A job that calls a reusable workflow cannot declare `timeout-minutes` — GitHub rejects the key —
+  so `inspectWorkflowSource` exempts caller jobs from that rule. The bound still exists, in the
+  called workflow's own jobs. Permission ceilings continue to apply to caller jobs, because a caller
+  caps what the jobs it invokes may request.
 
 ## Rejected alternatives
 
