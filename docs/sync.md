@@ -61,7 +61,11 @@ flowchart LR
    `studio:base` markers only count at column 0 on a line of their own, outside a fenced code
    block, so a member file may safely *document* the convention. Marker and provenance comment
    syntax follows the target file — HTML comments in Markdown, `#` lines in `.gitattributes`, where
-   an HTML comment would be read as a pattern rule (see
+   an HTML comment would be read as a pattern rule — and so does **placement**: canon is appended in
+   Markdown but *prepended* in `.gitattributes`, because git resolves attributes by the last
+   matching pattern and canon's `*` matches everything, so an appended region would silently
+   outrank every member rule (see
+   [ADR-0011](architecture/0011-managed-region-placement.md) and
    [Managed-region merge](../sync/README.md#managed-region-merge-agentsmd-githubcopilot-instructionsmd-gitattributes)).
    `health` and
    `workflows` are **native** (see the table above): they are resolved and reported but never
