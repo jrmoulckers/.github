@@ -430,6 +430,38 @@ still written, still hashed, and still drift-free, but it carries `<!-- … -->`
 compiles — a failure that surfaces only in the member's build. Classify new source extensions in
 `sync/lib/provenance.mjs` when a distribution grows them.
 
+### Members must exclude canon from their formatters
+
+Canon is authored upstream and is **not** formatted to any one member's Prettier config, so a member
+running `prettier --check .` over its whole tree fails on files it does not own and must not fix —
+editing them is drift, and the next sync skips the file. Every member that runs a formatter needs
+its synced paths ignored:
+
+```
+# synced from jrmoulckers/.github — canonical source, not authored here
+.github/agents/
+.github/skills/
+.github/prompts/
+.github/instructions/
+.github/copilot-instructions.md
+AGENTS.md
+```
+
+That file is member-owned, so the sync cannot add the entry. **Introducing a canon kind that lands
+in a formatted path is therefore a cross-repo event**: every affected member needs this line before
+its sync PR can go green. The `copilot` kind's first distribution failed CI in four members for
+exactly this reason. Machine-read files no formatter touches (`agency.toml`) need no entry.
+
+Members that validate their own generated assets must also respect two contract details, or they
+will report false failures — both were live in `jrmoulckers/homelab` on first sync:
+
+- **Managed-region files are not whole-file copies.** For `AGENTS.md` and
+  `.github/copilot-instructions.md`, `targetSha256` is the hash of the **inner managed block**, not
+  the file. The file legitimately carries member content outside the markers, so a whole-file hash
+  could never be stable.
+- **The provenance marker is not always an HTML comment.** It follows the target's own comment
+  syntax, per the list above. A checker hardcoding `<!-- … -->` reports `agency.toml` as unstamped.
+
 ## Idempotency & drift
 
 - The tool is **idempotent**: once a member carries a lockfile, re-running with no upstream change

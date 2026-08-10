@@ -87,3 +87,16 @@ would report it as drift forever.
   files, or one relocated away from the path Copilot actually reads.
 - `optIn.base` no longer implies runtime policy. Any future member entry must set all three booleans
   deliberately; the manifest's `optInSyntax` comment records why.
+- Preserving local content has a cost paid once per member: the first sync leaves each member holding
+  both the canonical block and whatever policy it had already written by hand, so the duplication
+  this kind exists to remove survives until that member trims its local region. Trimming cannot be
+  automated — only a reader of the file can tell a restated rule from a genuinely local one.
+- Landing a canon kind in a **formatted** path is a cross-repo event, not a backbone-only one.
+  `.github/copilot-instructions.md` falls under members' `prettier --check .`, and canon is not
+  formatted to any one member's config, so this kind's first distribution failed CI in four members
+  until each ignored the path. That config is member-owned, so the sync cannot fix it; see
+  [`docs/sync.md`](../sync.md#members-must-exclude-canon-from-their-formatters).
+- Member-side asset validators that assumed "synced file" meant "whole-file Markdown copy" need
+  updating: managed-region files hash only their inner block, and `agency.toml` carries a `#`
+  provenance comment rather than an HTML one. Both assumptions were live in `jrmoulckers/homelab`
+  and produced false failures on first sync.
