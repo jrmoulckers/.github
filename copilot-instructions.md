@@ -23,8 +23,7 @@ conflict, `AGENTS.md` wins.
 
 ## The installed AI layer
 
-Most of `.github/` is generated and distributed from the `jrmoulckers/.github` backbone. Treat it
-as read-only here:
+Much of `.github/` is generated and distributed from the `jrmoulckers/.github` backbone:
 
 | Path | What it is | How to use it |
 | --- | --- | --- |
@@ -33,6 +32,14 @@ as read-only here:
 | `.github/prompts/*.prompt.md` | Repeatable multi-step workflows | Prefer the existing prompt over an ad-hoc plan for the work it covers |
 | `.github/instructions/*.instructions.md` | Path-scoped rules | Applied automatically by glob; obey the most specific match |
 | `agency.toml` | Reviewed MCP servers and tool allowlists | Do not add servers or widen tool grants locally |
+
+**Provenance is per file, not per directory.** A file is generated if and only if it carries a
+`synced from jrmoulckers/.github` marker near the top. The comment syntax varies with the file type
+— HTML comments in Markdown, `#` in `.toml` and `.yml`, `/* */` in `.js`, `.ts`, and `.css`, and no
+marker at all in `.json`, which has no comment syntax. Files without that marker are repository-owned
+and yours to edit normally. `.github/agents/` in particular routinely holds both tiers side by side:
+canonical studio roles alongside locally authored agents carrying authority specific to that
+repository. Check the marker before assuming a file is off-limits.
 
 **Never edit a generated file to change shared behaviour.** A local edit is detected as drift, is
 skipped on the next sync, and silently strands the repository on a stale copy. Change the canonical
