@@ -237,6 +237,20 @@ This has happened: `jrmoulckers/cartridge` carried verbatim copies of both reusa
 all 13 community-health files before a cleanup PR removed them. The trigger was reading the opt-in
 table and reasonably concluding that a "synced kind" belongs in the member.
 
+> **A *deliberate* health-file override is a different case, and is allowed.** The harm above is
+> specific to a **verbatim** copy: it inherits nothing new while adding nothing of its own, so it is
+> pure loss. A member that genuinely needs product-specific security content may keep its own file
+> — `workflow.instructions.md` permits this explicitly. `jrmoulckers/jrm-recipes` and
+> `jrmoulckers/finance` both do, carrying threat models, data-processing detail, and disclosure
+> terms that could not live in canon.
+>
+> The cost is unchanged and must be accepted knowingly: **that file is now a fork with no update
+> path**, and canon edits will never reach it. Such a member owns re-reading canon when it changes.
+> Before deleting a local health file as cleanup, check whether it is a verbatim copy (delete it) or
+> a deliberate superset (leave it). See
+> [ADR-0010](architecture/0010-selectable-support-postures.md), where a canon change left two
+> deliberate overrides quoting a policy that no longer said what they claimed.
+
 **Checklist when onboarding a member:** it should have *no* `.github/workflows/reusable-*.yml`, and
 of the health files only ones it genuinely wants to override deliberately. Prefer none.
 
