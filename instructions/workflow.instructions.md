@@ -268,9 +268,8 @@ jobs:
 ```
 
 `NODE_AUTH_TOKEN` resolves as `secrets.NODE_AUTH_TOKEN || github.token`, so the job's
-`GITHUB_TOKEN` is used unless the caller passes its own. Grant the consuming repository read access
-to each package under the package's **Manage Actions access** settings; GitHub recommends this over
-storing a PAT. Pass an explicit secret only for a registry `GITHUB_TOKEN` cannot reach:
+`GITHUB_TOKEN` is used unless the caller passes its own. Pass an explicit secret only for a registry
+`GITHUB_TOKEN` cannot reach:
 
 ```yaml
     secrets:
@@ -279,8 +278,23 @@ storing a PAT. Pass an explicit secret only for a registry `GITHUB_TOKEN` cannot
 
 Rules and interactions:
 
+- **Authentication and authorization are separate.** A token is always required: the registry
+  rejects an unauthenticated read with `401` even for a **public** package. Package visibility only
+  decides *who* is allowed, not *whether* credentials are needed. So `packages: read` and a token
+  stay mandatory regardless of visibility, and flipping a package to public is never a reason to
+  drop either.
+- Authorization depends on visibility. A **public** package needs no grant — `GITHUB_TOKEN` can read
+  it. A **private** package must additionally grant the consuming repository read access under the
+  package's **Manage Actions access** settings, which GitHub recommends over storing a PAT. A `403`
+  (`permission_denied: read_package`) means authentication succeeded and authorization failed, so it
+  points at the grant or the package, not at the token being absent.
 - `packages: read` is required for `GITHUB_TOKEN` to read a GitHub Packages package at all, and a
-  caller `permissions:` block must grant it or the run fails at startup.
+  caller `permissions:` block must grant it. **If the caller omits it the entire run fails at
+  startup**: no jobs are created, no check-run is produced, and there is no log to read — the only
+  surface text is a generic "workflow file issue". The failure is whole-run, not per-job, so
+  unrelated valid jobs in the same workflow file do not run either. Nothing inside a reusable
+  workflow can detect or report this, because the permission ceiling is enforced before any job
+  exists; it can only be caught by inspecting caller workflows before the run.
 - `registry-scope` requires `registry-url`. Setting `registry-url` without a scope replaces the
   **default** registry for every package and emits a warning.
 - `actions/setup-node` writes its `.npmrc` to `$RUNNER_TEMP/.npmrc` and exports

@@ -68,6 +68,15 @@ exception has to be stated rather than assumed.
   absent, which keeps pnpm's env expansion from erroring.
 - The token is a read credential scoped to package download. It does not widen what pull-request code
   can write, and the untrusted-artifact and deployment-isolation boundaries of ADR-0005 are unchanged.
+- A token is required regardless of package visibility: the registry rejects unauthenticated reads
+  with `401` even for public packages. Visibility governs authorization, not authentication, so a
+  public package removes the per-repository grant but never the token or `packages: read`.
+- The cost of the `packages: read` requirement is higher than a normal misconfiguration. A caller
+  that omits it fails the **whole run** at startup — zero jobs created, no check-run, no log, and
+  unrelated valid jobs in the same file do not run either. Measured directly, not inferred. Because
+  the ceiling is enforced before any job exists, no step, `if:`, or preflight job inside these
+  workflows can ever report it; only static inspection of caller workflows can catch it ahead of
+  time.
 
 ## Rejected alternatives
 
