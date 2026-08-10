@@ -4,6 +4,8 @@
 //   - Markdown WITH YAML frontmatter -> HTML comment immediately AFTER the closing '---'
 //   - Plain Markdown                  -> HTML comment at the very top
 //   - .toml / .yml / .yaml            -> leading '#' comment line
+//   - .gitattributes / .gitignore     -> leading '#' comment line (no HTML comment form; an
+//                                        '<!-- … -->' line there would be read as a pattern)
 //   - .css / .js / .cjs / .mjs / .ts  -> leading '/* … */' block comment
 //   - uncommentable text (.json/.map) -> passthrough, no header (a comment would corrupt it)
 //
@@ -26,13 +28,23 @@ const BLOCK_COMMENT_EXTS = new Set(['.css', '.js', '.cjs', '.mjs', '.ts', '.cts'
 /** Extensions that use a leading '#' comment line. */
 const HASH_COMMENT_EXTS = new Set(['.toml', '.yml', '.yaml']);
 
+/**
+ * Whole file names that use a leading '#' comment line. These are dotfiles with no extension,
+ * so they are matched by basename rather than by suffix.
+ */
+const HASH_COMMENT_NAMES = new Set(['.gitattributes', '.gitignore']);
+
+function basename(filePath) {
+  return filePath.split(/[\\/]/).pop() || '';
+}
+
 /** Normalize CRLF/CR to LF. */
 export function toLF(text) {
   return text.replace(/\r\n?/g, '\n');
 }
 
 function extname(filePath) {
-  const base = filePath.split(/[\\/]/).pop() || '';
+  const base = basename(filePath);
   const dot = base.lastIndexOf('.');
   return dot >= 0 ? base.slice(dot).toLowerCase() : '';
 }
@@ -53,7 +65,7 @@ export function inject(filePath, rawContent, opts = {}) {
   // LF-normalized (so hashing stays stable) but ship without a header.
   if (UNCOMMENTABLE.has(ext)) return content;
 
-  if (HASH_COMMENT_EXTS.has(ext)) {
+  if (HASH_COMMENT_EXTS.has(ext) || HASH_COMMENT_NAMES.has(basename(filePath))) {
     return `# ${note}\n${content}`;
   }
   if (BLOCK_COMMENT_EXTS.has(ext)) {

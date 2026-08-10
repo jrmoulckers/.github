@@ -239,15 +239,16 @@ test('every member that calls reusable CI declares reusable-security-ci', () => 
   }
 });
 
-test('every member receives runtime and copilot regardless of base', () => {
+test('every member receives runtime, copilot and attributes regardless of base', () => {
   for (const member of manifest.members) {
     assert.equal(member.optIn.runtime, true, `${member.repo} opts into runtime`);
     assert.equal(member.optIn.copilot, true, `${member.repo} opts into copilot`);
+    assert.equal(member.optIn.attributes, true, `${member.repo} opts into attributes`);
   }
 });
 
-test('runtime and copilot are independently selectable booleans', () => {
-  for (const kind of ['runtime', 'copilot']) {
+test('runtime, copilot and attributes are independently selectable booleans', () => {
+  for (const kind of ['runtime', 'copilot', 'attributes']) {
     const off = structuredClone(manifest);
     off.members[0].optIn[kind] = false;
     assert.doesNotThrow(() => validateManifest(off), `${kind} may be declined`);
@@ -281,6 +282,13 @@ test('managed-merge kinds own exactly one file at a fixed, Copilot-visible path'
   const movedBase = structuredClone(manifest);
   movedBase.targetPaths.base = 'docs';
   assert.throws(() => validateManifest(movedBase), /canon\.base must materialize to AGENTS\.md/);
+
+  const movedAttributes = structuredClone(manifest);
+  movedAttributes.targetPaths.attributes = '.github';
+  assert.throws(
+    () => validateManifest(movedAttributes),
+    /canon\.attributes must materialize to \.gitattributes, got \.github\/\.gitattributes/,
+  );
 });
 
 test('runtime is a whole-file copy while copilot merges a managed region', () => {
@@ -294,10 +302,11 @@ test('runtime is a whole-file copy while copilot merges a managed region', () =>
   for (const [kind, targetPath] of [
     ['base', 'AGENTS.md'],
     ['copilot', '.github/copilot-instructions.md'],
+    ['attributes', '.gitattributes'],
   ]) {
     const spec = writes.find((write) => write.kind === kind);
     assert.equal(spec.targetPath, targetPath);
-    assert.equal(spec.type, 'managed-md', `${kind} merges into a managed region`);
+    assert.equal(spec.type, 'managed', `${kind} merges into a managed region`);
   }
 });
 

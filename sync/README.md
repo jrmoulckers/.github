@@ -241,16 +241,17 @@ Resolution follows each member's `optIn` in the manifest:
 - `"*"` → the full canon of that kind, an array → those names, `false`/omitted → opt out.
 - `base`, `runtime`, `copilot` and `health` are booleans (`BOOLEAN_KINDS` in
   [`lib/manifest.mjs`](lib/manifest.mjs)).
-- The **only** valid `optIn` keys are `base`, `runtime`, `copilot`, `agents`, `skills`, `prompts`,
-  `instructions`, `workflows`, `health` (`KINDS` in [`lib/manifest.mjs`](lib/manifest.mjs)). Anything
-  else — notably `optIn.tokens` or `optIn.profile` — fails validation with *"is not a known kind"*.
-  Tokens and the profile README are configured elsewhere; see the two rows below the table.
+- The **only** valid `optIn` keys are `base`, `runtime`, `copilot`, `attributes`, `agents`, `skills`,
+  `prompts`, `instructions`, `workflows`, `health` (`KINDS` in [`lib/manifest.mjs`](lib/manifest.mjs)).
+  Anything else — notably `optIn.tokens` or `optIn.profile` — fails validation with *"is not a known
+  kind"*. Tokens and the profile README are configured elsewhere; see the two rows below the table.
 
 | Kind | Shape | Target | Notes |
 | --- | --- | --- | --- |
 | `base` | `AGENTS.md` | member root | **Merged** into a managed region (see below); member content outside the markers is never touched. |
 | `runtime` | `agency.toml` | member root | Copied wholesale. Reviewed MCP servers and tool allowlists. |
 | `copilot` | `copilot-instructions.md` | `.github/` | **Merged** into a managed region, same mechanism as `AGENTS.md`. |
+| `attributes` | `.gitattributes` | member root | **Merged** into a managed region. Canonical LF normalization; the member keeps its own binary/LFS/linguist rules outside the markers. Markers and provenance are `#` lines, not HTML comments. |
 | `agents` | `*.agent.md` files | `.github/agents/` | |
 | `prompts` | `*.prompt.md` files | `.github/prompts/` | |
 | `instructions` | `*.instructions.md` files | `.github/instructions/` | |
@@ -258,11 +259,20 @@ Resolution follows each member's `optIn` in the manifest:
 | `health` | community-health files | — | **Native** — GitHub inherits these from the backbone `.github` repo. Never written; the member must **not** keep its own copy. |
 | `workflows` | reusable workflows | — | **Native** — availability only; actual calls must use a reviewed full commit SHA. Never written; the member must **not** vendor a copy. |
 
-> **`base`, `runtime` and `copilot` are three independent booleans.** They were one kind until
+> **`base`, `runtime`, `copilot` and `attributes` are four independent booleans.** The first three
+> were one kind until
 > [ADR-0006](../docs/architecture/0006-runtime-and-copilot-canon-kinds.md). Bundling them meant an
 > infrastructure member that declined the studio operating guide — reasonably, because its own root
 > guide is authoritative — also silently declined reviewed MCP policy. Three members were in that
-> state. Declining one of these kinds now says nothing about the other two.
+> state. Declining one of these kinds now says nothing about the others.
+
+> **`attributes` normalizes line endings fleet-wide.** Seven repos — including this backbone — had
+> no `.gitattributes` at all, and `jrm-recipes` reported `pnpm format:check` failing on ~964
+> untouched files in a fresh Windows checkout purely from CRLF materialization. Noise at that
+> volume masks real failures. Only the generic `* text=auto eol=lf` stanza is canon; repo-specific
+> rules (Studio's `packages/tokens/dist/**`, binary patterns, LFS, linguist overrides) stay in the
+> member, outside the markers. See
+> [ADR-0009](../docs/architecture/0009-canonical-line-ending-normalization.md).
 
 > **Opting in to a native kind installs nothing.** `health` and `workflows` (`NATIVE_KINDS` in
 > [`lib/manifest.mjs`](lib/manifest.mjs)) are resolved and reported so the plan is complete, then
@@ -416,9 +426,9 @@ Token files flow through the same lockfile, drift detection, and `chore(sync)` P
 the rest of the canon. See [`docs/sync.md`](../docs/sync.md#the-dist-path-contract-interface-between-the-two-repos)
 for the exact `dist/` path contract the studio repo must match.
 
-### Managed-region merge (`AGENTS.md`, `.github/copilot-instructions.md`)
+### Managed-region merge (`AGENTS.md`, `.github/copilot-instructions.md`, `.gitattributes`)
 
-Two canonical files must coexist with member-authored content in the same file, so the tool manages
+Three canonical files must coexist with member-authored content in the same file, so the tool manages
 only a marked region within each:
 
 ```markdown
@@ -427,8 +437,25 @@ only a marked region within each:
 <!-- studio:base:end -->
 ```
 
+The marker identifier is `studio:base` for **every** managed target, not just the `base` kind: it
+names "the studio-managed region", and `copilot` has always shared it. Only the *comment syntax*
+varies, because a marker has to be a comment in the file it lives in. Markdown targets use HTML
+comments; `.gitattributes` has none, so it uses `#` lines:
+
+```
+# studio:base:start
+…canonical content…
+# studio:base:end
+```
+
+This is not cosmetic. An `<!-- studio:base:start -->` line in a `.gitattributes` is not ignored by
+git — it is read as a *pattern rule*. The same applies to the provenance header, which is emitted as
+a `#` comment for `.gitattributes` (see `HASH_COMMENT_NAMES` in [`lib/provenance.mjs`](lib/provenance.mjs)).
+`markersFor(targetPath)` in [`lib/basemerge.mjs`](lib/basemerge.mjs) picks the syntax, and the two
+syntaxes never cross-detect: HTML markers inside a `.gitattributes` are member content, not our region.
+
 Everything outside the markers is member-local and never touched. Editing inside the block is
-treated as drift; editing outside it is ignored. If a member has neither file, one is created
+treated as drift; editing outside it is ignored. If a member has none of these files, one is created
 containing just the managed block; if it already has one without markers, the block is appended and
 all existing content is preserved.
 
@@ -436,11 +463,12 @@ Which files use this is declared by `MANAGED_MERGE_TARGETS` in [`lib/manifest.mj
 and manifest validation enforces that each managed kind declares exactly one file resolving to
 exactly its mapped path. A managed kind cannot list two files — both would claim the same marker
 pair and the second would overwrite the first — and cannot be relocated to a path the tooling does
-not actually read.
+not actually read. For `.gitattributes` the fixed path matters twice over: git only applies a
+repository-wide `.gitattributes` from the root.
 
-The split of content between the two is deliberate: `AGENTS.md` owns policy, and the Copilot block
-owns Copilot-surface orientation and defers to `AGENTS.md` for every rule. See
-[ADR-0006](../docs/architecture/0006-runtime-and-copilot-canon-kinds.md).
+The split of content between `AGENTS.md` and the Copilot block is deliberate: `AGENTS.md` owns
+policy, and the Copilot block owns Copilot-surface orientation and defers to `AGENTS.md` for every
+rule. See [ADR-0006](../docs/architecture/0006-runtime-and-copilot-canon-kinds.md).
 
 **A marker only counts when it starts at column 0 on a line of its own, outside any fenced code
 block.** That strictness exists because the natural thing for a member `AGENTS.md` to do is

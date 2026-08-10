@@ -158,14 +158,15 @@ test('--work-dir reports available workflows that the checkout does not call', (
 });
 
 test('manifest dry-run reports complete phase-two activation plans', () => {
-  // `hasBase` is now distinct from receiving runtime/copilot: every member gets canonical MCP
-  // policy and Copilot orientation, but only product repos take the studio operating guide.
+  // `hasBase` is now distinct from receiving runtime/copilot/attributes: every member gets
+  // canonical MCP policy, Copilot orientation and LF normalization, but only product repos take
+  // the studio operating guide.
   // `natives` is separate again: Studio declines base yet still calls backbone reusable CI.
   const members = [
-    ['jrmoulckers/finance', 'application · kmp-web · npm', 8, 5, 59, true, ['health', 'workflows']],
-    ['jrmoulckers/studio', 'infrastructure · pnpm', 8, 5, 58, false, ['workflows']],
-    ['jrmoulckers/homelab', 'infrastructure', 3, 2, 50, false, []],
-    ['jrmoulckers/windows', 'infrastructure', 8, 4, 57, false, []],
+    ['jrmoulckers/finance', 'application · kmp-web · npm', 8, 5, 60, true, ['health', 'workflows']],
+    ['jrmoulckers/studio', 'infrastructure · pnpm', 8, 5, 59, false, ['workflows']],
+    ['jrmoulckers/homelab', 'infrastructure', 3, 2, 51, false, []],
+    ['jrmoulckers/windows', 'infrastructure', 8, 4, 58, false, []],
   ];
 
   for (const [repo, metadata, promptCount, instructionCount, total, hasBase, natives] of members) {
@@ -185,6 +186,11 @@ test('manifest dry-run reports complete phase-two activation plans', () => {
     assert.match(
       out,
       /^ {2}copilot \(1 files\):\n {4}\.github\/copilot-instructions\.md {3}⟵ managed block merge$/m,
+      out,
+    );
+    assert.match(
+      out,
+      /^ {2}attributes \(1 files\):\n {4}\.gitattributes {3}⟵ managed block merge$/m,
       out,
     );
 
