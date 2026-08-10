@@ -1,0 +1,16 @@
+name: ZZ Probe Path Filter
+on:
+  pull_request:
+    paths:
+      - 'no-such-directory/**'
+permissions: {}
+jobs:
+  gated:
+    name: Probe path-filtered job
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Report
+        run: echo "path filter matched"

@@ -1,0 +1,24 @@
+name: ZZ Probe Skip Job
+on:
+  pull_request:
+permissions: {}
+jobs:
+  skipped:
+    name: Probe if-skipped job
+    if: ${{ false }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Report
+        run: echo "should not run"
+  ran:
+    name: Probe always-runs job
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Report
+        run: echo "ran"
