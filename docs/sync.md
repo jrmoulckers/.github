@@ -485,6 +485,30 @@ This was chosen over the alternative (the engine cloning studio and running
 The cost — studio commits generated output — is contained to a dedicated `dist/` directory
 treated as a distribution artifact. Producing/refreshing that `dist/` is studio's own concern.
 
+### Reviewing a token update: `Updated` does not mean "additions only"
+
+The engine is a byte-mover. It compares hashes, not meanings, so it cannot distinguish a **new**
+token file from one whose **values changed**: both appear under **Updated** in the member PR as a
+path. That is a deliberate limit — teaching the engine to diff token semantics would make it parse
+the artifacts it is supposed to carry opaquely — but it means the file list under
+`vendor/@jrm/tokens/**` is not a safety signal.
+
+This matters because the two failure modes are inverted from the usual ordering:
+
+| Change | How it surfaces | Risk |
+| --- | --- | --- |
+| Token removed or renamed | Build breaks, or a CSS variable resolves to nothing | **Loud** — someone investigates |
+| Token **value** changed | Everything compiles, every test passes | **Quiet** — layout and contrast move unreviewed |
+
+So a `chore(sync)` PR touching vendored tokens should be verified visually, not just read. Spacing
+and radius shifts move layout; color shifts move contrast ratios and can turn a previously passing
+WCAG 2.2 AA check into a failing one without any test noticing.
+
+The announcement is the owning repository's job — `jrmoulckers/studio` is the only place that knows
+a value moved rather than a file appeared. See
+[`instructions/tokens.instructions.md`](../instructions/tokens.instructions.md) for what a value
+change must state.
+
 ### The `dist/` path contract (interface between the two repos)
 
 This is the byte-for-byte interface the studio-side session must match. Under
