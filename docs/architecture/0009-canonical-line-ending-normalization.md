@@ -59,6 +59,13 @@ platform-dependent, so a Windows checkout still materializes CRLF for everything
 `.go`/`go.mod`/`go.sum`. An "append only when the file is absent" transport would silently leave it
 broken; a whole-file overwrite would delete its Go rules. The fix has to *strengthen in place*.
 
+> **`game-library` is not a member and never will be.** It is deliberately excluded by owner
+> decision (see [ADR-0012](0012-recorded-exclusions.md) and the manifest's `excluded` list), so the
+> sync does not reach it and its weaker rule stands. It appears here purely as evidence about the
+> shapes of `.gitattributes` files in the wild — evidence that happens to be the clearest available
+> argument against the rejected alternatives below. Nothing in this ADR is a claim that
+> `game-library` is covered.
+
 ## Decision
 
 Distribute the generic stanza as a new canon kind, `attributes`, materializing `.gitattributes` at

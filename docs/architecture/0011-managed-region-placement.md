@@ -93,6 +93,28 @@ region, and two had the region — `jrmoulckers/studio`, which pre-seeded it at 
 position this ADR mandates), and `jrmoulckers/docket`, whose only local rule is byte-identical to
 canon, so ordering is moot. No member needs a migration PR.
 
+**No member needs to pre-seed the markers, either.** Because canon is prepended, a member's own
+rules land after it and remain authoritative on the first sync with no preparation. Pre-seeding was
+the correct workaround while the region was appended; it is now redundant for placement purposes,
+and documenting it as a requirement would spread an obsolete instruction. Studio's pre-seeded region
+remains correct — it is already in the mandated position.
+
+**The `binary` case is why this is not a stylistic preference.** `jrmoulckers/homelab` marks assets
+`binary`, which is `-text` — *never inspect this file*. Measured with `git check-attr` against its
+real file:
+
+| Path | Today | Canon appended | Canon prepended |
+| --- | --- | --- | --- |
+| `site/assets/model.glb` | `text: unset` | `text: auto` | `text: unset` |
+| `site/img/logo.png` | `text: unset` | `text: auto` | `text: unset` |
+| `docker/compose.yml` | `text: set` | `text: auto` | `text: set` |
+
+Appending would have handed binary assets to git's content heuristic. The `main.go` downgrade above
+is inert in practice; this one is not, and it applies to every member using `binary`, LFS filters, or
+`-text` on fixtures that must retain CRLF. Prepending reproduces the member's existing resolution
+exactly, which is the property worth having: adopting canon changes what was previously unspecified
+and nothing else.
+
 **Members may still pre-seed.** Placing the markers by hand remains valid and now agrees with the
 default rather than compensating for it. Studio's pre-seeded region stays correct unchanged.
 
