@@ -131,6 +131,11 @@ function validateContent(byName, errors) {
       [/consumer repositories.*always read-only/is, 'consumer output protection'],
       [/Studio\/token owner.*sync/is, 'owner and sync routing'],
       [/local product overlay wins/i, 'local token-path precedence'],
+      // A value shift is the one token change that cannot announce itself: names hold, every
+      // consumer compiles, and the rendered result moves. The engine mirrors bytes and reports it
+      // as an ordinary `Updated` path, so if this guidance is ever dropped from the instructions
+      // there is nothing else in the org that tells a member to look.
+      [/changed token \*?value\*?.*announced change/is, 'token value-change announcement'],
     ],
     errors,
   );
