@@ -209,7 +209,7 @@
         "skills": "*",
         "prompts": "*",
         "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
-        "workflows": []
+        "workflows": ["reusable-change-detection", "reusable-native-smoke-test"]
       },
       "tokens": { "enabled": true, "targetPath": "vendor/@jrm/tokens" }
     },
