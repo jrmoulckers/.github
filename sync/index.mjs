@@ -296,7 +296,7 @@ function printPlan(resolved, targets) {
       out(`  ${group.kind} (${items.length} files):`);
     }
     for (const item of items) {
-      const note = item.type === 'managed-md' ? '   ⟵ managed block merge' : '';
+      const note = item.type === 'managed' ? '   ⟵ managed block merge' : '';
       out(`    ${item.targetPath}${note}`);
     }
   }

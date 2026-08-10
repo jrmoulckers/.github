@@ -13,7 +13,7 @@ assets propagate very differently:
 | Class | Examples | How it reaches product repos |
 | --- | --- | --- |
 | **Native** | Community-health files, reusable workflows | GitHub inherits default health files from this `.github` repo automatically; reusable workflows are called directly with `uses: jrmoulckers/.github/.github/workflows/reusable-*.yml@<reviewed-commit-sha>`. **No sync needed — and a member must not keep its own copy** (see below). |
-| **Canonical source** | `agents/`, `skills/`, `prompts/`, `instructions/`, `AGENTS.md`, `agency.toml`, `copilot-instructions.md` | Copilot does **not** auto-inherit these across repos. The sync tool materializes them as `.github/agents/`, `.github/skills/`, `.github/prompts/`, `.github/instructions/`, `.github/copilot-instructions.md`, and selected root files. Consumer copies are generated and read-only. |
+| **Canonical source** | `agents/`, `skills/`, `prompts/`, `instructions/`, `AGENTS.md`, `agency.toml`, `copilot-instructions.md`, `.gitattributes` | Copilot does **not** auto-inherit these across repos. The sync tool materializes them as `.github/agents/`, `.github/skills/`, `.github/prompts/`, `.github/instructions/`, `.github/copilot-instructions.md`, and selected root files. Consumer copies are generated and read-only. |
 | **External vendored** | `@jrm/tokens` built outputs (CSS custom properties, Tailwind preset, typed JS) | Live in a *different* private backbone repo (`jrmoulckers/studio`), registry-free. The same engine copies studio's committed `dist/` tree into opted-in members under `vendor/@jrm/tokens/`. See [Vendored tokens](#vendored-tokens-jrmtokens). |
 
 ## Flow (scheduled PR)
@@ -48,17 +48,21 @@ flowchart LR
    branching, or pushing; other members continue. Manifest-only `--dry-run` performs no clone and
    cannot certify these claims.
 5. **Copy** — map each opted-in asset from its `sourcePaths` here to the member's `targetPaths`
-   (agents → `.github/agents/`, skills → `.github/skills/`, etc.). `base` (`AGENTS.md`) and
-   `runtime` (`agency.toml`) land at the member root; `copilot` lands at
-   `.github/copilot-instructions.md`. These are three **independent** booleans, so an
+   (agents → `.github/agents/`, skills → `.github/skills/`, etc.). `base` (`AGENTS.md`),
+   `runtime` (`agency.toml`) and `attributes` (`.gitattributes`) land at the member root; `copilot`
+   lands at `.github/copilot-instructions.md`. These are four **independent** booleans, so an
    infrastructure member that declines the studio operating guide still receives canonical MCP
-   policy and Copilot-surface orientation (see
-   [ADR-0006](architecture/0006-runtime-and-copilot-canon-kinds.md)). `AGENTS.md` and
-   `.github/copilot-instructions.md` are **merged**: members keep their own content and the tool
+   policy, Copilot-surface orientation, and LF normalization (see
+   [ADR-0006](architecture/0006-runtime-and-copilot-canon-kinds.md) and
+   [ADR-0009](architecture/0009-canonical-line-ending-normalization.md)). `AGENTS.md`,
+   `.github/copilot-instructions.md` and `.gitattributes` are **merged**: members keep their own
+   content and the tool
    replaces only the marked region rather than clobbering (see Drift below). The
    `studio:base` markers only count at column 0 on a line of their own, outside a fenced code
-   block, so a member file may safely *document* the convention (see
-   [Managed-region merge](../sync/README.md#managed-region-merge-agentsmd-githubcopilot-instructionsmd)).
+   block, so a member file may safely *document* the convention. Marker and provenance comment
+   syntax follows the target file — HTML comments in Markdown, `#` lines in `.gitattributes`, where
+   an HTML comment would be read as a pattern rule (see
+   [Managed-region merge](../sync/README.md#managed-region-merge-agentsmd-githubcopilot-instructionsmd-gitattributes)).
    `health` and
    `workflows` are **native** (see the table above): they are resolved and reported but never
    written — health files are inherited from this `.github` repo and reusable workflows are

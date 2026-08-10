@@ -17,6 +17,7 @@ export const KINDS = [
   'base',
   'runtime',
   'copilot',
+  'attributes',
   'agents',
   'skills',
   'prompts',
@@ -29,7 +30,7 @@ export const DEFAULT_MEMBER_MODE = 'application';
 
 // Kinds selected by a plain boolean rather than "*" / a name array. Each one is a fixed,
 // single-purpose file set, so there is nothing to select within it.
-export const BOOLEAN_KINDS = new Set(['base', 'runtime', 'copilot', 'health']);
+export const BOOLEAN_KINDS = new Set(['base', 'runtime', 'copilot', 'attributes', 'health']);
 
 // Kinds that produce written files vs. those inherited natively by GitHub/Copilot.
 export const NATIVE_KINDS = new Set(['health', 'workflows']);
@@ -43,6 +44,7 @@ export const DIR_KINDS = new Set(['skills']);
 export const MANAGED_MERGE_TARGETS = new Map([
   ['base', 'AGENTS.md'],
   ['copilot', '.github/copilot-instructions.md'],
+  ['attributes', '.gitattributes'],
 ]);
 
 export function manifestPath(repoRoot) {

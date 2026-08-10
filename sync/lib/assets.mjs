@@ -3,7 +3,7 @@
 // Given a resolved member, walk the backbone source tree and produce the concrete list
 // of target files to write. Handles file-assets (agents/prompts/instructions), directory-assets
 // (skills = a folder of SKILL.md + checklists), literal root files (agency.toml), and the
-// managed-region targets (AGENTS.md, .github/copilot-instructions.md).
+// managed-region targets (AGENTS.md, .github/copilot-instructions.md, .gitattributes).
 //
 // Each write carries the rendered content (source normalized to LF + provenance) and the
 // canonical source hash, so the copier can perform drift detection without re-reading
@@ -24,7 +24,7 @@ const FILE_SUFFIX = {
 /**
  * @returns {{ writes: TargetSpec[], native: Array<{kind, names}> }}
  * TargetSpec = { kind, name, sourcePath, targetPath, sourceSha256, content, type }
- *   type: 'file' | 'managed-md'
+ *   type: 'file' | 'managed'
  */
 export function enumerateTargets(resolved, backboneRoot) {
   const writes = [];
@@ -52,7 +52,7 @@ export function enumerateTargets(resolved, backboneRoot) {
 
 /**
  * Kinds whose canon entries are literal file names (`AGENTS.md`, `agency.toml`,
- * `copilot-instructions.md`) rather than bare asset names.
+ * `copilot-instructions.md`, `.gitattributes`) rather than bare asset names.
  *
  * A `managed` group additionally materializes through the marker merge in basemerge.mjs: the
  * spec carries only the block *inner*, and the copier splices it into whatever the member
@@ -72,7 +72,7 @@ function enumerateLiteralKind(group, backboneRoot) {
       targetPath,
       sourceSha256: hashText(raw),
       content: inject(targetPath, raw),
-      type: 'managed-md',
+      type: 'managed',
     };
   });
 }

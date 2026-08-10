@@ -23,7 +23,7 @@
 import { existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { hashText, writeLock } from './lock.mjs';
-import { extractBlock, buildFile, canonicalizeInner } from './basemerge.mjs';
+import { extractBlock, buildFile, canonicalizeInner, markersFor } from './basemerge.mjs';
 
 const BUCKET = {
   add: 'added',
@@ -45,8 +45,8 @@ export function apply(memberRoot, writes, lock, opts = {}) {
 
   for (const spec of writes) {
     const res =
-      spec.type === 'managed-md'
-        ? planManagedMd(memberRoot, spec, entries, force)
+      spec.type === 'managed'
+        ? planManaged(memberRoot, spec, entries, force)
         : planFile(memberRoot, spec, entries, force);
     const item = { targetPath: spec.targetPath, kind: spec.kind, name: spec.name };
 
@@ -109,32 +109,33 @@ function planFile(memberRoot, spec, entries, force) {
 }
 
 /**
- * Plan a managed-region target (AGENTS.md, .github/copilot-instructions.md): only the block
- * between the studio markers is ours, so drift is judged on the block inner rather than the
- * whole file and the member's surrounding content is always preserved.
+ * Plan a managed-region target (AGENTS.md, .github/copilot-instructions.md, .gitattributes):
+ * only the block between the studio markers is ours, so drift is judged on the block inner
+ * rather than the whole file and the member's surrounding content is always preserved.
  */
-function planManagedMd(memberRoot, spec, entries, force) {
+function planManaged(memberRoot, spec, entries, force) {
   const abs = join(memberRoot, ...spec.targetPath.split('/'));
+  const markers = markersFor(spec.targetPath);
   const inner = canonicalizeInner(spec.content);
   const renderedHash = hashText(inner);
   const newEntry = entry(spec.sourceSha256, renderedHash);
 
-  if (!existsSync(abs)) return { action: 'add', newContent: buildFile('', inner), newEntry };
+  if (!existsSync(abs)) return { action: 'add', newContent: buildFile('', inner, markers), newEntry };
 
   const existing = readFileSync(abs, 'utf8');
-  const currentInner = extractBlock(existing);
+  const currentInner = extractBlock(existing, markers);
   if (currentInner === null) {
     // No managed region yet: insert one, preserving all product-local content.
-    return { action: 'add', newContent: buildFile(existing, inner), newEntry };
+    return { action: 'add', newContent: buildFile(existing, inner, markers), newEntry };
   }
   const currentHash = hashText(currentInner);
   if (isLocallyModified(entries[spec.targetPath], currentHash, renderedHash)) {
     return force
-      ? { action: 'forced', newContent: buildFile(existing, inner), newEntry }
+      ? { action: 'forced', newContent: buildFile(existing, inner, markers), newEntry }
       : { action: 'drift', note: suspectBlockNote(spec.targetPath, currentInner, inner) };
   }
   if (currentHash === renderedHash) return { action: 'unchanged', newEntry };
-  return { action: 'update', newContent: buildFile(existing, inner), newEntry };
+  return { action: 'update', newContent: buildFile(existing, inner, markers), newEntry };
 }
 
 /**

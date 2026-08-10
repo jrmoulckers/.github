@@ -132,11 +132,13 @@ flow and **[`sync/README.md`](sync/README.md)** for the implemented engine.
 | `AGENTS.md` | — | repo root — managed region; members extend it around the markers |
 | `agency.toml` | — | repo root — whole-file copy |
 | `copilot-instructions.md` | — | `.github/copilot-instructions.md` — managed region |
+| `.gitattributes` | — | repo root — managed region; canonical LF normalization, members keep their own binary/LFS rules |
 
-`AGENTS.md`, `agency.toml`, and `copilot-instructions.md` are selected by three **independent**
-booleans (`base`, `runtime`, `copilot`), so declining the studio operating guide does not also
-decline MCP policy or Copilot orientation — see
-[ADR-0006](docs/architecture/0006-runtime-and-copilot-canon-kinds.md).
+`AGENTS.md`, `agency.toml`, `copilot-instructions.md`, and `.gitattributes` are selected by four
+**independent** booleans (`base`, `runtime`, `copilot`, `attributes`), so declining the studio
+operating guide does not also decline MCP policy, Copilot orientation, or LF normalization — see
+[ADR-0006](docs/architecture/0006-runtime-and-copilot-canon-kinds.md) and
+[ADR-0009](docs/architecture/0009-canonical-line-ending-normalization.md).
 
 ## The AI layer
 

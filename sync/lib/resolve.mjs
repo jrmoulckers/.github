@@ -22,13 +22,14 @@ export function resolveMember(manifest, member) {
   const optIn = member.optIn ?? {};
   const groups = [];
 
-  // base (AGENTS.md managed-region merge), runtime (agency.toml copy) and copilot
-  // (.github/copilot-instructions.md managed-region merge).
+  // base (AGENTS.md managed-region merge), runtime (agency.toml copy), copilot
+  // (.github/copilot-instructions.md managed-region merge) and attributes
+  // (.gitattributes managed-region merge).
   //
-  // These are three independent booleans on purpose. runtime and copilot used to be reachable
+  // These are four independent booleans on purpose. runtime and copilot used to be reachable
   // only through base, which meant an infrastructure member that declined the studio operating
   // guide also silently declined canonical MCP policy and Copilot-surface orientation.
-  for (const kind of ['base', 'runtime', 'copilot']) {
+  for (const kind of ['base', 'runtime', 'copilot', 'attributes']) {
     if (optIn[kind] === true) {
       // Canon entries for these kinds are literal file names, not bare asset names, so the
       // asset layer must not append a `.agent.md`-style suffix to them.
