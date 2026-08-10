@@ -452,6 +452,12 @@ in a formatted path is therefore a cross-repo event**: every affected member nee
 its sync PR can go green. The `copilot` kind's first distribution failed CI in four members for
 exactly this reason. Machine-read files no formatter touches (`agency.toml`) need no entry.
 
+Note that these exclusions are **whole-file even for managed-region targets**. `AGENTS.md` and
+`.github/copilot-instructions.md` are only partly canonical, but a formatter cannot be pointed at
+half a file, and the region must stay byte-identical to canon or the sync stops matching. Excluding
+the whole path is therefore correct — it costs formatting on the member-owned remainder, which is a
+smaller price than perpetual drift.
+
 Members that validate their own generated assets must also respect two contract details, or they
 will report false failures — both were live in `jrmoulckers/homelab` on first sync:
 
