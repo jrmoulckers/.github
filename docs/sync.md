@@ -393,8 +393,16 @@ Predict a first run by *reading the member*, not by assuming an empty target: an
 that already matches canon lands in the baselined column whatever kind it belongs to.
 
 Every synced file gets a provenance header
-(`synced from jrmoulckers/.github — canonical source; do not edit here`) — an HTML comment
-after any YAML frontmatter (or atop plain Markdown), or a leading `#` line for `.toml`/`.yml`.
+(`synced from jrmoulckers/.github — canonical source; do not edit here`), rendered in whatever
+comment syntax the target's own parser accepts: an HTML comment after any YAML frontmatter (or atop
+plain Markdown), a leading `#` line for `.toml`/`.yml`/`.gitattributes`, a `/* … */` block for
+`.css`/`.js`/`.ts`/`.kt`/`.swift`, and nothing at all for `.json`/`.map`, where any comment would
+corrupt the file.
+
+The fallback is HTML, which makes an unclassified *source* extension a silent hazard: the file is
+still written, still hashed, and still drift-free, but it carries `<!-- … -->` and no longer
+compiles — a failure that surfaces only in the member's build. Classify new source extensions in
+`sync/lib/provenance.mjs` when a distribution grows them.
 
 ## Idempotency & drift
 
@@ -459,17 +467,30 @@ mirrors — the whole tree, expected to contain at least:
 
 | Path under `packages/tokens/dist/` | What | Consumers |
 | --- | --- | --- |
-| `css/default/tokens.css` | CSS custom properties (light/base) | all (finance `@import`s these) |
-| `css/default/tokens-dark.css` | dark theme custom properties | all |
-| `css/default/tokens-dark-oled.css` | dark-OLED theme | all |
-| `css/default/tokens-high-contrast.css` | high-contrast theme | all |
-| `css/default/index.css` | barrel that `@import`s the above | all |
+| `css/default/tokens.css` | CSS custom properties (light/base) | web (finance `@import`s these) |
+| `css/default/tokens-dark.css` | dark theme custom properties | web |
+| `css/default/tokens-dark-oled.css` | dark-OLED theme | web |
+| `css/default/tokens-high-contrast.css` | high-contrast theme | web |
+| `css/default/tokens-high-contrast-dark.css` | high-contrast-dark theme | web |
+| `css/default/index.css` | barrel that `@import`s the above | web |
 | `tailwind/default.cjs` | Tailwind preset | future Tailwind consumers |
-| `js/**` | typed JS/TS (`*.js`, `*.d.ts`, source maps) | future JS consumers |
+| `js/**` | typed JS/TS (`*.js`, `*.d.ts`, source maps), one module per theme | future JS consumers |
+| `native/compose/JrmTokens.kt` | Compose color schemes + token objects | `apps/android` |
+| `native/swift/JRMTokens.swift` | SwiftUI color schemes + token constants | `apps/ios` |
+
+**The distribution is not web-only.** The `native/` tree is why the vendored `targetPath` must be
+the repo root for multi-platform members: Compose and Swift sources buried under `apps/web/` are
+unreachable by the sibling native apps. That defect is what
+[#108](https://github.com/jrmoulckers/.github/issues/108) fixed — see
+[Manifest, target path, and opt-in](#manifest-target-path-and-opt-in) below.
 
 The engine mirrors **whatever `dist/` actually contains** (whole-tree copy), so this table is the
 _expected minimum layout_, not a hard allowlist — if studio adds files under `dist/`, they are
-vendored too. Files that can't hold a comment (`.map`, `.json`) are copied verbatim and are still
+vendored too, with no change here. That property is load-bearing rather than incidental: studio has
+added a component token layer and promoted a fifth theme since this table was written, growing the
+distribution from 18 files to 21, and the sync engine required no change because
+`enumerateTokenTargets` walks the tree rather than consulting a list. Nothing on this side pins a
+file count. Files that can't hold a comment (`.map`, `.json`) are copied verbatim and are still
 tracked in the lockfile by sha256 (drift-detected) even though they carry no visible header. The
 engine only reads this path; **it never runs studio's build** (Option A).
 

@@ -7,7 +7,15 @@
 //   - .gitattributes / .gitignore     -> leading '#' comment line (no HTML comment form; an
 //                                        '<!-- … -->' line there would be read as a pattern)
 //   - .css / .js / .cjs / .mjs / .ts  -> leading '/* … */' block comment
+//   - .kt / .kts / .swift             -> leading '/* … */' block comment (the @jrm/tokens native
+//                                        distribution; an HTML comment would not compile)
 //   - uncommentable text (.json/.map) -> passthrough, no header (a comment would corrupt it)
+//   - anything else                   -> HTML comment (Markdown and other prose)
+//
+// The fallback is HTML, which is right for Markdown and wrong — often *silently* wrong — for
+// anything with a real grammar. A source file that lands in the fallback gets `<!-- … -->`
+// prepended and stops compiling, so a new binary-ish or source-ish extension arriving in a
+// distribution must be classified here. See `provenance.test.mjs`.
 //
 // The default note marks backbone canon (jrmoulckers/.github). Vendored assets sourced from a
 // different repo (e.g. @jrm/tokens from jrmoulckers/studio) pass their own `note` so the header
@@ -22,8 +30,27 @@ export const PROVENANCE_NOTE =
 /** Extensions whose content cannot carry a leading comment without corruption. */
 const UNCOMMENTABLE = new Set(['.json', '.map']);
 
-/** Extensions that use C-style block comments. */
-const BLOCK_COMMENT_EXTS = new Set(['.css', '.js', '.cjs', '.mjs', '.ts', '.cts', '.mts']);
+/**
+ * Extensions that use C-style block comments.
+ *
+ * `.kt`/`.kts`/`.swift` are here because `@jrm/tokens` ships a native distribution
+ * (`native/compose/JrmTokens.kt`, `native/swift/JRMTokens.swift`) that is vendored into
+ * multi-platform members alongside the web artifacts. Without them these files fall through to the
+ * Markdown fallback and are written with a leading `<!-- … -->`, which is not a comment in either
+ * language — the vendored tokens simply fail to compile.
+ */
+const BLOCK_COMMENT_EXTS = new Set([
+  '.css',
+  '.js',
+  '.cjs',
+  '.mjs',
+  '.ts',
+  '.cts',
+  '.mts',
+  '.kt',
+  '.kts',
+  '.swift',
+]);
 
 /** Extensions that use a leading '#' comment line. */
 const HASH_COMMENT_EXTS = new Set(['.toml', '.yml', '.yaml']);
