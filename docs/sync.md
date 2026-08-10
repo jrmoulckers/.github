@@ -458,6 +458,26 @@ half a file, and the region must stay byte-identical to canon or the sync stops 
 the whole path is therefore correct — it costs formatting on the member-owned remainder, which is a
 smaller price than perpetual drift.
 
+### Resolving conflicts in a sync PR
+
+"Take canon's side wholesale" is right for whole-file canon and **wrong for managed-region files**,
+where it silently reverts merged member work. A sync PR carries the canonical block *plus the
+member's local content as of the commit the run cloned*. If member work lands on the default branch
+after the PR is opened — a trim of the local region, say — taking theirs restores the pre-trim text
+while looking like the safe, canon-respecting choice. Resolve per tier:
+
+| Tier | Resolution |
+| --- | --- |
+| Whole-file canon | Take canon's side wholesale; never hand-merge |
+| Managed-region file | Per region: canon inside the `studio:base` markers, the default branch's content outside them. Prefer rebasing — the two sides usually touch different parts of the file and auto-merge correctly |
+| Member-owned file | Ordinary review; canon has no opinion |
+
+The red flag is a canon PR showing changes to member-owned content **outside** the markers. Canon
+never authors outside them, so such a diff is stale base content, not an upstream change — and
+accepting it reverts whatever landed in the meantime. This is ordinary git staleness, not an engine
+fault: each run clones the then-current default branch, so a PR only goes stale when a different
+overlapping PR merges after it was opened.
+
 Members that validate their own generated assets must also respect two contract details, or they
 will report false failures — both were live in `jrmoulckers/homelab` on first sync:
 
