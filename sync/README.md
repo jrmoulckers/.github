@@ -271,6 +271,12 @@ gap the collision exposed: the capability was missing from the backbone, not dup
 naming rule above is unchanged — the promoted workflow has its own canon name, and a member calls
 it at a reviewed immutable SHA rather than keeping a same-named local copy.
 
+Finance also retains a local `reusable-detect-changes.yml` by design. It is a
+`dorny/paths-filter` adapter whose callers supply glob YAML; the backbone's
+`reusable-change-detection.yml` accepts validated JSON arrays of literal path prefixes. Those input
+languages and matching semantics are not interchangeable, so the finance workflow is not a
+vendored copy and must not be replaced as duplication without an explicit caller migration.
+
 ## What gets synced
 
 Resolution follows each member's `optIn` in the manifest:
