@@ -91,6 +91,42 @@ must be a full 40-character SHA; branches and tags are rejected. Configure Depen
 equivalent automation to propose SHA update PRs, then review the exact upstream diff and release
 notes. Never resolve a mutable reference during a run.
 
+### Keep required checks terminal
+
+Never put `paths` or `paths-ignore` on the `pull_request` trigger of a workflow that supplies a
+required check. When the filter does not match, GitHub does not start the workflow or create its
+check run, so the required check remains pending and blocks the pull request indefinitely.
+
+Trigger the workflow for every pull request in its protected scope, detect applicability in a job,
+and gate the expensive job with `jobs.<job_id>.if`. A skipped job produces a terminal `skipped`
+conclusion that GitHub accepts as success for a required check:
+
+```yaml
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  packages: read
+  pull-requests: read
+
+jobs:
+  changes:
+    uses: jrmoulckers/.github/.github/workflows/reusable-change-detection.yml@<reviewed-commit-sha>
+    with:
+      path-groups-json: '{"web":["apps/web/","packages/ui/"]}'
+
+  lint:
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.changed-groups-json), 'web')
+    uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@<reviewed-commit-sha>
+```
+
+Event filtering is still appropriate for workflows that do not supply required checks. For a
+required check, however, no workflow run is categorically different from an intentionally skipped
+job: only the latter reports a terminal result. Keep the required job's name stable so the ruleset
+continues to require the intended check.
+
 **A caller `permissions:` block replaces the defaults — it does not add to them.** Every scope you
 omit is set to `none`, and a called workflow can never receive more than its caller holds. So a
 least-privilege `permissions: { contents: read }` in the caller silently strips the scopes the
