@@ -100,3 +100,14 @@ would report it as drift forever.
   updating: managed-region files hash only their inner block, and `agency.toml` carries a `#`
   provenance comment rather than an HTML one. Both assumptions were live in `jrmoulckers/homelab`
   and produced false failures on first sync.
+- **The rollout's three defects were one pattern: a rule keyed on the wrong unit.** The two above
+  keyed on the file rather than the managed block, and on one comment syntax rather than the target's
+  own; canon separately declared `.github/` read-only, keying on the directory rather than each
+  file's provenance marker, which is wrong wherever canonical and member-authored agents share a
+  directory. Each rule was right for the common case and silently wrong for a legitimate one, because
+  its unit was coarser than the unit the property varies over — canonical content varies per block,
+  comment syntax per file type, provenance per file. Such rules cannot be repaired case by case:
+  special-casing `.toml` would have re-broken at the next kind in a new file type, and no path-shaped
+  rule about `.github/` could ever have been correct. When writing a rule about canon, identify the
+  unit the property actually varies over and key on that, preferring the marker or lookup the engine
+  itself uses over a path- or filename-shaped proxy.
