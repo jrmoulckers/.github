@@ -266,13 +266,19 @@ Resolution follows each member's `optIn` in the manifest:
 > guide is authoritative — also silently declined reviewed MCP policy. Three members were in that
 > state. Declining one of these kinds now says nothing about the others.
 
-> **`attributes` normalizes line endings fleet-wide.** Seven repos — including this backbone — had
+> **`attributes` normalizes line endings fleet-wide.** Five repos — including this backbone — had
 > no `.gitattributes` at all, and `jrm-recipes` reported `pnpm format:check` failing on ~964
 > untouched files in a fresh Windows checkout purely from CRLF materialization. Noise at that
 > volume masks real failures. Only the generic `* text=auto eol=lf` stanza is canon; repo-specific
-> rules (Studio's `packages/tokens/dist/**`, binary patterns, LFS, linguist overrides) stay in the
-> member, outside the markers. See
+> rules (Studio's `packages/tokens/dist/**`, game-library's Go rules, binary patterns, LFS, linguist
+> overrides) stay in the member, outside the markers. Because the region is appended at the end and
+> git resolves attributes by *last matching pattern*, a member's weaker `* text=auto` is
+> **strengthened** rather than duplicated or deleted. See
 > [ADR-0009](../docs/architecture/0009-canonical-line-ending-normalization.md).
+>
+> Members that already carry the canonical line keep it *and* get the managed copy. That redundancy
+> is deliberate: deduplicating would mean editing outside the markers, which the managed merge must
+> never do. Delete the local line by hand if it bothers you; the sync will not object.
 
 > **Opting in to a native kind installs nothing.** `health` and `workflows` (`NATIVE_KINDS` in
 > [`lib/manifest.mjs`](lib/manifest.mjs)) are resolved and reported so the plan is complete, then

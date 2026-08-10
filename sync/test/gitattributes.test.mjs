@@ -1,12 +1,12 @@
 // Canonical LF normalization (.gitattributes) — the `attributes` managed-merge kind.
 //
-// Seven member repos had no `.gitattributes` at all, and jrm-recipes reported `pnpm
-// format:check` failing on ~964 untouched files in a fresh Windows checkout purely from CRLF
-// materialization. Noise at that volume masks real failures, so the generic LF stanza became
-// canon instead of being hand-added to seven repos where it would drift.
+// Five member repos had no `.gitattributes` at all, one (`game-library`) had a weaker rule, and
+// jrm-recipes reported `pnpm format:check` failing on ~964 untouched files in a fresh Windows
+// checkout purely from CRLF materialization. Noise at that volume masks real failures, so the
+// generic LF stanza became canon instead of being hand-added to repos where it would drift.
 //
-// Two things make this kind different from the Markdown managed targets, and both are the
-// reason these tests exist:
+// Three things make this kind different from the Markdown managed targets, and each is the
+// reason for one of the tests below:
 //
 //   1. `.gitattributes` has no HTML comment form. An `<!-- studio:base:start -->` line there is
 //      not ignored — git reads it as a *pattern rule*. The markers and the provenance header
@@ -14,10 +14,15 @@
 //   2. Members legitimately need their own rules (binary patterns, LFS, linguist). A whole-file
 //      copy would either destroy those or report drift forever, so the region merge is load
 //      bearing rather than a stylistic choice.
+//   3. "Has a .gitattributes" is not "is correct". game-library carries `* text=auto` WITHOUT
+//      `eol=lf`, which normalizes the index but leaves the working tree platform-dependent. The
+//      merge must STRENGTHEN that in place — appending the region at the end of the file is what
+//      makes git's last-match-wins resolution do so while its Go-specific rules survive.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -173,6 +178,57 @@ test('marker syntaxes do not cross-detect between file types', () => {
 
   // And a '#' marker in Markdown is a heading, not our region.
   assert.equal(extractBlock('# studio:base:start\nx\n# studio:base:end\n', MARKERS.html), null);
+});
+
+test('a weaker existing rule is strengthened in place, keeping its sibling rules', () => {
+  // game-library's real file. `* text=auto` WITHOUT `eol=lf` normalizes the index but leaves the
+  // working tree platform-dependent, so Windows still materializes CRLF for everything that is not
+  // Go. "Has a .gitattributes" is not "is correct", and an append-only-if-absent transport would
+  // skip this repo forever while a whole-file overwrite would delete its Go rules.
+  //
+  // Asserted through real `git check-attr` rather than string matching, because the property that
+  // matters is git's resolution (last matching pattern wins), not the bytes we happen to write.
+  // If `buildFile` ever stopped appending the region at the end, the text would still look fine
+  // and the behaviour would silently invert.
+  const weaker = '* text=auto\n*.go text eol=lf\ngo.mod text eol=lf\ngo.sum text eol=lf\n';
+  const spec = attributesSpec();
+  const merged = buildFile(weaker, canonicalizeInner(spec.content), markersFor(spec.targetPath));
+
+  assert.ok(merged.includes('*.go text eol=lf'), 'Go-specific rules survive');
+  assert.ok(merged.includes('go.sum text eol=lf'), 'sibling rules survive');
+
+  withTmp((root) => {
+    const git = (args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
+    git(['init', '-q', '.']);
+
+    writeFileSync(join(root, '.gitattributes'), weaker, 'utf8');
+    const before = git(['check-attr', 'eol', '--', 'README.md', 'main.go']);
+    assert.match(before, /README\.md: eol: unspecified/, 'the bug: CRLF on Windows for non-Go files');
+    assert.match(before, /main\.go: eol: lf/);
+
+    writeFileSync(join(root, '.gitattributes'), merged, 'utf8');
+    const after = git(['check-attr', 'eol', '--', 'README.md', 'main.go', 'Makefile']);
+    assert.match(after, /README\.md: eol: lf/, 'canon strengthens the weaker rule');
+    assert.match(after, /Makefile: eol: lf/);
+    assert.match(after, /main\.go: eol: lf/, 'and does not weaken what was already right');
+  });
+});
+
+test('a member that already has the canonical rule keeps its own copy untouched', () => {
+  // Seven members already carry `* text=auto eol=lf`. They end up with it twice — once local, once
+  // managed. That is harmless (identical value, last match wins) and deliberately not deduplicated:
+  // removing the local line would mean editing outside the markers, which is the member's content.
+  withTmp((root) => {
+    const local = '* text=auto eol=lf\n';
+    writeFileSync(join(root, '.gitattributes'), local, 'utf8');
+
+    const spec = attributesSpec();
+    apply(root, [spec], { entries: {} }, { write: true });
+
+    const written = readFileSync(join(root, '.gitattributes'), 'utf8');
+    const outsideBlock = written.slice(0, written.indexOf('# studio:base:start'));
+    assert.equal(outsideBlock.trim(), local.trim(), 'member content is returned verbatim');
+  });
 });
 
 test('declining attributes removes the group without failing validation', () => {
