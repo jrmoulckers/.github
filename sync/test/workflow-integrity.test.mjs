@@ -1,9 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { dirname } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   inspectWorkflowSource,
+  validateNativeSmokeContract,
   validateWorkflowIntegrity,
 } from '../lib/workflow-integrity.mjs';
 import { loadManifest } from '../lib/manifest.mjs';
@@ -19,6 +21,7 @@ test('canonical workflow roster and integrity contracts pass', () => {
     'reusable-ci-web.yml',
     'reusable-deploy-pages.yml',
     'reusable-deploy-preview.yml',
+    'reusable-native-smoke-test.yml',
     'reusable-perf-budget.yml',
     'reusable-security-ci.yml',
     'reusable-smoke-test.yml',
@@ -97,4 +100,50 @@ jobs:
     reusable: true,
   });
   assert.ok(rejected.some((error) => error.includes('workflow_call secret "DEPLOY_TOKEN"')));
+});
+
+const nativeSmokeSource = () =>
+  readFileSync(
+    join(REPO_ROOT, '.github', 'workflows', 'reusable-native-smoke-test.yml'),
+    'utf8',
+  ).replace(/\r\n?/g, '\n');
+
+test('the native smoke contract passes on canon and is not vacuous', () => {
+  assert.deepEqual(validateNativeSmokeContract(nativeSmokeSource()), []);
+  assert.ok(validateNativeSmokeContract('').length > 0, 'an empty workflow cannot satisfy the contract');
+});
+
+test('a platform gated on a substring of the raw input is rejected', () => {
+  // contains(inputs.platforms, 'ios') is a substring test, so a malformed platforms value would
+  // silently skip a platform the caller believed was covered.
+  const mutated = nativeSmokeSource().replace(
+    "    if: contains(fromJSON(needs.validate.outputs.selected), 'ios')",
+    "    if: contains(inputs.platforms, 'ios')",
+  );
+  const errors = validateNativeSmokeContract(mutated);
+  assert.ok(errors.some((error) => error.includes('job "ios" must select on the validated list')));
+});
+
+test('an unselected platform counting as a failure is rejected', () => {
+  const mutated = nativeSmokeSource().replace('&& "$outcome" != "skipped"', '');
+  assert.ok(
+    validateNativeSmokeContract(mutated).some((error) => error.includes('count as skipped')),
+  );
+});
+
+test('a summary that cannot fail the run is rejected', () => {
+  const mutated = nativeSmokeSource().replace(
+    '    needs: [validate, android, ios, web, windows]',
+    '    needs: [validate]',
+  );
+  assert.ok(
+    validateNativeSmokeContract(mutated).some((error) => error.includes('must observe every job')),
+  );
+});
+
+test('a writable Gradle cache in release smoke builds is rejected', () => {
+  const mutated = nativeSmokeSource().replaceAll('cache-read-only: true', 'cache-read-only: false');
+  assert.ok(
+    validateNativeSmokeContract(mutated).some((error) => error.includes('read-only')),
+  );
 });

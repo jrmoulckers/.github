@@ -105,6 +105,7 @@ Grant every scope the callee declares:
 | `reusable-ci-web` | `contents: read`, `packages: read` |
 | `reusable-perf-budget` | `contents: read`, `packages: read` |
 | `reusable-smoke-test` | `contents: read`, `packages: read` |
+| `reusable-native-smoke-test` | `contents: read`, `packages: read` (the web job; the other platform jobs need only `contents: read`) |
 | `reusable-deploy-preview` | `contents: read`, `packages: read` |
 | `reusable-change-detection` | `contents: read` |
 | `reusable-security-ci` | `contents: read` |
@@ -161,6 +162,36 @@ Passing an empty string is the supported opt-out. Leaving a command at its defau
 has no such script fails the job; duplicating backbone logic locally makes the product repo drift
 from canon.
 
+### Smoke testing a native-first release
+
+`reusable-smoke-test` is web-shaped: one job, a Node toolchain, and an optional HTTPS probe against
+a deployed site. Use `reusable-native-smoke-test` instead when a release ships native artifacts and
+a green web check would leave Android, iOS, or Windows unvalidated.
+
+It runs `validate`, then one job per selected platform, then a `summary` that reduces the verdicts
+to a single `result` output a release workflow can gate on. Unselected platforms are reported as
+skipped and count as a pass; a selected platform that fails, fails the run.
+
+```yaml
+permissions:
+  contents: read
+  packages: read          # the web job installs Node dependencies
+
+jobs:
+  smoke:
+    uses: jrmoulckers/.github/.github/workflows/reusable-native-smoke-test.yml@<reviewed-commit-sha>
+    with:
+      version: ${{ github.ref_name }}
+      platforms: android,ios,web
+      ios-scheme: ExampleApp
+      package-manager: pnpm
+      build-command: pnpm --filter web build
+```
+
+Narrow `platforms` on non-release runs: the iOS and Windows jobs use macOS and Windows runners,
+which bill at a higher rate than Linux. Remote build caches are not accepted — builds run cold and
+Gradle's cache is read-only, so a release is validated from source rather than from a cache.
+
 ### Build once and reuse same-run artifacts
 
 `reusable-ci-web` optionally uploads a validated directory when `artifact-name` is set. Preview,
@@ -214,7 +245,8 @@ and its environment-gated deploy job only calls GitHub's deploy action with `pag
 ### Installing from a private registry
 
 `reusable-ci-lint`, `reusable-ci-web`, `reusable-deploy-pages`, `reusable-deploy-preview`,
-`reusable-perf-budget`, and `reusable-smoke-test` accept optional `registry-url` and
+`reusable-perf-budget`, `reusable-smoke-test`, and `reusable-native-smoke-test` accept optional
+`registry-url` and
 `registry-scope` inputs plus an optional `NODE_AUTH_TOKEN` secret. Leave all three unset and the
 run is unchanged: `actions/setup-node` ignores an empty `registry-url` entirely and writes no
 `.npmrc`, and no token is placed in the install step's environment.
