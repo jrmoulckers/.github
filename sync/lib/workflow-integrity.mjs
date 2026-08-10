@@ -28,6 +28,14 @@ const PERMISSION_CEILINGS = new Map([
   ['reusable-deploy-preview.yml', new Map([
     ['preview', new Map([['contents', 'read'], ['packages', 'read']])],
   ])],
+  ['reusable-native-smoke-test.yml', new Map([
+    ['validate', new Map()],
+    ['android', new Map([['contents', 'read']])],
+    ['ios', new Map([['contents', 'read']])],
+    ['web', new Map([['contents', 'read'], ['packages', 'read']])],
+    ['windows', new Map([['contents', 'read']])],
+    ['summary', new Map()],
+  ])],
   ['reusable-perf-budget.yml', new Map([
     ['performance', new Map([['contents', 'read'], ['packages', 'read']])],
   ])],
@@ -86,6 +94,7 @@ export function validateWorkflowIntegrity(repoRoot, manifest) {
   validatePagesAuthority(sources.get('reusable-deploy-pages.yml'), errors);
   validateSecurityContract(sources.get('reusable-security-ci.yml'), errors);
   validateChangeDetectionContract(sources.get('reusable-change-detection.yml'), errors);
+  validateNativeSmokeContract(sources.get('reusable-native-smoke-test.yml'), errors);
 
   if (errors.length) {
     throw new Error(`Invalid canonical workflows:\n  - ${errors.join('\n  - ')}`);
@@ -352,6 +361,62 @@ function validateChangeDetectionContract(text = '', errors) {
   ) {
     errors.push('reusable-change-detection.yml: change detection must use validated data and git arguments');
   }
+}
+
+export function validateNativeSmokeContract(text = '', errors = []) {
+  const relativePath = '.github/workflows/reusable-native-smoke-test.yml';
+  const platforms = ['android', 'ios', 'web', 'windows'];
+  const jobs = new Map(extractJobBlocks(text.split('\n')).map((block) => [block.name, block.text]));
+
+  // Every platform job must gate on the validated list the validate job republishes, never on the
+  // raw input. `contains(inputs.platforms, 'ios')` is a substring test: it would silently accept a
+  // malformed value and skip a platform the caller believed was covered.
+  if (!/^\s{6}selected:\s*\$\{\{\s*steps\.platforms\.outputs\.selected\s*\}\}\s*$/m.test(jobs.get('validate') ?? '')) {
+    errors.push(`${relativePath}: the validate job must publish the validated platform list`);
+  }
+  for (const platform of platforms) {
+    const job = jobs.get(platform) ?? '';
+    if (!job) {
+      errors.push(`${relativePath}: requires a "${platform}" job`);
+      continue;
+    }
+    if (!/^\s{4}needs:\s*validate\s*$/m.test(job)) {
+      errors.push(`${relativePath}: job "${platform}" must depend on validate`);
+    }
+    const gate = new RegExp(
+      `^\\s{4}if:\\s*contains\\(fromJSON\\(needs\\.validate\\.outputs\\.selected\\),\\s*'${platform}'\\)\\s*$`,
+      'm',
+    );
+    if (!gate.test(job)) {
+      errors.push(
+        `${relativePath}: job "${platform}" must select on the validated list, not a substring of the raw input`,
+      );
+    }
+  }
+
+  // The summary is the only signal a release gate reads, so it must observe every job and must
+  // fail the run rather than reporting a failure through an output nobody is obliged to check.
+  const summary = jobs.get('summary') ?? '';
+  if (
+    !/^\s{4}needs:\s*\[validate,\s*android,\s*ios,\s*web,\s*windows\]\s*$/m.test(summary) ||
+    !/^\s{4}if:\s*always\(\)\s*$/m.test(summary) ||
+    !/^\s{6}result:\s*\$\{\{\s*steps\.result\.outputs\.result\s*\}\}\s*$/m.test(summary) ||
+    !/result=fail/.test(summary) ||
+    !/result=pass/.test(summary) ||
+    !/exit 1/.test(summary)
+  ) {
+    errors.push(`${relativePath}: the summary must observe every job and fail the run on any failure`);
+  }
+  if (!/"\$outcome"\s*!=\s*"skipped"/.test(summary)) {
+    errors.push(`${relativePath}: an unselected platform must count as skipped, not as a failure`);
+  }
+
+  // Cold, reproducible release builds: no writable shared build cache.
+  if (/cache-read-only:\s*false/.test(text) || !/cache-read-only:\s*true/.test(text)) {
+    errors.push(`${relativePath}: Gradle caching must stay read-only for release smoke builds`);
+  }
+
+  return errors;
 }
 
 function extractUses(lines) {

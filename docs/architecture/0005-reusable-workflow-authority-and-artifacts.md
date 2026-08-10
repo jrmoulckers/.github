@@ -4,7 +4,9 @@
 
 Accepted. Amended by
 [ADR-0007](0007-private-registry-authentication.md), which permits a single optional registry read
-secret (`NODE_AUTH_TOKEN`) in the Node-installing reusable workflows.
+secret (`NODE_AUTH_TOKEN`) in the Node-installing reusable workflows, and by
+[ADR-0008](0008-canonical-native-smoke-test.md), which adds `reusable-native-smoke-test` to the
+roster under these same contracts.
 
 ## Context
 

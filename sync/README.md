@@ -228,6 +228,12 @@ directory, which the offline suite does not have, and pinning each member's loca
 be a fact-test of the kind that goes stale and then certifies the wrong value. It is recorded here
 as an operational caveat instead.
 
+Finance's file was later promoted into canon as `reusable-native-smoke-test` (see
+[ADR-0008](../docs/architecture/0008-canonical-native-smoke-test.md)), which closes the underlying
+gap the collision exposed: the capability was missing from the backbone, not duplicated in it. The
+naming rule above is unchanged — the promoted workflow has its own canon name, and a member calls
+it at a reviewed immutable SHA rather than keeping a same-named local copy.
+
 ## What gets synced
 
 Resolution follows each member's `optIn` in the manifest:

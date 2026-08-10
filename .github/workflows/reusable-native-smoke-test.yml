@@ -1,0 +1,540 @@
+# =============================================================================
+# Reusable - Native Smoke Test
+# =============================================================================
+#
+# Pre-release validation for a native-first product: Android, iOS, web, and Windows are
+# each smoke tested from a clean checkout, and a summary job reduces the four verdicts to a
+# single pass/fail output a release workflow can gate on.
+#
+# This is the multi-platform companion to reusable-smoke-test.yml, not a replacement for it.
+# Use reusable-smoke-test for a web-only product, or when the check that matters is an HTTPS
+# endpoint responding after a deploy. Use this workflow when a release ships native artifacts
+# and dropping Android, iOS, or Windows coverage would make the smoke test meaningless.
+#
+# Platform selection is validated once in the validate job and republished as a JSON array.
+# Every platform job keys off that validated list, so an unsupported or malformed platform
+# fails the run instead of silently skipping a platform the caller believed was covered.
+# A platform that was not selected is reported as skipped and counts as a pass; a platform
+# that was selected and did not succeed fails the summary.
+#
+# Builds run cold on purpose. Remote build caches are not accepted through workflow_call --
+# the only credential a canonical reusable workflow takes is NODE_AUTH_TOKEN, a registry read
+# token -- and a release smoke test wants a reproducible build from source rather than the
+# fastest one. Gradle's local cache is read-only here for the same reason.
+#
+# artifact-run-id is validated and exported to every platform job as SMOKE_ARTIFACT_RUN_ID so a
+# caller-supplied web build or test command can fetch artifacts from an earlier run. It is never
+# interpolated into a shell command by this workflow.
+#
+# Example caller:
+#   permissions:
+#     contents: read
+#     packages: read
+#   jobs:
+#     smoke:
+#       uses: jrmoulckers/.github/.github/workflows/reusable-native-smoke-test.yml@<reviewed-commit-sha>
+#       with:
+#         version: ${{ github.ref_name }}
+#         platforms: android,ios,web
+#         android-module: ':apps:android'
+#         ios-scheme: ExampleApp
+#         ios-directory: apps/ios
+#         package-manager: pnpm
+#         build-command: pnpm --filter web build
+#         test-command: pnpm --filter web test
+# =============================================================================
+name: Reusable - Native Smoke Test
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Release or build version being smoke tested.
+        required: true
+        type: string
+      platforms:
+        description: Comma-separated platforms to smoke test, from android, ios, web and windows.
+        required: false
+        type: string
+        default: android,ios,web,windows
+      artifact-run-id:
+        description: Optional run ID a caller command may download release artifacts from.
+        required: false
+        type: string
+        default: ''
+      java-version:
+        description: Numeric JDK version used by the Android and Windows jobs.
+        required: false
+        type: string
+        default: '21'
+      android-module:
+        description: Gradle module path for the Android app, such as ':apps:android'.
+        required: false
+        type: string
+        default: ':apps:android'
+      android-lint:
+        description: Run the Android release lint task as a required check.
+        required: false
+        type: boolean
+        default: true
+      windows-module:
+        description: Gradle module path for the Windows app, such as ':apps:windows'.
+        required: false
+        type: string
+        default: ':apps:windows'
+      ios-scheme:
+        description: Xcode scheme built and tested by the iOS job. Required when ios is selected.
+        required: false
+        type: string
+        default: ''
+      ios-directory:
+        description: Workspace-relative directory holding the Xcode project.
+        required: false
+        type: string
+        default: apps/ios
+      ios-destination:
+        description: xcodebuild destination for the iOS simulator.
+        required: false
+        type: string
+        default: platform=iOS Simulator,name=iPhone 16,OS=latest
+      xcode-version:
+        description: Explicit Xcode version to select. Empty keeps the runner image default.
+        required: false
+        type: string
+        default: ''
+      node-version:
+        description: Numeric Node.js version used by the web job.
+        required: false
+        type: string
+        default: '22'
+      package-manager:
+        description: Package manager for the web job, npm or pnpm.
+        required: false
+        type: string
+        default: npm
+      working-directory:
+        description: Workspace-relative package directory for the web job.
+        required: false
+        type: string
+        default: .
+      build-command:
+        description: Trusted web build command run from working-directory.
+        required: false
+        type: string
+        default: npm run build
+      test-command:
+        description: Trusted web test command run from working-directory. Empty skips web tests.
+        required: false
+        type: string
+        default: npm test
+      bundle-path:
+        description: Web build output directory below working-directory, measured against the budget.
+        required: false
+        type: string
+        default: dist
+      bundle-budget-kb:
+        description: Web bundle budget in kilobytes from 0 through 1048576. Zero disables the check.
+        required: false
+        type: number
+        default: 0
+      registry-url:
+        description: Optional HTTPS private registry for the web install. Empty disables registry auth.
+        required: false
+        type: string
+        default: ''
+      registry-scope:
+        description: Lowercase npm scope the private registry serves, such as @jrmoulckers.
+        required: false
+        type: string
+        default: ''
+    secrets:
+      NODE_AUTH_TOKEN:
+        description: Registry read token for the web install. Unused when registry-url is empty.
+        required: false
+    outputs:
+      result:
+        description: Overall native smoke test result (pass or fail).
+        value: ${{ jobs.summary.outputs.result }}
+
+permissions: {}
+
+jobs:
+  validate:
+    name: Validate smoke inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    outputs:
+      selected: ${{ steps.platforms.outputs.selected }}
+
+    steps:
+      - name: Validate inputs
+        id: platforms
+        env:
+          ANDROID_MODULE: ${{ inputs.android-module }}
+          ARTIFACT_RUN_ID: ${{ inputs.artifact-run-id }}
+          BUILD_COMMAND: ${{ inputs.build-command }}
+          BUNDLE_BUDGET_KB: ${{ inputs.bundle-budget-kb }}
+          BUNDLE_PATH: ${{ inputs.bundle-path }}
+          IOS_DESTINATION: ${{ inputs.ios-destination }}
+          IOS_DIRECTORY: ${{ inputs.ios-directory }}
+          IOS_SCHEME: ${{ inputs.ios-scheme }}
+          JAVA_VERSION: ${{ inputs.java-version }}
+          NODE_VERSION: ${{ inputs.node-version }}
+          PACKAGE_MANAGER: ${{ inputs.package-manager }}
+          PLATFORMS: ${{ inputs.platforms }}
+          REGISTRY_SCOPE: ${{ inputs.registry-scope }}
+          REGISTRY_URL: ${{ inputs.registry-url }}
+          TEST_COMMAND: ${{ inputs.test-command }}
+          VERSION: ${{ inputs.version }}
+          WINDOWS_MODULE: ${{ inputs.windows-module }}
+          WORKING_DIRECTORY: ${{ inputs.working-directory }}
+          XCODE_VERSION: ${{ inputs.xcode-version }}
+        run: |
+          set -euo pipefail
+          [[ -n "$VERSION" && "$VERSION" != *$'\n'* && "$VERSION" != *$'\r'* ]] ||
+            { echo "::error::version must be a non-empty single-line value"; exit 1; }
+          [[ "$PLATFORMS" =~ ^(android|ios|web|windows)(,(android|ios|web|windows))*$ ]] ||
+            { echo "::error::platforms must be a comma-separated list of android, ios, web and windows"; exit 1; }
+          selected=''
+          for platform in android ios web windows; do
+            if [[ ",$PLATFORMS," == *",$platform,"* ]]; then
+              selected="${selected:+$selected,}\"$platform\""
+            fi
+          done
+          echo "selected=[$selected]" >> "$GITHUB_OUTPUT"
+          if [[ -n "$ARTIFACT_RUN_ID" ]]; then
+            [[ "$ARTIFACT_RUN_ID" =~ ^[1-9][0-9]{0,19}$ ]] ||
+              { echo "::error::artifact-run-id must be a positive integer"; exit 1; }
+          fi
+          [[ "$JAVA_VERSION" =~ ^[0-9]+([.][0-9]+){0,2}$ ]] ||
+            { echo "::error::java-version must be numeric"; exit 1; }
+          [[ "$NODE_VERSION" =~ ^[0-9]+([.][0-9]+){0,2}$ ]] ||
+            { echo "::error::node-version must be numeric"; exit 1; }
+          case "$PACKAGE_MANAGER" in
+            npm|pnpm) ;;
+            *) echo "::error::package-manager must be npm or pnpm"; exit 1 ;;
+          esac
+          for module in "$ANDROID_MODULE" "$WINDOWS_MODULE"; do
+            [[ "$module" =~ ^:[A-Za-z0-9._-]+(:[A-Za-z0-9._-]+)*$ ]] ||
+              { echo "::error::Gradle module paths must look like ':apps:android'"; exit 1; }
+          done
+          if [[ ",$PLATFORMS," == *",ios,"* ]]; then
+            [[ "$IOS_SCHEME" =~ ^[A-Za-z0-9][A-Za-z0-9._\ -]{0,63}$ ]] ||
+              { echo "::error::ios-scheme is required and must be a plain Xcode scheme name when ios is selected"; exit 1; }
+            [[ "$IOS_DESTINATION" =~ ^[A-Za-z0-9][A-Za-z0-9,.=\ -]{0,127}$ ]] ||
+              { echo "::error::ios-destination must be a plain xcodebuild destination"; exit 1; }
+          fi
+          if [[ -n "$XCODE_VERSION" ]]; then
+            [[ "$XCODE_VERSION" =~ ^[0-9]+([.][0-9]+){0,2}$ ]] ||
+              { echo "::error::xcode-version must be numeric so the toolchain stays immutable"; exit 1; }
+          fi
+          for path in "$WORKING_DIRECTORY" "$IOS_DIRECTORY"; do
+            [[ "$path" == "." || "$path" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ ]] ||
+              { echo "::error::directory inputs must be workspace-relative"; exit 1; }
+            [[ "$path" != ".." && "$path" != *"/../"* && "$path" != "../"* && "$path" != *"/.." ]] ||
+              { echo "::error::directory inputs must not traverse parent directories"; exit 1; }
+          done
+          [[ "$BUNDLE_PATH" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ && "$BUNDLE_PATH" != "." ]] ||
+            { echo "::error::bundle-path must be a non-root relative path"; exit 1; }
+          [[ "$BUNDLE_PATH" != ".." && "$BUNDLE_PATH" != *"/../"* && "$BUNDLE_PATH" != "../"* && "$BUNDLE_PATH" != *"/.." ]] ||
+            { echo "::error::bundle-path must not traverse parent directories"; exit 1; }
+          [[ "$BUNDLE_BUDGET_KB" =~ ^[0-9]+$ ]] && (( BUNDLE_BUDGET_KB <= 1048576 )) ||
+            { echo "::error::bundle-budget-kb must be an integer from 0 through 1048576"; exit 1; }
+          for command in "$BUILD_COMMAND" "$TEST_COMMAND"; do
+            [[ "$command" != *$'\n'* && "$command" != *$'\r'* ]] ||
+              { echo "::error::commands must be single-line trusted repository configuration"; exit 1; }
+          done
+          if [[ ",$PLATFORMS," == *",web,"* ]]; then
+            [[ -n "$BUILD_COMMAND" ]] ||
+              { echo "::error::build-command is required when web is selected"; exit 1; }
+          fi
+          if [[ -n "$REGISTRY_URL" ]]; then
+            [[ "$REGISTRY_URL" =~ ^https://[^[:space:]@/]+(:[0-9]+)?(/[^[:space:]]*)?$ ]] ||
+              { echo "::error::registry-url must be HTTPS, credential-free, and contain no whitespace"; exit 1; }
+            [[ -n "$REGISTRY_SCOPE" ]] ||
+              echo "::warning::registry-url without registry-scope replaces the default registry for every package"
+          elif [[ -n "$REGISTRY_SCOPE" ]]; then
+            echo "::error::registry-scope requires registry-url"
+            exit 1
+          fi
+          if [[ -n "$REGISTRY_SCOPE" ]]; then
+            [[ "$REGISTRY_SCOPE" =~ ^@?[a-z0-9][a-z0-9._-]*$ ]] ||
+              { echo "::error::registry-scope must be a lowercase npm scope such as @jrmoulckers"; exit 1; }
+          fi
+
+  android:
+    name: Android smoke
+    needs: validate
+    if: contains(fromJSON(needs.validate.outputs.selected), 'android')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      ANDROID_MODULE: ${{ inputs.android-module }}
+      SMOKE_ARTIFACT_RUN_ID: ${{ inputs.artifact-run-id }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK
+        uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
+        with:
+          distribution: temurin
+          java-version: ${{ inputs.java-version }}
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+        with:
+          cache-read-only: true
+
+      - name: Run unit tests
+        run: ./gradlew "${ANDROID_MODULE}:testReleaseUnitTest" --parallel --build-cache --stacktrace
+
+      - name: Run release lint
+        if: inputs.android-lint
+        run: ./gradlew "${ANDROID_MODULE}:lintRelease" --parallel --build-cache --stacktrace
+
+      - name: Assemble release APK
+        run: ./gradlew "${ANDROID_MODULE}:assembleRelease" --parallel --build-cache --stacktrace
+
+      - name: Verify a release APK was produced
+        run: |
+          set -euo pipefail
+          apk=$(find . -type f -path '*/build/outputs/apk/release/*.apk' -print -quit)
+          [[ -n "$apk" ]] || { echo "::error::no release APK was produced"; exit 1; }
+          echo "Release APK: $apk ($(du -h "$apk" | cut -f1))"
+
+  ios:
+    name: iOS smoke
+    needs: validate
+    if: contains(fromJSON(needs.validate.outputs.selected), 'ios')
+    runs-on: macos-15
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      IOS_DESTINATION: ${{ inputs.ios-destination }}
+      IOS_SCHEME: ${{ inputs.ios-scheme }}
+      SMOKE_ARTIFACT_RUN_ID: ${{ inputs.artifact-run-id }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode
+        if: inputs.xcode-version != ''
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: ${{ inputs.xcode-version }}
+
+      - name: Resolve Swift package dependencies
+        working-directory: ${{ inputs.ios-directory }}
+        run: |
+          set -euo pipefail
+          xcodebuild -resolvePackageDependencies \
+            -scheme "$IOS_SCHEME" \
+            -clonedSourcePackagesDirPath .spm-packages
+
+      - name: Build for simulator
+        working-directory: ${{ inputs.ios-directory }}
+        run: |
+          set -euo pipefail
+          xcodebuild build \
+            -scheme "$IOS_SCHEME" \
+            -destination "$IOS_DESTINATION" \
+            -clonedSourcePackagesDirPath .spm-packages \
+            -derivedDataPath .derivedData \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Run tests
+        working-directory: ${{ inputs.ios-directory }}
+        run: |
+          set -euo pipefail
+          xcodebuild test \
+            -scheme "$IOS_SCHEME" \
+            -destination "$IOS_DESTINATION" \
+            -clonedSourcePackagesDirPath .spm-packages \
+            -derivedDataPath .derivedData \
+            CODE_SIGNING_ALLOWED=NO
+
+  web:
+    name: Web smoke
+    needs: validate
+    if: contains(fromJSON(needs.validate.outputs.selected), 'web')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    env:
+      SMOKE_ARTIFACT_RUN_ID: ${{ inputs.artifact-run-id }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Enable Corepack for pnpm cache
+        if: inputs.package-manager == 'pnpm'
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: ${{ inputs.package-manager }}
+          registry-url: ${{ inputs.registry-url }}
+          scope: ${{ inputs.registry-scope }}
+          cache-dependency-path: |
+            ${{ inputs.working-directory }}/package-lock.json
+            ${{ inputs.working-directory }}/npm-shrinkwrap.json
+            ${{ inputs.working-directory }}/pnpm-lock.yaml
+
+      - name: Enable Corepack
+        if: inputs.package-manager == 'pnpm'
+        run: corepack enable
+
+      - name: Install dependencies (npm)
+        if: inputs.package-manager == 'npm'
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          NODE_AUTH_TOKEN: ${{ inputs.registry-url != '' && (secrets.NODE_AUTH_TOKEN || github.token) || '' }}
+        run: npm ci
+
+      - name: Install dependencies (pnpm)
+        if: inputs.package-manager == 'pnpm'
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          NODE_AUTH_TOKEN: ${{ inputs.registry-url != '' && (secrets.NODE_AUTH_TOKEN || github.token) || '' }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          BUILD_COMMAND: ${{ inputs.build-command }}
+          SMOKE_VERSION: ${{ inputs.version }}
+        run: bash --noprofile --norc -eo pipefail -c "$BUILD_COMMAND"
+
+      - name: Test
+        if: inputs.test-command != ''
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          SMOKE_VERSION: ${{ inputs.version }}
+          TEST_COMMAND: ${{ inputs.test-command }}
+        run: bash --noprofile --norc -eo pipefail -c "$TEST_COMMAND"
+
+      - name: Check bundle budget
+        if: inputs.bundle-budget-kb > 0
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          BUNDLE_BUDGET_KB: ${{ inputs.bundle-budget-kb }}
+          BUNDLE_PATH: ${{ inputs.bundle-path }}
+        run: |
+          set -euo pipefail
+          [[ -d "$BUNDLE_PATH" ]] ||
+            { echo "::error::bundle-path does not exist: $BUNDLE_PATH"; exit 1; }
+          size=$(du -sk "$BUNDLE_PATH" | cut -f1)
+          echo "Bundle size: ${size}KB (budget ${BUNDLE_BUDGET_KB}KB)"
+          if (( size > BUNDLE_BUDGET_KB )); then
+            echo "::error::bundle size ${size}KB exceeds the ${BUNDLE_BUDGET_KB}KB budget"
+            exit 1
+          fi
+
+  windows:
+    name: Windows smoke
+    needs: validate
+    if: contains(fromJSON(needs.validate.outputs.selected), 'windows')
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    env:
+      SMOKE_ARTIFACT_RUN_ID: ${{ inputs.artifact-run-id }}
+      WINDOWS_MODULE: ${{ inputs.windows-module }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK
+        uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
+        with:
+          distribution: temurin
+          java-version: ${{ inputs.java-version }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+        with:
+          cache-read-only: true
+
+      - name: Build application
+        run: ./gradlew "${WINDOWS_MODULE}:build" --parallel --build-cache --stacktrace
+
+      - name: Run tests
+        run: ./gradlew "${WINDOWS_MODULE}:test" --parallel --build-cache --stacktrace
+
+  summary:
+    name: Native smoke test summary
+    needs: [validate, android, ios, web, windows]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    outputs:
+      result: ${{ steps.result.outputs.result }}
+
+    steps:
+      - name: Evaluate smoke results
+        id: result
+        env:
+          ANDROID_RESULT: ${{ needs.android.result }}
+          IOS_RESULT: ${{ needs.ios.result }}
+          VALIDATE_RESULT: ${{ needs.validate.result }}
+          VERSION: ${{ inputs.version }}
+          WEB_RESULT: ${{ needs.web.result }}
+          WINDOWS_RESULT: ${{ needs.windows.result }}
+        run: |
+          set -euo pipefail
+          failed=false
+          {
+            echo "### Native smoke test results - $VERSION"
+            echo
+            echo "| Platform | Result |"
+            echo "| --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$VALIDATE_RESULT" != "success" ]]; then
+            echo "::error::smoke input validation did not pass"
+            failed=true
+          fi
+          for entry in "android:$ANDROID_RESULT" "ios:$IOS_RESULT" "web:$WEB_RESULT" "windows:$WINDOWS_RESULT"; do
+            platform="${entry%%:*}"
+            outcome="${entry#*:}"
+            echo "| $platform | $outcome |" >> "$GITHUB_STEP_SUMMARY"
+            if [[ "$outcome" != "success" && "$outcome" != "skipped" ]]; then
+              failed=true
+            fi
+          done
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$failed" == "true" ]]; then
+            echo "result=fail" >> "$GITHUB_OUTPUT"
+            echo "Native smoke tests failed - do not proceed with the release." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "result=pass" >> "$GITHUB_OUTPUT"
+          echo "All selected platforms passed." >> "$GITHUB_STEP_SUMMARY"

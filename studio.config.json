@@ -68,6 +68,7 @@
       "reusable-ci-web",
       "reusable-deploy-pages",
       "reusable-deploy-preview",
+      "reusable-native-smoke-test",
       "reusable-perf-budget",
       "reusable-security-ci",
       "reusable-smoke-test"
