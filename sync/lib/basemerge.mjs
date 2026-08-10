@@ -14,6 +14,23 @@
 // use HTML comments; `.gitattributes` has no HTML comment form, so it uses `#` lines — an
 // `<!-- … -->` marker there would be read as a pattern rule, not ignored.
 //
+// **Placement varies with the format too, and for the same reason.** Where the canonical region
+// goes in a file the member already had is not a style choice; it decides which rule wins:
+//
+//   - Markdown (`AGENTS.md`, `copilot-instructions.md`) — canon is *appended*. Product-local
+//     preamble stays on top where a human reads it first, and Markdown has no precedence order.
+//   - `.gitattributes` — canon is *prepended*. Git resolves attributes by LAST matching pattern,
+//     and the canonical stanza's `*` matches every path. Appended, it would silently reorder every
+//     more-specific member rule beneath itself: LFS entries, `linguist-generated`, `binary`,
+//     `-diff` on generated files, lockfile rules. Prepending makes canon a *baseline* the member
+//     can override, which is the only sane reading of a generic `*` rule.
+//
+// This is not special-casing by kind; both facts follow from the target's format, so they are
+// declared together on the same `MARKERS` entry and resolved by the same `markersFor()` lookup.
+// Keeping them in one place is deliberate: a second table keyed independently could drift out of
+// step with the first, and the failure would be silent in exactly the way this comment describes.
+// See ADR-0011.
+//
 // Marker detection is deliberately strict. A marker only counts when it stands alone at the
 // start of its own line, *outside* any fenced code block, so a file that documents this
 // very convention — by quoting the markers inline, indenting them as a code block, or showing
@@ -26,10 +43,17 @@ import { toLF } from './provenance.mjs';
 export const START_MARKER = '<!-- studio:base:start -->';
 export const END_MARKER = '<!-- studio:base:end -->';
 
-/** Comment syntax used for the managed markers in a given target file. */
+/**
+ * Comment syntax and placement used for the managed region in a given target file.
+ *
+ * `placement` says where the region goes when the member's file exists but has no markers yet:
+ * `'append'` keeps product-local text on top, `'prepend'` puts canon first so member rules can
+ * override it. It rides on the same entry as the marker syntax because both are consequences of
+ * the target's format — see the header comment.
+ */
 export const MARKERS = {
-  html: { start: START_MARKER, end: END_MARKER },
-  hash: { start: '# studio:base:start', end: '# studio:base:end' },
+  html: { start: START_MARKER, end: END_MARKER, placement: 'append' },
+  hash: { start: '# studio:base:start', end: '# studio:base:end', placement: 'prepend' },
 };
 
 /** Targets that cannot carry an HTML comment, keyed by target file basename. */
@@ -104,7 +128,14 @@ function renderBlock(inner, markers) {
  * Return new file content with the managed block set to `inner`.
  *   - existing content with markers -> replace the region in place
  *   - empty/whitespace-only content -> the block becomes the whole file
- *   - other content without markers -> append the block, preserving product-local text
+ *   - other content without markers -> insert the block per `markers.placement`, preserving
+ *     product-local text: appended for Markdown, prepended for `.gitattributes` (where a later
+ *     matching line wins, so canon must come first to remain overridable)
+ *
+ * In-place replacement deliberately does NOT relocate a region that already exists. A member whose
+ * block sits in the wrong position keeps it until a human moves it: silently reordering rules in a
+ * file the member owns is the very failure this placement logic exists to prevent, and doing it
+ * unasked would be worse than the original defect.
  */
 export function buildFile(existingContent, inner, markers = MARKERS.html) {
   const block = renderBlock(inner, markers);
@@ -117,6 +148,9 @@ export function buildFile(existingContent, inner, markers = MARKERS.html) {
   }
   if (existing.trim() === '') {
     return `${block}\n`;
+  }
+  if (markers.placement === 'prepend') {
+    return `${block}\n\n${existing.replace(/^\n+/, '').replace(/\n+$/, '')}\n`;
   }
   return `${existing.replace(/\n+$/, '')}\n\n${block}\n`;
 }

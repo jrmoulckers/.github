@@ -70,16 +70,25 @@ each opted-in member's root through the **managed-region merge** rather than a w
    a member's LFS configuration or report permanent drift, and both outcomes end with the kind being
    switched off.
 
-   The region is appended at the **end** of the file, which is what makes a weaker existing rule
-   strengthen rather than win. Git resolves attributes by *last matching pattern*, so canon's
-   `* text=auto eol=lf` overrides an earlier `* text=auto` while every more specific sibling rule
-   survives. Verified with `git check-attr` against `game-library`'s real file:
+   The region is placed so that a weaker existing rule strengthens rather than wins. Git resolves
+   attributes by *last matching pattern*, so canon's `* text=auto eol=lf` supplies `eol=lf` where an
+   earlier `* text=auto` was silent, while every more specific sibling rule survives. Verified with
+   `git check-attr` against `game-library`'s real file:
 
    | Path | Before | After |
    | --- | --- | --- |
-   | `main.go` | `text: set`, `eol: lf` | `text: auto`, `eol: lf` |
+   | `main.go` | `text: set`, `eol: lf` | `text: set`, `eol: lf` |
    | `README.md` | `text: auto`, `eol: unspecified` | `text: auto`, **`eol: lf`** |
    | `Makefile` | `text: auto`, `eol: unspecified` | `text: auto`, **`eol: lf`** |
+
+   > **Amended by [ADR-0011](0011-managed-region-placement.md).** This ADR originally appended the
+   > region at the end of the file. That worked for strengthening but had a cost this table recorded
+   > without remarking on it: under append, `main.go` moved from `text: set` to `text: auto`, because
+   > canon's `*` matched last and outranked `game-library`'s own `*.go text eol=lf`. ADR-0011
+   > **prepends** for `.gitattributes`, which keeps the member's specific rules authoritative — the
+   > row above now reads `text: set` after the merge. Strengthening is unaffected: git resolves per
+   > *attribute*, so a later `* text=auto` that says nothing about `eol` cannot undo canon's
+   > `eol=lf`.
 
 2. **Comment syntax follows the target file.** The marker identifier stays `studio:base` — it names
    "the studio-managed region" and `copilot` has shared it since

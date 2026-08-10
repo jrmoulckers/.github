@@ -469,8 +469,34 @@ syntaxes never cross-detect: HTML markers inside a `.gitattributes` are member c
 
 Everything outside the markers is member-local and never touched. Editing inside the block is
 treated as drift; editing outside it is ignored. If a member has none of these files, one is created
-containing just the managed block; if it already has one without markers, the block is appended and
-all existing content is preserved.
+containing just the managed block.
+
+**Where the block lands in a file the member already had depends on the format, and it is not a
+style choice — it decides which rule wins.** `markersFor()` returns a `placement` alongside the
+marker syntax, because both follow from the same fact about the target:
+
+| Target | Placement | Why |
+| --- | --- | --- |
+| `AGENTS.md`, `.github/copilot-instructions.md` | **append** | Markdown has no precedence order, so product-local preamble stays on top where a human reads it first |
+| `.gitattributes` | **prepend** | Git resolves attributes by the *last* matching pattern, and canon's `*` matches everything — appended, it would silently outrank every member rule |
+
+The `.gitattributes` case is concrete: `jrmoulckers/studio` carries
+`packages/tokens/dist/** text eol=lf` so the committed token distribution is deterministic
+*regardless* of git's text detection. With canon appended, that path resolved to `text: auto`
+instead of `text: set` — still LF, so not a live bug, but an explicit guarantee reduced to a
+conditional one. The same applies to any rule more specific than `*`: LFS entries,
+`linguist-generated`, `binary`, `-diff` on generated files. Prepending makes canon a **baseline the
+member can override**, which is the only coherent reading of a generic `*`.
+
+> **An existing region is replaced in place, never relocated.** A member whose block sits in the
+> old position keeps it until a human moves it. Silently reordering lines in a file the member owns
+> is the failure this placement rule exists to prevent, so the engine will not do it unasked.
+
+Prepending does **not** weaken the rule-strengthening described above: git resolves per *attribute*,
+so a member's later `* text=auto` (no `eol`) leaves canon's `eol=lf` standing. That is verified with
+real `git check-attr` in [`test/gitattributes.test.mjs`](test/gitattributes.test.mjs) rather than by
+string matching, because the property is git's resolution and not our byte order. See
+[ADR-0011](../docs/architecture/0011-managed-region-placement.md).
 
 Which files use this is declared by `MANAGED_MERGE_TARGETS` in [`lib/manifest.mjs`](lib/manifest.mjs),
 and manifest validation enforces that each managed kind declares exactly one file resolving to

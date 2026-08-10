@@ -16,8 +16,14 @@
 //      bearing rather than a stylistic choice.
 //   3. "Has a .gitattributes" is not "is correct". game-library carries `* text=auto` WITHOUT
 //      `eol=lf`, which normalizes the index but leaves the working tree platform-dependent. The
-//      merge must STRENGTHEN that in place — appending the region at the end of the file is what
-//      makes git's last-match-wins resolution do so while its Go-specific rules survive.
+//      merge must STRENGTHEN that in place while its Go-specific rules survive.
+//
+// Placement is the fourth difference, and it is the subtle one. Git resolves attributes by LAST
+// matching pattern, and canon's `*` matches every path, so an appended region silently reorders
+// every more-specific member rule beneath itself — LFS entries, `linguist-generated`, `binary`,
+// `-diff` on generated files. Canon is a *baseline*, so for `.gitattributes` the region is
+// PREPENDED and the member's own rules keep the last word. Markdown targets still append, where
+// there is no precedence order and product-local preamble belongs on top. See ADR-0011.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -30,7 +36,7 @@ import { loadManifest, validateManifest, MANAGED_MERGE_TARGETS, BOOLEAN_KINDS, K
 import { resolveAll } from '../lib/resolve.mjs';
 import { enumerateTargets } from '../lib/assets.mjs';
 import { inject } from '../lib/provenance.mjs';
-import { markersFor, MARKERS, extractBlock, buildFile, canonicalizeInner } from '../lib/basemerge.mjs';
+import { markersFor, MARKERS, END_MARKER, extractBlock, buildFile, canonicalizeInner } from '../lib/basemerge.mjs';
 import { apply } from '../lib/copier.mjs';
 import { hashText } from '../lib/lock.mjs';
 
@@ -188,8 +194,12 @@ test('a weaker existing rule is strengthened in place, keeping its sibling rules
   //
   // Asserted through real `git check-attr` rather than string matching, because the property that
   // matters is git's resolution (last matching pattern wins), not the bytes we happen to write.
-  // If `buildFile` ever stopped appending the region at the end, the text would still look fine
-  // and the behaviour would silently invert.
+  //
+  // Strengthening survives the switch from append to prepend, which is not obvious and is the
+  // reason this assertion is made against git rather than against text. Canon now sits FIRST, so
+  // game-library's weaker `* text=auto` matches afterwards — but that line says nothing about
+  // `eol`, and resolution is per-attribute, so canon's `eol=lf` still stands. Had `eol` been
+  // resolved per-line, prepending would have silently undone this repo's fix.
   const weaker = '* text=auto\n*.go text eol=lf\ngo.mod text eol=lf\ngo.sum text eol=lf\n';
   const spec = attributesSpec();
   const merged = buildFile(weaker, canonicalizeInner(spec.content), markersFor(spec.targetPath));
@@ -226,9 +236,67 @@ test('a member that already has the canonical rule keeps its own copy untouched'
     apply(root, [spec], { entries: {} }, { write: true });
 
     const written = readFileSync(join(root, '.gitattributes'), 'utf8');
-    const outsideBlock = written.slice(0, written.indexOf('# studio:base:start'));
+    const marker = '# studio:base:end\n';
+    const outsideBlock = written.slice(written.indexOf(marker) + marker.length);
     assert.equal(outsideBlock.trim(), local.trim(), 'member content is returned verbatim');
   });
+});
+
+test('canon is prepended so a more specific member rule keeps the last word', () => {
+  // Git resolves attributes by last matching pattern and canon's `*` matches everything, so an
+  // appended region outranks every member rule beneath it. jrmoulckers/studio is the real case:
+  // `packages/tokens/dist/** text eol=lf` exists precisely to be deterministic REGARDLESS of git's
+  // text detection. Appending canon downgraded that path's `text` from `set` to `auto` — still
+  // LF, so not a live bug, but an explicit guarantee quietly turned into a conditional one.
+  //
+  // The same shape applies to any member rule more specific than `*`: LFS entries,
+  // `linguist-generated`, `binary`, `-diff` on generated files. Asserted via `git check-attr`
+  // because the claim is about git's resolution, not about our byte order.
+  const local = '* text=auto eol=lf\npackages/tokens/dist/** text eol=lf\n*.png binary\n';
+  const spec = attributesSpec();
+  const merged = buildFile(local, canonicalizeInner(spec.content), markersFor(spec.targetPath));
+
+  assert.ok(merged.startsWith('# studio:base:start\n'), 'the managed region comes first');
+  assert.ok(
+    merged.indexOf('packages/tokens/dist/**') > merged.indexOf('# studio:base:end'),
+    'member rules follow the region, so they win',
+  );
+
+  withTmp((root) => {
+    const git = (args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
+    git(['init', '-q', '.']);
+    writeFileSync(join(root, '.gitattributes'), merged, 'utf8');
+
+    const out = git(['check-attr', 'text', 'eol', '--', 'packages/tokens/dist/js/index.js']);
+    assert.match(out, /text: set/, 'the member rule stays an explicit guarantee, not `auto`');
+    assert.match(out, /eol: lf/);
+
+    const png = git(['check-attr', 'text', '--', 'logo.png']);
+    assert.match(png, /text: unset/, 'a member `binary` rule is not overridden by canon');
+  });
+});
+
+test('an existing managed region is replaced in place, never relocated', () => {
+  // A member whose region predates the placement rule keeps it where it is. Silently moving lines
+  // around in a file the member owns is the failure this placement logic exists to prevent, so the
+  // engine will not do it unasked — repositioning is a human's call.
+  const existing = '* text=auto eol=lf\n\n# studio:base:start\nold\n# studio:base:end\n';
+  const merged = buildFile(existing, '* text=auto eol=lf', MARKERS.hash);
+
+  assert.ok(!merged.startsWith('# studio:base:start'), 'the region is not moved to the top');
+  assert.ok(merged.startsWith('* text=auto eol=lf'), 'member content keeps its position');
+  assert.equal(extractBlock(merged, MARKERS.hash), '* text=auto eol=lf', 'content still updates');
+});
+
+test('Markdown targets still append, so product preamble stays on top', () => {
+  // Placement is a property of the format, not a global switch: flipping it for Markdown would
+  // bury every member's own AGENTS.md preamble beneath canon.
+  const merged = buildFile('# Product notes\n\nLocal preamble.\n', 'CANON', MARKERS.html);
+
+  assert.ok(merged.startsWith('# Product notes'), 'member preamble stays first');
+  assert.ok(merged.trimEnd().endsWith(END_MARKER), 'canon is appended');
+  assert.equal(MARKERS.html.placement, 'append');
+  assert.equal(MARKERS.hash.placement, 'prepend');
 });
 
 test('declining attributes removes the group without failing validation', () => {
