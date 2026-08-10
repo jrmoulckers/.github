@@ -307,3 +307,38 @@ test('declining attributes removes the group without failing validation', () => 
   const [resolved] = resolveAll(off, [off.members[0].repo]);
   assert.ok(!resolved.groups.some((group) => group.kind === 'attributes'));
 });
+
+test('binary rules survive the merge, so assets are never handed to git text detection', () => {
+  // homelab's real shape. `binary` is shorthand for `-text -diff`: never inspect this file. It is
+  // the sharpest case for placement, because appending canon does not merely soften a guarantee
+  // (as it did for Studio's `text: set`) — it inverts the meaning, moving assets from "never
+  // inspect" to "let the heuristic decide". That is the difference between a cosmetic downgrade
+  // and putting binary data under EOL conversion.
+  //
+  // Asserted through `git check-attr` because `text: unset` vs `text: auto` is a resolution
+  // outcome; the emitted bytes look equally plausible either way.
+  const member = [
+    '* text=auto eol=lf',
+    '*.yml text eol=lf',
+    '*.glb binary',
+    '*.png binary',
+    '',
+  ].join('\n');
+  const spec = attributesSpec();
+  const merged = buildFile(member, canonicalizeInner(spec.content), markersFor(spec.targetPath));
+
+  withTmp((root) => {
+    const git = (args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
+    git(['init', '-q', '.']);
+
+    writeFileSync(join(root, '.gitattributes'), member, 'utf8');
+    const before = git(['check-attr', 'text', '--', 'a.glb', 'a.png', 'a.yml']);
+    assert.match(before, /a\.glb: text: unset/, 'binary means -text before the merge');
+
+    writeFileSync(join(root, '.gitattributes'), merged, 'utf8');
+    const after = git(['check-attr', 'text', '--', 'a.glb', 'a.png', 'a.yml']);
+    assert.match(after, /a\.glb: text: unset/, 'binary assets stay excluded from text detection');
+    assert.match(after, /a\.png: text: unset/);
+    assert.match(after, /a\.yml: text: set/, 'and explicit text rules keep their explicit form');
+  });
+});

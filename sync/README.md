@@ -107,6 +107,7 @@ and [ADR-0011](../docs/architecture/0011-managed-region-placement.md) as the rea
 motivated *strengthening* an existing `* text=auto` rule instead of overwriting it. That reasoning is
 about merge behaviour and stands on its own; it is not an argument that the repository should be
 onboarded.
+
 ### Member modes and evidence
 
 `mode` has three closed-schema values. Omitted legacy entries default to `application`, but the
@@ -523,6 +524,24 @@ instead of `text: set` — still LF, so not a live bug, but an explicit guarante
 conditional one. The same applies to any rule more specific than `*`: LFS entries,
 `linguist-generated`, `binary`, `-diff` on generated files. Prepending makes canon a **baseline the
 member can override**, which is the only coherent reading of a generic `*`.
+
+`homelab` shows the sharp end of this. Its file marks assets `binary`, and measured with real
+`git check-attr` against its actual `.gitattributes`:
+
+| Path | Today | Canon appended | Canon prepended |
+| --- | --- | --- | --- |
+| `site/assets/model.glb` | `text: unset` | `text: auto` | `text: unset` |
+| `site/img/logo.png` | `text: unset` | `text: auto` | `text: unset` |
+| `docker/compose.yml` | `text: set` | `text: auto` | `text: set` |
+
+`binary` means `-text`: *never* inspect this file. Appending would have flipped that to `text:
+auto`, handing binary assets to git's content heuristic — a materially worse outcome than the
+`text: set` → `text: auto` downgrade above, and the reason placement is not a stylistic choice.
+Prepending reproduces the member's existing resolution exactly.
+
+**Members do not need to pre-seed the markers.** Because canon is prepended, a member's own rules
+land after it and stay authoritative on their first sync with no preparation. The only way to end
+up with the region below your rules is to place it there by hand, and the engine will not move it:
 
 > **An existing region is replaced in place, never relocated.** A member whose block sits in the
 > old position keeps it until a human moves it. Silently reordering lines in a file the member owns
