@@ -580,6 +580,13 @@ would report it as drift forever.
   rests on two measurements, establish which one is carrying it; if removing one changes nothing,
   it is not evidence and should not be reported as though it were.
 
+  Read the instance above as the *lucky* case, not the definition. The decorative measurement there
+  was also wrong, and being wrong is what eventually prompted the question. The unlucky case is
+  decoration that agrees and is correct: indistinguishable from evidence, load-bearing in the
+  reader's mind and in nothing else, and permanently uninvestigated because nothing ever conflicts.
+  The removal test above catches both, which is the reason to apply it by habit rather than on
+  suspicion — suspicion only ever arrives in the lucky case.
+
   **A systematically biased instrument still answers difference questions correctly.** This is the
   practical way out, and it is why disagreements over constants are usually not worth resolving.
   Two sessions measured the same managed region at 5346 and 5344 characters, and earlier the same
@@ -591,6 +598,25 @@ would report it as drift forever.
   reported for the member-owned content. So prefer invariants stated as relations over invariants
   stated as constants: a relation tolerates an instrument whose zero point is wrong, and a constant
   requires every reader to share a convention that nobody has written down.
+
+  **The convention is not merely unwritten — the artifact has no opinion about it, so there is
+  nothing to write down.** The 2-character gap above was diagnosed exactly: two newlines, the one
+  following the start delimiter and the one preceding the end delimiter. One extractor took the
+  substring *between* the delimiters and kept both; the other trimmed at each boundary. A file does
+  not say whether the newline adjacent to a marker belongs to the region or to the frame that
+  delimits it, so neither reading is a misreading and no amount of care makes two independently
+  written extractors agree on a length. **Any constant derived from an artifact encodes a choice the
+  artifact never made.** That is the mechanism behind the preference stated above, and it is why the
+  remedy is not to standardise the convention: the choice appears on both sides of a relation and
+  cancels, and appears once in a constant and does not. Standardising would work only for readers
+  who adopted the standard, whereas a relation is correct for readers who never heard of it.
+
+  A useful consequence for cross-session corroboration: **agreement on the relation together with
+  disagreement on the incidentals is the signature of two measurements; agreement on everything is
+  the signature of one measurement taken twice.** The 183-byte file delta and the independently
+  derived 447→264 local delta agreed on the relation while their constants disagreed, which is what
+  made them worth citing together — as against the two-sessions-running-the-same-command case
+  recorded further up, which produces perfect agreement and no information.
 
   **Replacing a coarse unit with a fine one can discard the question the coarse unit answered.**
   The documented repair for a wrong-unit check is to ask the authority directly instead of a proxy,
