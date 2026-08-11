@@ -38,7 +38,7 @@ import { enumerateTargets } from '../lib/assets.mjs';
 import { inject, PROVENANCE_NOTE } from '../lib/provenance.mjs';
 import { markersFor, MARKERS, END_MARKER, extractBlock, buildFile, canonicalizeInner } from '../lib/basemerge.mjs';
 import { apply } from '../lib/copier.mjs';
-import { hashText } from '../lib/lock.mjs';
+import { hashText, readLock } from '../lib/lock.mjs';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const manifest = loadManifest(REPO_ROOT);
@@ -540,4 +540,103 @@ test('the provenance line is engine-injected, so hand-seeding cannot reproduce t
     expected,
     'a pre-seeded region must be corrected in place by the first sync, not duplicated',
   );
+});
+// ---------------------------------------------------------------------------------------------
+// A region that has ended up BELOW member rules. `buildFile` prepends, so the engine never
+// creates this - but a hand-placed region, or one written by a sync predating the placement fix,
+// is permanent, because an existing region is replaced in place and never relocated. Found live:
+// jrmoulckers/homelab's `studio-sync/2026-08-10` branch carries exactly this, and `git check-attr`
+// on its bytes reports `house.glb: text: auto` where the member's own file gives `text: unset`.
+// ---------------------------------------------------------------------------------------------
+
+function regionBelow(spec, local) {
+  const inner = canonicalizeInner(spec.content);
+  const markers = markersFor('.gitattributes');
+  return `${local}\n${markers.start}\n${inner}\n${markers.end}\n`;
+}
+
+test('a member rule the region outranks is reported, and matches what git resolves', () => {
+  withTmp((root) => {
+    const spec = attributesSpec();
+    const local = '# Binary assets - never apply text detection.\n*.glb   binary\n*.png   binary\n';
+    writeFileSync(join(root, '.gitattributes'), regionBelow(spec, local), 'utf8');
+
+    const git = (args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
+    git(['init', '-q', '.']);
+    // Assert the harm through git, not through our own parsing: `binary` is `-text`, and canon's
+    // `*` placed after it flips that to `auto`, which is what hands the asset to EOL conversion.
+    assert.match(git(['check-attr', 'text', '--', 'house.glb']), /text: auto/, 'precondition: git agrees this is broken');
+
+    const { report } = apply(root, [spec], readLock(root, 'jrmoulckers/.github'), { write: false });
+    const [file] = report.outranked;
+    assert.ok(file, 'the engine must say so rather than leave a silent, permanent downgrade');
+    assert.deepEqual(
+      file.rules.map((rule) => rule.pattern).sort(),
+      ['*.glb', '*.png'],
+    );
+    assert.deepEqual(file.rules[0].attributes, ['text']);
+  });
+});
+
+test('comments above the region are not rules, so they are not reported', () => {
+  withTmp((root) => {
+    // One of two false positives a position check produces on the real fleet: `finance` has a
+    // comment block above its region. Comments carry no precedence at all.
+    const spec = attributesSpec();
+    writeFileSync(join(root, '.gitattributes'), regionBelow(spec, '# why this tree is committed\n\n'), 'utf8');
+    const { report } = apply(root, [spec], readLock(root, 'jrmoulckers/.github'), { write: false });
+    assert.deepEqual(report.outranked, []);
+  });
+});
+
+test('a rule canon resets to the value it already had loses nothing', () => {
+  withTmp((root) => {
+    // The other false positive: `docket`'s rule above the region is byte-identical to canon, so
+    // the override is to the same value. Position says violation; precedence says no-op.
+    const spec = attributesSpec();
+    writeFileSync(join(root, '.gitattributes'), regionBelow(spec, '* text=auto eol=lf\n'), 'utf8');
+    const { report } = apply(root, [spec], readLock(root, 'jrmoulckers/.github'), { write: false });
+    assert.deepEqual(report.outranked, [], 'overriding a value to itself is not a loss');
+  });
+});
+
+test('the prepended position the engine actually writes reports nothing', () => {
+  withTmp((root) => {
+    const spec = attributesSpec();
+    writeFileSync(join(root, '.gitattributes'), '*.glb binary\n', 'utf8');
+    const first = apply(root, [spec], readLock(root, 'jrmoulckers/.github'), { write: true });
+    assert.deepEqual(first.report.outranked, [], 'canon is prepended, so nothing is outranked');
+
+    const second = apply(root, [spec], readLock(root, 'jrmoulckers/.github'), { write: true });
+    assert.deepEqual(second.report.outranked, [], 'and it stays quiet on re-run');
+  });
+});
+
+test('canon Markdown carries no universal attribute rule, which is why append stays silent', () => {
+  // AGENTS.md appends by design: position is cosmetic in Markdown and nothing resolves by it.
+  // A Markdown target reports nothing today for a second reason too — canon's Markdown carries no
+  // line that parses as a universal (`*`) attribute rule, so there is nothing to outrank with.
+  // That makes the placement guard redundant *right now*, which is exactly why the invariant is
+  // asserted rather than assumed: a canon line like `* text=auto eol=lf` in prose or a code block
+  // would make the guard the only thing standing between a member's preamble and a false report.
+  const [resolved] = resolveAll(manifest, ['jrmoulckers/jrm-recipes']);
+  const { writes } = enumerateTargets(resolved, REPO_ROOT);
+
+  for (const write of writes.filter((w) => w.type === 'managed')) {
+    const markers = markersFor(write.targetPath);
+    if (markers.placement !== 'append') continue;
+    const universal = canonicalizeInner(write.content)
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith('* ') && /\s\S+=\S+/.test(line));
+    assert.deepEqual(universal, [], `${write.targetPath} carries a line that parses as an attribute rule`);
+  }
+
+  withTmp((root) => {
+    const base = writes.find((write) => write.kind === 'base');
+    assert.ok(base, 'precondition: a managed Markdown target exists');
+    writeFileSync(join(root, 'AGENTS.md'), '# Product preamble\n\n* text=auto eol=lf\n', 'utf8');
+    const { report } = apply(root, [base], readLock(root, 'jrmoulckers/.github'), { write: true });
+    assert.deepEqual(report.outranked, [], 'an appended target is never reported, whatever sits above it');
+  });
 });

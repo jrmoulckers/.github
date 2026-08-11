@@ -332,6 +332,18 @@ function printReport(report) {
       log.warn('    ⚠️ AGENTS.md was NOT updated — this member has no current base guide.');
     }
   }
+  if (report.outranked?.length) {
+    for (const file of report.outranked) {
+      log.warn(`    ⚠️ ${file.targetPath}: the managed region sits below ${file.rules.length} member rule(s) it overrides`);
+      for (const rule of file.rules.slice(0, 5)) {
+        log.warn(`        ${rule.line}  →  loses ${rule.attributes.join(', ')} to canon's *`);
+      }
+      if (file.rules.length > 5) log.warn(`        …and ${file.rules.length - 5} more`);
+      log.warn('        The engine replaces a region in place and never relocates it, so this does');
+      log.warn('        not self-heal. Move the region above these rules by hand. See ADR-0011.');
+    }
+  }
+
   if (report.abandoned?.length) {
     // Left on disk, and the plan no longer names them, so they are frozen at whatever the last
     // run that did target them wrote. Saying so is the only thing that ever triggers the manual
