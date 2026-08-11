@@ -50,6 +50,24 @@ counts; it does not retroactively confirm the reading. Keep the two claims separ
 verified it* is not, and the distinction matters the moment a merge fails after a `CLEAN` read —
 that is the expected behaviour of a stale reading, not evidence of a broken instrument.
 
+**When checking runs rather than a PR, sort on `run_started_at`.** `gh run list` orders by
+`created_at`, and a rerun keeps its original `created_at` while advancing `run_started_at` — so the
+most recently *executed* run can sit arbitrarily far down the listing, or outside a short one
+entirely. Measured on a member: the freshest execution in the repository ranked twelfth, and a
+`--limit 3` read did not contain it.
+
+```sh
+gh run list --repo OWNER/REPO --limit 100 \
+  --json databaseId,createdAt,startedAt,status,conclusion,event \
+  --jq 'sort_by(.startedAt) | reverse | .[0:5]'
+```
+
+The default read fails toward *nothing has changed*, since a successful rerun stays buried under
+older failures. `run_started_at` is also what distinguishes *this attempt is live* from *this is an
+old attempt's creation time* when a run reads as `queued`. The jobs endpoint is unaffected — it
+returns the latest attempt — so only ordering and freshness are at risk, not the per-run reading.
+
+
 ## Worktrees
 
 Prefer app-native isolated project sessions/worktrees rather than extra clones. Never invent or
@@ -301,6 +319,26 @@ ordinary failures executing five to ten steps interleaved between them. The outa
 and the "onset" was an artifact of only ever looking forward. A one-sided extremum always exists;
 what makes it a boundary is that the other side differs, and that is a separate measurement nobody
 is prompted to take, because the first one already produced a satisfying number.
+
+**And when you replace someone's instrument with your own, check your coverage against the case
+theirs was built to observe.** A member probing one blocked repository by rerunning a single workflow
+was offered a fleet-wide scan in its place — broader on every axis but one, and that one was theirs. A
+rerun **keeps its original `created_at`** and advances `run_started_at`, while `gh run list` orders by
+`created_at`, so the scan ranked the freshest execution in that repository twelfth and omitted it
+entirely from a short listing. The replacement was strictly better on breadth and strictly worse on
+the single repository and single trigger that gated the deliverable. Superior coverage is not
+coverage of the same thing, and the case a bespoke instrument was built for is precisely the case a
+general one is least likely to have been designed around.
+
+Three properties of that defect generalize past the specific field. **It failed toward the false
+negative** — a successful rerun stays buried under older failures, so the scan reports *still blocked*
+whether or not it is, and per the rule above that verdict leaves no artifact to correct. **Its
+magnitude was unbounded and set by unrelated activity**: rank twelve because eleven other runs
+happened to be created afterwards, so a sweep with a `--limit N` window has a silent threshold beyond
+which the run vanishes with no error and no empty result to notice. And **the defect was confined to
+ordering** — the jobs endpoint returns the latest attempt, so the sweep was correct about every run it
+reached. Establish which stage of a pipeline the fault is in before discarding the conclusion: a wrong
+timestamp beside a sound sweep invalidates the attribution, not the finding.
 
 **A control that cannot fire at all scores perfectly and reports nothing.** A refusal predicate
 requiring `steps == 0` was censused against ordinary CI failures and returned no false positives —
