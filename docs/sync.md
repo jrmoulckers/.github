@@ -766,6 +766,16 @@ because the file is generated at all. This is why "verify before asserting" is n
 verification confirms what the artifact says, and what the artifact says is true. Every session that
 mis-diagnosed a stale branch as a live engine bug during the first rollout had read it correctly.
 
+**Re-read state immediately before acting on it, not while composing the argument for acting.** The
+same shelf life applies to your own checks. During the first rollout, sessions acted on stale reads
+repeatedly — a PR believed open that had been closed two hours earlier, a default branch believed
+current that had advanced, a branch tip cited seven commits after it stopped being the tip, an audit
+that read a file repaired sixty-six minutes before. None of these were careless readings; all were
+correct when made, which is precisely what removed the impulse to make them again. In a fleet where
+several sessions write to the same repositories, "I checked" ages as fast as "I observed". Treat any
+verified fact quoted from earlier in an exchange as expired, and re-query the cheap things — PR
+state, branch tip, default-branch content — at the moment of use.
+
 That is worth a real check rather than a habit, because the engine's non-relocation guarantee turns
 one class of staleness into permanent damage. A managed region is replaced *where it already is*, so
 a region merged into the wrong position is never repaired by a later sync. A branch generated before
