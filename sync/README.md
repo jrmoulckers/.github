@@ -54,7 +54,7 @@ Each entry in `studio.config.json`'s `members[]` array describes one product rep
 | `optIn.health` | ✅ native-kind shape | **Recorded reliance only** — never copied. |
 | `optIn.workflows` | ✅ names against canon; actual calls are checkout-verified | **Availability declaration** — current or planned use, never copied. |
 | `localAgents` | ✅ kebab-case list; cannot overlap selected canon | Locally authored roles/replacements available for handoffs but never synced. |
-| `tokens` | ✅ shape (`enabled` boolean, optional string `targetPath`) | Vendored `@jrm/tokens` opt-in + destination. |
+| `tokens` | ✅ shape (`enabled` boolean, optional string `targetPath`, which may not restate the default) | Vendored `@jrm/tokens` opt-in + destination. |
 | `framework` | ✅ non-empty string when allowed; checkout-verified | Descriptive — `--dry-run` label; checked against supported repository signatures. |
 | `packageManager` | ✅ non-empty string when allowed; checkout-verified | Descriptive — `--dry-run` label; checked against the root lockfile. |
 | `notes` | ❌ free-form | Human/agent context. |
@@ -502,10 +502,17 @@ Opt-in is **per member** and kept separate from `optIn` (the source is an extern
 `.github` canon):
 
 ```jsonc
-"tokens": { "enabled": true, "targetPath": "vendor/@jrm/tokens" }  // explicit repo-root pin
 "tokens": { "enabled": false }                             // declared but off
 "tokens": { "enabled": true }                              // default repo-root vendor/@jrm/tokens
+"tokens": { "enabled": true, "targetPath": "packages/ui/vendor/@jrm/tokens" }  // pin elsewhere
 ```
+
+`targetPath` may not **restate** the default — manifest validation rejects it. Such an override
+is indistinguishable from a deliberate pin and behaves the same as one until the default moves,
+at which point the fleet follows the new path and this member silently keeps the old one, with
+no diff on its line and no failing check. finance carried exactly that after #108/#109 (the
+repo-root value it was given happened to equal the default); it was the only override in the
+fleet, and there are now none.
 
 The whole `sourceBase` tree is mirrored today; the schema leaves room for a future optional
 per-member `include` (sub-globs under `sourceBase`) without a breaking change — not built yet.

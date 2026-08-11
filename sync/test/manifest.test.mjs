@@ -174,10 +174,12 @@ test('phase-two activation preserves member modes and non-AI bundle intent', () 
   assert.equal(finance.optIn.base, true);
   assert.equal(finance.optIn.health, true);
   assert.deepEqual(finance.optIn.workflows, []);
-  assert.deepEqual(finance.tokens, {
-    enabled: true,
-    targetPath: 'vendor/@jrm/tokens',
-  });
+  // The opt-in is the intent this test guards; the path is deliberately *not* restated here.
+  // finance follows the manifest default, so asserting a literal on the member block would pin
+  // the very redundancy #390 removed. The resolved value is what matters and is checked below.
+  assert.deepEqual(finance.tokens, { enabled: true });
+  const [resolvedFinance] = resolveAll(manifest, ['jrmoulckers/finance']);
+  assert.equal(resolvedFinance.tokens.targetBase, manifest.tokens.targetPath);
 
   for (const repo of ['jrmoulckers/studio', 'jrmoulckers/homelab', 'jrmoulckers/windows']) {
     const member = manifest.members.find((candidate) => candidate.repo === repo);
@@ -415,6 +417,52 @@ test('finance vendors tokens at the repo root so every platform app can reach th
   for (const kind of ['agents', 'skills', 'prompts', 'instructions']) {
     assert.ok(kinds.includes(kind), `finance must opt into ${kind}`);
   }
+});
+
+// A member override that restates the default is refused, because it is indistinguishable from
+// a deliberate pin and behaves identically to one until the default moves — at which point every
+// other member follows the new path and this one silently does not. No diff on its line, nothing
+// failing, no channel that would report it.
+//
+// finance carried exactly this after #108/#109 repointed it to the repo root and the value it
+// was given happened to equal the default. It was the fleet's only override, so removing it
+// leaves none: "only finance could hit the tokens base-move class" stops being a fact about
+// today's manifest and becomes a property of the schema.
+//
+// The rule is deliberately narrow. Overriding to a *different* path stays legal, because that
+// is what pinning means and the engine supports it; only the form that expresses no intent is
+// rejected.
+test('a member tokens.targetPath equal to the default is rejected, a differing one is not', () => {
+  const restated = structuredClone(manifest);
+  const finance = restated.members.find((member) => member.repo === 'jrmoulckers/finance');
+  finance.tokens.targetPath = restated.tokens.targetPath;
+  assert.throws(
+    () => validateManifest(restated),
+    /tokens\.targetPath \("vendor\/@jrm\/tokens"\) restates tokens\.targetPath/,
+    'an override equal to the default must be refused',
+  );
+
+  // Non-vacuity, and the boundary of the rule in one assertion: the same field set to a path
+  // that actually differs must still validate. Without this, a rule that banned every override
+  // outright would pass the throw above while silently removing a supported capability.
+  const pinned = structuredClone(manifest);
+  pinned.members.find((member) => member.repo === 'jrmoulckers/finance').tokens.targetPath =
+    'apps/web/vendor/@jrm/tokens';
+  assert.doesNotThrow(() => validateManifest(pinned), 'a genuine pin to a different path stays legal');
+});
+
+test('no member restates the default tokens path, and finance resolves without an override', () => {
+  for (const [i, member] of manifest.members.entries()) {
+    if (!member.tokens || member.tokens.targetPath === undefined) continue;
+    assert.notEqual(
+      member.tokens.targetPath,
+      manifest.tokens.targetPath,
+      `members[${i}] (${member.repo}) restates the default tokens path`,
+    );
+  }
+  const finance = manifest.members.find((member) => member.repo === 'jrmoulckers/finance');
+  assert.equal(finance.tokens.targetPath, undefined, 'finance follows the default rather than restating it');
+  assert.equal(finance.tokens.enabled, true, 'removing the override must not disturb the opt-in');
 });
 
 test('wildcard members receive the expanded agent roster while explicit subsets stay pinned', () => {
