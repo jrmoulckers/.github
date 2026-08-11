@@ -1012,6 +1012,16 @@ So a wrong-unit repair has a second failure mode beyond being keyed to another p
 **discard a coarse instrument that was answering a question the fine one does not ask.** Replacing
 is the reflex; the coarse check usually survives as a demotion.
 
+**The same test also retires checks, and a before/after diff over `check-attr` is one.** An earlier
+proposal here was to capture attribute output before and after a merge and diff the two. The
+reporter above supersedes it, because a diff fires only on a **transition**: a member file that was
+never correct presents no merge to be the "before", so the diff reports clean in perpetuity —
+`homelab`'s `*.glb` case exactly. The reporter asks whether canon's wildcard outranks a member rule
+in the file as it stands, needs no baseline, and therefore has no baseline to be wrong about.
+Nothing the diff answered is left without an instrument, so it retires outright rather than being
+demoted. Keep the before/after form only for the narrower job it is good at: confirming that a
+*specific* resolution you are about to push changed nothing, where the transition is the question.
+
 Members that validate their own generated assets must also respect two contract details, or they
 will report false failures — both were live in `jrmoulckers/homelab` on first sync:
 
