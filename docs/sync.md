@@ -690,12 +690,20 @@ Assert the invariant instead, on the merge result, after **every** rebase rather
 one:
 
 ```sh
-# 1. exactly one marker pair — a duplicated region is a merge artifact, not canon
-grep -c 'studio:base:start' <file>
+# 1. exactly one marker pair — a duplicated region is a merge artifact, not canon.
+#    Match the DELIMITER at column 0, never the bare name: canon's own prose quotes
+#    `studio:base:start`, so a name count returns 2 on every member in the fleet.
+#    `.gitattributes` uses the `#` form; the HTML form is not valid there.
+grep -c '^<!-- studio:base:start -->$' <file>      # AGENTS.md, copilot-instructions.md
+grep -c '^# studio:base:start$'        .gitattributes
 
 # 2. the managed region is byte-identical to its OWN pre-rebase value  (not to canon)
 # 3. member content OUTSIDE the markers is byte-identical to the default branch
 ```
+
+Hard-fail if the region extracts empty rather than hashing it: *found the markers* and *found the
+region* are different successes, and the SHA-256 of the empty string is a plausible-looking value
+rather than an obvious error.
 
 Two of the three are about content the merge should not have touched at all, which is the point: the
 failure is invisible in the region under review and only shows in the parts nobody is looking at.
@@ -846,7 +854,7 @@ managed target's merge behaviour:
 
 ```sh
 gh api repos/<owner>/<repo>/contents/.gitattributes --jq .content | base64 -d |
-  grep -n 'studio:base:start'
+  grep -n '^# studio:base:start$'
 ```
 
 A region that is not first, in a file that has member rules above it, is permanently mis-placed:
@@ -1102,7 +1110,27 @@ which silently re-derived a weaker predicate and dropped both hardenings. The ru
 report is to cite the artifact rather than explain it; the rule for *specifying* a check is the same
 one and it is stronger, because a re-derived predicate does not merely fail to convince — it ships,
 and it ships fleet-wide with the engine's accumulated corrections stripped out. Point at the exported
-function.
+function. **And the marker syntax varies by target, so a check keyed to one syntax is keyed to the
+wrong unit.** `.gitattributes` delimits its region with `# studio:base:*` because an `<!-- … -->`
+line there would be read as a pattern; `AGENTS.md` and `.github/copilot-instructions.md` use the
+HTML form. A checker that hardcoded the HTML pair found no region in `.gitattributes`, fell back to
+hashing the whole file, and reported drift on correct content — the same class of defect as the one
+that made *provenance* comment syntax per-target, arriving one level finer because the first repair
+was scoped to "all managed files" when the property varies per target.
+
+Two sets are involved and they are **not** the same set, which is the next wrong-unit bug waiting:
+
+| | Set | Members today |
+| --- | --- | --- |
+| Managed-region targets | region merged between markers | `AGENTS.md`, `.github/copilot-instructions.md`, `.gitattributes` |
+| Hash-comment targets | provenance header is a `#` line | `.gitattributes`, `agency.toml`, `.gitignore` |
+
+`agency.toml` takes the `#` comment and is copied **wholesale**, so "takes a hash comment" does not
+imply "has a managed region". `markersFor` defaults to HTML, so a future managed target with a `#`
+grammar would silently receive `<!-- … -->` delimiters. `manifest.test.mjs` now asserts both that
+every managed target's marker syntax matches its own provenance syntax, and that the two sets have
+not converged — the second because a check keyed to one set answers correctly for the other only
+while they differ, and nothing maintains that.
 
 **Audit that exposure with git's resolver, not with the region's position.** The obvious check —
 "the managed region should be the first non-empty line" — is itself keyed to the wrong unit, and it

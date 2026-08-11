@@ -15,6 +15,8 @@ import {
 } from '../lib/manifest.mjs';
 import { resolveAll } from '../lib/resolve.mjs';
 import { enumerateTargets } from '../lib/assets.mjs';
+import { markersFor, MARKERS } from '../lib/basemerge.mjs';
+import { inject } from '../lib/provenance.mjs';
 
 const REPO_ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const manifest = loadManifest(REPO_ROOT);
@@ -288,6 +290,60 @@ test('managed-merge kinds own exactly one file at a fixed, Copilot-visible path'
   assert.throws(
     () => validateManifest(movedAttributes),
     /canon\.attributes must materialize to \.gitattributes, got \.github\/\.gitattributes/,
+  );
+});
+
+test('every managed target marks its region in the syntax its own grammar accepts', () => {
+  // homelab shipped this bug member-side: a checker that hardcoded the HTML marker pair
+  // reported drift on correct `.gitattributes` content, because that target's region is
+  // delimited with `# studio:base:*`. The engine is right today, but only `.gitattributes`
+  // is in HASH_MARKER_TARGETS while `markersFor` falls back to HTML — so a future managed
+  // target with a `#` grammar gets `<!-- ... -->` written into it silently.
+  const managed = new Set();
+  for (const resolved of resolveAll(manifest)) {
+    for (const write of enumerateTargets(resolved, REPO_ROOT).writes) {
+      if (write.type === 'managed') managed.add(write.targetPath);
+    }
+  }
+  assert.ok(managed.size > 0, 'no managed targets discovered — this check would assert nothing');
+
+  const provenanceStyle = (targetPath) => {
+    const head = inject(targetPath, 'BODY', { sourceRepo: 'x/y' }).split('\n')[0];
+    if (head.startsWith('<!--')) return 'html';
+    if (head.startsWith('#')) return 'hash';
+    if (head.startsWith('/*')) return 'block';
+    return 'none';
+  };
+
+  for (const targetPath of managed) {
+    const markerStyle = markersFor(targetPath) === MARKERS.hash ? 'hash' : 'html';
+    assert.equal(
+      markerStyle,
+      provenanceStyle(targetPath),
+      `${targetPath}: managed markers are ${markerStyle} but its provenance comment is ` +
+        `${provenanceStyle(targetPath)} — the region delimiters would not be comments in this file`,
+    );
+  }
+});
+
+test('the managed set is a strict subset of the set taking a hash comment', () => {
+  // Collapsing "takes a `#` provenance comment" with "is a managed-region target" is the
+  // next wrong-unit bug: `agency.toml` takes the comment and is copied wholesale.
+  const managed = new Set();
+  const hashCommented = new Set();
+  for (const resolved of resolveAll(manifest)) {
+    for (const write of enumerateTargets(resolved, REPO_ROOT).writes) {
+      if (write.type === 'managed') managed.add(write.targetPath);
+      if (inject(write.targetPath, 'BODY', { sourceRepo: 'x/y' }).startsWith('#')) {
+        hashCommented.add(write.targetPath);
+      }
+    }
+  }
+  const managedHash = [...managed].filter((p) => hashCommented.has(p));
+  assert.ok(managedHash.length > 0, 'no hash-commented managed target — this check would assert nothing');
+  assert.ok(
+    [...hashCommented].some((p) => !managed.has(p)),
+    'the two sets have converged; a check keyed to one would now silently answer for the other',
   );
 });
 
