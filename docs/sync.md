@@ -630,16 +630,24 @@ which stamp a file carries.
 
   What makes this worth keeping is that **the import line confirms both hypotheses equally**. A
   symbol that moved and a symbol that was always imported produce byte-identical evidence at the call
-  site, so the observation that felt decisive could not discriminate. This is the discriminator rule
-  arriving in the search layer: a negative result at a location has causes needing different
+  site, so the observation that felt decisive could not discriminate. Worse than neutral, it is the
+  **most specific-looking evidence available** — it names the symbol *and* the destination file, so
+  it reads like a receipt for a move that never happened. Ambiguous evidence that looks highly
+  specific is more dangerous than ambiguous evidence that looks weak, because specificity is what
+  stops the search. This is the discriminator rule arriving in the search layer: a negative result at
+  a location has causes needing different
   conclusions, and the instrument that separates them is history on the **symbol** (`git log -S`),
   not a current-state search of the file that raised the question. And there is a cheaper
   containment step before any of it — **ask what the change touched before deriving what it means**.
   The PR in question modified two files, both under `docs/`, zero `.mjs`; `gh pr view N --json files`
   settles *does this reach my code* in one call, with certainty, before a line of equivalence
-  reasoning is written. Note the asymmetry the member drew correctly: the version they hit fails
-  loudly, while the mirror case — finding a stale definition that still exists at the remembered
-  location after the live one moved — returns a confident wrong answer and is the one to fear.
+  reasoning is written. The member had used that same instrument earlier the same night on a
+  different PR, which locates the gap precisely: **possessing an instrument and failing to trigger it
+  is a distinct failure from lacking it**, and documenting the instrument again does not fix it —
+  only attaching it to the moment that should fire it does. Note the asymmetry the member drew
+  correctly: the version they hit fails loudly, while the mirror case — finding a stale definition
+  that still exists at the remembered location after the live one moved — returns a confident wrong
+  answer and is the one to fear.
 
 Note that these exclusions are **whole-file even for managed-region targets**. `AGENTS.md` and
 `.github/copilot-instructions.md` are only partly canonical, but a formatter cannot be pointed at
