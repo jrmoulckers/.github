@@ -608,6 +608,38 @@ which stamp a file carries.
   outlive the constants that classify them, an inverted relation shows up as changed answers, and a
   concept that has been replaced rather than edited still returns something to disagree with.
 
+- **A conformance check with no trigger is inert, and "someone mentioned canon moved" is not one.**
+  The member who owns the comparator above made this point against their own work, and it is the
+  unsolved half: both times they re-ran it, the prompt was a passing remark in conversation that
+  canon had changed. A comparator that is correct and never runs is worth exactly what a comparator
+  that runs and answers wrongly is worth, and the two failures are hard to tell apart afterwards
+  because both leave the same evidence — a green check and a stale copy. Publishing the tables as
+  data would harden the parse and leave this untouched. **A vendored copy needs a scheduled or
+  hooked re-derivation, not an attentive owner**; if it only runs when someone remembers, the copy's
+  correctness is a property of the conversation rather than of the repository.
+
+- **Absence at a remembered location has at least two causes, and the confirming evidence is the
+  same for both.** Chasing that same trigger, the member searched `sync/lib/copier.mjs` for
+  `canonicalizeInner`, found nothing, briefly read it as a removal, then saw the import at
+  `copier.mjs:32` and concluded it had been refactored into `basemerge.mjs`. The conclusion — *this
+  change does not reach me* — was right. The story was invented: `git log -S "function
+  canonicalizeInner" -- sync/lib/copier.mjs` returns nothing at all, because it was defined in
+  `basemerge.mjs` by the engine's first commit `5f18f19` and has never lived anywhere else. There
+  was no refactor to survive.
+
+  What makes this worth keeping is that **the import line confirms both hypotheses equally**. A
+  symbol that moved and a symbol that was always imported produce byte-identical evidence at the call
+  site, so the observation that felt decisive could not discriminate. This is the discriminator rule
+  arriving in the search layer: a negative result at a location has causes needing different
+  conclusions, and the instrument that separates them is history on the **symbol** (`git log -S`),
+  not a current-state search of the file that raised the question. And there is a cheaper
+  containment step before any of it — **ask what the change touched before deriving what it means**.
+  The PR in question modified two files, both under `docs/`, zero `.mjs`; `gh pr view N --json files`
+  settles *does this reach my code* in one call, with certainty, before a line of equivalence
+  reasoning is written. Note the asymmetry the member drew correctly: the version they hit fails
+  loudly, while the mirror case — finding a stale definition that still exists at the remembered
+  location after the live one moved — returns a confident wrong answer and is the one to fear.
+
 Note that these exclusions are **whole-file even for managed-region targets**. `AGENTS.md` and
 `.github/copilot-instructions.md` are only partly canonical, but a formatter cannot be pointed at
 half a file, and the region must stay byte-identical to canon or the sync stops matching. Excluding

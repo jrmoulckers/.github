@@ -426,8 +426,19 @@ would report it as drift forever.
   no information about that path. What distinguishes this from the vendored-tree case is where the
   boundary is drawn: flipping one field **in this repository** activates an untested path over
   there, with no change to the member's own code, tests or contents, and no signal to the member
-  that its coverage just moved. A consumer therefore cannot enumerate its own uncovered surface from
-  inside itself, and an opt-in edit here is a coverage change there.
+  that its coverage just moved. A consumer therefore does not enumerate its own uncovered surface
+  from inside itself, and an opt-in edit here is a coverage change there.
+
+  Say **does not** rather than *cannot*, because the member who found this pushed back on the
+  stronger word and was right. `studio.config.json` is readable — this repository is public, and
+  `"base": false` sits in plain data any member can fetch — so the surface is not hidden, merely
+  unexamined. That matters because the two words carry different remedies: a genuine information
+  barrier would oblige canon to publish something new, whereas an unexamined one is closable from
+  either end, and a member can assert its own config-derived coverage today without waiting. What
+  remains true is narrower and still worth stating: **the fact lives in a different repository than
+  the code it governs, and nothing in the member's own tree points at it.** That is a locality
+  problem, not a visibility one, and it decays the same way — known-and-unowned drifting to unknown
+  — because a fact nobody's artifact references is one nobody re-reads.
 
   The control against this is itself subject to it. Canon recorded the known-bad fixture — run the
   check against an inverted ignore list, confirm it reports differently — as something an author does
