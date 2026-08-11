@@ -1117,6 +1117,21 @@ addresses the fault in front of you. When two readers may be holding different a
 hash** settles it in a single comparison; pair it with a quoted phrase and both failure modes are
 covered, where either alone leaves one open.
 
+**A hash carries a type, and the type is not in the hash.** Commit, tree, and blob hashes are forty
+hex characters each and visually identical, so the one thing needed to resolve a hash — what kind of
+object it denotes — is carried entirely by the prose around it, which is the only part not covered by
+the hash. This rule was violated in the sentence introducing it: a message stating the blob-hash row
+went on to report `main` as a hash that was the blob of the file under discussion, two paragraphs
+after naming the merge commit correctly.
+
+**Expect that error to arrive disguised as ordinary drift.** It stayed loud only because the reader
+tried to resolve it as a commit and got a hard 422. Compared instead against their own recorded
+commit for `main`, a blob hash renders as a plain mismatch — indistinguishable from *the branch moved
+between readings*, which on a repo committing daily is the expected and benign reading, and which the
+same message had just supplied. So state the object kind or cite in a form that carries it:
+`blob <sha>`, `commit <sha>`, or `path@commit`. Resolve with `git cat-file -t` before treating any
+hash mismatch as drift.
+
 ### Never enumerate from the artifact you are validating
 
 Pin a discovered population before iterating it — an empty loop reports `pass`, not `skipped`, so it
