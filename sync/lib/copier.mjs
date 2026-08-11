@@ -562,6 +562,13 @@ function neverReceived(spec) {
  * and so neither reporting surface has to know that `null` and `0` mean different things. `null`
  * is unanswerable (no baseline, or a baseline matching nothing in the source's history); printing
  * it as "0 canon revisions behind" would assert a currency the engine cannot support.
+ *
+ * The falsy guard folds `0` in with `null` deliberately; `=== null` is the tempting tightening and
+ * it changes output. `0` is reachable on a *withheld* item, because `spec.sourceSha256` hashes the
+ * canon working tree while the revision list walks committed history: a dirty checkout — what
+ * `--dry-run` and `--studio-dir` read — makes a member holding the committed tip differ from it.
+ * That member is missing no published version, so silence is right and "0 canon revisions behind"
+ * is noise. Pinned in revisions-behind.test.mjs.
  */
 export function formatBehind(revisionsBehind) {
   if (!revisionsBehind) return '';
