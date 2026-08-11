@@ -13,7 +13,7 @@ assets propagate very differently:
 | Class | Examples | How it reaches product repos |
 | --- | --- | --- |
 | **Native** | Community-health files, reusable workflows | GitHub inherits default health files from this `.github` repo automatically; reusable workflows are called directly with `uses: jrmoulckers/.github/.github/workflows/reusable-*.yml@<reviewed-commit-sha>`. **No sync needed — and a member must not keep its own copy** (see below). |
-| **Canonical source** | `agents/`, `skills/`, `prompts/`, `instructions/`, `AGENTS.md`, `agency.toml`, `copilot-instructions.md`, `.gitattributes` | Copilot does **not** auto-inherit these across repos. The sync tool materializes them as `.github/agents/`, `.github/skills/`, `.github/prompts/`, `.github/instructions/`, `.github/copilot-instructions.md`, and selected root files. Consumer copies are generated and read-only. |
+| **Canonical source** | `agents/`, `skills/`, `prompts/`, `instructions/`, `AGENTS.md`, `agency.toml`, `copilot-instructions.md`, `.gitattributes` | Copilot does **not** auto-inherit these across repos. The sync tool materializes them as `.github/agents/`, `.github/skills/`, `.github/prompts/`, `.github/instructions/`, `.github/copilot-instructions.md`, and selected root files. Consumer copies are generated and read-only — **except `AGENTS.md` and `.github/copilot-instructions.md`, which are managed-region files: read-only *between* the `studio:base` markers, member-owned outside them.** |
 | **External vendored** | `@jrm/tokens` built outputs (CSS custom properties, Tailwind preset, typed JS) | Live in a *different* private backbone repo (`jrmoulckers/studio`), registry-free. The same engine copies studio's committed `dist/` tree into opted-in members under `vendor/@jrm/tokens/`. See [Vendored tokens](#vendored-tokens-jrmtokens). |
 
 ## Flow (scheduled PR)
@@ -509,6 +509,14 @@ will report false failures — both were live in `jrmoulckers/homelab` on first 
 
 Everything above concerns the *managed* region. The region **outside** the markers is the part
 members actually author, and it carries an ownership rule that no tooling enforces:
+
+Read the provenance marker as scoping the **region**, not the file. `AGENTS.md` and
+`.github/copilot-instructions.md` carry the marker and are still partly member-owned, so a reader
+who takes the marker to make the whole file read-only will stop maintaining the very section this
+page says to maintain — and that failure is invisible, because an unmaintained local section throws
+no error. Whole-file canon is read-only end to end; a managed-region file is read-only only between
+the markers. (Formatter exclusions are the deliberate exception: they stay whole-file, because a
+formatter cannot be aimed at half a file.)
 
 **Root `AGENTS.md` owns policy. A member's local section is a pointer, never a second copy.** Keep
 only what exists nowhere else in Copilot's default context — pointers to repository-specific
