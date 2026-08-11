@@ -206,9 +206,23 @@ failed or your spending limit needs to be increased`.
 **This is not confined to private repositories, and canon claimed otherwise until a member falsified
 it.** The earlier text here said standard runners are free on public repositories so the refusal
 cannot happen there. `jrmoulckers/studio` is public — `"private": false` — and run `31437443369` on
-`2026-08-10T22:14:21Z` was refused with that exact annotation on **9 of 9 jobs**, every one of them on
-`ubuntu-latest`, `windows-latest` or `macos-latest`. No larger runners involved. The claim was
-falsifiable, was load-bearing, and was false.
+`2026-08-10T22:14:21Z` was refused with that exact annotation on **all 8 of its jobs that were
+candidates to run**, every one of them on `ubuntu-latest`, `windows-latest` or `macos-latest`. No
+larger runners involved. The claim was falsifiable, was load-bearing, and was false.
+
+That denominator is 8 rather than the run's 9 jobs, and the discarded job is worth a sentence because
+it is the one a careless count reaches for. `security / Dependency review` reports zero steps on that
+run — but it reports zero steps on green runs too, where it is `skipped` by a job conditional, so it
+looks *identical* whether or not the account is refused. **The discriminator is not `steps: 0`; it is
+`failure` at zero steps.** A `skipped` job at zero steps is ordinary. Counting it as a ninth refusal
+inflates the load-bearing number with the only job in the run that carries no information, and
+implies a partial refusal — as though one job had escaped — when that job was never a candidate.
+
+Two habits follow. Report the population you actually measured (`8 jobs, every one a standard
+runner`) rather than an `N of N` that reads as a census: the run's job count moves with the trigger —
+9 here, 11 on the green runs used as the control — so the census is run-specific even when the
+finding is not. And **establish a zero-step baseline from a passing run before treating zero steps as
+a symptom**, because some jobs are legitimately zero-step always.
 
 **Do not replace it with a narrower exemption.** The failure mode was never the specific claim; it
 was having *any* rule that lets a reader skip the check. The annotation fetch discriminates both
@@ -848,6 +862,33 @@ are wrong they agree, and a reader comparing them correctly finds no divergence 
 one converts a shared error into an inconsistency visible only to someone who diffs two files and
 already knows they are meant to match. There is no partially-correct state for a duplicated rule —
 delete the copy, do not improve it.
+
+### A revision you assert is a claim, whether or not you fetched it
+
+Canon already tells you to report the revision you read. That instruments a **fetch** — and the more
+common way a stale revision enters a conversation has no fetch to instrument.
+
+Both directions of one exchange demonstrated it. A member quoted canon text that had moved underneath
+the quote; the quote had not arrived over the wire that message, it came from **earlier context**, so
+no fetch discipline could have caught it — `gh api .../contents/<path>` with no `ref` returns
+default-branch HEAD and cannot hand back a stale revision. In the same exchange the backbone asserted
+that member's HEAD from its own memory of a previous report, and was two commits behind; the member's
+reply asserted its own HEAD and was three commits behind by the time it was read.
+
+| How the stale revision entered | What a recorded blob or size catches | What closes it |
+| --- | --- | --- |
+| stale bytes over the wire | nothing — the bytes are intact | record the SHA you fetched |
+| **quoting from your own context** | **nothing — there was no fetch** | re-read before quoting |
+| **asserting another repo's state** | **nothing — you never read it** | re-resolve, or attribute and date it |
+
+The second row is the likelier one precisely because it feels redundant: re-reading a file you have
+never read is obviously necessary, and re-reading one you read an hour ago is obviously not. Prose
+preserves a quotation perfectly while the repository moves out from under it.
+
+So: **before you quote it, re-read it; before you assert someone else's revision, re-resolve it**
+(`git ls-remote` is one call). If you are repeating a figure you cannot currently re-derive, attribute
+and date it — *"studio reported `6f98f5b` at 08:25Z"* is durable and checkable; *"studio is at
+`6f98f5b`"* decays silently, and the reader cannot tell which one you meant.
 
 ### Reporting a defect in canon from a repo that holds a synced copy
 
