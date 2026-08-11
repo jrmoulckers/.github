@@ -188,6 +188,39 @@ harmless because it fails closed, but it directs work at code that is not broken
 whatever the correction costs**, in either direction, so exercise a validating check against a case it
 must accept before trusting its rejections.
 
+**A control that cannot fire at all scores perfectly and reports nothing.** A refusal predicate
+requiring `steps == 0` was censused against ordinary CI failures and returned no false positives —
+but an ordinary failing job has run steps, so the two populations never overlap and that score holds
+at any sample size, including one never taken. A perfect result is the least re-examined kind, and a
+specific integer beside it supplies the confidence that stops the question. **Before reporting a
+clean run against a control population, check the detector could have fired on it at all.** This is
+the third sign of the same defect: one control fired for the wrong reason, one denied a right answer,
+and this one is structurally excluded — all three present as confirmation.
+
+**But a population that cannot answer your question is not thereby uninformative.** The correct
+repair here was not deleting the count. Measured across the same runs, 143 jobs had zero steps: 135
+`skipped`, admitted by the step test and excluded only by the conclusion test, and 8 `failure`, all
+of them the refusal. That establishes something the census was never cited for — that neither
+conjunct of the predicate is decorative, each excluding a population the other admits. Ask what a
+control *can* decide before discarding it, and re-scope the claim rather than withdrawing it.
+
+**When you retire a control that could not fire, show that its replacement can.** The fixture named
+as the real test here was a run-level `startup_failure`; every such run in this fleet — twelve, across
+three repositories — has **zero jobs**, because the conclusion names a run that failed before any job
+existed. A job-level predicate iterating an empty list returns no hits structurally, so the successor
+was excluded for a different structural reason than the one it replaced and would have passed
+vacuously forever. The reflex on discovering a vacuous test is to name a harder population, and the
+inattention that made the first one vacuous is what selects the second. Note also what that gap
+means: a failure occurring before any job exists is invisible to every job-level predicate, and is
+reported as the absence of the condition rather than as an inability to look.
+
+**Beware disjointness asserted by construction when the construction is your own definition.** The
+claim that ordinary failures *cannot* trip a zero-step test defines the control population by the
+very field the predicate reads. Ordinary failure is a class of causes, not a step count, so whether
+one of those causes can produce a stepless job is an empirical question — answerable, and worth
+answering, but not by restating the selection rule. When reporting the answer, name the population
+searched, since a bounded negative and a universal one are written identically.
+
 **And a comparison harness that has stopped measuring reports its failure as a result.** Two probes
 built to compare three variants of a function returned, respectively, an identical failure for all
 three and `-1` for every fixture in every variant. Both tables were well-formed, and both were empty.
