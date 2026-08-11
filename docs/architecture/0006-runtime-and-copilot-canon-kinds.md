@@ -111,3 +111,21 @@ would report it as drift forever.
   rule about `.github/` could ever have been correct. When writing a rule about canon, identify the
   unit the property actually varies over and key on that, preferring the marker or lookup the engine
   itself uses over a path- or filename-shaped proxy.
+
+  Two further instances arrived after this was first written, and both sharpen it. Conflict-resolution
+  guidance told members to take canon's side wholesale — file-shaped advice that silently reverts
+  merged member work in a managed-region file. And the fix for the `.github/` defect, which moved the
+  provenance rule from the directory to the file, itself became a wrong-unit rule at the next level
+  down: the marker scopes a *region*, so a reader applying the per-file rule literally stops
+  maintaining the member-owned section. **Fixing an instance can create the next one**, which is the
+  argument for naming the pattern rather than repairing cases as they appear.
+
+- **Diagnostic: suspect the unit before the content.** What makes this pattern a debugging trap
+  rather than a design nit is that a coarse-unit rule does not error. It quietly matches nothing, or
+  matches too much, and the result reads as ordinary drift — a content problem, at the boundary of
+  the coarse unit, far from the rule that caused it. So: **when a check reports drift on content you
+  have independent reason to believe is correct, suspect the unit the check is keyed to before
+  suspecting the content.** That is what turned "`agency.toml` is unstamped" into "the checker
+  hardcodes one comment syntax," and it is cheaper than rediscovering the same shape per instance.
+  The corollary for authors: a rule that can only fail silently needs its authority read, not
+  summarized — see the provenance table note in `docs/sync.md`.
