@@ -784,6 +784,20 @@ usually "the generated ones, entirely, and the authored ones, not at all". This 
 split one level up: the same mixture of owners that makes a single file need markers makes a whole
 branch need per-hunk judgement.
 
+**Judge a branch by its diff, not by its tree.** Every branch contains the whole repository, so
+reading files *on* a branch tells you what its base contained and nothing about what the branch does.
+A sync branch cut two days ago carries stale copies of every generated file, and it will keep
+carrying them whether or not it changes any of them — those files simply come along with the
+checkout. Classifying such a branch as "mixed" because stale generated content is visible in it is
+the tree-for-diff substitution, and it turns a one-file member-authored change into an apparently
+delicate salvage operation. `gh api repos/<o>/<r>/pulls/<n>/files` and the commit list answer the
+question the tree cannot: `jrmoulckers/studio` #34 reads as mixed and stale by tree, and is one
+authored commit touching one file by diff.
+
+This matters most where the two disagree in the safe-looking direction. A branch whose tree looks
+stale invites either discarding member work or hand-porting canon into it, both of which are worse
+than the merge it was avoiding.
+
 **A stale sync commit merged after a newer one reverts canon, and rebasing does not save you.** When
 a member has two open sync PRs from different waves, merge order decides the outcome. Landing the
 newer wave first is right, but it leaves the older branch carrying a generated commit that describes
