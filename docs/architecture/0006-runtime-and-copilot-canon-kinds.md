@@ -120,6 +120,16 @@ would report it as drift forever.
   maintaining the member-owned section. **Fixing an instance can create the next one**, which is the
   argument for naming the pattern rather than repairing cases as they appear.
 
+  That progression also supplies the stopping test the rule otherwise lacks: **move the unit until it
+  matches whatever the tooling already keys on.** Directory → file → region is precisely the chain
+  `provenance.mjs` and `planManagedMd` were implying the whole time — the engine hashed only the
+  inner block from the start, so the implementation held the correct unit and only the written rule
+  lagged. When canon and the engine disagree about granularity, the engine's granularity is good
+  evidence for what the rule should say, because it is the granularity that actually runs. A
+  hand-maintained list sitting beside a code path that enumerates the same thing is the same
+  duplication problem one level down, which is why the file-type list was reconciled against its
+  source rather than re-typed.
+
 - **Diagnostic: suspect the unit before the content.** What makes this pattern a debugging trap
   rather than a design nit is that a coarse-unit rule does not error. It quietly matches nothing, or
   matches too much, and the result reads as ordinary drift — a content problem, at the boundary of
