@@ -425,6 +425,22 @@ would report it as drift forever.
   evidence, ask what result would have made the two disagree; if no such result exists, the second
   run measured nothing. An instrument that cannot return a different answer is not measuring.
 
+  **Replacing a coarse unit with a fine one can discard the question the coarse unit answered.**
+  The documented repair for a wrong-unit check is to ask the authority directly instead of a proxy,
+  and that is right as far as it goes — but the proxy is often coarse rather than simply wrong, and
+  coarseness cuts both ways. `git check-attr` answers *is this damaged* exactly; the region's
+  position answers *is this sound*, which the resolver cannot ask. One fleet member is unsound and
+  undamaged — a member rule sits above the managed region where canon's wildcard would void it, but
+  the rule is byte-identical to canon, so nothing is currently overridden. The resolver reports it
+  clean, correctly, and a resolver-only audit passes on the last structural instance in the fleet
+  while doing nothing about it. The coincidence holding today is not maintained by anyone.
+
+  So the reflex to *replace* is the error, and the usual correct move is a demotion: keep both
+  instruments at different severities, sound-but-undamaged reported and damaged failing. Merging
+  them loses a real defect in one direction or raises false alarms in the other, and neither is
+  recoverable from the merged result. The test for whether a proxy may be retired is not whether the
+  new check is more accurate, but whether any question the proxy answered has no other instrument.
+
   **Status of this consequence: promising, not established.** Every instance was found by one
   rollout, and the diagnostic above has so far only been validated by the people who wrote it.
   Recorded because the reasoning is cheap to apply and the failure it prevents is expensive — not
