@@ -828,11 +828,19 @@ So on every run, before planning, `lib/rekey.mjs` reconciles the lockfile agains
 Both count as changes, so the reconciled lockfile is persisted; a run that only reconciles produces
 a PR whose entire diff is `.studio-sync.lock.json`.
 
-Rekeying is deliberately conservative. It requires a **bijective** match — the orphan must
-correspond to exactly one planned target and that target to exactly one orphan — so an ambiguous
-case (two abandoned bases holding the same relative path) is left alone rather than guessed at. A
-wrong baseline would suppress a real drift signal, which is worse than the stale key it replaces.
-Root-level managed targets such as `AGENTS.md` carry no relocatable base and are never rekeyed.
+Rekeying is deliberately conservative on two axes. It requires a **bijective** match — the orphan
+must correspond to exactly one planned target and that target to exactly one orphan — so an
+ambiguous case (two abandoned bases holding the same relative path) is left alone rather than
+guessed at. And the orphaned baseline must **describe the bytes now at the new path**: an entry only
+moves when the file there hashes to the `targetSha256` it records, which is proof the engine wrote
+that exact content. Root-level managed targets such as `AGENTS.md` carry no relocatable base and are
+never rekeyed.
+
+The second rule is not just tidiness. A baseline moved onto a file it does not describe writes a
+claim into the lockfile that is false, and it converts an *unrecorded* file — which historical-canon
+recovery can still rescue — into a recorded one, where any mismatch is by definition a local edit.
+The engine would be permanently unable to repair a file it could otherwise have proven was its own
+stale output. An orphan that fails the check is left to the prune rule instead.
 
 Rekeying moves the *recorded baseline*, it does not invent one: a file that was genuinely
 hand-edited after the engine wrote it still fails the comparison and is still reported as drift.
@@ -844,6 +852,27 @@ entry is conditioned on its file already being gone.
 kept all 16 pre-existing entries under the abandoned base while the 5 files that were new in that
 run were recorded at the root — 16 entries pointing at nothing, 16 real files tracking nothing, and
 all 16 frozen as drift.
+
+### Vendored token canon is proved from the source repo's own history
+
+Historical-canon recovery needs the committed history of whatever repo the content came from. For
+backbone-owned files that is the backbone checkout; for vendored `@jrm/tokens` it is the *token
+source* repo, whose `dist/` is committed rather than built at consume time. `enumerateTokenTargets()`
+therefore attaches `historicalCanonSha256` from that checkout, and `lib/studio.mjs` clones it with
+**full history** (`cloneFull`) for the same reason Actions needs `fetch-depth: 0`.
+
+Two ways this goes inert without failing, both pinned by `test/tokens-history.test.mjs`:
+
+- **Hashing the wrong bytes.** A member never holds a raw dist blob; it holds `inject()`'s rendering
+  of it, and vendored packages use their own note (`generated + synced from … — do not edit here`),
+  not the backbone default. Evidence must be rendered per spec or it matches nothing.
+- **A shallow checkout.** `historicalFileVersions()` fails closed on one, because an empty evidence
+  set is indistinguishable from "nothing is recoverable" and would silently reproduce today's
+  permanent-drift behaviour.
+
+This is what unfreezes a member stuck on an old release: a vendored file whose bytes match *any*
+previously committed rendering is provably stale engine output, so it is updated rather than skipped.
+Bytes matching no committed version remain drift, untouched.
 
 `--force` is not the tool for that. It is one flag for the whole invocation — `index.mjs` parses it
 once and threads it into every member, and `apply()` then applies it to every spec in each — so it
@@ -1012,7 +1041,8 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/branch-reuse.test.mjs` | Sync-branch lifecycle: active reviewer work survives; squash-merged and closed branches are bypassed; clean reruns and first runs start from default; a diverged active remote is rejected instead of force-pushed. |
 | `test/basemerge.test.mjs` | Managed-block detection: markers quoted in prose, shown in a fenced example, or indented as a code block do not form a block; real blocks are still replaced; a canon change after adoption updates in place without duplicating markers; genuine edits are still drift. |
 | `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown; drift warnings name every exact skipped path. |
-| `test/rekey.test.mjs` | Lock reconciliation when a target base moves: a relocated tree ends with every planned file tracked and no entry pointing at a nonexistent path, and converges as `updated` instead of freezing as drift; the moved baseline still catches a genuine hand-edit; a stale entry is pruned only when its file is gone, while an unplanned entry whose file remains keeps its baseline; an ambiguous relocation is left alone; a root-level managed target is never rekeyed; a steady-state re-run rekeys and prunes nothing and still produces no diff. |
+| `test/rekey.test.mjs` | Lock reconciliation when a target base moves: a relocated tree ends with every planned file tracked and no entry pointing at a nonexistent path, and converges as `updated` instead of freezing as drift; a baseline moves only onto a file it provably describes, and an unproven file is left unrecorded so historical recovery stays available to it; the moved baseline still catches a genuine hand-edit; a stale entry is pruned only when its file is gone, while an unplanned entry whose file remains keeps its baseline; an ambiguous relocation is left alone; a root-level managed target is never rekeyed; a steady-state re-run rekeys and prunes nothing and still produces no diff. |
+| `test/tokens-history.test.mjs` | Historical-canon evidence for vendored `@jrm/tokens`: the set is non-empty and rendered with the *package's* provenance note (not the backbone default) and excludes current canon; a vendored file frozen on an older release converges as `updated` instead of drifting forever; a member-authored file is still refused; and history read from a shallow token checkout raises rather than degrading to an empty set. |
 | `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; raw-canon stamping; exact historical-output recovery; empty-evidence and one-byte-mutation refusal; recorded targets never use first-sync recovery. |
 | `test/history.test.mjs` | Full-history enforcement and committed-blob enumeration; end-to-end target enumeration recovers a member holding a prior engine rendering. |
 | `test/manifest.test.mjs` | The real `studio.config.json` validates; all nine consumers and their explicit modes are registered; disabled infrastructure members produce no writes; local-agent metadata remains compatible; application defaults, Docket's completed mode transition, and mode-specific fact schema are enforced; `canon` matches disk; native kinds are never written. |

@@ -76,6 +76,28 @@ function relocatedMember(root) {
   return { lock: { backbone: 'jrmoulckers/.github', entries }, writes };
 }
 
+test('a baseline only moves onto a file it provably describes', () => {
+  withTmp((root) => {
+    const { lock, writes } = relocatedMember(root);
+    // This file is neither the recorded bytes nor current canon — an older dist, or a hand-edit.
+    // The orphaned entry says nothing about it, so it must not inherit the baseline.
+    write(root, `${NEW_BASE}/tokens.css`, '/* some other version */\n');
+
+    const res = reconcileLockKeys(root, writes, lock.entries);
+
+    assert.ok(
+      !res.rekeyed.some((r) => r.targetPath === `${NEW_BASE}/tokens.css`),
+      'an unproven file must not be recorded by rekey',
+    );
+    assert.ok(
+      !res.entries[`${NEW_BASE}/tokens.css`],
+      'leaving it unrecorded is what keeps historical-canon recovery available to it',
+    );
+    // The files that do match still move.
+    assert.equal(res.rekeyed.length, RELOCATED.length - 1);
+  });
+});
+
 test('a base move leaves every planned target tracked and no entry dangling', () => {
   withTmp((root) => {
     const { lock, writes } = relocatedMember(root);
@@ -191,7 +213,11 @@ test('an unambiguous run reports no ambiguity, so the signal means something', (
   withTmp((root) => {
     write(root, `${NEW_BASE}/tokens.css`, 'x\n');
     const entries = {
-      [`${OLD_BASE}/tokens.css`]: { sourceSha256: 'a', targetSha256: 'a', syncedAt: 'x' },
+      [`${OLD_BASE}/tokens.css`]: {
+        sourceSha256: 'a',
+        targetSha256: hashText('x\n'), // the baseline must describe the file for the entry to move
+        syncedAt: 'x',
+      },
     };
 
     const res = reconcileLockKeys(root, [tokenSpec('tokens.css')], entries);

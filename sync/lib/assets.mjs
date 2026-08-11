@@ -136,11 +136,17 @@ function fileSpec(kind, name, sourcePath, targetPath, raw, targetBase) {
 /**
  * Record exact hashes of prior committed canon and its deterministic engine rendering.
  * The copier uses these only for unrecorded targets, where no lock baseline exists yet.
+ *
+ * `sourceRoot` is the repo the canon came from — the backbone for its own kinds, the token
+ * source repo for vendored `@jrm/tokens`. Rendering uses each spec's own provenance note, so a
+ * vendored file is reconstructed with the note that was actually written into it; hashing the
+ * raw blob alone would produce a set that matches nothing and disable recovery with no error.
  */
-function attachCanonHistory(writes, backboneRoot) {
+function attachCanonHistory(writes, sourceRoot) {
   const files = writes.filter((spec) => spec.type === 'file');
+  if (!files.length) return;
   const versions = historicalFileVersions(
-    backboneRoot,
+    sourceRoot,
     files.map((spec) => spec.sourcePath),
   );
 
@@ -149,7 +155,7 @@ function attachCanonHistory(writes, backboneRoot) {
     const historical = new Set();
     for (const raw of versions.get(spec.sourcePath) ?? []) {
       historical.add(hashText(raw));
-      historical.add(hashText(inject(spec.targetPath, raw)));
+      historical.add(hashText(inject(spec.targetPath, raw, { note: spec.provenanceNote })));
     }
     historical.delete(spec.sourceSha256);
     historical.delete(currentRenderedHash);
@@ -161,6 +167,11 @@ function attachCanonHistory(writes, backboneRoot) {
  * Enumerate the vendored @jrm/tokens targets for a member from a studio checkout.
  * The whole `sourceBase` tree (studio's committed dist/) is mirrored under the member's
  * `targetBase`, each file stamped with a provenance note pointing at the external source repo.
+ *
+ * Token canon lives in the source repo, so its dist/ history — not the backbone's — supplies the
+ * evidence that lets an unrecorded member file be recognized as stale engine output and updated
+ * rather than reported as drift forever. `studioRoot` must therefore carry full history; the
+ * engine clones it unshallowed and `historicalFileVersions` fails closed on a shallow checkout.
  *
  * @param {{ sourceRepo, package, sourceBase, targetBase }} plan  from resolveTokens
  * @param {string} studioRoot  local checkout of the token source repo (clone or --studio-dir)
@@ -188,9 +199,11 @@ export function enumerateTokenTargets(plan, studioRoot) {
       targetBase: plan.targetBase,
       sourceSha256: hashText(raw),
       content: inject(targetPath, raw, { note }),
+      provenanceNote: note,
       type: 'file',
     });
   }
+  attachCanonHistory(out, studioRoot);
   return out;
 }
 
