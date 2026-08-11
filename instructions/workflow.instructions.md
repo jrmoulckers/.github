@@ -543,6 +543,17 @@ arrives, and then it fires *permissively*, silently, on the reading that looks g
 instance is a reason not to add machinery and never a reason to keep an allowlist entry: the missing
 instance is precisely what stops anyone noticing the entry was wrong.
 
+**Rank a shared default by its worst caller, not its typical one, and read/write is usually that
+split.** The same `markers = MARKERS.html` default sat on a reader and a writer in this engine, and
+the two ends are on opposite rows of the severity table. Given to the reader, a wrong marker set
+matches nothing and returns zero regions — wrong, but loud and safe, and it fails in the direction
+that gets investigated. Given to the *writer*, it emits `<!-- … -->` into a file where that is not a
+comment: in `.gitattributes` those lines become patterns git tries to match, so the output is
+corrupt rather than absent. **A default is not a single decision with a single severity** — it
+inherits the blast radius of whichever caller it reaches, so auditing the one you happened to notice
+understates it. The reader is the one you notice, because a missing region is visible; the writer is
+the one that matters.
+
 Auto-resolve only mechanical conflicts you understand: whitespace, import order, regenerated files, changelog ordering, or lockfiles recreated by the repo's package manager. Escalate semantic conflicts such as same-function edits, schema changes, security-sensitive logic, or incompatible refactors.
 
 Use `git push --force-with-lease` only after a rebase on your own PR branch. Never use plain `git push --force`.

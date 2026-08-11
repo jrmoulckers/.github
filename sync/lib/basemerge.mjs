@@ -56,19 +56,44 @@ export const MARKERS = {
   hash: { start: '# studio:base:start', end: '# studio:base:end', placement: 'prepend' },
 };
 
-/** Targets that cannot carry an HTML comment, keyed by target file basename. */
-const HASH_MARKER_TARGETS = new Set(['.gitattributes']);
+/**
+ * Comment syntax is a property of the file type, so it is derived rather than enumerated per
+ * target. A hardcoded target list silently hands HTML to the next hash-syntax file someone adds,
+ * and the damage lands on the write path: `<!-- … -->` in `.gitattributes` is not a comment but a
+ * pattern git tries to match. Unknown types therefore throw instead of falling back.
+ */
+const HASH_SYNTAX_BASENAMES = new Set([
+  '.gitattributes',
+  '.gitignore',
+  '.gitmodules',
+  '.editorconfig',
+  '.npmrc',
+  '.dockerignore',
+  '.prettierignore',
+]);
+const HASH_SYNTAX_EXTENSIONS = new Set(['.toml', '.yml', '.yaml', '.sh', '.properties', '.conf']);
+const HTML_SYNTAX_EXTENSIONS = new Set(['.md', '.markdown', '.html']);
 
 /**
- * Pick the marker syntax for a target path. The path is required: a defaulted path resolves to
- * HTML, which is correct for every caller except the one that matters and fails silently there.
+ * Pick the marker syntax for a target path. The path is required and the type must be known: a
+ * default resolves to HTML, which is correct for every target except the ones that matter and
+ * fails silently there.
  */
 export function markersFor(targetPath) {
   if (typeof targetPath !== 'string' || targetPath === '') {
     throw new TypeError('markersFor(targetPath) requires a non-empty target path');
   }
   const base = targetPath.split(/[\\/]/).pop() ?? '';
-  return HASH_MARKER_TARGETS.has(base) ? MARKERS.hash : MARKERS.html;
+  const dot = base.lastIndexOf('.');
+  const ext = dot > 0 ? base.slice(dot).toLowerCase() : '';
+
+  if (HASH_SYNTAX_BASENAMES.has(base) || HASH_SYNTAX_EXTENSIONS.has(ext)) return MARKERS.hash;
+  if (HTML_SYNTAX_EXTENSIONS.has(ext)) return MARKERS.html;
+
+  throw new TypeError(
+    `markersFor(${targetPath}): unknown comment syntax. Add the type to basemerge.mjs — a ` +
+      `default would write HTML markers into a file that cannot carry them.`,
+  );
 }
 
 /**
