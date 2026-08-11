@@ -69,6 +69,12 @@ test('workflow guidance separates the two causes of a no-log run failure', () =>
   // The discriminator is the load-bearing part. Documenting both causes without a way
   // to tell them apart leaves the reader exactly where they started.
   assert.match(text, /jobs you did not touch failed[\s\S]{0,200}check billing/i);
+
+  // The observational check degenerates on a single-job workflow, and `--log-failed`
+  // returns the same "log not found" for both causes. Pin the mechanical fallback and
+  // the warning that the obvious command cannot substitute for it.
+  assert.match(text, /check-runs\/[^\s`]*\/annotations/i);
+  assert.match(text, /--log-failed[\s\S]{0,120}log not found/i);
 });
 
 test('all declared local agents remain disjoint from selected canon', () => {  const manifest = loadManifest(REPO_ROOT);
