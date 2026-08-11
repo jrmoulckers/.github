@@ -97,3 +97,61 @@ test('all declared local agents remain disjoint from selected canon', () => {  c
     }
   }
 });
+
+// A citation of the form `### Name` asserts that Name is a *structural* element. Resolving it with a
+// substring search confirms only that the characters occur somewhere, and returns the same answer
+// whether the match is a heading, a bold lead-in, a table cell, or a line inside a fenced block --
+// so the check that was meant to validate the scheme is blind to the way it fails. Canon carried a
+// citation to `### Two Prettier API traps` for several revisions: the string was real, at the line
+// reported, and was bold paragraph text that had never been a heading at any revision.
+test('every heading citation in canon resolves to a real heading', () => {
+  const files = [
+    'docs/sync.md',
+    'sync/README.md',
+    'instructions/workflow.instructions.md',
+    'AGENTS.md',
+  ];
+
+  let citations = 0;
+  for (const relativePath of files) {
+    const lines = readFileSync(join(REPO_ROOT, ...relativePath.split('/')), 'utf8')
+      .replace(/\r\n/g, '\n')
+      .split('\n');
+
+    // Fence state must be tracked from line 0 in a single pass; starting mid-document inverts it.
+    // Both the headings and the citations are collected under the same mask, or a citation quoted
+    // inside an example block would be judged against a heading table that block never contributed to.
+    const headings = new Set();
+    const prose = [];
+    let inFence = false;
+    for (const line of lines) {
+      if (/^\s*(```|~~~)/.test(line)) {
+        inFence = !inFence;
+        continue;
+      }
+      if (inFence) continue;
+      prose.push(line);
+      const heading = line.match(/^(#{1,6})\s+(.+?)\s*$/);
+      if (heading) headings.add(`${heading[1]} ${heading[2]}`);
+    }
+
+    // Detect citations at `###` and deeper only, and note that this is narrower than "every
+    // citation" rather than equal to it. Writing the obvious `#{1,6}` produced two false positives
+    // on the first run, both instructive: `# synced from ...` is a `.prettierignore` comment quoted
+    // inline, so `#` is comment syntax rather than a heading marker; and `## Needs Human Action`
+    // names a section the reader is told to *write*, not one to resolve. Backticked heading syntax
+    // is therefore not the same predicate as "a citation" -- which is the same substring-for-structure
+    // substitution this test exists to catch, reproduced inside the test on its first run.
+    for (const match of prose.join('\n').matchAll(/`(#{3,6} [^`\n]+)`/g)) {
+      citations += 1;
+      assert.ok(
+        headings.has(match[1]),
+        `${relativePath}: cites \`${match[1]}\`, which is not a heading in that file`,
+      );
+    }
+  }
+
+  // The population must be pinned: zero citations would make every assertion above vacuous while
+  // still reporting `pass`.
+  assert.ok(citations > 0, 'no heading citations discovered — this check would assert nothing');
+});

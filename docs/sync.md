@@ -1961,21 +1961,110 @@ and produces no diff at the citation site, no conflict, no failing check, and no
 anyone holding the reference. Nothing anywhere is wrong. Measured across this document's own history,
 by resolving the target heading by content at each revision:
 
-| revision | `### Two Prettier API traps` |
-| --- | --- |
-| `86cd28d` | L521 |
-| `5afec6e` | L521 |
-| `e1c12c7` | **L530** |
+| revision | `### Members must exclude canon from their formatters` | the traps passage |
+| --- | --- | --- |
+| `86cd28d` | L462 | L521 |
+| `5afec6e` | L462 | L521 |
+| `e1c12c7` | L471 | **L530** |
 
 The nine-line shift was caused by inserting new guidance at L433-441 — a correct edit, in a different
 section, by the same author who had just issued `L521-533` as a citation. So the reference went stale
 between being written and being used, with no act of carelessness anywhere in the sequence. **A
 locator whose validity depends on every future edit made above it is not a locator.**
 
-Note also which numbers agreed. Two sessions measuring this file reported different totals — 1349
-against 1622 lines — while both resolved the heading to exactly L521, L521, L530. The load-bearing
-measurement agreed and the incidental constant did not, which is the corroboration signature: two
-instruments, not one reading copied.
+Note that the heading column does not move at all across the first two revisions and shifts once
+with the section itself, while the passage column shifts independently — which is the property the
+name-based ruling below depends on, measured rather than asserted.
+
+#### A name must be resolved as a heading, not as a substring
+
+This table originally labelled its own column with a citation to a section named "Two Prettier API
+traps" — a string that appears in this document, at the line the column reports, and **has never been
+a heading at any revision.** What is there is a bold paragraph lead-in, `**Two Prettier API traps,
+both live, one silent.**`. Bold text gets no anchor, so the citation fails both as a heading scan and
+as an in-page link. The table documenting locator breakage was labelled with a locator that never
+resolved.
+
+Two readers validated it independently, both "by content", both landed on the correct line, and both
+were wrong about what kind of thing was there. **The procedure used to validate the name-based scheme
+cannot test the property that scheme depends on.** `§ X` asserts that X is a structural element;
+substring resolution confirms only that those characters occur somewhere, and returns the same answer
+whether the match is a heading, a bold lead-in, a table cell, or a line inside a fenced block. It is
+not a weaker check of the right thing — it is a check of a different thing that agrees with the right
+one on every input except the failing ones.
+
+So resolve a cited name with a heading-anchored, fence-masked pattern (`^#{1,6}\s`), not with a plain
+search. The negative result is the informative one: a name that appears but is not a heading is
+precisely the case a substring search reports as success. This document currently contains **35** bold
+paragraph lead-ins, every one of which reads like a nameable section and none of which is one, so the
+population that can produce this error is large and is not shrinking.
+
+The relationship to the staleness failure above is worth naming, because the two are complementary
+rather than similar. A stale line number is **right-shaped and wrong-valued** — it resolves, to the
+wrong place. A name that is not a heading is **fresh and wrong-shaped** — it never resolved, and the
+check that was supposed to catch that reported success. Content-resolution fixes the first and is
+blind to the second, which is why adopting the name-based scheme did not by itself retire the
+problem. Both are the same underlying mistake at different levels: reading Markdown as flat text
+rather than as structure.
+
+The check that enforces this rule (`every heading citation in canon resolves to a real heading`,
+`sync/test/instruction-integrity.test.mjs`) reproduced the same substitution three times while being
+written, which is the best evidence that the class is not exotic:
+
+1. The obvious pattern `` `#{1,6} …` `` matched `# synced from jrmoulckers/.github`, an inline
+   `.prettierignore` comment. **`#` is comment syntax as often as it is a heading marker** — the
+   collision already recorded for `.gitattributes`, arriving in a third place.
+2. It then matched `` `## Needs Human Action` ``, which names a section the reader is instructed to
+   *write*. **Backticked heading syntax is not the same predicate as "a citation"**; one is a shape,
+   the other a speech act, and no regex separates them.
+3. With both narrowed away it still failed — on *this passage*, because the prose describing the
+   broken citation had quoted it verbatim. A checker cannot distinguish **use from mention**.
+
+The third is the one with a standing consequence: **do not write an unresolvable citation in canon
+even as an example of one.** There is no markup that says "this locator is being exhibited, not
+followed," so the illustration is indistinguishable from the defect, both to a checker and to a reader
+who skims. Name the broken locator in prose instead, as done above. The rule generalizes past
+citations — any document that carries a counter-example in the same notation as the real thing has
+made its own check impossible.
+
+Note the direction of the reasoning, too. Each of the three was found by *running* the check, not by
+review, and each looked correct when written. A check that fails on its first three runs against a
+corpus its author believed clean is doing the work; one that passes immediately has usually
+encoded the author's assumptions rather than tested them.
+
+Note also which numbers agreed — and, on re-examination, what that agreement was actually made of.
+The claim recorded here was that two sessions reported different totals for this file, 1349 against
+1622, while both resolved the heading identically, and that the load-bearing measurement agreeing
+while the incidental constant diverged is the corroboration signature of two instruments rather than
+one reading copied.
+
+The signature is real and the reasoning stands, but **this was the wrong instance of it.** The second
+session states it never reported 1622; its totals were 1873 and 1940. And 1622 is not an invented
+number — it is the exact split-count of this file at `86cd28d`, the oldest revision in the table. So
+the figure is a true measurement of a real revision, attributed to a session that did not make it and
+to a revision it was not measuring. **A number can be simultaneously correct and misattributed, and
+being correct is what stops anyone checking the attribution.**
+
+Two things worth carrying, since the same passage now demonstrates both:
+
+**The one input a two-instrument check cannot cross-validate is a reading only one instrument
+produced.** The whole force of the argument is that two independent measurements diverged; if one of
+the two figures came from neither instrument, there was one measurement and a recollection. Divergence
+between a measurement and a misremembering looks identical to divergence between two instruments, and
+is evidence of nothing.
+
+**And a systematic offset is a convention, not a second instrument.** Re-measuring all five revisions
+here gave 1621, 1629, 1648, 1847, 1939 against the other session's 1622, 1630, 1649, 1848, 1940 —
+exactly one less, at every revision. That is not two readings of a file; it is one file under two
+definitions of "line", `LF`-count versus split-count on a file ending in a newline. Both are right
+under a stated convention and neither is stated. A constant offset across every point is the
+signature of a convention difference; corroboration requires the *residual* to vary, and here it is
+identically zero. Which is the same trap recorded above under agreement deserving suspicion, arriving
+one level down: the five-row agreement between those two tables is not five confirmations, it is one
+convention applied five times.
+
+None of this disturbs the heading resolution itself, which reproduced independently and is what the
+argument actually rests on.
 
 **A citation also only discharges the obligation if the artifact is reachable by the audience.** This
 document is backbone-internal: `docs/sync.md` is not a canon kind, appears in no member's lockfile,
