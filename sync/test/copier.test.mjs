@@ -365,3 +365,100 @@ test('historical evidence never overrides drift on a recorded target', () => {
     assert.equal(readFileSync(join(root, s.targetPath), 'utf8'), previousRendered);
   });
 });
+
+
+// ---------------------------------------------------------------------------------------------
+// Abandoned files: what the engine leaves on disk after a base moves.
+//
+// rekey.mjs reconciles lock ENTRIES against the plan. These cover what happens to the FILES,
+// which it deliberately does not touch. jrmoulckers/finance is the live case: it repointed
+// tokens.targetPath to the repo root, then a sync resolving older canon wrote the native files
+// to the old base. They sit there today with the pre-#121 comment syntax that cannot compile,
+// and finance is the only kmp-web member.
+// ---------------------------------------------------------------------------------------------
+
+test('a file whose lock entry was rekeyed to a new base is reported as abandoned', () => {
+  withTmp((root) => {
+    // Sync under the old base, so both the file and its entry exist there.
+    const old = { ...spec(), targetPath: 'apps/web/vendor/@jrm/tokens/native/x.kt', targetBase: 'apps/web/vendor/@jrm/tokens' };
+    apply(root, [old], readLock(root, BACKBONE), { write: true });
+
+    // Retarget to the repo root. rekey moves the ENTRY; the old FILE stays put.
+    const moved = { ...old, targetPath: 'vendor/@jrm/tokens/native/x.kt', targetBase: 'vendor/@jrm/tokens' };
+    const { report, lock } = apply(root, [moved], readLock(root, BACKBONE), { write: true });
+
+    assert.deepEqual(
+      report.rekeyed.map((item) => item.from),
+      [old.targetPath],
+      'precondition: the entry follows the base',
+    );
+    assert.ok(!lock.entries[old.targetPath], 'so the old path is no longer recorded anywhere');
+    assert.ok(existsSync(join(root, ...old.targetPath.split('/'))), 'but the file is still on disk');
+
+    // Which is exactly why it must be reported: reconciliation made it LESS visible, not more.
+    assert.deepEqual(
+      report.abandoned.map((item) => item.targetPath),
+      [old.targetPath],
+    );
+    assert.equal(report.abandoned[0].tracked, false, 'no entry left to hash-verify a deletion against');
+    assert.equal(report.hasDrift, false, 'an abandoned file is not a local modification');
+  });
+});
+
+test('an orphan that could not be rekeyed is reported while its file remains', () => {
+  withTmp((root) => {
+    const s = spec();
+    apply(root, [s], readLock(root, BACKBONE), { write: true });
+
+    // No targetBase, so rekey cannot match it; the file exists, so it is not pruned either.
+    const other = { ...s, name: 'other.md', targetPath: 'docs/other.md' };
+    const { report } = apply(root, [other], readLock(root, BACKBONE), { write: true });
+
+    assert.deepEqual(report.abandoned.map((item) => item.targetPath), [s.targetPath]);
+    assert.equal(report.abandoned[0].tracked, true, 'the lock still holds the hash to verify against');
+  });
+});
+
+test('an entry pruned because its file is already gone is not reported as abandoned', () => {
+  withTmp((root) => {
+    const s = spec();
+    apply(root, [s], readLock(root, BACKBONE), { write: true });
+    rmSync(join(root, ...s.targetPath.split('/')));
+
+    const other = { ...s, name: 'other.md', targetPath: 'docs/other.md' };
+    const { report } = apply(root, [other], readLock(root, BACKBONE), { write: true });
+
+    // rekey.mjs already drops it, and there is no file to clean up. Reporting it would be noise,
+    // and a report that cries wolf is the one nobody reads.
+    assert.deepEqual(report.pruned.map((item) => item.targetPath), [s.targetPath]);
+    assert.deepEqual(report.abandoned, []);
+  });
+});
+
+test('a plan that still targets everything reports nothing abandoned', () => {
+  withTmp((root) => {
+    const s = spec();
+    apply(root, [s], readLock(root, BACKBONE), { write: true });
+    const { report } = apply(root, [s], readLock(root, BACKBONE), { write: true });
+    assert.deepEqual(report.abandoned, [], 'steady state must stay quiet or the signal is worthless');
+  });
+});
+test('reconciliation is what guarantees an unplanned entry still has a file', () => {
+  withTmp((root) => {
+    const s = spec();
+    apply(root, [s], readLock(root, BACKBONE), { write: true });
+    rmSync(join(root, ...s.targetPath.split('/')));
+
+    const other = { ...s, name: 'other.md', targetPath: 'docs/other.md' };
+    const { lock } = apply(root, [other], readLock(root, BACKBONE), { write: true });
+
+    // findAbandoned reports on entries the plan no longer names. That is only safe while every
+    // such entry has a real file behind it. Reconciliation is the thing that makes it true; if
+    // this ever fails, findAbandoned's on-disk filter stops being redundant and starts being
+    // the only thing preventing it from naming files that do not exist.
+    for (const key of Object.keys(lock.entries)) {
+      if (key === other.targetPath) continue;
+      assert.ok(existsSync(join(root, ...key.split('/'))), `unplanned entry ${key} has no file`);
+    }
+  });
+});

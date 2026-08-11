@@ -99,11 +99,58 @@ export function apply(memberRoot, writes, lock, opts = {}) {
       report.pruned.length >
     0;
   report.hasDrift = report.drift.length > 0;
+  report.abandoned = findAbandoned(memberRoot, writes, entries, report.rekeyed);
   const newLock = { ...lock, entries };
 
   if (write && report.changed) writeLock(memberRoot, newLock);
 
   return { report, lock: newLock };
+}
+
+/**
+ * Files still in the member that the plan will never write again.
+ *
+ * Distinct from `rekeyed`/`pruned`, which describe what happens to lock *entries*. This is about
+ * what is left on *disk*. The engine does not prune (see "Deselection cleanup is manual and
+ * hash-verified" in the README), so deselecting a kind or moving a target base leaves the old
+ * files exactly where they are. That is deliberate: pruning means deleting outside the current
+ * plan, and a mechanism that can delete outside its plan can be wrong outside its plan.
+ *
+ * What was missing is the other half — nothing said which files had been abandoned, so the
+ * documented cleanup procedure had no trigger. Two shapes reach here:
+ *
+ *   - an orphaned entry that could not be rekeyed, whose file still exists;
+ *   - the `from` side of a rekey whose file still exists. Reconciliation moves the entry to the
+ *     new base, which is right for the baseline, but it leaves the old file with *no* lock record
+ *     at all — making it less visible after reconciliation than it was before.
+ *
+ * `jrmoulckers/finance` is the second shape. It repointed `tokens.targetPath` to the repo root,
+ * then a sync resolving older canon wrote the native files to the old base, where they sit today
+ * carrying the pre-#121 comment syntax that cannot compile. finance is the only `kmp-web` member,
+ * so it is the one repo with a Kotlin toolchain that would try to build them.
+ *
+ * Informational, and deliberately excluded from `hasDrift`: expected mid-transition, resolvable
+ * only by a human, and never a reason to fail a run or gate a PR.
+ */
+function findAbandoned(memberRoot, writes, entries, rekeyed) {
+  const planned = new Set(writes.map((spec) => spec.targetPath));
+  const onDisk = (targetPath) => existsSync(join(memberRoot, ...targetPath.split('/')));
+
+  // reconcileLockKeys already drops unplanned entries whose file is gone, so onDisk() is
+  // currently always true here. It is kept deliberately: this report exists to name files a
+  // human may delete, and inheriting a phantom from a change in that prune condition would be
+  // worse than a redundant stat. The invariant is pinned by a test rather than assumed.
+  const orphaned = Object.keys(entries).filter((key) => !planned.has(key) && onDisk(key));
+  const relocated = rekeyed
+    .map((item) => item.from)
+    .filter((from) => !planned.has(from) && onDisk(from));
+
+  return [...new Set([...orphaned, ...relocated])].sort().map((targetPath) => ({
+    targetPath,
+    // An untracked abandoned file has no hash to verify a safe deletion against, so it needs a
+    // different cleanup from one the lock still remembers.
+    tracked: Object.hasOwn(entries, targetPath),
+  }));
 }
 
 function planFile(memberRoot, spec, entries, force) {
