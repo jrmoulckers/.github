@@ -697,19 +697,25 @@ classifier; the mechanism is git's, not the repository's, so the check does not 
 
 ### While a sync PR is blocked, check its position rather than its contents
 
-**A green check on a public repository is not evidence that a billing block has lifted.** Billing is
-enforced at the *account*, but exposure to it is determined by *repository visibility*: public repos
-get free Actions minutes and are never subject to the block, so their runs stay green throughout an
-outage. Reading one repo's green as an account-wide all-clear picks a unit — the account — that
-contains the real one, and it fails in the reassuring direction: a passing check is the most
-convincing artifact in the system, and here it is an artifact of the observed repo being immune
-rather than of the constraint lifting. The observation is accurate; it just answers a different
-question, which is the same shape as measuring the present to settle a claim about the past.
+**A green check on one repository is not evidence that a billing block has lifted on another.**
+Billing is enforced at the *account*, and canon previously explained this by saying public repos get
+free Actions minutes and are never subject to the block — so their greens were an artifact of
+immunity. **That rationale is false and was falsified by measurement:** `jrmoulckers/studio` is
+public and was refused outright on `2026-08-10T22:14:21Z`, nine of nine jobs, standard runners only.
 
-This fleet is split, so the mistake is always available:
+The conclusion survives on a different and stronger mechanism: **the refusal does not lift uniformly
+across the account.** Studio was green again by 23:47Z while `jrmoulckers/homelab` was still being
+refused at 06:15Z the next morning. So a sibling's green says nothing about a repo that has not
+itself been re-run — not because the sibling was immune, but because it left the condition on its own
+schedule. Reading one repo's green as an account-wide all-clear still picks a unit that contains the
+real one, and it still fails in the reassuring direction; only the reason has changed.
+
+This matters for what you do next. Under the old rationale the remedy was to check visibility and
+discount public repos. Under the correct one, visibility discounts nothing — **only the repository's
+own most recent run is evidence about that repository**:
 
 ```sh
-gh api repos/jrmoulckers/<name> --jq .private   # false -> its green proves nothing about billing
+gh api "repos/jrmoulckers/<name>/actions/runs?per_page=1" --jq '.workflow_runs[].conclusion'
 ```
 
 Public (immune, useless as evidence): `.github`, `studio`, `finance`, `score-king`.
