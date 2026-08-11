@@ -359,6 +359,25 @@ would report it as drift forever.
   demonstration available: the message proposing this rule cited a branch tip that was seven commits
   stale by the time it was sent, while making the point correctly.
 
+  The framing above suggests neglect is the mechanism, and the sharper population is the opposite
+  one: **the artifact under the closest attention is the one whose standing goes unnoticed longest.**
+  A session held a blocked pull request for hours and re-verified it throughout — suites, region
+  hashes, marker counts, member content — every check correct, every check green. When the block
+  lifted the branch was three commits behind and almost wholly superseded; it merged at about a
+  twentieth of its original size. No check it ran could have reported that, because *behind* is not
+  a property of the branch. It is a relation between the branch and a remote that was not being
+  refetched, so verifying the artifact accurately taught nothing about its standing, and the
+  frequency of verification is what made the staleness feel impossible.
+
+  Hence the distinction worth carrying: **validity** — do the contents still hold — is settled at
+  the first pass and does not change while nothing is being pushed, whereas **liveness** — is this
+  still the right change to land — changes continuously and is invisible from inside the branch.
+  While something is blocked, re-running validation is close to information-free and its main effect
+  is to raise confidence in a judgement its evidence does not support. Check position, not contents.
+  This is also the cheap-unit pattern in its purest form: the local suite is already in shell
+  history, `git fetch && git log HEAD..origin/main` is a command not yet run, and the reachable check
+  displaced the informative one *repeatedly* precisely because it kept coming back green.
+
   **A fix on a conditional path cannot reach the population that motivated it.** The prepend fix
   corrects placement only where no managed region exists yet, because replacement is deliberately
   in-place. So it makes every *future* adoption permanently correct and does nothing whatsoever for

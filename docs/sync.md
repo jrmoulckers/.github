@@ -573,6 +573,33 @@ doubled-CR mechanism behind that assertion. Run the check above **before** concl
 renormalization finished the job: a clean `format:check` on Linux CI can coexist with files that
 were never normalized at all.
 
+### While a sync PR is blocked, check its position rather than its contents
+
+A PR that cannot merge — billing, a missing secret, an unavailable reviewer — invites repeated
+re-verification, and that is nearly the wrong activity. **Validity** (do the contents still hold)
+is settled at the first pass and cannot change while nothing is being pushed to the branch.
+**Liveness** (is this still the change worth landing) changes continuously, is not a property of
+the branch at all, and is therefore invisible to every check run from inside it.
+
+```sh
+git fetch && git log HEAD..origin/main   # the only question that moves while you wait
+```
+
+`jrmoulckers/studio` held a blocked sync PR for hours and re-verified it throughout — suites, region
+hash, marker count, member content outside the markers — correctly and green every time. When the
+block lifted, `main` had moved three commits, the branch was `CONFLICTING`, and per hunk it was
+almost entirely superseded: canon re-emits every synced hunk, and its `.prettierignore` fix had
+landed upstream more thoroughly in the interim. It merged at roughly a twentieth of its original
+size, carrying only a member-authored trim, because nothing regenerates that.
+
+The reason the checks could not help is that *behind* is a relation between the branch and a remote
+nobody was refetching. Frequent verification of the artifact is what made its staleness feel
+impossible, so on a blocked PR the re-verification habit is actively misleading: it raises
+confidence in *this is ready to land* on evidence that only supports *this is internally consistent*.
+
+When the block clears, judge the branch per hunk before merging it — see the merge-order and
+diff-versus-tree rules below. A branch that has aged is rarely all-good or all-stale.
+
 ### Resolving conflicts in a sync PR
 
 "Take canon's side wholesale" is right for whole-file canon and **wrong for managed-region files**,
