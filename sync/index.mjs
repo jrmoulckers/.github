@@ -7,7 +7,9 @@
 // Flags:
 //   --dry-run            Plan only. No writes or network. Reads local backbone history to
 //                        build historical-canon evidence. Prints the resolved
-//                        file set per member (and the profile mirror plan).
+//                        file set per member (and the profile mirror plan). It does not
+//                        read member lockfiles, so it reports no per-file outcomes and
+//                        cannot preview --force; pair with --work-dir for that.
 //   --members <a,b>      Restrict to these member repos (full "owner/name" or bare "name").
 //   --check              CI gate. Exit non-zero if any member is out of date or has drift.
 //                        Needs member state: clones each member, or use with --work-dir.
@@ -490,11 +492,18 @@ function printHelp() {
 Usage: node sync/index.mjs [options]
 
   --dry-run            Plan only; no writes, git, or network. Prints the resolved file set.
+                       Reports the plan, not per-file outcomes: it never reads a member's
+                       lock, so it cannot show add/update/drift/forced. Combine with
+                       --work-dir to rehearse those.
   --members <a,b>      Restrict to these member repos ("owner/name" or bare "name").
   --check              Exit non-zero if any member is out of date or has drift (CI gate).
   --force              Overwrite locally-modified (drift) targets instead of skipping.
                        Requires --members. Targets that never received canon are refused;
                        name them in --force-paths to overwrite them.
+                       To see what a forced run would do, add --work-dir <checkout>: a bare
+                       --dry-run lists the plan and never evaluates force, so it reports no
+                       forced targets even when a real run would overwrite many. Reading it
+                       as "nothing would be forced" certifies every forced run as safe.
   --force-paths <p,..> Target paths that --force may overwrite even though canon has never
                        been delivered to them. Their current bytes are member-authored and
                        exist nowhere else, so each must be named.
