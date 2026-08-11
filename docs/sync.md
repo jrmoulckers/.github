@@ -712,6 +712,27 @@ The reference therefore depends on who owns the content, and the two cases inver
   **member's default branch**. Canon never had it and never will re-emit it, so the branch may be the
   only copy.
 
+**Recoverability has a second premise: the destination must still be able to receive it.** "Canon
+still has it, so the next sync re-emits it" is only half the argument. `buildFile` chooses a
+placement only when the target file has no markers yet; where a region already exists it is replaced
+where it sits and never relocated. So for a member whose file already carries a mis-placed region, no
+future sync repairs it, and closing a branch on regeneration grounds discards the only correctly
+placed copy. Before closing, check the destination as well as the source — `marker lines in the
+member's file on its default branch` is the whole test, and zero is the answer that makes the
+regeneration argument sound.
+
+That check is cheap enough to run across the fleet, and worth re-running after any change to a
+managed target's merge behaviour:
+
+```sh
+gh api repos/<owner>/<repo>/contents/.gitattributes --jq .content | base64 -d |
+  grep -n 'studio:base:start'
+```
+
+A region that is not first, in a file that has member rules above it, is permanently mis-placed:
+those rules are overridden by canon's `*` and nothing in the pipeline will move the region out of
+their way. It requires a human edit.
+
 **Apply that per hunk, not per branch.** A sync PR is routinely *mixed*: generated files the next sync
 will re-emit, sitting beside member-authored edits — a `.prettierignore` entry, a local trim — that
 nothing will ever regenerate. Judging such a branch as a unit gives the wrong answer whichever way you
