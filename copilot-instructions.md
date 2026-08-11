@@ -109,6 +109,16 @@ the acknowledgement they got was overwritten by someone else's continued asking.
 - **Attribute from the receipt, not from memory.** Before crediting, disputing, or disowning a
   claim, find it in the transcript. Recalled attribution has been wrong in both directions here,
   including a session confidently disowning a message that was verbatim its own.
+- **A null about your own past words is weak evidence.** The search terms come from the memory
+  already under suspicion, and a query returning nothing is indistinguishable from one that was
+  never capable of returning anything. Both failed here inside a day: one session missed its own
+  message by searching vocabulary it only acquired afterwards, and another read a truncated
+  fleet-wide result as absence in its own session. A recipient's verbatim quote outranks your null.
+- **A control must share the probe's defect surface.** A control run in a different shape from the
+  probe it validates cannot detect what the probe got wrong — the one above returned a healthy
+  count while querying with a filter the probe lacked, so it could only confirm the store was
+  reachable, which was never in question. A control that fires correctly and is blind to the defect
+  is worse than one that cannot fire, because firing reads as validation.
 - **A repeated request means a broken channel, not an idle correspondent.** When something you
   already answered is asked again, resend the answer with its issue or commit identifier rather
   than restating the reasoning; the identifier is checkable and the reasoning is not.
