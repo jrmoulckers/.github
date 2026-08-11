@@ -173,26 +173,7 @@ Scope-specific rules live alongside the code — read the relevant one before wo
   more-specific scoped instructions override shared defaults without relaxing mandatory human
   gates.
 
-## Checking a managed region
-
-Generated files carry `synced from jrmoulckers/.github — canonical source; do not edit here`
-between markers. Everything **outside** those markers is yours: the engine splices its region in
-and preserves the rest, so local content there is expected, not drift.
-
-Ask the engine rather than comparing by hand — it is the same code that performs the write:
-
-```bash
-node sync/index.mjs --dry-run --members <member-name> --work-dir /path/to/your/checkout
-```
-
-It reports counts across every target in your repo — `unchanged: 57`, `updated: 1`, and
-`→ changes pending` when anything differs. All-unchanged means your files already match canon; a
-non-zero `updated` means a re-sync will bring them into line, and nothing needs to be done by hand.
-Run it from a backbone checkout with full history: it refuses on a shallow clone rather than
-comparing against truncated canon.
-
-**Do not diff the whole file.** `AGENTS.md`, `.github/copilot-instructions.md` and `.gitattributes`
-are spliced rather than copied, so a whole-file comparison against canon reports drift on every
-*correctly* synced repo — it is measuring your own local content. Compare the region between the
-markers, or use the command above. If the region really is stale or damaged, the fix is a backbone
-change or a re-sync, never a hand edit: the next run overwrites it.
+The procedure for checking whether your managed regions match canon — and the warning against
+diffing a spliced file whole — lives in `.github/copilot-instructions.md`, under "Checking a managed
+region". It is stated once, there rather than here, because this file is distributed to six of the
+eleven members while that one reaches all eleven.
