@@ -188,6 +188,30 @@ harmless because it fails closed, but it directs work at code that is not broken
 whatever the correction costs**, in either direction, so exercise a validating check against a case it
 must accept before trusting its rejections.
 
+**And the last rung is a wholly healthy instrument that corroborates a mechanism it never touched.**
+A correspondent re-derived a six-fixture mutation table published here and reproduced every cell.
+Their harness passed every integrity check this fleet has accumulated — the sentinel proven present
+in the source, every mutation proven to change it, controls present, four distinct verdicts. Nothing
+was wrong with it. But it mutated a *shared* constant, so it moved the guard and the loop together,
+while the prose it corroborated attributed the destruction to the guard admitting a line the loop
+then failed to find. Same verdict, different causal path. Rebuilt to mutate only the loop's use and
+to assert the guard was untouched, the claim held — and came out stronger, since both configurations
+destroy.
+
+The generalization: **when prose names a mechanism, the mutation must isolate that mechanism, not
+merely reproduce its outcome.** An outcome usually has more than one route to it, and the cheapest
+mutation tends to take the wrong one. No integrity check above can see this, because the instrument
+is not broken — it discriminates correctly and reports true facts about a question nobody asked, and
+it looks *more* convincing than a faulty one precisely because every signal is green. Checks
+establish that an instrument works; they say nothing about whether it works on the claim.
+
+There is a specific trap when the code under test has already been repaired. Here the fix's entire
+content was collapsing two predicates into one shared constant — so the natural mutation preserves
+the agreement, and **the counterfactual requires reintroducing the divergence the fix deleted**. A
+mutation that cannot express disagreement can never test a claim about two things disagreeing. Where
+a claim is about a *relationship* between components, mutating anything they now share tests the
+wrong world, and the repair itself is what makes that mutation the convenient one.
+
 **A control that cannot fire at all scores perfectly and reports nothing.** A refusal predicate
 requiring `steps == 0` was censused against ordinary CI failures and returned no false positives —
 but an ordinary failing job has run steps, so the two populations never overlap and that score holds
