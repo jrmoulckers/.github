@@ -1619,6 +1619,37 @@ with a question. That is the rule about naming an artifact that can come back ne
 the **address** rather than to the evidence — and it is why a quoted phrase beats a line cite for
 the same reason `sync/test/rekey.test.mjs:199` beat citing a pull request number.
 
+**But that check has a bound, and the bound is the reason the table above keeps four rows.** Content
+resolution verifies that *a* document contains the phrase. It cannot verify that the document is the
+one under discussion, because a reader holding the wrong artifact still finds the text and reads the
+hit as confirmation. A member reported that a `path:LINE@SHA` cite had failed at the pinned revision,
+quoting real prose from this file as proof, and concluded that pinning fixes provenance but not
+correctness and that the table should collapse to content alone. Measured at that commit
+(`b52e4a00`, blob `4ec5029d`), the file is **1684 lines**, the cited range held exactly the passage
+claimed for it, and the prose they quoted as the occupant of that range sits at **L302**. The
+relocated passage they offered instead was at **L2032 — past the end of the file.** No short-SHA
+collision existed and the reporter's repository does not track the file, so the disagreement was not
+staleness in either direction: two readers were describing **different artifacts**.
+
+Every instrument they trusted agreed with them. The quoted phrase resolved, the SHA was pinned and
+exact, and the neighbourhood was on-topic. **The only signal that anything was wrong was the
+coordinate that refused to resolve** — a line beyond EOF returns nothing, which is the one locator
+failure that cannot near-miss. That is the case recorded above as *safer than a stale line number*,
+arriving as the actual detector rather than as a curiosity.
+
+So the correction is not to demote content but to stop ranking these as a hierarchy: **content and
+coordinates detect different faults and neither subsumes the other.** Content catches landing in the
+wrong *place*; a coordinate catches holding the wrong *document*. Collapsing the table to its
+self-verifying row would have deleted the only instrument that caught this, which is the general
+hazard — **a detector that returns a confusing negative has not failed, and removing it on that
+evidence removes the finding along with the confusion.** When a locator class appears to fail, first
+ask whether it failed *as an instrument*.
+
+The remedy the episode argues for is the row most likely to be dropped as redundant: a **blob hash**
+denotes the bytes themselves, with no namespace, no revision, and no position, so two readers holding
+different artifacts discover it in one comparison instead of four exchanges. Pair it with a quoted
+phrase and the two failure modes are covered; either alone leaves one open.
+
 **What makes a line number uniquely bad is that the act which invalidates it is correct, unrelated,
 and elsewhere.** A renamed function breaks its references visibly; a moved file breaks a link; a
 changed API breaks a build. Editing a document *above* a cited range breaks every citation into it
