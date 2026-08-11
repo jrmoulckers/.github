@@ -485,6 +485,23 @@ would report it as drift forever.
   evidence, ask what result would have made the two disagree; if no such result exists, the second
   run measured nothing. An instrument that cannot return a different answer is not measuring.
 
+  The sharpened form is worth stating because it locates where the check is needed: agreement
+  between two *sessions* is more persuasive than agreement between two runs by one session, and it
+  deserves less credence. The apparent independence reads as coming from the operator when it comes
+  from the instrument, and cooperating sessions share a toolchain by construction. So the social
+  version of this error is simultaneously likelier to occur and harder to doubt, which means the
+  "what would have made us disagree?" question is most necessary exactly where it feels most
+  redundant.
+
+  **Measuring the present to conclude about the past is a distinct error from measuring something
+  stale.** The staleness case is a record that was true when written; this is a reading that was
+  accurate when taken and simply does not answer a historical question. A session dismissed a
+  reported corruption as a rendering artifact after inspecting a default branch some hours *after*
+  the repair had merged — the observation was correct, the inference backwards from it was not, and
+  nothing about the measurement itself signalled that it could not settle the claim. What settles a
+  past-state question is the historical object: the blob at the pre-fix ref. Before accepting a
+  measurement as evidence, check that the thing measured existed at the time the claim is about.
+
   **A wrong measurement that agrees with a correct decision leaves no symptom.** The failure above
   is a second instrument that cannot disagree; this is the same defect one step earlier, where a
   measurement is never checked at all because nothing it produced ever conflicted with the action
