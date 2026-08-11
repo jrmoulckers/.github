@@ -1347,6 +1347,16 @@ the reporter had.
 Citing an artifact also terminates the exchange, which prose cannot do: prose's only confirmation
 channel is another message, and that message is subject to the same defect.
 
+**Qualify every issue and PR number that leaves this repository — `jrmoulckers/studio#73`, never
+`#73`.** A citation discharges the obligation above only if it denotes the same object in the
+reader's namespace, and a bare number does not: the recipient resolves it against *their* repo,
+where it succeeds and returns a different issue. It does not error, it fails plausibly, and GitHub
+renders it as a live link wherever it is pasted, so the wrong answer arrives looking more
+authoritative than a missing one would. This repository sits between eight members, so nearly every
+number it forwards crosses a boundary — one such relay reached a member session tonight and resolved
+there to an unrelated issue. Paths, SHAs and blob hashes are namespace-free and need no
+qualification; issue, PR and discussion numbers always do.
+
 ### What belongs in the member's own region
 
 Everything above concerns the *managed* region. The region **outside** the markers is the part
