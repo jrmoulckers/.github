@@ -441,6 +441,21 @@ would report it as drift forever.
   recoverable from the merged result. The test for whether a proxy may be retired is not whether the
   new check is more accurate, but whether any question the proxy answered has no other instrument.
 
+  Applied honestly that test also returns *retire*, and a case from the same rollout shows what
+  that looks like. A proposed check compared `git check-attr` output before and after a merge, and
+  the same resolver-based reporter superseded it outright — not because it is finer, but because a
+  before/after diff can only fire on a **transition**, so it is blind to a file that was always
+  wrong. A member whose binary asset never had a correct attribute presents no merge to be the
+  "before", and the diff reports clean forever. An invariant on the file as it stands needs no
+  baseline, and therefore has no baseline to be wrong about. Nothing the diff answered was left
+  without an instrument, so it retires with no demotion.
+
+  The pair is the useful part: the same discriminator retires one check and preserves another, and
+  the question is never which instrument is better. Note also that the superseded proposal was
+  written by the same author who had established, hours earlier, that a diff answers *what changed*
+  and not *what exists* — the rule was applied to branches and not carried to checks, which is the
+  familiar shape rather than a lapse.
+
   **Absence of acknowledgement is a proxy for non-delivery, and the two diverge exactly when the
   answer was cheap to give and hard to verify.** A report answered in prose leaves its sender unable
   to separate *not received*, *received and disputed*, and *received and already fixed* — three
