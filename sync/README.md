@@ -553,6 +553,26 @@ up with the region below your rules is to place it there by hand, and the engine
 > old position keeps it until a human moves it. Silently reordering lines in a file the member owns
 > is the failure this placement rule exists to prevent, so the engine will not do it unasked.
 
+**A hand-seeded region is never byte-identical to what the engine writes.** The provenance line is
+added by `inject()` when the spec is built, so it is absent from the canonical source that a person
+copies from — omitting it is a property of the procedure, not a mistake. Two members pre-seeded and
+both omitted it (#180).
+
+This is harmless: `findBlock()` keys on the markers, so the region is found and replaced correctly.
+It does mean the first sync reports `update` rather than `unchanged`, which is accurate — a region
+missing a line the engine writes really is out of date. The practical rule is that **copying canon
+faithfully is not evidence that a member is sync-clean**, because the single line distinguishing the
+two is the one copying cannot supply. Check it with the dry-run instead:
+
+```bash
+node sync/index.mjs --dry-run --members <name> --work-dir <checkout>
+```
+
+Do not resolve this by adding the provenance line to the canonical source. `inject()` prepends
+unconditionally, so the rendered output would carry it twice, and the root `.gitattributes` is
+simultaneously the canonical source and this repo's own live rule — the one file where "do not edit
+here" is false.
+
 Prepending does **not** weaken the rule-strengthening described above: git resolves per *attribute*,
 so a member's later `* text=auto` (no `eol`) leaves canon's `eol=lf` standing. That is verified with
 real `git check-attr` in [`test/gitattributes.test.mjs`](test/gitattributes.test.mjs) rather than by
