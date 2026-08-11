@@ -567,6 +567,33 @@ was force-pushed **cannot be reopened**, so the recovery is a fresh PR from the 
 is only possible because the branch still exists. Preserve the branch and escalate rather than
 discarding work you believe is redundant.
 
+**A diff answers "what does this branch change", never "what does the base contain".** The compare
+above is the right call for supersession, but its output invites a specific misreading, because a
+three-dot diff describes only the delta. `.gitattributes | 7 +` is consistent with creating a
+seven-line file *and* with appending seven lines to an existing one, and a filename's presence in
+the `files` array says nothing about whether the base already has that path. Both readings were made
+during the first fleet rollout, in opposite directions and within an hour of each other: one session
+reported a file as newly created when the branch only appended a managed region to a member-authored
+file that already existed, and the other read the same entry as evidence the file was absent from
+the default branch when it had been present all along.
+
+When the question is about the **base** — does this file exist, does it already carry this rule —
+fetch it and look:
+
+```sh
+gh api repos/<owner>/<repo>/contents/<path> -H 'Accept: application/vnd.github.raw'
+```
+
+One call, and the answer cannot be misread. Use the compare for *what changes*, the fetch for *what
+is*. The failure mode is quiet in both directions: it manufactures absent files that are present,
+and reports present files as missing, and in each case the conclusion looks fully supported by real
+API output.
+
+The same distinction applies to the PR set itself. Looking up a known list of PR numbers answers
+"what is the state of these", not "what is open" — a PR opened outside the set is invisible to it,
+and every individual fact returned is still correct, which is what makes the resulting conclusion
+convincing. `gh pr list --state open` is the query that answers the second question.
+
 Members that validate their own generated assets must also respect two contract details, or they
 will report false failures — both were live in `jrmoulckers/homelab` on first sync:
 
