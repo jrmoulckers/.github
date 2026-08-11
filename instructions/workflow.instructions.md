@@ -887,8 +887,31 @@ Two failure modes, and checking for one does not check the other:
   reports success.
 
 Both are the same mistake at different levels: reading Markdown as flat text rather than as
-structure. Whichever form you use, **quote a sentence from the target**, because quoted content
-self-verifies against the reader's copy and a coordinate of either kind does not.
+structure. Whichever form you use, **quote a sentence from the target** — but do not expect the quote
+to settle it on its own.
+
+**Every locator is blind in the dimension it keys on.** Content keys on words, so it cannot see
+structure. A coordinate keys on position, so it cannot see content. A blob hash keys on bytes, so it
+cannot see meaning. They are not ranked and none subsumes another: they span different dimensions,
+and a given fault lands in one of them. The practical test for any locator someone proposes is to ask
+what it keys on — that names its blind spot.
+
+The case that establishes it: a member's decoder inflated a document, preserving every word while
+destroying every line boundary. The quoted phrase resolved perfectly against the mangled text — it
+had to, every word was present — and the only thing that dissented was the coordinate, which landed
+past the end of the file. The fault sat exactly in the dimension content resolution cannot perceive.
+
+That does not promote the coordinate. It fired by **arithmetic accident**: detection required the
+inflated coordinate to clear EOF, and had the cited passage sat anywhere in the document's first 39%,
+the same corruption would have produced a coordinate landing quietly *inside* the file on plausible
+neighbouring prose, dissenting about nothing. A detector whose sensitivity depends on where you
+happened to be pointing is not a detector.
+
+So carry more than one locator, and resist collapsing the set to whichever member last proved useful
+— that is the same move as choosing the instrument that worked most recently rather than the one that
+addresses the fault in front of you. When two readers may be holding different artifacts, a **blob
+hash** settles it in a single comparison; pair it with a quoted phrase and both failure modes are
+covered, where either alone leaves one open.
 
 ### Never enumerate from the artifact you are validating
 
