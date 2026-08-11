@@ -24,14 +24,6 @@
 //
 // All content is normalized to LF first so the rendered output (and therefore the
 // stored hashes) are deterministic regardless of the checkout's line-endings.
-
-import { commentSyntaxFor } from './comment-syntax.mjs';
-// The default note marks backbone canon (jrmoulckers/.github). Vendored assets sourced from a
-// different repo (e.g. @jrm/tokens from jrmoulckers/studio) pass their own `note` so the header
-// points at the true origin.
-//
-// All content is normalized to LF first so the rendered output (and therefore the
-// stored hashes) are deterministic regardless of the checkout's line-endings.
 //
 // The note deliberately carries NO revision. It is inside `targetSha256` (which hashes the
 // injected rendering) while `sourceSha256` hashes raw canon, so a revision here changes every
@@ -44,6 +36,8 @@ import { commentSyntaxFor } from './comment-syntax.mjs';
 // an older value unrecognizable, and they are then reported as member drift — a file the member
 // never touched. See "A revision in the provenance header is inside the target hash" in
 // docs/sync.md before changing this.
+
+import { commentSyntaxFor } from './comment-syntax.mjs';
 
 export const PROVENANCE_NOTE =
   'synced from jrmoulckers/.github — canonical source; do not edit here';

@@ -2525,6 +2525,31 @@ The general form is the one that keeps recurring: **a passing check licenses exa
 measures**, and a guard that has caught several real faults earns a trust that quietly extends to
 faults it cannot see.
 
+**Duplication is the third member of that blind set, and it is already in the tree.** Verifying an
+unrelated citation against `sync/lib/provenance.mjs` surfaced two byte-identical copies of the same
+two-paragraph header comment, with the `commentSyntaxFor` import wedged between them — introduced by
+`e4e8f23`, carried through `fdab6f6`, and reviewed by nobody as a defect because it reads as
+plausible prose in both positions. A duplicated block removes nothing, so purity passes; it lands
+under the heading it was copied from, so the placement check passes too. **Both standing guards are
+insertion-only, and duplication is a pure insertion.**
+
+The cheap third check is a repeat count on a distinctive phrase from anything inserted, which costs
+one command and is the only one of the three that would have caught this:
+
+```powershell
+git --no-pager diff -U0 -- $f | Select-String '^\+[^+]' |
+  ForEach-Object { ($_.Line.Substring(1)).Trim() } |
+  Where-Object { $_.Length -gt 40 } |
+  ForEach-Object { [pscustomobject]@{ n = (Select-String -Path $f -Pattern ([regex]::Escape($_)) -SimpleMatch).Count; line = $_ } } |
+  Where-Object { $_.n -gt 1 }
+```
+
+Note how it was actually found: not by a guard, not by review, but by diffing a file because a
+correspondent cited a stale blob hash for it. The defect had been committed for two merges. **A
+fault invisible to every standing check is found only by an errand that had no reason to look**, so
+when an errand does put you in front of a file, read what is there rather than only the lines you
+came for.
+
 ## Idempotency & drift
 
 - The tool is **idempotent**: once a member carries a lockfile, re-running with no upstream change
