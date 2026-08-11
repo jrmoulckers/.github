@@ -2025,6 +2025,27 @@ So the detection was conditional on the product of three quantities none of whic
 controls: the inflation factor, the position of the cited passage, and the length of the file.
 **A detector whose sensitivity depends on where in the document you happened to be pointing is not a
 detector**, and generalising from the case where it fired means reading a 61% coin as an instrument.
+
+**The bias is worse than a fixed coin, because it moves the wrong way.** Detection needs
+`L × f > N`, so the blind region is the first `N/f` lines — a blind *fraction* of `100/f`,
+independent of file length:
+
+| inflation factor | blind fraction |
+| --- | --- |
+| 1.2× | 83.3% |
+| 1.5× | 66.7% |
+| 2.56× | 39.1% |
+| 4.0× | 25.0% |
+
+As `f → 1` the blind fraction → 100%. So the detector is most sensitive to violent corruptions,
+which any instrument catches and which a reader often notices unaided, and blindest to mild ones —
+where every other instrument also stays quiet and the mangled prose reads most plausibly. **Its
+sensitivity is anti-correlated with the need for it.** The observed 2.56× sat near the favourable
+end of that range, so the one case it fired on was close to its best.
+
+That is a sharper reason to withdraw it than the coin-flip framing: an instrument with a fixed
+success rate is merely weak, while one whose success rate rises with the ease of catching the fault
+some other way contributes nothing at the margin where instruments matter.
 The narrower, defensible statement is the one recorded earlier and unaffected: past-the-end is a
 *relation* between a coordinate and the reader's copy, not a property of the coordinate — which is
 precisely why it cannot be relied on, since the relation is destroyed by the same corruption that
@@ -2247,6 +2268,17 @@ produced.** The whole force of the argument is that two independent measurements
 the two figures came from neither instrument, there was one measurement and a recollection. Divergence
 between a measurement and a misremembering looks identical to divergence between two instruments, and
 is evidence of nothing.
+
+**Which makes the authorship query load-bearing, and the obvious one is blind.** Checking whether a
+disputed sentence was actually mine, the natural search — this session's `turns.assistant_response`
+for the hash under dispute — returned **zero rows**, and the sentence was mine. Outbound
+cross-session messages are sent as tool calls, so their text lives in the call arguments and never
+appears in the assistant response body. The default authorship query therefore excludes, by
+construction, the entire population at issue in any cross-session dispute: everything this session
+said to another one. It reports that absence as a clean negative, which reads as *I never wrote
+that* — the most confident possible answer, produced by not having looked. Search `search_index`, or
+the recipient session's `user_message`, and confirm the query can find a message known to have been
+sent before trusting it to say one wasn't.
 
 **And a systematic offset is a convention, not a second instrument.** Re-measuring all five revisions
 here gave 1621, 1629, 1648, 1847, 1939 against the other session's 1622, 1630, 1649, 1848, 1940 —
