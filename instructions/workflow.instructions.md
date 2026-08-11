@@ -318,6 +318,12 @@ cannot happen there. `jrmoulckers/studio` is public — `"private": false` — a
 candidates to run**, every one of them on `ubuntu-latest`, `windows-latest` or `macos-latest`. No
 larger runners involved. The claim was falsifiable, was load-bearing, and was false.
 
+**And it is two episodes, not one run** — which is what makes it an account state rather than a
+transient. Three weeks earlier, `29662565649` / `29662570979` / `29663406932` on
+`2026-07-18T21:57–22:25Z` were refused the same way, 1-of-1 jobs each, on `ubuntu-latest`, on the
+same public repository. Four runs, both `push` and `pull_request`, two separated dates. A one-run
+falsification invites *some transient*; two do not.
+
 That denominator is 8 rather than the run's 9 jobs, and the discarded job is worth a sentence because
 it is the one a careless count reaches for. `security / Dependency review` reports zero steps on that
 run — but it reports zero steps on green runs too, where it is `skipped` by a job conditional, so it
@@ -325,6 +331,16 @@ looks *identical* whether or not the account is refused. **The discriminator is 
 `failure` at zero steps.** A `skipped` job at zero steps is ordinary. Counting it as a ninth refusal
 inflates the load-bearing number with the only job in the run that carries no information, and
 implies a partial refusal — as though one job had escaped — when that job was never a candidate.
+
+**Do not drop it on the baseline alone, because that reason selects a larger set than the predicate
+does.** The same refused run carries `lint / Semantic PR title`, which is *also* zero-step on green
+runs — `skipped` there, `failure` and annotated on the refused one. So "zero-step regardless of
+billing" is true of both, and a reader applying that reason drops two jobs and reports **7**. What
+separates them is the `conclusion`, which is in the predicate and was missing from this prose.
+**Baseline behaviour identifies a candidate for exclusion; only the conclusion confirms one.** The
+justification is the portable half — it is what a reader carries to another repository — so a
+justification that generalises wider than its predicate discards a real victim, and does it silently,
+because the wrongly-dropped job looks exactly like the one it was right to drop.
 
 Two habits follow. Report the population you actually measured (`8 jobs, every one a standard
 runner`) rather than an `N of N` that reads as a census: the run's job count moves with the trigger —
@@ -369,6 +385,13 @@ wording plus two observations, and GitHub's billing internals are not visible fr
 no procedure — the annotation was already the thing to resolve on — but it predicts that a repository
 can recover while a sibling does not, so do not read a fleet-mate's return to green as a lift.
 
+**And it is not merely undocumented — it is unfalsifiable from the evidence this section tells you to
+fetch.** All 11 annotations across all four refused runs are a single canned string, and that string
+carries **both clauses joined by `or`**. GitHub is not reporting which condition fired; it is
+declining to distinguish them. So no operator can ever confirm the clause from the annotation, and
+the recovery-time asymmetry is the only observable bearing on it — inference from timing, not
+evidence from the message. Do not present the two-clause account to anyone as diagnosable.
+
 Discriminate before investigating, because the two look nearly identical and only one of them is
 a defect in this repository:
 
@@ -395,6 +418,15 @@ predicate is `steps == 0 && conclusion == 'failure'`, which is **8** — exactly
 Sharpening the predicate **collapsed** the disagreement rather than splitting it, and a
 reconciliation that explains why two numbers may both stand should be suspected first of having
 skipped that step: *two correct denominators* is the more flattering finding and the rarer one.
+
+**State which case a predicate has not been exercised against.** That predicate has been run over
+studio's whole failure history: 8 ordinary failures (lint, build, and so on) yield zero false
+positives, and all four refused runs match. But studio has **0** `startup_failure` runs ever, so it
+has never been tested against the **caller-permissions trap** — the exact confusable this section
+exists to separate. A discriminator validated only against the easy contrast has not been shown to
+discriminate. The honest form is *no false positives on 8 ordinary failures; not yet tested against
+the case it is meant to distinguish*, and the missing fixture can be built deliberately by calling
+`reusable-ci-lint` without `pull-requests: read`.
 
 **A control must be pinned to the workflow revision, not merely to the event.** Comparing that run
 against a green one showed 11 jobs against 9, with `native-kotlin` and `native-swift` absent — which
