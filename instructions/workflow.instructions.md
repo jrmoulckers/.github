@@ -1512,6 +1512,30 @@ likeliest place to strand a retracted claim and the least-reviewed surface in th
 it is what gets skimmed rather than read. After correcting an argument, search for every restatement
 of the *reason* you withdrew, not of the finding you kept.
 
+**A correction does not reach the status line you carry forward.** Both rules above are
+*argument-scoped*: a summary sits inside the passage being corrected, so a search prompted by the
+correction reaches it. A standing status line — the tip, the tree state, the unchanged blocker list
+restated at the foot of every message — sits outside every argument. It was correct when first
+written, it is never the subject of the message carrying it, and no argument-scoped search will ever
+touch it. Here a correspondent's correction to a repository tip was accepted, acted on, and landed
+in the same message whose footer went on asserting the superseded figure. Repetition is what makes a
+claim look settled and is exactly what removes it from review, so after accepting a correction,
+check whether any text you restate by habit asserted the old value.
+
+**Expect the corrected figure to be the one that goes stale.** A value that arrives as someone
+else's correction comes with evidence and an admission attached, so it carries more authority than
+one you measured yourself — which is precisely what promotes it into boilerplate and exempts it from
+re-derivation. The correction is the event that installs the permanent staleness, and the slot most
+likely to be wrong next is the one most recently fixed.
+
+**A stale figure has two causes and they are indistinguishable from the receiving end**: copied
+forward without re-derivation, or derived correctly and decayed in transit. The message reporting
+the stranded footer above carried a stale tip of its own, superseded about a minute before it was
+sent and so almost certainly correct at measurement time. That is the hub-versus-lag asymmetry one
+register over — the discriminating fact is *when you measured*, and it is held only by the sender.
+Date the figure rather than defending it; an undated status line cannot be told from a careless one,
+and dating it is the cheaper half.
+
 **Naming a revision does not certify the figures beside it.** A reader binds every number in a
 message to the SHA that message names, so a coordinate measured at one revision and published
 alongside another is trusted *because* the revision was cited. Naming the tip reads as rigour and
