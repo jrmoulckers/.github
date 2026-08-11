@@ -838,6 +838,55 @@ warning went into a log nobody read.
 > 21,016 bytes / 20,809 + 80 = 20,889 characters. A byte count compared against a character count
 > matches nothing and reads as a fabricated number, which is exactly how it presented.
 
+**Diagnosing a size mismatch.** Every size disagreement in this fleet so far has resolved to a unit,
+encoding or instrument difference rather than a content difference — and each was a *per-element*
+error, adding a fixed amount per line or per character. So the wrong figure is a monotone transform
+of the right one: ordering, ratios and order of magnitude all survive, and only an absolute
+comparison against an independently obtained value can fail. Judging whether a number "looks
+sensible" cannot catch any of them.
+
+When two figures disagree, difference them and ask whether the delta equals something countable:
+
+| delta equals | diagnosis |
+| --- | --- |
+| the line count | LF content measured as CRLF (`Out-String`, a text-mode read, a copy through Windows) |
+| the excess UTF-8 bytes | a byte count compared against a character count |
+| nothing countable | a genuine content difference — now compare the bytes |
+
+**Excess bytes is not glyph count**, and the expression depends on what the tool means by
+"character":
+
+```
+against codepoints:     Σ(utf8_len − 1)
+against UTF-16 length:  (2-byte × 1) + (3-byte × 2) + (astral × 2)
+```
+
+An astral character is *already* two UTF-16 units, so it adds 2, not 3. JavaScript's `.length`, .NET
+and PowerShell all count UTF-16 units, so the codepoint form over-predicts by one per emoji against
+the measurement anyone will actually take. Measured across this repository's 182 tracked text files
+at `92c15d4`, the empirical delta was 5,171 bytes: the UTF-16 form gives 5,171 and the codepoint
+form 5,172. The single discrepancy was `U+1F4CC` at `lib/pr.mjs`, which is to say the rule needs
+stating even where the corpus is one character away from not caring. The figure is pinned to a
+revision because this file is inside the corpus it describes — adding this note moved the total,
+which is the same instrument-perturbs-measurement problem the note is about.
+
+For a corpus of em dashes and curly quotes — 3-byte codepoints, which is most prose here — the delta
+runs at very nearly **twice** the count of non-ASCII characters.
+
+One file can therefore carry three defensible sizes, spanning 7.8%:
+
+| `.github/skills/edge-sync/SKILL.md` | size |
+| --- | --- |
+| characters (UTF-16 length) | 9,134 |
+| bytes, LF — what git stores | 9,647 |
+| bytes, CRLF — what a Windows text-mode read reports | 9,846 |
+
+All three are "the size of the file", so quoting one without naming the unit, the encoding and the
+instrument invites exactly the disagreement above. Note that git's side of this is not in doubt: the
+`.gitattributes` region pins `eol=lf`, so canon is pure LF on the wire and any CR seen in a
+measurement was introduced by the reader.
+
+
 So each drift item now carries **`withheld`** and **`lastWrittenAt`**, and the CLI, the run-log
 warning and the sync PR body all separate the two cases:
 
