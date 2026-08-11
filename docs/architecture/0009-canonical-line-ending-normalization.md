@@ -137,8 +137,14 @@ each opted-in member's root through the **managed-region merge** rather than a w
   file is classified `-text`, `eol=lf` does not apply to it, and `git add --renormalize` skips it.
   The corruption therefore blocks its own repair and is invisible in a rendered diff. This was not
   hypothetical: all thirteen of the backbone's own community-health files were in that state, so
-  canon's LF rule was inert for exactly the files GitHub serves org-wide. `git ls-files --eol | grep
-  'i/-text'` detects it; stripping the stray CRs is the only fix. `sync/test/gitattributes.test.mjs`
+  canon's LF rule was inert for exactly the files GitHub serves org-wide. **`git ls-files --eol |
+  grep 'i/-text'` alone does not detect it** — this ADR originally offered that command and it is a
+  bad check: every tracked image, font and icon is legitimately `-text`, so it returns 60 rows in
+  `jrmoulckers/jrm-recipes` and not one of them is corruption. The signature is `i/-text` **and zero
+  NUL bytes**, since a genuine binary is `-text` *because* it contains NUL while this corruption is
+  `-text` despite containing none; `docs/sync.md` carries the two-condition command. A check that
+  fires 60 times on a healthy repo is not a weak check but a harmful one, because it teaches its
+  reader to skip it. Stripping the stray CRs is the only fix. `sync/test/gitattributes.test.mjs`
   now asserts no tracked file here is classified `-text`, and pins the mechanism behind it.
 - The managed-merge machinery is no longer Markdown-only. Any future canon file that supports `#`
   comments can be distributed the same way at no additional cost.

@@ -87,13 +87,28 @@ nothing about `eol`. Had resolution been per line, prepending would have silentl
 `game-library`'s fix. The regression test asserts through `git check-attr` rather than string
 matching for exactly this reason: the property is git's resolution, not our byte order.
 
-**Migration cost is near zero, because the fleet had barely adopted the kind.** At the time of this
+**Migration cost was near zero, because the fleet had barely adopted the kind.** At the time of this
 decision, of eleven members: five had no `.gitattributes` at all, four had one without the managed
 region, and two had the region — `jrmoulckers/studio`, which pre-seeded it at the top (already the
-position this ADR mandates), and `jrmoulckers/docket`, whose only local rule is byte-identical to
-canon, so ordering is moot. No member needs a migration PR.
+position this ADR mandates), and `jrmoulckers/docket`.
 
-**No member needs to pre-seed the markers, either.** Because canon is prepended, a member's own
+**`docket` did need a migration PR, and this ADR originally said no member would.** The original
+reasoning was that docket's only local rule is byte-identical to canon, so ordering is moot. That is
+true of the *resolved value* and does not follow for *placement*: docket's rule sat at line 1 with
+the region beneath it, which is the arrangement this ADR forbids, and `findBlock()` replaced the
+region in place across an intervening sync without relocating it. It was fixed by hand in
+[`docket` PR #92](https://github.com/jrmoulckers/docket/pull/92), merged `e0f5f54d` on 2026-08-11.
+
+That correction matters more than the bookkeeping, because the mechanism it exercised is still live:
+
+**An empty audit is a fact about today's fleet, not a property of the engine.** Eleven members
+currently carry no rule above a region. That is worth knowing and must not be read as the hazard
+being closed — the engine prepends, so it never *creates* the state, and it replaces in place, so it
+never *repairs* it either. Any member that acquires a region before a future placement change lands
+in exactly docket's position and will likewise need a human, for the reason given in the Decision:
+repositioning a member's file unasked is the failure this ADR corrects.
+
+**No member needs to pre-seed the markers.** Because canon is prepended, a member's own
 rules land after it and remain authoritative on the first sync with no preparation. Pre-seeding was
 the correct workaround while the region was appended; it is now redundant for placement purposes,
 and documenting it as a requirement would spread an obsolete instruction. Studio's pre-seeded region
@@ -141,10 +156,13 @@ that does not stop being true when the engine is confident.
 
 **Detection is by precedence, not position.** Checking "is the region first" produces false
 positives on the real fleet — `finance` has a comment block above its region, and comments carry no
-precedence; `docket`'s rule above its region is byte-identical to canon, so the override sets a
-value to itself. Both look like violations by position and neither is one. What is checked is
-whether an earlier line sets an attribute to a value canon then *changes*, which is what git
-resolves. Measured against every member file carrying a region, that reports zero.
+precedence; `docket`, before PR #92 moved its region, had a rule above it that was byte-identical to
+canon, so the override set a value to itself. Both look like violations by position and neither is
+one. What is checked is whether an earlier line sets an attribute to a value canon then *changes*,
+which is what git resolves. Measured against every member file carrying a region, that reports zero.
+Note that docket is a false positive for the *position* check and a true instance of the underlying
+hazard: it needed a human either way. Precedence is the right test for whether canon is being
+overridden, and it is not a test for whether the region is where this ADR says it belongs.
 **Audit rather than infer.** The reliable check is empirical: run `git check-attr` on a
 representative file in a member before and after its first sync. Reasoning from the rendered text
 is what allowed this defect to ship, because the text looked right in both orderings. For whether a
