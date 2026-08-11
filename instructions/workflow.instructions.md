@@ -130,6 +130,23 @@ one-sided instrument cannot distinguish *the property is absent* from *I cannot 
 This applies to any measurement reported as a zero: no matches, no drift, no candidates, no
 regressions. State what you did to show the instrument fires.
 
+**And a filter that silently degrades to no filter returns the unfiltered answer — which confirms a
+figure derived without one.** A path-filtered commit count built its path list from a lockfile field
+that does not exist, producing an empty array, which `git log --` treats as *no restriction*. It
+returned exactly the number under test. That is worse than failing to discriminate: the probe did not
+merely stay silent, it **agreed with the hypothesis**, and an independent-looking confirmation is the
+one result nobody re-checks. Give any filtered measurement a control whose answer must differ — a
+narrower scope that has to return less — and a filter that cannot express *empty* should refuse
+rather than pass everything.
+
+**An instrument can also loudly deny a right answer, and that failure is not the safe one.** A check
+written to prove a timestamp parsed as UTC compared an ISO round-trip against a seconds-precision
+input and reported `false` on the millisecond field alone; the parse was correct. A false alarm looks
+harmless because it fails closed, but it directs work at code that is not broken — and the plausible
+"fix" for a phantom timezone bug is the coercion that introduces a real one. **A wrong verdict costs
+whatever the correction costs**, in either direction, so exercise a validating check against a case it
+must accept before trusting its rejections.
+
 ### A clean audit is not evidence when the property is not local
 
 Reading every site of a pattern and finding nothing wrong is evidence only if the defect would be
@@ -1147,9 +1164,34 @@ that sat blocked, either request a regeneration or record the remaining distance
 outlives the PR. **Measure it rather than estimating it** — count the canon commits touching managed
 sources since the branch head; that number is the gap you still have.
 
+**Name the population that does *not* count, because the wider measurement is the cheaper one.**
+"Managed sources" excludes backbone-internal documentation and the sync engine's own code, and those
+dominate: over one nine-hour window libro's residual was **76** canon commits unfiltered but **14**
+touching sources it actually receives — 60 were `docs/`, which is never distributed, and 16 were
+`sync/`. A bare `git log --since` is easier to reach for than a path-filtered one and returns a
+plausible number, so **a rule that names a narrow population while remaining satisfiable by a wider,
+cheaper measurement will be satisfied by the cheaper one.** State the disqualifying set, not only the
+qualifying one.
+
+**And record it where it outlives the conversation, not just the PR.** Everything establishing a
+residual — the count, the window, the method — typically lives in a thread and a merged PR body in
+another repository. A reader arriving later has no thread to follow, so the artifact must **restate**
+the measurement rather than cite it, and should close on the regeneration rather than on the merge.
+
+That durability is also why the figure has to be right. An artifact built to outlive its own
+conversation removes every later opportunity to catch an error in it, and will be believed by someone
+with no access to the reasoning. **Durability is a multiplier on correctness, not a substitute for
+it** — re-derive the number against the definition the rule actually names before writing it down.
+
 And when checking whether a rule reached you, **search the exact phrase, not its topic**. The token
 `peer` occurs four times in libro's copy while the peer-gate rule is entirely absent; a keyword search
 would have reported it present.
+
+That test proves absence reliably **only when the phrase is canon's own wording**. A member that
+paraphrases a rule while keeping its substance will be reported as missing it — false drift rather
+than false currency. That is the safe direction to fail, and it cannot arise for synced regions, which
+are byte-identical or drifted with nothing in between. It does arise for hand-seeded and
+member-authored content, so treat a phrase-search miss there as a prompt to read, not as a verdict.
 
 ### A correct verdict does not make the remedy correct
 
