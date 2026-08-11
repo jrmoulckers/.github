@@ -1193,6 +1193,12 @@ than false currency. That is the safe direction to fail, and it cannot arise for
 are byte-identical or drifted with nothing in between. It does arise for hand-seeded and
 member-authored content, so treat a phrase-search miss there as a prompt to read, not as a verdict.
 
+It also constrains how a claim gets **retracted**, since this search is what a reader runs against a
+rule they remember. **When you withdraw a claim, keep its original wording inside the withdrawal.**
+Delete the words and the search returns nothing, which reads as *this was never here* rather than
+*this was retracted* — and the person running that search is usually the person who acted on the
+claim, so the reader who most needs the correction is the one a clean deletion serves worst.
+
 ### A correct verdict does not make the remedy correct
 
 A guard that fails closed on the right input can still do harm, because the *diagnostic* is a
