@@ -127,7 +127,7 @@ export function validateManifest(m) {
       }
       validateOptIn(member, i, m, errors);
       validateLocalAgents(member, i, m, errors);
-      validateMemberTokens(member, i, errors);
+      validateMemberTokens(member, i, errors, m);
     });
   }
 
@@ -233,8 +233,18 @@ function validateTokens(m, errors) {
   }
 }
 
-/** Validate a member's optional `tokens` opt-in block: { enabled: boolean, targetPath?: string }. */
-function validateMemberTokens(member, i, errors) {
+/**
+ * Validate a member's optional `tokens` opt-in block: { enabled: boolean, targetPath?: string }.
+ *
+ * An override equal to the default is rejected rather than tolerated. It is not merely
+ * redundant: it is indistinguishable from a deliberate pin, and the two behave identically
+ * until the default changes — at which point every other member follows the new path and this
+ * one silently does not, with no diff on its line and nothing failing. A value that restates
+ * the default expresses neither intent, so it is refused and the author has to pick one. A
+ * real pin still works; it just has to name a path that actually differs, which is what
+ * pinning means.
+ */
+function validateMemberTokens(member, i, errors, manifest) {
   if (member.tokens === undefined) return;
   if (!isObject(member.tokens)) {
     errors.push(`members[${i}].tokens must be an object`);
@@ -245,6 +255,15 @@ function validateMemberTokens(member, i, errors) {
   }
   if (member.tokens.targetPath !== undefined && typeof member.tokens.targetPath !== 'string') {
     errors.push(`members[${i}].tokens.targetPath must be a string`);
+    return;
+  }
+  const fallback = isObject(manifest?.tokens) ? manifest.tokens.targetPath : undefined;
+  if (typeof member.tokens.targetPath === 'string' && member.tokens.targetPath === fallback) {
+    errors.push(
+      `members[${i}].tokens.targetPath ("${member.tokens.targetPath}") restates tokens.targetPath. ` +
+        'Remove it to follow the default, or pin a different path — an override equal to the ' +
+        'default is a silent divergence the moment the default moves.',
+    );
   }
 }
 

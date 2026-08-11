@@ -2529,9 +2529,16 @@ Because tokens come from an external repo (not `.github` canon), they get their 
 }
 
 // per member
-"tokens": { "enabled": true, "targetPath": "vendor/@jrm/tokens" }  // explicit repo-root pin
+"tokens": { "enabled": true }              // follows the default path
+"tokens": { "enabled": true, "targetPath": "packages/ui/vendor/@jrm/tokens" }  // pin elsewhere
 "tokens": { "enabled": false }             // score-king / jrm-recipes declared but off
 ```
+
+An override that **restates** `tokens.targetPath` is rejected by manifest validation. It is not
+just redundant: it is indistinguishable from a deliberate pin and behaves identically to one
+until the default changes, at which point every other member follows the new path and this one
+silently does not — no diff on its line, nothing failing. Remove it to follow the default, or
+pin a path that actually differs. No member overrides the path today.
 
 The whole `sourceBase` tree is mirrored today. The schema leaves room for a future optional
 per-member `include` (an array of sub-globs under `sourceBase`) to narrow what a member receives,
