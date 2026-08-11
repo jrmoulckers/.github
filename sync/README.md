@@ -814,6 +814,12 @@ baseline pinned at a `sourceSha256` of `343e10b1…` while the token source had 
 `f7e03275…`. The engine refused correctly every time. The file simply stopped advancing, and the
 warning went into a log nobody read.
 
+> Both figures are **characters, not bytes**, and the distinction has already caused one
+> cross-repo disagreement. The same two files measure 21,016 and 45,672 bytes; canon's blob at that
+> revision is 45,672 bytes / 45,465 characters, and the member's is 20,934 + 82 header bytes =
+> 21,016 bytes / 20,809 + 80 = 20,889 characters. A byte count compared against a character count
+> matches nothing and reads as a fabricated number, which is exactly how it presented.
+
 So each drift item now carries **`withheld`** and **`lastWrittenAt`**, and the CLI, the run-log
 warning and the sync PR body all separate the two cases:
 
@@ -876,9 +882,14 @@ The count is computed **lazily, per drifted path**. Walking every target's histo
 than doubled the wall time of a real run; a drift list is normally two or three entries, so the
 work is proportional to the problem rather than to the fleet.
 
-`jrmoulckers/finance` is the worked example again: its `vendor/@jrm/tokens/css/default/tokens.css`
-reports `12 canon revisions behind`, which is the difference between a line a reader skims and a
-line that says how much has accumulated.
+`jrmoulckers/finance` is the worked example again: its two withheld skills files report
+`last received canon never, 1 canon revision behind`, which is the difference between a line a
+reader skims and a line that says how much has accumulated. The number is small today because canon
+has published those paths once; it grows with every revision the member cannot receive, and that
+growth is the signal. An earlier version of this example cited that member's vendored
+`tokens.css` at `12 canon revisions behind` — true when measured, and no longer, because the file
+converged once its lock baseline was corrected. A worked example naming a *recovered* file is worse
+than none, since the reader checks it and finds nothing withheld.
 
 A formatter is the most likely way to arrive here without meaning to: `.github/copilot-instructions.md`
 is Markdown, is a managed-region target, and is shipped to every member. A member running Prettier
