@@ -1832,6 +1832,35 @@ existed when the comparison was made. A stale local ref resolves **silently**: n
 nothing to distinguish it from a current one. So resolve any moving name to a SHA and publish the
 SHA, and treat a mixed table of names and SHAs as a table whose rows are not comparable.
 
+**Publish a hash of the bytes you measured, not only the name of the revision you believe they came
+from.** This is the remedy the three preceding rules were circling, and it works because of a cost
+asymmetry. **Naming a revision is free**: it requires no contact with the artifact, so it can be
+written from memory, from a stale local ref, or from the tip the author believes they are on. It is
+an assertion produced *beside* the measurement rather than *by* it, which is why nothing local
+detects it being wrong, and why it makes matters worse than silence — it reads as rigour while
+supplying confidence in figures the revision never certified. A content hash is derived from the
+measurement input, so it cannot be recalled and cannot resolve against the wrong artifact; it fails
+closed and loudly. Verified in both directions here: a correspondent published four figures with a
+blob prefix, and every one reproduced exactly against the named blob — `208967` bytes, `2887` LF,
+`2888` split-lines, `db6335a8` — which is the first exchange in a long thread where agreement was
+established by construction rather than by both parties being careful.
+
+**But the hash must come from the buffer that produced the figures, not from a second read of the
+path.** The cost argument fails the moment the hash is obtained separately, because touching the
+artifact *again* is cheap and yields a fresh certificate for stale numbers. Demonstrated: figures
+taken from a blob at one revision (`LF=2887`) and paired with `git hash-object` of the working-tree
+path (`013982ed`, whose actual `LF` is `2862`) produce a published pair that is internally false and
+in which every component individually resolves. That artifact is strictly more dangerous than a bare
+SHA, since a hash looks *derived* and a name only looks *asserted*. Hash the buffer you counted.
+
+**And resolving a hash is not checking it.** A reader who confirms the hash denotes a real object
+has confirmed the artifact exists, not that it produced the numbers standing next to it. The check
+is recomputation of the figures from the hashed bytes, and nothing about a resolvable hash prompts
+it. Note what the hash still cannot do: it keys on bytes, so it discriminates *which artifact* and
+is blind to *which convention* was applied to them — the mirror of a residual, which discriminates
+convention and is invariant to the file. Neither closes the gap and their union does, so publish
+both.
+
 **And the region you may not edit is the region nobody reads.** A member-side conformance check
 asserts against the lockfile, so it catches a member drifting from what the engine produced and
 silently certifies a rendering the engine got wrong — it is a conformance instrument, and being
