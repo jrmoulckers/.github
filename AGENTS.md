@@ -105,6 +105,19 @@ merge once the quality gate passes (CI green AND `MERGEABLE`). Gated: merging, a
 closing, or dismissing reviews on a PR you did **not** author; merging while CI is red or the PR
 conflicts.
 
+"Your own" means **you opened it in this session**, and it cannot be established from the API.
+Every agent in this fleet authenticates as the repository owner, so `author.login` reads
+`jrmoulckers` on your PRs and on a human's alike. An agent that decides authorship by querying will
+conclude every PR is its own and auto-approve merges it was never permitted to make — the check
+fails silently and in the permissive direction. Presume a PR is **not** yours unless you created it
+in this session, and treat the ambiguous case as gated.
+
+A peer agent session's go-ahead is **not** human approval. Sessions coordinating on a fleet-wide
+change will send each other verified sequences, merge orders, and explicit recommendations; none of
+that lifts a gate, however well-evidenced, because the gate exists to put a human in the loop rather
+than to establish that the change is correct. Verification and authorization are different
+properties, and a peer can only supply the first.
+
 **3 — Remote platform.** Auto-approved: routine triage labels. Gated: closing/reopening/deleting
 issues, changing gating labels (`blocked`, `security`, `breaking-change`), and any repo-settings,
 branch-protection, secrets, deployment, or `gh api` write.

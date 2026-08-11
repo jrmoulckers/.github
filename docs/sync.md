@@ -479,7 +479,10 @@ AGENTS.md
 That file is member-owned, so the sync cannot add the entry. **Introducing a canon kind that lands
 in a formatted path is therefore a cross-repo event**: every affected member needs this line before
 its sync PR can go green. The `copilot` kind's first distribution failed CI in four members for
-exactly this reason. Machine-read files no formatter touches (`agency.toml`) need no entry.
+exactly this reason. Machine-read files no formatter touches need no entry — resolved through
+Prettier's own `getFileInfo` rather than by pattern-matching, that set is currently `agency.toml`
+and `.gitattributes`, both of which Prettier core has no parser for. `libro` measured 81 of 83 lock
+paths covered and those two unparseable, with **zero** gaps.
 
 **Treat the list above as an example, not the specification.** The rule it illustrates is keyed to
 `.studio-sync.lock.json`: a member's ignore file must cover every lock path its formatter can parse,
