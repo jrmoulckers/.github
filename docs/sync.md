@@ -757,6 +757,15 @@ branch holds whatever the engine did at generation time, and merging an old one 
 that has since been fixed. Before merging, check the branch's creation time against the last change
 under `sync/lib/`; if the engine moved in between, regenerate rather than merge.
 
+**Run that check unconditionally, because nothing in the artifact will prompt you to.** A generated
+file carries no evidence of its own staleness. Its bytes are self-evidencing: a wrongly-ordered
+`.gitattributes` really is wrongly ordered, the reading is correct, and the artifact points nowhere
+at the generator that produced it or at when. So there is no observation you can make *of the branch*
+that triggers the question — which means the check cannot be prompted by suspicion and has to be run
+because the file is generated at all. This is why "verify before asserting" is not enough on its own:
+verification confirms what the artifact says, and what the artifact says is true. Every session that
+mis-diagnosed a stale branch as a live engine bug during the first rollout had read it correctly.
+
 That is worth a real check rather than a habit, because the engine's non-relocation guarantee turns
 one class of staleness into permanent damage. A managed region is replaced *where it already is*, so
 a region merged into the wrong position is never repaired by a later sync. A branch generated before

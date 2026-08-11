@@ -331,6 +331,20 @@ would report it as drift forever.
   not closed on the strength of a green measurement — otherwise the audit that proves it safe today is
   the same audit that will keep proving it safe right up until someone edits the coincidence away.
 
+  **Some wrong units cannot be detected by looking harder.** The instances above are mostly caught by
+  asking a better question of the thing in front of you. One class is not: where the property you need
+  is not present in the artifact at all. A generated file does not record which version of the
+  generator produced it, so no amount of correct reading reveals that its ordering reflects a bug fixed
+  hours earlier — the bytes are genuinely wrong, and the reading is genuinely right. Three separate
+  sessions diagnosed a live engine bug from such a file, all correctly describing what they saw.
+
+  This separates two remedies that are easy to conflate. *Verify before asserting* works when the
+  evidence is in reach and merely unexamined. It does nothing here, because verification confirms the
+  artifact and the artifact is accurate about everything except its own provenance. What works instead
+  is a check triggered by the artifact's *category* rather than by anything observed in it: this file
+  is generated, therefore ask when. A rule that fires on suspicion cannot cover a case that produces
+  none.
+
   **Status of this consequence: promising, not established.** Every instance was found by one
   rollout, and the diagnostic above has so far only been validated by the people who wrote it.
   Recorded because the reasoning is cheap to apply and the failure it prevents is expensive — not
