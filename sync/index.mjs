@@ -42,11 +42,11 @@ import { apply } from './lib/copier.mjs';
 import { cloneShallow } from './lib/git.mjs';
 import { assertMemberCheckout, assertMemberIdentity } from './lib/workdir.mjs';
 import { resolveStudioRoot } from './lib/studio.mjs';
-import { formatDriftWarning, syncMembers } from './lib/runner.mjs';
+import { formatDriftWarning, renderRunSummary, syncMembers } from './lib/runner.mjs';
 import { mirrorProfile, profileTarget } from './lib/profile.mjs';
 import { log } from './lib/log.mjs';
 import { assertMemberFacts } from './lib/member-facts.mjs';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, appendFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
 const REPO_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -247,13 +247,14 @@ function reportWorkflowObservations(repo, facts) {
 
 function runSync(plans, opts, manifest, token, date) {
   if (!token) throw new Error('STUDIO_SYNC_TOKEN is required to sync (set it or use --dry-run).');
-  const failures = syncMembers(plans, {
+  const { outcomes, failures } = syncMembers(plans, {
     token,
     date,
     force: opts.force,
     backbone: manifest.backbone,
   });
   if (!opts.members.length) {
+    const profileRepo = `${manifest.owner}/${manifest.owner}`;
     try {
       mirrorProfile({
         owner: manifest.owner,
@@ -263,19 +264,39 @@ function runSync(plans, opts, manifest, token, date) {
         date,
         force: opts.force,
       });
+      outcomes.push({ repo: profileRepo, status: 'mirrored' });
     } catch (err) {
-      failures.push({ repo: `${manifest.owner}/${manifest.owner}`, message: err.message });
+      failures.push({ repo: profileRepo, message: err.message });
+      outcomes.push({ repo: profileRepo, status: 'failed', detail: err.message });
       log.error(`profile mirror failed — ${err.message}`);
     }
   } else {
     log.info('Profile mirror skipped (member filter active).');
   }
+  publishRunSummary(outcomes);
+  log.info(`${outcomes.filter((o) => o.status !== 'failed').length} of ${outcomes.length} target(s) succeeded.`);
   if (failures.length) {
-    log.error(`${failures.length} of ${plans.length + (opts.members.length ? 0 : 1)} target(s) failed:`);
+    log.error(`${failures.length} of ${outcomes.length} target(s) failed:`);
     for (const f of failures) log.error(`    ${f.repo}: ${f.message}`);
     return 1;
   }
   return 0;
+}
+
+/**
+ * Write the run summary where CI will surface it.
+ *
+ * Best-effort by design: a summary that cannot be written must never fail a sync that otherwise
+ * succeeded, and outside Actions there is no file to write to at all.
+ */
+function publishRunSummary(outcomes) {
+  const path = process.env.GITHUB_STEP_SUMMARY;
+  if (!path || !outcomes.length) return;
+  try {
+    appendFileSync(path, renderRunSummary(outcomes));
+  } catch (err) {
+    log.warn(`could not write run summary — ${err.message}`);
+  }
 }
 
 function memberRootForCheck(repo, opts, token, backbone) {

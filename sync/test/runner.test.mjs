@@ -6,14 +6,15 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatDriftWarning, syncMembers } from '../lib/runner.mjs';
+import { readFileSync } from 'node:fs';
+import { formatDriftWarning, renderRunSummary, syncMembers } from '../lib/runner.mjs';
 
 const plan = (repo) => ({ resolved: { repo }, targets: { writes: [] } });
 const ctx = { token: 'x', date: '2026-08-03', backbone: 'jrmoulckers/.github' };
 
 test('a failing member does not stop the members after it', () => {
   const seen = [];
-  const failures = syncMembers([plan('o/a'), plan('o/b'), plan('o/c')], ctx, ({ repo }) => {
+  const { failures } = syncMembers([plan('o/a'), plan('o/b'), plan('o/c')], ctx, ({ repo }) => {
     seen.push(repo);
     if (repo === 'o/b') throw new Error('failed to push some refs');
     return { status: 'pr', prUrl: `https://example/${repo}`, report: { drift: [] } };
@@ -24,7 +25,7 @@ test('a failing member does not stop the members after it', () => {
 });
 
 test('an all-clear run reports no failures', () => {
-  const failures = syncMembers([plan('o/a'), plan('o/b')], ctx, () => ({
+  const { failures } = syncMembers([plan('o/a'), plan('o/b')], ctx, () => ({
     status: 'unchanged',
     report: { drift: [] },
   }));
@@ -33,7 +34,7 @@ test('an all-clear run reports no failures', () => {
 
 test('every member failing is reported, not thrown', () => {
   assert.doesNotThrow(() => {
-    const failures = syncMembers([plan('o/a'), plan('o/b')], ctx, () => {
+    const { failures } = syncMembers([plan('o/a'), plan('o/b')], ctx, () => {
       throw new Error('boom');
     });
     assert.equal(failures.length, 2);
@@ -51,6 +52,100 @@ test('the member context is passed through to each sync', () => {
   assert.equal(calls[0].force, true);
   assert.equal(calls[0].backbone, 'jrmoulckers/.github');
   assert.equal(calls[0].member.repo, 'o/a');
+});
+
+test('a partial failure records what survived, not only what broke', () => {
+  const { outcomes, failures } = syncMembers(
+    [plan('o/a'), plan('o/b'), plan('o/c')],
+    ctx,
+    ({ repo }) => {
+      if (repo === 'o/b') throw new Error('403 forbidden');
+      return { status: 'pr', prUrl: `https://example/${repo}`, report: { drift: [] } };
+    },
+  );
+
+  // Isolation already kept o/c running. The point here is that the run can afterwards say so:
+  // failures alone cannot distinguish one dead member from a dead fleet.
+  assert.equal(failures.length, 1);
+  assert.deepEqual(
+    outcomes.map((o) => [o.repo, o.status]),
+    [
+      ['o/a', 'opened'],
+      ['o/b', 'failed'],
+      ['o/c', 'opened'],
+    ],
+  );
+});
+
+test('every success branch reaches the outcome record', () => {
+  // A first pass covered only the pr/opened branch, and deleting the no-changes push left the
+  // suite green — the unchanged member is the most common outcome in a steady fleet, so a
+  // summary blind to it would have under-reported exactly the runs that are working.
+  const { outcomes } = syncMembers([plan('o/a'), plan('o/b'), plan('o/c')], ctx, ({ repo }) => {
+    if (repo === 'o/a') return { status: 'unchanged', report: { drift: [] } };
+    return {
+      status: 'pr',
+      reused: repo === 'o/b',
+      prUrl: `https://example/${repo}`,
+      report: { drift: [] },
+    };
+  });
+
+  assert.deepEqual(
+    outcomes.map((o) => [o.repo, o.status]),
+    [
+      ['o/a', 'no changes'],
+      ['o/b', 'updated'],
+      ['o/c', 'opened'],
+    ],
+  );
+  assert.equal(outcomes[2].detail, 'https://example/o/c');
+});
+
+test('the summary distinguishes one failed member from a failed fleet', () => {
+  const partial = renderRunSummary([
+    { repo: 'o/a', status: 'opened', detail: 'https://example/a' },
+    { repo: 'o/windows', status: 'failed', detail: '403 forbidden' },
+    { repo: 'o/c', status: 'no changes' },
+  ]);
+  const total = renderRunSummary([
+    { repo: 'o/a', status: 'failed', detail: '403 forbidden' },
+    { repo: 'o/windows', status: 'failed', detail: '403 forbidden' },
+    { repo: 'o/c', status: 'failed', detail: '403 forbidden' },
+  ]);
+
+  // Both runs exit non-zero and both render red. The whole value of the summary is that these
+  // two no longer read the same — five weeks of red went unread because they used to.
+  assert.match(partial, /2 of 3 target\(s\) succeeded/);
+  assert.match(total, /0 of 3 target\(s\) succeeded/);
+  assert.notEqual(partial, total);
+
+  // The failing member is named, since "one member failed" without saying which is not actionable.
+  assert.match(partial, /o\/windows/);
+  assert.match(partial, /403 forbidden/);
+  // And the survivors are named, which is the half that was being discarded.
+  assert.match(partial, /\| `o\/a` \| opened \|/);
+  assert.match(partial, /\| `o\/c` \| no changes \|/);
+});
+
+test('an all-clear summary claims no failures', () => {
+  const summary = renderRunSummary([
+    { repo: 'o/a', status: 'opened', detail: 'https://example/a' },
+    { repo: 'o/b', status: 'no changes' },
+  ]);
+  assert.match(summary, /2 of 2 target\(s\) succeeded/);
+  assert.doesNotMatch(summary, /#### Failed/);
+});
+
+test('the summary is actually wired to the CI surface', () => {
+  // renderRunSummary is pure and well covered, which proves nothing about whether anything calls
+  // it. This is the defect one layer down: a report that is computed and never published reads,
+  // from CI, exactly like the silence it was written to end. index.mjs exports nothing, so the
+  // wiring is asserted at the source.
+  const source = readFileSync(new URL('../index.mjs', import.meta.url), 'utf8');
+  assert.match(source, /renderRunSummary/, 'index.mjs must render the summary');
+  assert.match(source, /GITHUB_STEP_SUMMARY/, 'index.mjs must write it where Actions surfaces it');
+  assert.match(source, /publishRunSummary\(outcomes\)/, 'runSync must publish before returning');
 });
 
 test('drift warnings name every exact skipped file', () => {

@@ -13,9 +13,14 @@ import { syncMemberRepo } from './pr.mjs';
  * @param {Array<{resolved, targets}>} plans
  * @param {{ token: string, date: string, force?: boolean, backbone: string }} ctx
  * @param {Function} [syncOne] injection seam for tests
- * @returns {Array<{repo: string, message: string}>} failures, in encounter order
+ * @returns {{ outcomes: Array<{repo: string, status: string, detail?: string}>,
+ *             failures: Array<{repo: string, message: string}> }}
+ *   Outcomes for every member in encounter order, and the failing subset. Successes are
+ *   returned rather than discarded: isolation keeps the run going, but only a record of what
+ *   survived can tell a partial failure from a total one after the fact.
  */
 export function syncMembers(plans, ctx, syncOne = syncMemberRepo) {
+  const outcomes = [];
   const failures = [];
 
   for (const { resolved, targets } of plans) {
@@ -32,8 +37,14 @@ export function syncMembers(plans, ctx, syncOne = syncMemberRepo) {
       });
       if (result.status === 'pr') {
         log.ok(`${resolved.repo}: ${result.reused ? 'updated' : 'opened'} ${result.prUrl}`);
+        outcomes.push({
+          repo: resolved.repo,
+          status: result.reused ? 'updated' : 'opened',
+          detail: result.prUrl,
+        });
       } else {
         log.info(`${resolved.repo}: no changes`);
+        outcomes.push({ repo: resolved.repo, status: 'no changes' });
       }
       if (result.report?.hasDrift) {
         log.warn(formatDriftWarning(resolved.repo, result.report.drift));
@@ -46,12 +57,49 @@ export function syncMembers(plans, ctx, syncOne = syncMemberRepo) {
       }
     } catch (err) {
       failures.push({ repo: resolved.repo, message: err.message });
+      outcomes.push({ repo: resolved.repo, status: 'failed', detail: err.message });
       log.error(`${resolved.repo}: sync failed — ${err.message}`);
       log.warn(`${resolved.repo}: skipped; continuing with the remaining member(s).`);
     }
   }
 
-  return failures;
+  return { outcomes, failures };
+}
+
+/**
+ * The run summary written to GITHUB_STEP_SUMMARY.
+ *
+ * A run's published result is one bit wide, and a red bit says only "something went wrong" —
+ * so a single member's expired token reads exactly like a fleet-wide outage. That ambiguity is
+ * what let five consecutive weeks of red pass for a dead transport while per-member syncs were
+ * in fact landing normally. Naming what succeeded costs nothing and makes the red legible.
+ *
+ * Failures lead, because a summary is read top-down and the failing rows are the actionable ones.
+ */
+export function renderRunSummary(outcomes, { dryRun = false } = {}) {
+  const failed = outcomes.filter((o) => o.status === 'failed');
+  const succeeded = outcomes.filter((o) => o.status !== 'failed');
+  const lines = [
+    `### Studio sync${dryRun ? ' (dry run)' : ''}`,
+    '',
+    `${succeeded.length} of ${outcomes.length} target(s) succeeded.`,
+  ];
+  if (failed.length) {
+    lines.push(
+      '',
+      `#### Failed (${failed.length})`,
+      '',
+      ...failed.map((o) => `- \`${o.repo}\` — ${o.detail ?? 'unknown error'}`),
+      '',
+      'The targets below were unaffected by these failures — each member syncs independently.',
+    );
+  }
+  lines.push('', '#### Targets', '', '| Target | Outcome |', '| --- | --- |');
+  for (const o of outcomes) {
+    const detail = o.status === 'failed' ? ` — ${o.detail ?? 'unknown error'}` : '';
+    lines.push(`| \`${o.repo}\` | ${o.status}${detail} |`);
+  }
+  return `${lines.join('\n')}\n`;
 }
 
 /**
