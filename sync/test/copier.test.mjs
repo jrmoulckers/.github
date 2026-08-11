@@ -462,3 +462,107 @@ test('reconciliation is what guarantees an unplanned entry still has a file', ()
     }
   });
 });
+// A file stranded under an abandoned base with no lock entry and no rekey of its own. This is
+// finance's live state and the case #187 missed: an earlier sync minted the entry at the NEW base
+// while the file stayed at the old one, so nothing in the lockfile points at it.
+function tokenSpec(rel, base) {
+  const content = `/* ${rel} */\n`;
+  return {
+    kind: 'tokens',
+    name: rel,
+    sourcePath: `packages/tokens/dist/${rel}`,
+    targetPath: `${base}/${rel}`,
+    targetBase: base,
+    sourceSha256: hashText(content),
+    content,
+    type: 'file',
+  };
+}
+
+test('a file stranded under an abandoned base is found even with no entry and no rekey of its own', () => {
+  withTmp((root) => {
+    const OLD = 'apps/web/vendor/@jrm/tokens';
+    const NEW = 'vendor/@jrm/tokens';
+
+    // One file synced under the old base, so its entry exists there and can be rekeyed later.
+    apply(root, [tokenSpec('css/tokens.css', OLD)], readLock(root, BACKBONE), { write: true });
+
+    // A second file that a later run wrote to the old base while recording it at the new one.
+    seed(root, `${OLD}/native/compose/JrmTokens.kt`, '<!-- pre-#121 header Kotlin cannot parse -->\n');
+
+    // Retarget. The first file's entry rekeys; the stranded .kt matches no entry and no rekey.
+    const writes = [tokenSpec('css/tokens.css', NEW), tokenSpec('native/compose/JrmTokens.kt', NEW)];
+    const { report, lock } = apply(root, writes, readLock(root, BACKBONE), { write: true });
+
+    assert.equal(report.rekeyed.length, 1, 'precondition: one entry relocates, which identifies the old base');
+    assert.ok(!lock.entries[`${OLD}/native/compose/JrmTokens.kt`], 'precondition: the .kt was never recorded there');
+    assert.ok(!report.rekeyed.some((item) => item.from.endsWith('JrmTokens.kt')), 'precondition: nor was it rekeyed');
+
+    assert.ok(
+      report.abandoned.some((item) => item.targetPath === `${OLD}/native/compose/JrmTokens.kt`),
+      'the stranded file is the whole point of the report and must be named',
+    );
+    assert.equal(report.hasDrift, false);
+  });
+});
+
+test('the sweep stays inside bases the lockfile proves were abandoned', () => {
+  withTmp((root) => {
+    const OLD = 'apps/web/vendor/@jrm/tokens';
+    const NEW = 'vendor/@jrm/tokens';
+    apply(root, [tokenSpec('css/tokens.css', OLD)], readLock(root, BACKBONE), { write: true });
+
+    // Ordinary member files. Nothing in the lockfile says the engine ever wrote these, so reading
+    // them as abandoned would be the engine claiming authority over content it never touched.
+    seed(root, 'apps/web/src/main.ts', 'export const x = 1;\n');
+    seed(root, 'README.md', '# finance\n');
+
+    const { report } = apply(root, [tokenSpec('css/tokens.css', NEW)], readLock(root, BACKBONE), { write: true });
+
+    // The old tokens.css genuinely is abandoned — its entry moved, the file did not — so the sweep
+    // is expected to name it. What must not appear is anything outside the abandoned base.
+    assert.deepEqual(
+      report.abandoned.map((item) => item.targetPath),
+      [`${OLD}/css/tokens.css`],
+    );
+  });
+});
+
+test('no rekey means no identified base, and the limit is reported honestly as silence', () => {
+  withTmp((root) => {
+    const OLD = 'apps/web/vendor/@jrm/tokens';
+    const NEW = 'vendor/@jrm/tokens';
+
+    // Every entry already re-minted at the new base, so reconciliation has nothing to relocate.
+    apply(root, [tokenSpec('css/tokens.css', NEW)], readLock(root, BACKBONE), { write: true });
+    seed(root, `${OLD}/native/compose/JrmTokens.kt`, '<!-- stranded -->\n');
+
+    const { report } = apply(root, [tokenSpec('css/tokens.css', NEW)], readLock(root, BACKBONE), { write: true });
+
+    // Documented limit, not an oversight: no record points at the old base, so nothing can. The
+    // alternative is scanning the member at large, which is the licence this deliberately declines.
+    assert.equal(report.rekeyed.length, 0);
+    assert.deepEqual(report.abandoned, []);
+  });
+});
+test('the current target base is never swept, so member-owned files under it are left alone', () => {
+  withTmp((root) => {
+    const OLD = 'apps/web/vendor/@jrm/tokens';
+    const NEW = 'vendor/@jrm/tokens';
+    apply(root, [tokenSpec('css/tokens.css', OLD)], readLock(root, BACKBONE), { write: true });
+
+    // A member's own file inside the vendor directory - a .gitignore, a README explaining why the
+    // tree is committed. The plan does not write it, but it is not abandoned either: the base is
+    // live. Sweeping the destination as well as the source would report it as deletable, which is
+    // the engine telling a human to remove a file the engine never wrote.
+    seed(root, `${NEW}/.gitignore`, '# committed deliberately\n');
+
+    const { report } = apply(root, [tokenSpec('css/tokens.css', NEW)], readLock(root, BACKBONE), { write: true });
+
+    assert.deepEqual(
+      report.abandoned.map((item) => item.targetPath),
+      [`${OLD}/css/tokens.css`],
+      'only the abandoned base is swept',
+    );
+  });
+});
