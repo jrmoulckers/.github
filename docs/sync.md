@@ -481,6 +481,19 @@ in a formatted path is therefore a cross-repo event**: every affected member nee
 its sync PR can go green. The `copilot` kind's first distribution failed CI in four members for
 exactly this reason. Machine-read files no formatter touches (`agency.toml`) need no entry.
 
+**Treat the list above as an example, not the specification.** The rule it illustrates is keyed to
+`.studio-sync.lock.json`: a member's ignore file must cover every lock path its formatter can parse,
+and must be re-checked whenever the sync starts emitting a new one. Written as a fixed list of paths,
+this section would go stale on exactly the event the paragraph above warns about — the arrival of a
+new kind — and would then read as complete while being wrong, which is why members should copy the
+rule rather than the lines. libro states it in its own `.prettierignore` as a comment aimed at the
+next reader of that file, which is the right place for it, since that is where the omission bites.
+
+Being keyed to a machine-readable file, this is checkable rather than remembered: compare the lock's
+`files` keys against what the formatter would consider, and fail when a parseable path is not ignored.
+That check belongs in the member, because the ignore file is member-owned. The lock file itself is
+emitted as two-space JSON and needs no entry.
+
 Note that these exclusions are **whole-file even for managed-region targets**. `AGENTS.md` and
 `.github/copilot-instructions.md` are only partly canonical, but a formatter cannot be pointed at
 half a file, and the region must stay byte-identical to canon or the sync stops matching. Excluding
