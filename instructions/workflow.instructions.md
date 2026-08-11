@@ -691,6 +691,27 @@ For parallel sprint work:
 5. Publish a merge order for dependent PRs.
 6. Re-dispatch failed or incomplete agents until every PR is green and mergeable.
 
+### Acknowledge by the timestamp of the message you are answering
+
+Open a reply with the send time of the message it answers:
+
+```
+Re: your 03:57Z —
+```
+
+Messages between sessions cross, and a reply's *content* cannot disambiguate which message it
+answers, because topics recur: a retraction and the entry it retracts are about the same subject, so
+an answer to the earlier one reads as a rejection of the later one. Naming the time makes it
+self-checking at zero cost. **If an acknowledgement names a time earlier than your last send, it
+crossed** — you know without asking, and you can re-send rather than assume you were overruled.
+
+It also creates a third state where there were two. Silence is ambiguous; silence plus an
+acknowledgement of an older message is *distinguishable*, and distinguishable is the whole
+requirement. This was proposed after four crossings in one evening, one of which put a claim into
+canon twelve minutes after its author had withdrawn it — **a retraction that crosses is
+indistinguishable from one that was never sent**, and the cost is paid by whoever acts on the stale
+half.
+
 ### Reporting a defect in canon from a repo that holds a synced copy
 
 You hold a copy of these instructions at `.github/instructions/`, and it is **generated, not
