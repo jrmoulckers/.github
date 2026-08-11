@@ -337,6 +337,16 @@ the commit that *fixed* the underlying defect was itself an instance of the haza
 in the same conversation, because the hazard was being discussed under a name and the fix touched
 something with a different one.
 
+**Where the fault being fixed is silent omission, the unknown case must be the loud one.** A guard
+that enumerated one known integrity lock passed a tree in which eight hash-pinned files sat
+unprotected, because an unregistered lock presented as *absence* and absence was the passing answer.
+Rewritten to enumerate every lock and treat an unrecognized one as a hard failure, the same guard
+reports the gap it had been blind to. The corollary concerns the exemption list: **allowlist by
+explicit declaration, never by inference**, since an inferred allowlist grows silently as the
+repository does and each new member joins it without anyone deciding. Note also why the first
+version looked finished — it was named for a property and written against a single instance of it,
+and only a new instance, rather than any amount of re-reading, exposed the gap.
+
 ### An unreproducible finding resolves to a timestamp before an author
 
 When a reported defect is not there when you look, the reading that gets reached for is that the
@@ -1648,6 +1658,23 @@ supplies the false confidence. Measure at the tip you name, or attach a revision
 individually — and when reporting that something is absent, say which population you searched, since
 *not in the revisions I checked* and *not in any revision* are written identically and differ by
 everything.
+
+**Nor do two figures from one measurement certify each other.** A parenthesis here published a pair
+of coordinates taken in a single pass — a heading at `L649` and the next one at `L692`. The first is
+exact at every revision where it resolves; the second is `L693`, wrong by one, measured by the same
+instrument in the same sweep. Neither party checked it for two rounds, because confirming the first
+figure reads as validating the *pass*, and a pass is the thing an instrument's output is trusted
+wholesale for. **Verifying one output of a measurement verifies that measurement, not the others
+beside it** — adjacency inside a single parenthesis is the tightest form of the authority-lending
+above, since the two numbers do not merely sit together, they share a provenance that feels like a
+warrant.
+
+**And *did I say it* is a different audit from *is it true*, with the first one closing the file.**
+Challenged on that coordinate, the author searched the session record to establish whether the figure
+had been written, found the question settled, and stopped — never asking whether the number was
+right. Provenance is the cheaper question and it arrives wearing the costume of diligence, because
+searching a record feels like measuring. When a figure is disputed, re-derive the value; who said it
+is a separate matter and answering it settles nothing about the world.
 
 **And a branch name is not a revision at all.** A row labelled `main` in a column of SHAs reads as
 one more coordinate; it is a query evaluated against whatever ref namespace the reader happens to
