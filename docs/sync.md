@@ -818,6 +818,31 @@ with the least evidence for it. Confirm against a *private* member: a live run, 
 history. The block's signature is unmistakable when you look at the right repo — jobs with
 `steps: 0`, downstream jobs `skipped`, and an annotation naming payments or the spending limit.
 
+That signature needs its predicate stated, because part of it is satisfied unconditionally. studio's
+refused run censused as `total=9, steps0=9, failure=8, skipped=1, annotated=8`, and the two counts
+were reconciled as two valid denominators — evidence versus relation. Verifying that instead of
+accepting it: the ninth job is `security / Dependency review`, `skipped` at `steps: 0` on **every
+green run of the same workflow**. It completes the relation while carrying nothing about the refusal.
+`steps == 0 && conclusion == 'failure'` is **8**, equal to the annotated count, so the right predicate
+**collapsed** the disagreement rather than splitting it.
+
+Generalizing past the run: **a member that satisfies a relation unconditionally is indistinguishable
+from one that satisfies it because the hypothesis is true**, and it inflates the population that looks
+like corroboration. Report the discriminating predicate, not the relation, whenever the population is
+mixed. The reconciliation is also the more attractive answer — *we measured different things and both
+hold* preserves both parties' work, where *your predicate was loose* does not — so a tidy reconciliation
+between two measurements deserves the suspicion normally reserved for a disagreement.
+
+The same check produced a near-miss on the control. A green run showed **11** jobs to the refused
+run's 9, `native-kotlin` and `native-swift` absent, which reads as jobs the account was never allowed
+to create. They were added to `ci.yml` by `1a9d78e` at `23:49:29Z`; the run was created at `22:14:21Z`.
+**A job-set delta across dates measures the workflow before it measures the run** — the control must be
+pinned to the workflow **revision**, not merely the same event. Two independent confounds were present
+(a `push` run compared against a `pull_request` one, and a later workflow revision), and correcting
+only the first yielded a comparison that still could not support the claim. **One confound corrected is
+not a controlled comparison**, and noticing the first is precisely what retires the search for the
+second.
+
 A PR that cannot merge — billing, a missing secret, an unavailable reviewer — invites repeated
 re-verification, and that is nearly the wrong activity. **Validity** (do the contents still hold)
 is settled at the first pass and cannot change while nothing is being pushed to the branch.

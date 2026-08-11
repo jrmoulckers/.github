@@ -238,6 +238,26 @@ its refused run carried nine. The discriminator is that **every** job in the run
 that is only a symptom: the annotation is the evidence. A shorthand quoting the bare number does not
 survive being repeated by someone who does not have the annotation in front of them.
 
+**Name the predicate, because a relation can be completed by a member that satisfies it
+unconditionally.** studio's refused run censused as `total=9, steps0=9, failure=8, skipped=1,
+annotated=8`, and the 8-vs-9 gap looked like two valid denominators — annotation-as-evidence against
+zero-steps-as-relation. It is not. The ninth job is `security / Dependency review`, which is `skipped`
+at `steps: 0` on **every green run of the same workflow**. It completes the relation without carrying
+any information about the refusal, so it corroborates nothing; it merely agrees. The load-bearing
+predicate is `steps == 0 && conclusion == 'failure'`, which is **8** — exactly the annotated count.
+Sharpening the predicate **collapsed** the disagreement rather than splitting it, and a
+reconciliation that explains why two numbers may both stand should be suspected first of having
+skipped that step: *two correct denominators* is the more flattering finding and the rarer one.
+
+**A control must be pinned to the workflow revision, not merely to the event.** Comparing that run
+against a green one showed 11 jobs against 9, with `native-kotlin` and `native-swift` absent — which
+reads as jobs the account was never allowed to create. They were added to `ci.yml` by `1a9d78e` at
+`23:49:29Z`; the run was created at `22:14:21Z`. **A job-set delta across dates measures the workflow
+before it measures the run.** The first control here was wrong twice over — a `push` run compared
+against a `pull_request` one *and* a later revision — and correcting only the event mismatch produced
+a comparison that still could not support the claim. **One confound corrected is not a controlled
+comparison**, and finding the first one is what makes the second easy to stop looking for.
+
 **Check the run summary next: if jobs you did not touch failed alongside the one you did, stop
 reading YAML and check billing.** A green history proves nothing here, because the cap is reached
 by cumulative spend rather than by anything in the diff.
