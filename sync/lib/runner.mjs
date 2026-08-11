@@ -82,16 +82,29 @@ export function syncMembers(plans, ctx, syncOne = syncMemberRepo) {
  * what let five consecutive weeks of red pass for a dead transport while per-member syncs were
  * in fact landing normally. Naming what succeeded costs nothing and makes the red legible.
  *
+ * The green bit is worse, because it is trusted. A dry run scoped to one member writes nothing
+ * and contacts no repository, yet renders in the run list as a green check on a workflow called
+ * "Studio sync" — indistinguishable from a fleet run that wrote to eleven repos. A reader
+ * concluded from exactly that entry that the transport was healthy. So the summary states mode
+ * and scope first: an outcome tally means nothing without knowing what was attempted.
+ *
  * Failures lead, because a summary is read top-down and the failing rows are the actionable ones.
  */
-export function renderRunSummary(outcomes, { dryRun = false } = {}) {
+export function renderRunSummary(outcomes, { mode = 'sync', members = [], fleetSize = null } = {}) {
   const failed = outcomes.filter((o) => o.status === 'failed');
   const succeeded = outcomes.filter((o) => o.status !== 'failed');
+  const scope = members.length
+    ? `${members.length} of ${fleetSize ?? '?'} member(s): ${members.join(', ')}`
+    : `all ${fleetSize ?? outcomes.length} member(s)`;
   const lines = [
-    `### Studio sync${dryRun ? ' (dry run)' : ''}`,
+    `### Studio sync — ${MODE_LABELS[mode] ?? mode}`,
     '',
-    `${succeeded.length} of ${outcomes.length} target(s) succeeded.`,
+    `**Scope:** ${scope}`,
   ];
+  if (mode !== 'sync') {
+    lines.push('', `> ${MODE_CAVEATS[mode] ?? 'No member repository was modified.'}`);
+  }
+  lines.push('', `${succeeded.length} of ${outcomes.length} target(s) succeeded.`);
   if (failed.length) {
     lines.push(
       '',
@@ -109,6 +122,19 @@ export function renderRunSummary(outcomes, { dryRun = false } = {}) {
   }
   return `${lines.join('\n')}\n`;
 }
+
+const MODE_LABELS = {
+  sync: 'sync',
+  'dry-run': 'DRY RUN',
+  'work-dir': 'local checkout',
+};
+
+// A dry run's green check is the misleading artifact, so the summary has to contradict it in
+// words. A run that wrote nothing must not be readable as a run that delivered.
+const MODE_CAVEATS = {
+  'dry-run': 'Nothing was written. No member repository was contacted and no pull request was opened.',
+  'work-dir': 'Applied to a local checkout only. No member repository was contacted.',
+};
 
 /**
  * The warning line that goes to the run log.
