@@ -654,14 +654,45 @@ That guard protects *this* repository only — it inherits its population from t
 which is the limitation recorded above for coverage claims generally. A member that receives canon's
 `.gitattributes` gains the rule but not the check, and the rule is precisely what goes inert if the
 member's own blobs are already corrupt. `studio` built its own after canon's thirteen files were
-repaired, keyed to its generated `packages/tokens/dist/**`. The portable core is two lines and needs
-no script:
+repaired, keyed to its generated `packages/tokens/dist/**`.
 
-```bash
-git ls-files --eol | grep 'i/-text'   # must be empty, or every hit is exempt via check-attr
+**There is no correct two-line form, and the one this section used to recommend was refuted by the
+three paragraphs above it.** It read `git ls-files --eol | grep 'i/-text'`, commented "must be
+empty, or every hit is exempt via `check-attr`". Every clause of that is wrong here: `i/-text` alone
+is not the signal (L625), the bare grep returns 60 rows and no defect on `jrm-recipes` (L634), and
+`check-attr` cannot substitute for the NUL test (L639). Measured across all three attribute states
+on a fixture holding one real PNG and one doubled-CR Markdown file:
+
+| member's `.gitattributes` | `check-attr text` PNG / corrupt | what `ls-files --eol` shows |
+| --- | --- | --- |
+| none | `unspecified` / `unspecified` | both `i/-text attr/` |
+| `*.png binary` | `unset` / `unspecified` | PNG gains `attr/-text`; corrupt does not |
+| canon's `* text=auto eol=lf` | `auto` / `auto` | both `attr/text=auto eol=lf` |
+
+So an exemption keyed to `unset` exempts nothing until the member has *declared* its binaries, which
+is exactly what an incompletely-attributed member has not done; and under canon's own rule the two
+files are **indistinguishable in every column the grep can see**. Where a declaration does exist,
+the discrimination has moved to the `attr/` column, which a filter on `i/` cannot reach. The
+discriminator is a conjunction of a classification and a content test, and no single filter
+expression can express it.
+
+The portable core is therefore a script, and its shape matters more than its filter: **enumerate,
+exempt explicitly, fail closed.** A grep fails *open* — a newly added binary produces noise, and
+noise is skimmed rather than acted on, so the check quietly trains dismissal while continuing to
+pass. An allowlist fails *closed* — a newly added binary breaks the build until a human puts it on
+the list. `studio`'s guard is correct for this reason rather than by foresight, and the reason is
+one line of it:
+
+```js
+// Deliberately empty. An entry here is a decision, not a default.
+const ALLOWED_BINARY = new Set();
 ```
 
-Members with generated or vendored output should run it in CI rather than re-deriving a bespoke
+Use the conjunction above as the body, an explicit allowlist as the only exemption, and a non-zero
+exit on anything unlisted. The bare grep survives as a **candidate list** — a useful first look, and
+not a check, because it cannot be green.
+
+Members with generated or vendored output should run that in CI rather than re-deriving a bespoke
 classifier; the mechanism is git's, not the repository's, so the check does not need to be.
 
 ### While a sync PR is blocked, check its position rather than its contents
