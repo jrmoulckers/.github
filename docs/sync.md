@@ -584,11 +584,19 @@ always this, not content. CI never reproduces it, because CI always clones fresh
 The section above covers a **stale worktree** whose index is already correct. This is the opposite
 case: the committed blob itself is wrong, and renormalization still will not fix it.
 
-Git's binary detection is not only about NUL bytes. A file whose CR count exceeds its CRLF pairs —
-one carrying doubled `\r\r\n` terminators, which is what a CRLF-writing tool produces against
-content that already ended in CRLF — is classified `-text`. A `-text` file is exempt from `eol=lf`,
+Git's binary detection is not only about NUL bytes, and the threshold is far lower than it sounds:
+a file is classified `-text` when its CR count **differs at all** from its CRLF count — `cr != crlf`
+in git's own `convert.c`. A **single** carriage return outside a CRLF pair is enough. Doubled
+`\r\r\n` terminators, which is what a CRLF-writing tool produces against content that already ended
+in CRLF, trip it immediately. A `-text` file is exempt from `eol=lf`,
 and `git add --renormalize` skips it. **The corruption blocks its own repair**, so it survives the
 remedy, reports success, and stays invisible in a rendered diff.
+
+There is no margin here and no recoverable middle state: the file does not accumulate stray CRs and
+degrade gradually, it flips on the first one. Pinned by measurement in
+[`sync/test/gitattributes.test.mjs`](../sync/test/gitattributes.test.mjs), because an earlier
+version of this paragraph said "CR count exceeds its CRLF pairs", which wrongly implies a few stray
+CRs are survivable.
 
 All thirteen of this repo's community-health files were in exactly that state: canon's own LF rule
 was inert for the files GitHub serves org-wide.
