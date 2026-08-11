@@ -118,7 +118,7 @@ test('no drift means no --force wording anywhere in the body', () => {
 test('an older mixed wave is named in the body with the commits that make it mixed', () => {
   const body = buildPrBody(report({ added: paths('AGENTS.md') }), {
     date: '2026-08-11',
-    otherWaves: [
+    waveLookup: { status: 'ok', waves: [
       {
         number: 20,
         url: 'https://github.com/jrmoulckers/homelab/pull/20',
@@ -126,7 +126,7 @@ test('an older mixed wave is named in the body with the commits that make it mix
         total: 4,
         authored: ['fix(ci): teach the asset checker managed regions'],
       },
-    ],
+    ] },
   });
 
   assert.match(body, /An older sync wave is still open \(1\)/);
@@ -140,7 +140,7 @@ test('an older mixed wave is named in the body with the commits that make it mix
 test('a pure older wave is reported as closable, not as salvage', () => {
   const body = buildPrBody(report({ added: paths('AGENTS.md') }), {
     date: '2026-08-11',
-    otherWaves: [
+    waveLookup: { status: 'ok', waves: [
       {
         number: 25,
         url: 'https://example.invalid/25',
@@ -148,7 +148,7 @@ test('a pure older wave is reported as closable, not as salvage', () => {
         total: 1,
         authored: [],
       },
-    ],
+    ] },
   });
 
   assert.match(body, /\*\*pure canon\*\* — all 1 commit\(s\) authored by the engine/);
@@ -158,4 +158,27 @@ test('a pure older wave is reported as closable, not as salvage', () => {
 test('a run with no older wave carries none of the wording', () => {
   const body = buildPrBody(report({ added: paths('AGENTS.md') }), { date: '2026-08-11' });
   assert.doesNotMatch(body, /older sync wave/);
+});
+test('a failed wave lookup says so in the body instead of implying none exists', () => {
+  const body = buildPrBody(report({ added: paths('AGENTS.md') }), {
+    date: '2026-08-11',
+    waveLookup: { status: 'unavailable', waves: [] },
+  });
+
+  assert.match(body, /Could not check for an older open sync wave/);
+  assert.match(body, /carries no claim either way/);
+  // The reader must not be able to read silence as a clean result.
+  assert.match(body, /not evidence that none exists/);
+  // ...and it must not render the "an older wave IS open" section off an empty list.
+  assert.doesNotMatch(body, /An older sync wave is still open/);
+});
+
+test('a successful lookup finding nothing carries no uncertainty wording', () => {
+  const body = buildPrBody(report({ added: paths('AGENTS.md') }), {
+    date: '2026-08-11',
+    waveLookup: { status: 'ok', waves: [] },
+  });
+
+  assert.doesNotMatch(body, /Could not check/);
+  assert.doesNotMatch(body, /An older sync wave is still open/);
 });

@@ -13,6 +13,7 @@ import {
   remoteSyncBranches,
   selectOpenPr,
   selectOtherOpenSyncPrs,
+  foreignCommits,
 } from '../lib/git.mjs';
 
 const BRANCH = 'studio-sync/2026-08-03';
@@ -370,5 +371,54 @@ test('the wave lookup never requests commits from a PR list query', () => {
       /commits/,
       `a PR list query asks for commits and will be rejected by the node budget: ${call}`,
     );
+  }
+});
+// Both reporting lookups previously answered failure with a bare empty collection, which is the
+// positive claim "I looked and there was nothing". The docs session audited this directory against
+// that rule by reading it and reported it clean, missing both — `catch { return []; }` reads as
+// ordinary defensiveness at a glance. That is an argument for a test rather than for closer
+// reading, so this asserts the property structurally.
+test('a reporting lookup never answers failure with a bare empty collection', () => {
+  const source = readFileSync(new URL('../lib/git.mjs', import.meta.url), 'utf8');
+
+  for (const name of ['foreignCommits', 'findOtherOpenSyncPrs']) {
+    const start = source.indexOf(`export function ${name}(`);
+    assert.notEqual(start, -1, `expected to find ${name} to check`);
+    const next = source.indexOf('\nexport ', start + 1);
+    const body = source.slice(start, next === -1 ? source.length : next);
+
+    assert.match(
+      body,
+      /catch[^)]*\{\s*return \{[^}]*status: 'unavailable'/,
+      `${name} must report an explicit 'unavailable' verdict on failure, not an empty result`,
+    );
+    assert.doesNotMatch(
+      body,
+      /catch\s*(?:\([^)]*\))?\s*\{\s*return (\[\]|null);/,
+      `${name} answers failure with an empty result, which is indistinguishable from success`,
+    );
+  }
+});
+
+test('foreignCommits distinguishes "no reviewer commits" from "could not look"', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sync-foreign-verdict-'));
+  try {
+    const { origin } = makeOrigin(root);
+    const work = clone(root, origin, 'work', ['--depth', '1']);
+    // Reproduce the production path exactly: prepareSyncBranch is what materialises the branch.
+    const base = prepareSyncBranch(work, BRANCH, { reuse: true });
+    assert.equal(base.reused, true);
+
+    const found = foreignCommits(work, BRANCH, 'main');
+    assert.equal(found.status, 'ok');
+    assert.equal(found.commits.length, 1, JSON.stringify(found));
+
+    // The reviewer commit is still there; only the lookup failed. The old shape returned [] here,
+    // which the caller reported as "no reviewer work on this branch".
+    const failed = foreignCommits(work, BRANCH, 'no-such-base');
+    assert.equal(failed.status, 'unavailable');
+    assert.deepEqual(failed.commits, []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 });

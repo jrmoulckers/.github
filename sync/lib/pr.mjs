@@ -49,7 +49,14 @@ export function syncRepo({ repo, writes, token, date, force, backbone, title, in
     const branch = base.branch;
     if (base.reused) {
       log.info(`${repo}: reusing existing remote branch ${branch} (fast-forward, no force-push).`);
-      if (base.foreign.length) {
+      if (base.foreignStatus === 'unavailable') {
+        // Not cosmetic: an empty list here would otherwise read as "no reviewer work on this
+        // branch", on the one path that exists to preserve reviewer work.
+        log.warn(
+          `${repo}: could not determine whether ${branch} carries commits the engine did not ` +
+            'author — treat it as if it might, and inspect before merging.',
+        );
+      } else if (base.foreign.length) {
         log.warn(
           `${repo}: ${base.foreign.length} commit(s) on ${branch} were not authored by the sync ` +
             'engine and are preserved:',
@@ -67,7 +74,13 @@ export function syncRepo({ repo, writes, token, date, force, backbone, title, in
     push(tmp, branch);
 
     // Only meaningful once this run has actually produced a wave to sit beside an older one.
-    const otherWaves = findOtherOpenSyncPrs(repo, branch, token);
+    const waveLookup = findOtherOpenSyncPrs(repo, branch, token);
+    const otherWaves = waveLookup.waves;
+    if (waveLookup.status === 'unavailable') {
+      log.warn(
+        `${repo}: could not check for older open sync waves — this is not a report that none exist.`,
+      );
+    }
     for (const wave of otherWaves) {
       const kind = wave.authored.length
         ? `mixed — ${wave.authored.length} of ${wave.total} commit(s) not authored by the engine`
@@ -83,17 +96,17 @@ export function syncRepo({ repo, writes, token, date, force, backbone, title, in
       if (otherWaves.length) {
         log.warn(`${repo}: ${existing.url} was updated in place; its body does not carry the above.`);
       }
-      return { status: 'pr', prUrl: existing.url, branch, reused: true, report, inspection, otherWaves };
+      return { status: 'pr', prUrl: existing.url, branch, reused: true, report, inspection, waveLookup };
     }
 
     const bodyFile = join(tmp, '.studio-sync-pr-body.md');
-    writeFileSync(bodyFile, buildPrBody(report, { date, intro, otherWaves }), 'utf8');
+    writeFileSync(bodyFile, buildPrBody(report, { date, intro, waveLookup }), 'utf8');
     const prUrl = createPr(
       repo,
       { base: defaultBranch, head: branch, title: title ?? commitTitle(date), bodyFile },
       token,
     );
-    return { status: 'pr', prUrl, branch, report, inspection, otherWaves };
+    return { status: 'pr', prUrl, branch, report, inspection, waveLookup };
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -112,7 +125,7 @@ export function syncMemberRepo({ repo, member, writes, token, date, force, backb
 }
 
 /** Render a PR body summarizing added/updated assets and drift warnings. */
-export function buildPrBody(report, { date, intro, otherWaves } = {}) {
+export function buildPrBody(report, { date, intro, waveLookup } = {}) {
   const lines = [];
   lines.push(`## Studio canon sync — ${date}`);
   lines.push('');
@@ -272,7 +285,22 @@ export function buildPrBody(report, { date, intro, otherWaves } = {}) {
     }
   }
 
-  if (otherWaves?.length) {
+  // Silence in a PR body reads as "checked, nothing found" — so a lookup that failed has to say so
+  // here, not only in a run log the reviewer will never see.
+  if (waveLookup?.status === 'unavailable') {
+    lines.push('');
+    lines.push('### ⚠️ Could not check for an older open sync wave');
+    lines.push('');
+    lines.push(
+      'The lookup for other open `studio-sync/*` PRs failed, so **this PR carries no claim either ' +
+        'way**. Absence of a warning below is not evidence that none exists. If this repo does have ' +
+        'an older wave open, merge order decides whether canon moves forward or backward — check ' +
+        'by hand with `gh pr list --state open` before merging.',
+    );
+  }
+
+  const otherWaves = waveLookup?.waves ?? [];
+  if (otherWaves.length) {
     lines.push('');
     lines.push(`### ⚠️ An older sync wave is still open (${otherWaves.length})`);
     lines.push('');

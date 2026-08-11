@@ -60,8 +60,10 @@ export function createBranch(dest, branch) {
  * non-colliding `-rerun-N` branch is created from the current default branch, leaving the retained
  * remote ref untouched.
  *
- * @returns {{ branch: string, reused: boolean, foreign: string[] }} `foreign` lists short
- *   descriptions of ahead-of-default commits on the reused branch that the engine did not author.
+ * @returns {{ branch: string, reused: boolean, foreign: string[], foreignStatus: 'ok'|'unavailable' }}
+ *   `foreign` lists short descriptions of ahead-of-default commits on the reused branch that the
+ *   engine did not author. `foreignStatus` is `unavailable` when that list could not be obtained,
+ *   so an empty `foreign` is never mistaken for a branch that carries no reviewer work.
  */
 export function prepareSyncBranch(dest, branch, { reuse = false, defaultBranch = 'main' } = {}) {
   if (reuse) {
@@ -69,12 +71,13 @@ export function prepareSyncBranch(dest, branch, { reuse = false, defaultBranch =
       throw new Error(`Open PR branch ${branch} disappeared before it could be reused.`);
     }
     git(['checkout', '-B', branch, `refs/remotes/origin/${branch}`], dest);
-    return { branch, reused: true, foreign: foreignCommits(dest, branch, defaultBranch) };
+    const foreign = foreignCommits(dest, branch, defaultBranch);
+    return { branch, reused: true, foreign: foreign.commits, foreignStatus: foreign.status };
   }
 
   if (!fetchRemoteBranch(dest, branch)) {
     createBranch(dest, branch);
-    return { branch, reused: false, foreign: [] };
+    return { branch, reused: false, foreign: [], foreignStatus: 'ok' };
   }
 
   let sequence = 2;
@@ -85,7 +88,7 @@ export function prepareSyncBranch(dest, branch, { reuse = false, defaultBranch =
   } while (fetchRemoteBranch(dest, freshBranch));
 
   createBranch(dest, freshBranch);
-  return { branch: freshBranch, reused: false, foreign: [] };
+  return { branch: freshBranch, reused: false, foreign: [], foreignStatus: 'ok' };
 }
 
 /** Fetch `branch` from origin into its remote-tracking ref. False when the remote branch is absent. */
@@ -101,6 +104,16 @@ export function fetchRemoteBranch(dest, branch) {
 /**
  * Commits ahead of the default branch that were not authored by the sync engine.
  * Used to report preserved reviewer work; never used to gate the push.
+ *
+ * Returns a verdict rather than a bare list. An empty list means "this branch carries no reviewer
+ * commits" — a positive claim — and a failure here must not be able to make it. The `--unshallow`
+ * fetch below is a network call, so failure is ordinary rather than exceptional, and this is the
+ * one path whose whole purpose is preserving reviewer work: reporting "none" when the lookup
+ * failed erases exactly what the caller came to protect. See `memberIdentity` in `workdir.mjs`
+ * for the same three-state shape and ADR/`docs/sync.md` for why empty must not stand in for
+ * unknown.
+ *
+ * @returns {{ status: 'ok'|'unavailable', commits: string[] }}
  */
 export function foreignCommits(dest, branch, defaultBranch = 'main') {
   try {
@@ -109,12 +122,15 @@ export function foreignCommits(dest, branch, defaultBranch = 'main') {
       git(['fetch', 'origin', `${branch}:refs/remotes/origin/${branch}`], dest);
     }
     const log = git(['log', '--format=%h %an %s', `${defaultBranch}..${branch}`], dest);
-    return log
-      .split('\n')
-      .filter(Boolean)
-      .filter((line) => !line.slice(line.indexOf(' ') + 1).startsWith(`${COMMIT_NAME} `));
+    return {
+      status: 'ok',
+      commits: log
+        .split('\n')
+        .filter(Boolean)
+        .filter((line) => !line.slice(line.indexOf(' ') + 1).startsWith(`${COMMIT_NAME} `)),
+    };
   } catch {
-    return [];
+    return { status: 'unavailable', commits: [] };
   }
 }
 
@@ -194,17 +210,21 @@ const SYNC_BRANCH = /^studio-sync\/\d{4}-\d{2}-\d{2}(?:-rerun-[0-9]+)?$/;
  * fact that selects the disposition. A commit with no author attributed counts as authored: this
  * is a prompt to look, so over-reporting is the safe direction.
  *
- * @returns {{ number, url, branch, createdAt, authored: string[], total: number }[]} oldest first.
+ * @returns {{ status: 'ok'|'unavailable', waves: Array<{
+ *   number, url, branch, createdAt, authored: string[], total: number }> }}
+ *
+ * A verdict rather than a bare list, for the reason #304's own body gave and then failed to act
+ * on: an empty list is the positive claim "no other wave is open", and a `gh` failure must not be
+ * able to make it. That shape is precisely what would have made the node-budget bug below
+ * permanent and silent, so fixing the trigger while leaving the mechanism was not a fix.
  */
 export function findOtherOpenSyncPrs(repo, currentBranch, token) {
   try {
     // `commits` is deliberately NOT requested here. Asking for it across a PR list multiplies out
     // to a GraphQL node count that GitHub rejects outright — `--limit 50` on a real member returns
     // "requests up to 505,050 possible nodes which exceeds the maximum limit of 500,000", and 49
-    // only squeaks under a ceiling nothing in this repo controls. Because the whole lookup is
-    // wrapped in a catch that degrades to "no other waves", that failure would have been permanent
-    // and completely silent. The cheap list is unconditional; commits are fetched per PR below,
-    // and only for the sync branches, which is normally none.
+    // only squeaks under a ceiling nothing in this repo controls. The cheap list is unconditional;
+    // commits are fetched per PR below, and only for the sync branches, which is normally none.
     const json = gh(
       ['pr', 'list', '--repo', repo, '--state', 'open', '--limit', '100', '--json', 'number,url,headRefName,createdAt'],
       token,
@@ -216,9 +236,9 @@ export function findOtherOpenSyncPrs(repo, currentBranch, token) {
         gh(['pr', 'view', String(pr.number), '--repo', repo, '--json', 'commits'], token) || '{}',
       ).commits,
     }));
-    return selectOtherOpenSyncPrs(enriched, currentBranch);
+    return { status: 'ok', waves: selectOtherOpenSyncPrs(enriched, currentBranch) };
   } catch {
-    return [];
+    return { status: 'unavailable', waves: [] };
   }
 }
 
