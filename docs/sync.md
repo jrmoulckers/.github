@@ -714,6 +714,28 @@ matching line and every more specific member rule silently downgraded — and, w
 already held canon's stanza unmarked, leaves that stanza in the file twice. Merging such a branch
 costs a human edit to undo; regenerating it costs nothing.
 
+This is not hypothetical and it is not confined to unmerged branches. `jrmoulckers/finance` merged
+one such branch during the first rollout and lost every carve-out in its `.gitattributes`:
+`gradlew.bat` and `*.cmd` went from `eol: crlf` to `eol: lf`, and `*.png`, `*.jar` and `*.keystore`
+from `text: unset` to `text: auto`. `gradlew.bat` is the sharp case — the only tracked `.bat`, stored
+with 91 CRLF pairs, on a repo where Windows is a first-class build target and `cmd.exe` is unreliable
+with LF-only scripts. It produced no conflict, no failing check and no diff noise; it surfaces later
+as a corrupted checkout. The member found and repaired it within fifteen minutes, which is the only
+reason it was cheap.
+
+**Audit the process, not the moment.** A fleet audit run after that repair reported zero exposure,
+because a point-in-time check cannot distinguish "never broken" from "broken and already fixed" — it
+returns green for both. The same audit missed a live hazard in an open PR that was not in the set it
+examined. Two rules follow, and both are cheap:
+
+- Enumerate what is open rather than the PRs you know about — `gh pr list --state open` per member.
+  A snapshot of a set you assembled by hand answers "the state of these", not "what exists".
+- Prefer a check that can return something other than *clean*. An audit whose only outcomes are
+  "clean" and "found it" is silent about exposure that was repaired and about exposure that has not
+  landed yet, which are the two states that matter for a fleet mid-rollout. Comparing the default
+  branch against every open branch, with `git check-attr` on the paths a member protects, answers the
+  question the snapshot cannot.
+
 **Audit that exposure with git's resolver, not with the region's position.** The obvious check —
 "the managed region should be the first non-empty line" — is itself keyed to the wrong unit, and it
 was written and run against the whole fleet before the mistake showed. It returned two hits, and
