@@ -170,6 +170,34 @@ test('an ambiguous relocation is left alone rather than guessed at', () => {
     assert.deepEqual(res.rekeyed, []);
     assert.equal(res.pruned.length, 2, 'ambiguous entries are still pruned as dangling');
     assert.equal(Object.keys(res.entries).length, 0);
+
+    // Declining to decide is a decision, and it must be visible. Without this the prune above is
+    // indistinguishable from an ordinary stale prune, so the human the choice was deferred to is
+    // never told there was a choice.
+    assert.deepEqual(
+      res.ambiguous,
+      [
+        {
+          targetPath: `${NEW_BASE}/tokens.css`,
+          candidates: [`${OLD_BASE}/tokens.css`, `legacy/vendor/@jrm/tokens/tokens.css`],
+        },
+      ],
+      'an ambiguous relocation is reported, not merely skipped',
+    );
+  });
+});
+
+test('an unambiguous run reports no ambiguity, so the signal means something', () => {
+  withTmp((root) => {
+    write(root, `${NEW_BASE}/tokens.css`, 'x\n');
+    const entries = {
+      [`${OLD_BASE}/tokens.css`]: { sourceSha256: 'a', targetSha256: 'a', syncedAt: 'x' },
+    };
+
+    const res = reconcileLockKeys(root, [tokenSpec('tokens.css')], entries);
+
+    assert.equal(res.rekeyed.length, 1);
+    assert.deepEqual(res.ambiguous, [], 'a bijective match is never reported as ambiguous');
   });
 });
 

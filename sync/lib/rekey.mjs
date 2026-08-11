@@ -19,8 +19,14 @@
 //
 // Rekeying is only safe when the correspondence is unambiguous, so it is restricted to
 // bijective matches: the orphan must match exactly one planned target and that target must
-// match exactly one orphan. Anything ambiguous is left alone rather than guessed at — a wrong
-// baseline would suppress a real drift signal, which is worse than the stale key it replaces.
+// match exactly one orphan. Anything ambiguous is never guessed at — a wrong baseline would
+// suppress a real drift signal, which is worse than the stale key it replaces.
+//
+// "Never guessed at" is not the same as "left alone", and the difference is reported rather
+// than implied. A declined match still falls through to prune, so an ambiguous orphan whose
+// file is gone is dropped like any other dangling record and would otherwise be indistinguishable
+// from one. Declining to decide is a decision, and a decision nothing surfaces cannot be acted
+// on by the human it was deferred to — so every declined match is returned in `ambiguous`.
 //
 // This module never touches files. Entries are moved and dropped; nothing outside the plan is
 // deleted from disk. An abandoned file left behind at an old base is a separate decision for a
@@ -44,15 +50,18 @@ import { join } from 'node:path';
  * @param {TargetSpec[]} writes  the resolved plan
  * @param {Record<string, object>} entries  lock entries (not mutated)
  * @returns {{ entries: Record<string, object>, rekeyed: Array<{from: string, targetPath: string}>,
- *            pruned: Array<{targetPath: string}> }}
+ *            pruned: Array<{targetPath: string}>,
+ *            ambiguous: Array<{targetPath: string, candidates: string[]}> }}
  */
 export function reconcileLockKeys(memberRoot, writes, entries) {
   const next = { ...entries };
   const planned = new Set(writes.map((spec) => spec.targetPath));
   const orphans = Object.keys(next).filter((key) => !planned.has(key));
 
+  const { pairs, ambiguous } = matchRelocations(writes, next, orphans);
+
   const rekeyed = [];
-  for (const { from, to } of matchRelocations(writes, next, orphans)) {
+  for (const { from, to } of pairs) {
     next[to] = next[from];
     delete next[from];
     rekeyed.push({ from, targetPath: to });
@@ -66,12 +75,13 @@ export function reconcileLockKeys(memberRoot, writes, entries) {
     pruned.push({ targetPath: key });
   }
 
-  return { entries: next, rekeyed, pruned };
+  return { entries: next, rekeyed, pruned, ambiguous };
 }
 
 /**
  * Pair orphaned keys with planned targets that lost their baseline, matching on the
- * plan-relative path so only the base differs. Returns bijective pairs only.
+ * plan-relative path so only the base differs. Returns bijective pairs, plus every target
+ * whose match was declined for ambiguity so the caller can surface it.
  */
 function matchRelocations(writes, entries, orphans) {
   const candidates = new Map(); // targetPath -> Set<orphan key>
@@ -91,13 +101,20 @@ function matchRelocations(writes, entries, orphans) {
   }
 
   const pairs = [];
+  const ambiguous = [];
   for (const [targetPath, keys] of candidates) {
-    if (keys.size !== 1) continue;
+    if (keys.size !== 1) {
+      ambiguous.push({ targetPath, candidates: [...keys].sort() });
+      continue;
+    }
     const [from] = keys;
-    if (claimedBy.get(from).size !== 1) continue;
+    if (claimedBy.get(from).size !== 1) {
+      ambiguous.push({ targetPath, candidates: [from] });
+      continue;
+    }
     pairs.push({ from, to: targetPath });
   }
-  return pairs;
+  return { pairs, ambiguous };
 }
 
 /**
