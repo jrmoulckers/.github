@@ -339,6 +339,25 @@ what it cannot — in that instance, *is this binary* is answerable from a NUL b
 provenance comment survive in this file format* is a convention and must be declared. Where a list
 is standing in for both, it will be empty, and its emptiness is the symptom.
 
+**And a record cannot authorize the repair of its own corruption.** Offered a choice of evidence for
+overwriting a member's file, a correspondent proposed consulting the engine's own lockfile, having
+measured that it holds a complete publish-time hash of every file written — 59 of 59 recorded, the
+only two disagreeing with disk being the files designed to. The measurement was right and the
+proposal still fails, because both consumers are reached *only* when that record is absent or already
+disagrees: one predicate is gated on there being no lock entry at all, and the other is reached only
+after the recorded hash has failed to match, which is the condition that defines the case. The
+datum's failure is the reason control arrives there at all.
+
+The general test is worth applying before choosing any authority: **ask whether the datum you propose
+to trust is the one whose failure defines the situation you are repairing.** It reads as prudence to
+reach for the most authoritative record available, and authority is exactly what a corrupted record
+retains. Note that the same correspondent had used this argument correctly to eliminate a competing
+option — that one required knowing which revision produced a file, whose absence is the defect — and
+did not see that it applied more sharply to the option they were advancing. **A circularity argument
+is easier to aim outward than to turn around**, because the option being argued against is examined
+for how it fails while the option being advanced is examined for whether it could work.
+
+
 **When you retire a control that could not fire, show that its replacement can.** The fixture named
 as the real test here was a run-level `startup_failure`; every such run in this fleet — twelve, across
 three repositories — has **zero jobs**, because the conclusion names a run that failed before any job
