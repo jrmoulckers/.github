@@ -13,7 +13,7 @@ import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { inject } from './provenance.mjs';
 import { hashText } from './lock.mjs';
-import { historicalFileVersions } from './history.mjs';
+import { historicalFileVersions, canonRevisions } from './history.mjs';
 
 const FILE_SUFFIX = {
   agents: '.agent.md',
@@ -141,14 +141,16 @@ function fileSpec(kind, name, sourcePath, targetPath, raw, targetBase) {
  * source repo for vendored `@jrm/tokens`. Rendering uses each spec's own provenance note, so a
  * vendored file is reconstructed with the note that was actually written into it; hashing the
  * raw blob alone would produce a set that matches nothing and disable recovery with no error.
+ *
+ * The same walk also yields `canonRevisionSha256` — the ordered sequence of published versions,
+ * newest first — which is what lets a withheld file report *how far* behind it is rather than
+ * merely that it is.
  */
 function attachCanonHistory(writes, sourceRoot) {
   const files = writes.filter((spec) => spec.type === 'file');
   if (!files.length) return;
-  const versions = historicalFileVersions(
-    sourceRoot,
-    files.map((spec) => spec.sourcePath),
-  );
+  const sourcePaths = files.map((spec) => spec.sourcePath);
+  const versions = historicalFileVersions(sourceRoot, sourcePaths);
 
   for (const spec of files) {
     const currentRenderedHash = hashText(spec.content);
@@ -160,6 +162,13 @@ function attachCanonHistory(writes, sourceRoot) {
     historical.delete(spec.sourceSha256);
     historical.delete(currentRenderedHash);
     spec.historicalCanonSha256 = [...historical].sort();
+    // Lazy: the count is only ever read for a drifted file, and walking every path's history
+    // eagerly more than doubled a real run. Non-enumerable so spreading a spec doesn't force it.
+    Object.defineProperty(spec, 'canonRevisionSha256', {
+      get: () => canonRevisions(sourceRoot, [spec.sourcePath]).get(spec.sourcePath) ?? [],
+      enumerable: false,
+      configurable: true,
+    });
   }
 }
 

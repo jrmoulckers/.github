@@ -8,6 +8,7 @@
 
 import { log } from './log.mjs';
 import { syncMemberRepo } from './pr.mjs';
+import { formatBehind } from './copier.mjs';
 
 /**
  * @param {Array<{resolved, targets}>} plans
@@ -61,6 +62,10 @@ export function syncMembers(plans, ctx, syncOne = syncMemberRepo) {
  * identically whether the member customised the file or was frozen out of canon. So the line now
  * leads with the consequence rather than the count — a withheld path is one where canon has moved
  * since the member's baseline, so the refusal is actively costing them an update.
+ *
+ * Each withheld path carries how far behind it is, because a permanently red gate carries no
+ * information: a reader needs to tell a file that went stale this week from one that has been
+ * stale for five releases, and only a number that grows does that.
  */
 export function formatDriftWarning(repo, drift) {
   const withheld = drift.filter((item) => item.withheld);
@@ -71,6 +76,10 @@ export function formatDriftWarning(repo, drift) {
   return (
     `${repo}: locally-modified file(s) left untouched: ${paths}` +
     ` — ${withheld.length} of ${drift.length} withholding a canon update` +
-    ` (${withheld.map((item) => `${item.targetPath} last synced ${item.lastWrittenAt ?? 'never'}`).join('; ')})`
+    ` (${withheld.map(formatWithheld).join('; ')})`
   );
+}
+
+function formatWithheld(item) {
+  return `${item.targetPath} last synced ${item.lastWrittenAt ?? 'never'}${formatBehind(item.revisionsBehind)}`;
 }

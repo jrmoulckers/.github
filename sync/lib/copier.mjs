@@ -436,13 +436,45 @@ function isHistoricalCanonOutput(lockEntry, currentHash, spec) {
  *
  * An unrecorded target has no baseline to compare, and it differs from canon or it would not be
  * here — so the member has never received this path and is withheld by definition.
+ *
+ * `revisionsBehind` is the magnitude: how many distinct versions canon has published since the one
+ * the member last received. It is the number that grows, and growth is what separates a file
+ * frozen out of updates from one customised on purpose, which sits at zero forever. `null` means
+ * the question is unanswerable rather than zero — no baseline, or a baseline describing content
+ * that appears nowhere in the source's history — and unanswerable must not read as "up to date".
  */
 function withholdingState(lockEntry, spec) {
-  if (!lockEntry) return { withheld: true, lastWrittenAt: null };
+  if (!lockEntry) return { withheld: true, lastWrittenAt: null, revisionsBehind: null };
   return {
     withheld: lockEntry.sourceSha256 !== spec.sourceSha256,
     lastWrittenAt: lockEntry.syncedAt ?? null,
+    revisionsBehind: revisionsBehind(lockEntry, spec),
   };
+}
+
+/**
+ * Position of the member's baseline in the ordered revision list. Index 0 is current canon, so the
+ * index *is* the number of versions published since — no arithmetic, and no off-by-one to get
+ * wrong when a revert makes two entries share content.
+ */
+function revisionsBehind(lockEntry, spec) {
+  const revisions = spec.canonRevisionSha256;
+  if (!revisions?.length || !lockEntry.sourceSha256) return null;
+  const index = revisions.indexOf(lockEntry.sourceSha256);
+  return index < 0 ? null : index;
+}
+
+/**
+ * Render `revisionsBehind` for a human, or nothing at all.
+ *
+ * Lives here, beside the field it formats, so the log line and the PR body cannot drift apart —
+ * and so neither reporting surface has to know that `null` and `0` mean different things. `null`
+ * is unanswerable (no baseline, or a baseline matching nothing in the source's history); printing
+ * it as "0 canon revisions behind" would assert a currency the engine cannot support.
+ */
+export function formatBehind(revisionsBehind) {
+  if (!revisionsBehind) return '';
+  return `, ${revisionsBehind} canon revision${revisionsBehind === 1 ? '' : 's'} behind`;
 }
 
 function entry(sourceSha256, targetSha256) {
