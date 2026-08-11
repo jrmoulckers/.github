@@ -2214,6 +2214,40 @@ convention applied five times.
 None of this disturbs the heading resolution itself, which reproduced independently and is what the
 argument actually rests on.
 
+**A named tip certifies every other number in the message, whether or not it was measured there.**
+The same passage's coordinate for the next heading after `L471` was published as `L649` in a message
+that also announced `main` at `bfc9a1c`. At `bfc9a1c` that value is **683**; `649` is correct at
+`5e9c4ef`, a revision the message never named. Fence-aware over all 212 revisions of this file, `649`
+resolves at five published ancestors of `main`, so the figure was real, reachable, and attached to
+the wrong revision *in the same sentence that named a revision*.
+
+That is the previous entry from the other side — there, someone else's figure was relayed to the
+wrong source; here, an own measurement was published against the wrong tip. The new part is that the
+SHA made it worse. A reader binds every figure in a message to the revision it names, so **citing a
+tip raises confidence in numbers never measured against it**, and naming a revision reads as rigour
+while supplying the false coordinate the reader then trusts. Measure at the tip you name, or attach a
+revision per figure.
+
+**A negative result inherits the scope of the population searched.** The member disputing that
+coordinate scanned five revisions and reported that it "matches no revision I can fetch". It matches
+five — none of them in their sample, one of them the very PR they had used elsewhere as a bound.
+Their instrument was fine and their population was wrong, which is invisible in the reporting because
+*not in these five* and *not in any* are written the same way. State what you searched, not just what
+you failed to find.
+
+**And stability across the revisions you sampled is not structural invariance.** The same report
+offered a consolation — fence-aware heading count was 28 at every revision measured, while the span
+moved 125 lines — as evidence that structure is the stable thing to cite. It is 36 at `main`. The
+quantity was not invariant, only *slower*, and anything that changes on some commits will look fixed
+to any sample that misses them. Anything counted from a growing document is a coordinate with a
+longer half-life. Only a **name** is genuinely revision-independent.
+
+**When correcting a citation, quote it from the message being corrected.** That same correction
+attributed a pair, `L649/L692`, of which only `L649` was ever written; `L692` appears nowhere in the
+corrected party's messages, and the half that could not be resolved was the fabricated half. A
+correction is a claim and needs measuring exactly as much as what it corrects — including the
+question of what was actually said.
+
 **A citation also only discharges the obligation if the artifact is reachable by the audience.** This
 document is backbone-internal: `docs/sync.md` is not a canon kind, appears in no member's lockfile,
 and is distributed to nobody. Telling a member to "see `docs/sync.md`" names an artifact they cannot

@@ -1199,6 +1199,14 @@ Delete the words and the search returns nothing, which reads as *this was never 
 *this was retracted* — and the person running that search is usually the person who acted on the
 claim, so the reader who most needs the correction is the one a clean deletion serves worst.
 
+**Naming a revision does not certify the figures beside it.** A reader binds every number in a
+message to the SHA that message names, so a coordinate measured at one revision and published
+alongside another is trusted *because* the revision was cited. Naming the tip reads as rigour and
+supplies the false confidence. Measure at the tip you name, or attach a revision to each figure
+individually — and when reporting that something is absent, say which population you searched, since
+*not in the revisions I checked* and *not in any revision* are written identically and differ by
+everything.
+
 ### A correct verdict does not make the remedy correct
 
 A guard that fails closed on the right input can still do harm, because the *diagnostic* is a
