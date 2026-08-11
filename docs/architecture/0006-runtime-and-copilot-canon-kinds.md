@@ -197,6 +197,19 @@ would report it as drift forever.
   correct?" but **"what is the finest unit this property varies over, and did I go all the way
   there?"** Nothing announces stopping one level short, because the check goes green.
 
+  **The absence of a complaint is the strongest form of that.** A failing check at least names a
+  unit; silence names nothing, and the natural reading of silence is that there was nothing to find.
+  The clearest case is a managed-region merge: the failure mode this ADR's own guidance warns about —
+  canon's side silently restoring member content that was trimmed after the branch was cut — produces
+  **no conflict marker at all**, because the two sides touch different regions of the file and git
+  merges them without complaint. "It rebased cleanly" is therefore not evidence the member's work
+  survived; it is a precise description of the circumstance in which its loss goes unnoticed. The
+  member that hit this ran an explicit invariant assertion after *each* rebase instead — one marker
+  pair, region matching canon, member content outside the markers byte-identical to the default
+  branch — and so could report zero conflicts and a verified-intact trim as two independent facts.
+  Where a failure is defined by the absence of a signal, the check has to assert the property
+  positively; nothing else can distinguish "nothing went wrong" from "nothing was looking".
+
   **The pattern has a read-side twin: a correct query answering the wrong question.** Every instance
   above is a *rule* keyed to the wrong unit, but the same shape appears when gathering evidence, and
   it is harder to catch because nothing is broken. Reading a three-dot diff to decide whether a file
