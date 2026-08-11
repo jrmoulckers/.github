@@ -842,6 +842,19 @@ declining to distinguish them. So no operator can ever confirm the clause from t
 the recovery-time asymmetry is the only observable bearing on it — inference from timing, not
 evidence from the message. Do not present the two-clause account to anyone as diagnosable.
 
+**When your own block lifts, the first green is a first measurement, not a recovery.** The rule
+above governs a *sibling's* green; this one governs your own. A refused run executed no steps, so it
+carries no evidence about the diff in either direction — the red was a statement about the account.
+There is therefore no prior known-good state being returned to, and a regression that landed during
+the outage was indistinguishable from the outage the whole time it held. The trap is in how it ends:
+the window does not close when the block lifts, it closes when someone re-reads the checks, and
+nothing prompts that, because the repos go green on their own and a green check invites no
+investigation. So the recovery erases the evidence that anything was ever concealed. After an
+account-wide refusal lifts, re-run and re-read the affected PRs' checks deliberately instead of
+treating the return to green as the answer, and judge the branch per hunk — an aged branch is rarely
+all-good or all-stale. Full treatment in `docs/sync.md`, § *A fleet-wide outage makes genuine
+regressions unreadable while it holds*.
+
 Discriminate before investigating, because the two look nearly identical and only one of them is
 a defect in this repository:
 
