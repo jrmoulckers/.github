@@ -1063,6 +1063,19 @@ So the review-time rule is mechanical rather than a matter of judgement:
 > Naming the case is the trigger. A synthetic fixture "of that shape" is the thing being warned
 > about, not a substitute for it.
 
+The rule was applied retroactively to `report.outranked` in #254. #202's PR body named
+`jrmoulckers/homelab`'s `studio-sync/2026-08-10` as the motivating branch, and its non-empty case
+was a three-line paraphrase. The real 970-byte file is now committed under `test/fixtures/` and
+`apply()` runs against it directly. It is the better fixture for a reason worth generalizing: a real
+artifact carries **the cases nobody thought to write**. That file opens with its own
+`* text=auto eol=lf`, byte-identical to canon, so the `docket` false positive sits inline alongside
+21 genuine losses and a single test proves the detector's precision *and* recall in one pass.
+
+A fixture copied from a live artifact is only evidence while it is still that artifact, so the test
+asserts git's content-addressed blob id (`2f2e28c7…`) rather than trusting the copy. Anyone can
+re-derive it from the branch; a fixture that has quietly drifted stops being a reconstruction and
+becomes a synthetic one with a provenance comment.
+
 **And confirm the mutation actually mutated.** Writing these two README assertions, the first
 mutation run reported *both* as vacuous. They were not — the harness was. The mutation was applied
 from PowerShell with the file content in a quoted string, and the backticks that make a code span out

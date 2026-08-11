@@ -1,0 +1,36 @@
+# Normalize line endings — store text as LF in the repo.
+* text=auto eol=lf
+
+# Treat these as text explicitly
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.conf  text eol=lf
+*.xml   text eol=lf
+*.sh    text eol=lf
+*.md    text eol=lf
+
+# Binary assets — never apply text detection or EOL normalization. Without this,
+# `* text=auto` can misclassify a binary (e.g. the house-twin house.glb model,
+# whose header looks text-like) and corrupt it by rewriting CR/LF bytes.
+*.glb   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.pdf   binary
+*.zip   binary
+*.gz    binary
+*.tgz   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+
+# studio:base:start
+# synced from jrmoulckers/.github — canonical source; do not edit here
+# Normalize every detected text file to LF in the index and working tree.
+# Git's automatic text detection leaves binary files byte-for-byte unchanged.
+* text=auto eol=lf
+# studio:base:end
