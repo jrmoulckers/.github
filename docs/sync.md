@@ -2454,6 +2454,20 @@ YAML, because the comment is just more text in a literal block, so no parser obj
 fails. The stamp is still emitted, still on its own line, still exactly the expected string — it is
 simply no longer provenance, having become part of a value.
 
+**And no human objects either, because the rule that protects the block retires its last reader.**
+A member-side conformance check cannot help here: it asserts against the lockfile, so it catches a
+member drifting from what the engine produced and certifies whatever the engine produced, however
+malformed. That leaves a person reading the file as the residual instrument — and managed regions
+carry `do not edit here`, which is precisely the instruction that removes any reason to read them
+closely. The sync PR is the one moment those bytes are seen at all, and the review question defaults
+to *did this come from canon?*, which is conformance one level up. So a rendering defect is invisible
+to the parser, to the tests, to the member's checker, and to the member, in that order, and each of
+those four is silent for a different and individually sound reason.
+
+This is why the fix belongs engine-side and structurally: a member cannot validate a rendering
+without reimplementing the renderer, at which point it is the vendored-copy problem again, and a
+reimplementation that agrees with the engine proves nothing about either.
+
 Three things generalize past this bug:
 
 **The guard's promise does not constrain the branch when the branch re-derives the predicate.** A

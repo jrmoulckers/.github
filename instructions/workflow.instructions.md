@@ -648,6 +648,21 @@ only calls reusable workflows declares none of its own. `jrmoulckers/libro` is t
 are entirely inherited. So count the callee's runners for every `uses:`, and read a zero from
 `grep runs-on` as *not measured* rather than *none*.
 
+**Check what the blocker actually gates before deferring work to it.** This outage stops jobs from
+starting; it does not stop anything from being read. A member deferred a static conformance check —
+one that reads a committed lockfile and the working tree, with no runner and no network — on the
+grounds of the billing block, then ran it during the outage in thirty seconds to demonstrate the
+point. **CI availability and data availability are different units**, and a live blocker on one
+reads as a blocker on both because the outage is genuine and the deferral therefore never feels like
+a decision.
+
+Note the direction. Most conflations here let something through: a check passes that should not
+have, and the resulting artifact is wrong and inspectable. This one holds something back — and a
+deferral leaves **no artifact at all**. Nothing fails, nothing is recorded, and the only evidence is
+work that silently did not happen, so a false block is strictly harder to detect afterwards than a
+false pass. When you cite a blocker as the reason for not doing something, name the specific
+capability it removes and check the deferred work needs that capability.
+
 ### Taking only part of `reusable-ci-lint`
 
 `reusable-ci-lint` carries three independent checks — lint, format-check, and Conventional-Commits
@@ -1369,6 +1384,20 @@ previous evening, one reading the tip at their measurement time, neither reading
 existed when the comparison was made. A stale local ref resolves **silently**: no fetch, no warning,
 nothing to distinguish it from a current one. So resolve any moving name to a SHA and publish the
 SHA, and treat a mixed table of names and SHAs as a table whose rows are not comparable.
+
+**And the region you may not edit is the region nobody reads.** A member-side conformance check
+asserts against the lockfile, so it catches a member drifting from what the engine produced and
+silently certifies a rendering the engine got wrong — it is a conformance instrument, and being
+correct about conformance buys nothing against a malformed render. The residual instrument for a bad
+rendering is a human reading the file. But managed regions carry `do not edit here`, which is
+exactly the instruction that removes any reason to read them closely: **the rule protecting the
+block from members also retires its last reader.**
+
+The sync PR is the one moment those bytes are visible to a human, and the review question defaults
+to *did this come from canon?* rather than *is this well-formed?* — conformance again, one level up.
+So when a sync PR touches a managed region, read the rendered block itself, and report a malformed
+render upstream rather than repairing it locally; a member cannot validate a rendering without
+reimplementing the renderer, which is the vendored-copy problem returning.
 
 ### A correct verdict does not make the remedy correct
 
