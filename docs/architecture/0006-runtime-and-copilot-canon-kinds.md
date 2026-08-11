@@ -345,6 +345,20 @@ would report it as drift forever.
   is generated, therefore ask when. A rule that fires on suspicion cannot cover a case that produces
   none.
 
+  **A verification result has a shelf life, and carries no evidence of its own expiry.** The reflexive
+  form of the entry above, and by volume the most repeated failure of the first rollout: a fact is
+  checked, correctly, and then reasoned from minutes or hours later as though checking had made it
+  permanent. Every instance was a *correct* observation — a merge cadence that was real, a branch that
+  was open, a file that said what it was reported to say — reused past the point where it still held.
+  Correctness at the time of reading is exactly what removes the impulse to read again.
+
+  So "I verified it" and "it is true" are different claims, and the gap between them is elapsed time
+  against a store other sessions are writing to. The practical form is to re-read state immediately
+  before acting on it rather than when composing the argument for acting on it, and to treat any
+  verified fact quoted from earlier in a long exchange as expired by default. The clearest
+  demonstration available: the message proposing this rule cited a branch tip that was seven commits
+  stale by the time it was sent, while making the point correctly.
+
   **Status of this consequence: promising, not established.** Every instance was found by one
   rollout, and the diagnostic above has so far only been validated by the people who wrote it.
   Recorded because the reasoning is cheap to apply and the failure it prevents is expensive — not
