@@ -1010,6 +1010,22 @@ and drop the stale sync commit entirely. The next scheduled run re-emits everyth
 `homelab` is the worked example — its `2026-08-09` PR carries one sync commit plus two authored ones
 (an asset-checker fix and a local policy trim), while its `2026-08-11` PR is pure canon.
 
+**This is a queue-drainage property, not a property of any member.** Any repository that accumulates
+two open sync PRs has it, and the precondition is ordinary rather than exotic: a fleet sweep found
+six waves sitting open across members for a day. So the hazard should be read as a standing
+consequence of an undrained queue, and the mitigation is drainage — a wave that is merged or closed
+promptly cannot become the stale half of a pair.
+
+**The engine reports the condition; it does not refuse to open the second wave.** Refusing would
+convert a merge-time correctness hazard into an open-time availability failure, and it would land on
+exactly the members already behind — canon would stop reaching a repository *because* that repository
+was slow to drain, which is the wrong direction. The hazard also does not exist at open time: it
+exists at merge, and only for an older branch that is **mixed**. A pure-canon older branch is simply
+closed and re-emitted, at no cost. So this follows the same posture as ambiguous relocation
+candidates, which are reported rather than guessed at: surface the older open wave, say whether it
+carries commits the engine did not author, and leave the disposition to the merger, who is the only
+party with the standing to choose.
+
 **Re-derive a list at the point of use; never quote one forward.** The enumeration above decays the
 moment it is written down, and the failure is not that the list is wrong when assembled — it is that
 prose preserves it perfectly while the repository moves underneath it. A cherry-pick list assembled

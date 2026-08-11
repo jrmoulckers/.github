@@ -366,6 +366,17 @@ would report it as drift forever.
   in different clothes. Wherever a check derives its own subject matter, that derivation needs an
   assertion of its own, and it will not be supplied by the check passing.
 
+  A synthetic fixture is the same defect in its most comfortable form. Written by the author of the
+  code, it can only contain the cases that author already conceived, so it tests the implementation
+  against the hypothesis space rather than against the world — and it passes, which is the trouble.
+  A fixture reconstructed from a real member artifact carries the cases nobody thought to write:
+  `homelab`'s actual `.gitattributes` opens with a rule byte-identical to canon, so a known false
+  positive sits inline beside twenty-one genuine ones and a single test establishes precision *and*
+  recall, which three purpose-built fixtures had structurally been unable to do. The corollary is
+  that such a fixture is evidence only while it remains that artifact, so pin git's content-addressed
+  blob id: a copy that has quietly drifted has become synthetic again while still carrying a
+  provenance comment saying otherwise.
+
   It is also invisible where such a guard is most likely to be written. The repository that authored
   this one has no vendored tree at all, being the source of those assets, so the guard is correct
   there and silently incomplete the moment it is copied to a consumer. **A check inherits the
