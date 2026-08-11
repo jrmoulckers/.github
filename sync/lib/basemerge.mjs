@@ -39,6 +39,7 @@
 // member never receives the canonical content while the run still reports success.
 
 import { toLF } from './provenance.mjs';
+import { commentSyntaxFor } from './comment-syntax.mjs';
 
 export const START_MARKER = '<!-- studio:base:start -->';
 export const END_MARKER = '<!-- studio:base:end -->';
@@ -57,42 +58,28 @@ export const MARKERS = {
 };
 
 /**
- * Comment syntax is a property of the file type, so it is derived rather than enumerated per
- * target. A hardcoded target list silently hands HTML to the next hash-syntax file someone adds,
- * and the damage lands on the write path: `<!-- … -->` in `.gitattributes` is not a comment but a
- * pattern git tries to match. Unknown types therefore throw instead of falling back.
- */
-const HASH_SYNTAX_BASENAMES = new Set([
-  '.gitattributes',
-  '.gitignore',
-  '.gitmodules',
-  '.editorconfig',
-  '.npmrc',
-  '.dockerignore',
-  '.prettierignore',
-]);
-const HASH_SYNTAX_EXTENSIONS = new Set(['.toml', '.yml', '.yaml', '.sh', '.properties', '.conf']);
-const HTML_SYNTAX_EXTENSIONS = new Set(['.md', '.markdown', '.html']);
-
-/**
  * Pick the marker syntax for a target path. The path is required and the type must be known: a
  * default resolves to HTML, which is correct for every target except the ones that matter and
  * fails silently there.
+ *
+ * The classification is NOT enumerated here. It is the same question `provenance.mjs` asks when
+ * choosing a header syntax, and while the two tables were maintained separately they drifted by
+ * eight types — this module claiming hash syntax for files the stamper was corrupting with HTML.
+ * Both consumers now derive from `comment-syntax.mjs`, so the pair cannot disagree.
+ *
+ * Managed regions need a marker *pair*, so only 'hash' and 'html' are usable here. 'block' and
+ * 'none' are real classifications that this caller cannot serve, and they throw rather than
+ * degrade: a `/*` file has no line-comment form to close a region with, and an unstampable file
+ * has none at all.
  */
 export function markersFor(targetPath) {
-  if (typeof targetPath !== 'string' || targetPath === '') {
-    throw new TypeError('markersFor(targetPath) requires a non-empty target path');
-  }
-  const base = targetPath.split(/[\\/]/).pop() ?? '';
-  const dot = base.lastIndexOf('.');
-  const ext = dot > 0 ? base.slice(dot).toLowerCase() : '';
-
-  if (HASH_SYNTAX_BASENAMES.has(base) || HASH_SYNTAX_EXTENSIONS.has(ext)) return MARKERS.hash;
-  if (HTML_SYNTAX_EXTENSIONS.has(ext)) return MARKERS.html;
+  const syntax = commentSyntaxFor(targetPath);
+  if (syntax === 'hash') return MARKERS.hash;
+  if (syntax === 'html') return MARKERS.html;
 
   throw new TypeError(
-    `markersFor(${targetPath}): unknown comment syntax. Add the type to basemerge.mjs — a ` +
-      `default would write HTML markers into a file that cannot carry them.`,
+    `markersFor(${targetPath}): '${syntax}' syntax has no managed-region marker form. ` +
+      `Managed regions are supported for hash- and HTML-comment files only.`,
   );
 }
 
