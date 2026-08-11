@@ -112,6 +112,20 @@ test('.gitattributes provenance and markers use # comments, never HTML', () => {
   }
 });
 
+test('omitting the marker set throws instead of silently assuming HTML', () => {
+  // A default of MARKERS.html is correct for every target except `.gitattributes`, so the one
+  // caller it is wrong for would receive an empty region rather than an error.
+  const hashFile = '# studio:base:start\n* text=auto eol=lf\n# studio:base:end\n';
+
+  assert.throws(() => extractBlock(hashFile), /explicit marker set/);
+  assert.throws(() => buildFile('', 'x'), /explicit marker set/);
+  assert.throws(() => markersFor(), /non-empty target path/);
+
+  // The failure the removed default produced: right shape, wrong syntax, no error.
+  assert.equal(extractBlock(hashFile, MARKERS.html), null);
+  assert.equal(extractBlock(hashFile, markersFor('.gitattributes')), '* text=auto eol=lf');
+});
+
 test('every line the engine writes into .gitattributes is a comment or a real rule', () => {
   const spec = attributesSpec();
   const rendered = buildFile('', canonicalizeInner(spec.content), markersFor(spec.targetPath));
