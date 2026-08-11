@@ -101,10 +101,13 @@ test('phase-two members resolve dependency-closed roles and curated instruction 
     ['jrmoulckers/windows', []],
   ]);
   const expectedInstructions = new Map([
-    ['jrmoulckers/finance', ['agents', 'docs', 'skills', 'tokens', 'workflow']],
-    ['jrmoulckers/studio', ['agents', 'docs', 'skills', 'tokens', 'workflow']],
-    ['jrmoulckers/homelab', ['agents', 'infrastructure-operations']],
-    ['jrmoulckers/windows', ['agents', 'docs', 'infrastructure-operations', 'skills']],
+    ['jrmoulckers/finance', ['agents', 'canon-formatting', 'docs', 'skills', 'tokens', 'workflow']],
+    ['jrmoulckers/studio', ['agents', 'canon-formatting', 'docs', 'skills', 'tokens', 'workflow']],
+    ['jrmoulckers/homelab', ['agents', 'canon-formatting', 'infrastructure-operations']],
+    [
+      'jrmoulckers/windows',
+      ['agents', 'canon-formatting', 'docs', 'infrastructure-operations', 'skills'],
+    ],
   ]);
 
   assert.equal(manifest.canon.agents.length, 22);

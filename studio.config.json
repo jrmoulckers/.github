@@ -57,6 +57,7 @@
     "prompts": ["backlog", "bug-bash", "cleanup", "fix-ci", "rebase-all", "review", "sprint", "team"],
     "instructions": [
       "agents",
+      "canon-formatting",
       "docs",
       "infrastructure-operations",
       "skills",
@@ -145,7 +146,7 @@
         "agents": "*",
         "skills": "*",
         "prompts": "*",
-        "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
+        "instructions": ["agents", "canon-formatting", "docs", "skills", "tokens", "workflow"],
         "workflows": ["reusable-caller-permissions", "reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget", "reusable-security-ci"]
       },
       "tokens": { "enabled": false }
@@ -188,7 +189,7 @@
         ],
         "skills": "*",
         "prompts": ["review", "fix-ci", "cleanup", "backlog", "bug-bash", "sprint", "team"],
-        "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
+        "instructions": ["agents", "canon-formatting", "docs", "skills", "tokens", "workflow"],
         "workflows": [
           "reusable-caller-permissions",
           "reusable-ci-lint",
@@ -217,7 +218,7 @@
         "agents": "*",
         "skills": "*",
         "prompts": "*",
-        "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
+        "instructions": ["agents", "canon-formatting", "docs", "skills", "tokens", "workflow"],
         "workflows": []
       },
       "tokens": { "enabled": true }
@@ -237,7 +238,7 @@
         "agents": "*",
         "skills": "*",
         "prompts": "*",
-        "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
+        "instructions": ["agents", "canon-formatting", "docs", "skills", "tokens", "workflow"],
         "workflows": ["reusable-caller-permissions", "reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget", "reusable-security-ci"]
       },
       "tokens": { "enabled": true }
@@ -257,7 +258,7 @@
         "agents": "*",
         "skills": "*",
         "prompts": "*",
-        "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
+        "instructions": ["agents", "canon-formatting", "docs", "skills", "tokens", "workflow"],
         "workflows": ["reusable-caller-permissions", "reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget", "reusable-security-ci"]
       },
       "tokens": { "enabled": true }
@@ -277,7 +278,7 @@
         "agents": "*",
         "skills": "*",
         "prompts": "*",
-        "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
+        "instructions": ["agents", "canon-formatting", "docs", "skills", "tokens", "workflow"],
         "workflows": ["reusable-caller-permissions", "reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget", "reusable-security-ci"]
       },
       "tokens": { "enabled": true }
@@ -297,7 +298,7 @@
         "agents": "*",
         "skills": "*",
         "prompts": "*",
-        "instructions": ["agents", "docs", "skills", "workflow"],
+        "instructions": ["agents", "canon-formatting", "docs", "skills", "workflow"],
         "workflows": false
       },
       "tokens": { "enabled": false }
@@ -315,7 +316,7 @@
         "agents": "*",
         "skills": "*",
         "prompts": "*",
-        "instructions": ["agents", "docs", "skills", "workflow"],
+        "instructions": ["agents", "canon-formatting", "docs", "skills", "workflow"],
         "workflows": false
       },
       "tokens": { "enabled": false }
@@ -334,7 +335,7 @@
         "agents": "*",
         "skills": "*",
         "prompts": "*",
-        "instructions": ["agents", "docs", "skills", "tokens", "workflow"],
+        "instructions": ["agents", "canon-formatting", "docs", "skills", "tokens", "workflow"],
         "workflows": ["reusable-caller-permissions", "reusable-ci-lint", "reusable-ci-web", "reusable-security-ci"]
       },
       "tokens": { "enabled": false }
@@ -362,7 +363,7 @@
         "agents": "*",
         "skills": "*",
         "prompts": ["backlog", "cleanup", "review"],
-        "instructions": ["agents", "infrastructure-operations"],
+        "instructions": ["agents", "canon-formatting", "infrastructure-operations"],
         "workflows": false
       },
       "tokens": { "enabled": false }
@@ -380,7 +381,7 @@
         "agents": "*",
         "skills": "*",
         "prompts": "*",
-        "instructions": ["agents", "docs", "infrastructure-operations", "skills"],
+        "instructions": ["agents", "canon-formatting", "docs", "infrastructure-operations", "skills"],
         "workflows": false
       },
       "tokens": { "enabled": false }

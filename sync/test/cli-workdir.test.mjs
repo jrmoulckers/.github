@@ -163,10 +163,10 @@ test('manifest dry-run reports complete phase-two activation plans', () => {
   // the studio operating guide.
   // `natives` is separate again: Studio declines base yet still calls backbone reusable CI.
   const members = [
-    ['jrmoulckers/finance', 'application · kmp-web · npm', 8, 5, 60, true, ['health', 'workflows']],
-    ['jrmoulckers/studio', 'infrastructure · pnpm', 8, 5, 59, false, ['workflows']],
-    ['jrmoulckers/homelab', 'infrastructure', 3, 2, 51, false, []],
-    ['jrmoulckers/windows', 'infrastructure', 8, 4, 58, false, []],
+    ['jrmoulckers/finance', 'application · kmp-web · npm', 8, 6, 61, true, ['health', 'workflows']],
+    ['jrmoulckers/studio', 'infrastructure · pnpm', 8, 6, 60, false, ['workflows']],
+    ['jrmoulckers/homelab', 'infrastructure', 3, 3, 52, false, []],
+    ['jrmoulckers/windows', 'infrastructure', 8, 5, 59, false, []],
   ];
 
   for (const [repo, metadata, promptCount, instructionCount, total, hasBase, natives] of members) {
