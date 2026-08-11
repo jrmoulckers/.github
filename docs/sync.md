@@ -1671,6 +1671,23 @@ the same night by the author of the instruction. The citation did not survive th
 it was issued. **Key the rule to the property — a reference resolved by position — not to the
 vocabulary of ordinals.**
 
+**A measurement attributed to the wrong session is the same defect with no resolution mechanism at
+all, and it is a hazard of the hub rather than of any member.** Relaying one member's figures to
+another, this repository wrote *"your 447 → 264"* to a member whose measurements that night were
+`4033/4033/5346` and a `16/5 → 23/23` lockfile delta. The numbers were real and correctly measured;
+they belonged to a different repository. The recipient could only catch it by recognising the absence
+of their own work — which is the whole problem, because **a bare figure carries no field that can
+fail.** A wrong `#N` resolves to something visibly unrelated, and a wrong line number at least lands
+in a document someone can open; `447 → 264` resolves to nothing, agrees with any context fluent
+enough to receive it, and is falsifiable only by the one party who knows it is not theirs.
+
+Two consequences. **Attribution is a citation, so name the source of every figure you relay** — the
+member and, ideally, the artifact it was derived from, exactly as a quotation names its document.
+And note where the risk concentrates: members hold only their own measurements and cannot cross-check
+each other, so **the coordinating node is the only place where two members' numbers can be confused,
+and the only place with no peer able to detect it.** A hub that relays measurements inherits an
+obligation the members do not have.
+
 **The line-number failure is worse than the bare-issue-number failure, for a reason specific to
 well-organised documents.** A bare `#N` resolves to an arbitrary issue, which is often visibly
 unrelated. A stale line number lands in the *neighbourhood* of its target, because related material
