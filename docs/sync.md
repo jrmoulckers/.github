@@ -1927,6 +1927,53 @@ here: that header sits on every synced file in every member, so changing it rewr
 invalidates the sync PRs the billing outage is currently holding open. Right change, wrong moment —
 land it in the wave that drains those PRs, not before.
 
+**And that warning was attached to the one input with a perfect stability record, while the real
+hazard shipped twice through the renderer.** Extracting `PROVENANCE_NOTE` at all seven revisions of
+`provenance.mjs` shows it byte-identical at every one — it has never moved. `inject` moved twice in
+two days: `31b5271` gave `.kt`/`.swift` compilable block comments, and `e4e8f23` unified the
+classifier and changed six of sixteen types from the HTML fallback to `#`. Recognition does not
+compare the note; it compares the **rendered file**. So the invariant is not *the note is stable*,
+it is *`inject` output is stable*, and the note is merely one of several inputs to it.
+
+The mechanism is `attachCanonHistory` in `sync/lib/assets.mjs`: it reconstructs past engine output
+by rendering **historical raw canon through the current renderer**, then matching hashes. Every
+rendering change therefore orphans every file stamped in the old form — those bytes are no longer
+reproducible, `isHistoricalCanonOutput` misses, and the member is reported as having modified a file
+it never touched. A member holding a `.editorconfig` or `.npmrc` stamped before `e4e8f23` is in
+exactly that state now. **`inject` is a hashed interface, not a formatter**; there is no such thing
+as a cosmetic change to it.
+
+Three things generalize past this engine.
+
+**A guard attached to a name leaves the rest of the class open.** The hazard was held as *do not make
+`PROVENANCE_NOTE` revision-valued* — a true statement about one identifier — when the actual hazard
+is *do not change what `inject` emits*, of which the note is one instance. Both real breaks were made
+by someone editing comment syntax, who had every reason to believe they were changing formatting.
+The warning was not where they were working, and could not have been, because it was addressed to a
+different editor. Name the invariant by the property that must hold, not by the variable you happened
+to be looking at when you noticed it.
+
+**A stability record is an argument against warning there, not for it.** The instinct that put the
+warning on the note is that the note is important, and important is not the same as volatile. Seven
+revisions of never changing is the strongest available evidence that the next change will not be
+there either — so effort spent guarding it is effort not spent on the code that moved twice in the
+same window. Rank guards by what has moved, which is measurable, rather than by what would be bad,
+which is intuition.
+
+**And the commit that fixed the defect was itself an instance of the hazard the same conversation was
+describing.** `e4e8f23` closed the HTML-fallback gap correctly and broke recovery for six types while
+doing it, in the window where both parties were discussing recovery fragility — because the fragility
+was under discussion by name, and the fix was to something with a different name. Being mid-discussion
+about a hazard does not confer any protection against committing it; the discussion has to be about
+the shape.
+
+The pin now lives in `sync/test/rendering-stability.test.mjs`, which states the rendered first line
+of every classified type and fails on any change to it. Mutation-proved by moving `.editorconfig`
+back to the HTML family — the reverse of the real `e4e8f23` edit — and confirming it reports `was: #
+…` against `now: <!-- … -->`. What the pin does **not** do is repair members already holding orphaned
+bytes; that needs the recovery set to be rendered by the renderer of its own revision, or recorded
+at publish time rather than recomputed, and it is filed separately rather than guessed at here.
+
 **What makes a line number uniquely bad is that the act which invalidates it is correct, unrelated,
 and elsewhere.** A renamed function breaks its references visibly; a moved file breaks a link; a
 changed API breaks a build. Editing a document *above* a cited range breaks every citation into it

@@ -247,6 +247,25 @@ can falsify **that** proposition rather than merely that the run can fail. Where
 reach, the witness must be a case that would exhibit the absence: verify a distribution change
 against a member that does *not* already receive the surface you are changing.
 
+**A guard is also placed, and it can be aimed correctly at the wrong instance of its own class.** A
+warning said *do not make this constant revision-valued* — true, and about one identifier — when the
+property that actually had to hold was that a renderer's output never change, the constant being one
+of its inputs. The constant then went seven revisions byte-identical while the renderer changed
+twice in two days, both times by someone editing what looked like formatting and who never saw the
+warning, because it was addressed to a different editor in a different file. **Name the invariant by
+the property that must hold, not by the variable you were looking at when you noticed it** — a guard
+written against the instance you saw sits wherever you were standing, which is rarely where the next
+instance arrives.
+
+**Rank guards by what has moved, not by what would be bad.** The instinct that protects a long-stable
+constant is that it is important, and important is not the same as volatile; a perfect stability
+record is the strongest available evidence that the next change will not be there either. Revision
+history is measurable and the intuition is not, so before deciding where a guard goes, count where
+the edits have actually landed. And note the sequel, which is the same lesson at a different scale:
+the commit that *fixed* the underlying defect was itself an instance of the hazard being discussed
+in the same conversation, because the hazard was being discussed under a name and the fix touched
+something with a different one.
+
 ### An unreproducible finding resolves to a timestamp before an author
 
 When a reported defect is not there when you look, the reading that gets reached for is that the
