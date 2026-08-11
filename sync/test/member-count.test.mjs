@@ -205,3 +205,64 @@ test('the source pattern catches the claim the prose pattern let through', () =>
   assert.equal(strict.length, 1, 'source pattern must fire on it');
   assert.equal(toNumber(strict[0][1]), 9, 'and must read the stated count');
 });
+
+// #374: a count is not the only way to hardcode the fleet.
+//
+// The guard above catches "all N members" and is blind by construction to the other form — an
+// enumeration that names them. `docs/sync.md` classified the fleet into public and private and
+// listed 8 of 12, omitting two members that were blocked at the time, so the list dropped live
+// instances of the condition its own section taught the reader to find. No count appeared
+// anywhere in it, so nothing fired.
+//
+// The discriminator is a hedge, not a length. `README.md` names three members and is correct
+// because it says "and more" — that is subset prose and must stay writable, exactly as the
+// count guard keeps "three members were in that group" writable. An unhedged run of names is
+// asserting the population, and an asserted population goes stale the next time one is added.
+
+const MEMBER_RUN = (names) =>
+  new RegExp(String.raw`(\`(?:${names})\`[,;]?\s+(?:and\s+|or\s+)?){2,}\`(?:${names})\``, 'g');
+
+/** Marks the list as illustrative. Anything else is a claim about the whole fleet. */
+const HEDGE = /and more|and others|among (?:them|others)|for example|such as|e\.g\./i;
+
+test('no prose enumerates the fleet without marking the list as partial', () => {
+  const names = loadManifest(REPO_ROOT)
+    .members.map((m) => m.repo.split('/')[1].replaceAll('.', String.raw`\.`))
+    .join('|');
+  const offenders = [];
+
+  for (const relativePath of SURFACES) {
+    const text = readFileSync(join(REPO_ROOT, ...relativePath.split('/')), 'utf8');
+    for (const line of text.split('\n')) {
+      for (const match of line.matchAll(MEMBER_RUN(names))) {
+        if (!HEDGE.test(line)) offenders.push(`${relativePath}: "${match[0].trim()}"`);
+      }
+    }
+  }
+
+  assert.deepEqual(
+    offenders,
+    [],
+    `Derive the list from studio.config.json, or mark it partial ("and more"):\n  - ${offenders.join('\n  - ')}`,
+  );
+});
+
+test('the enumeration guard fires on the list #374 removed and spares the one it kept', () => {
+  // Non-vacuity, using the real removed text rather than a synthetic fixture: these two lines
+  // stood in docs/sync.md, and the third stands in README.md today.
+  const names = loadManifest(REPO_ROOT)
+    .members.map((m) => m.repo.split('/')[1].replaceAll('.', String.raw`\.`))
+    .join('|');
+
+  for (const removed of [
+    'Public (immune, useless as evidence): `.github`, `studio`, `finance`, `score-king`.',
+    'Private (exposed): `homelab`, `libro`, `docket`, `windows`.',
+  ]) {
+    assert.equal([...removed.matchAll(MEMBER_RUN(names))].length, 1, `must fire on: ${removed}`);
+    assert.equal(HEDGE.test(removed), false, `and must not read as hedged: ${removed}`);
+  }
+
+  const kept = 'Product repos (`jrm-recipes`, `score-king`, `finance`, and more) share DNA from';
+  assert.equal([...kept.matchAll(MEMBER_RUN(names))].length, 1, 'the pattern does reach the README line');
+  assert.equal(HEDGE.test(kept), true, 'but the hedge is what makes it legitimate, so it must be seen');
+});
