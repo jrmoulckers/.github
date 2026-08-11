@@ -769,6 +769,21 @@ usually "the generated ones, entirely, and the authored ones, not at all". This 
 split one level up: the same mixture of owners that makes a single file need markers makes a whole
 branch need per-hunk judgement.
 
+**A stale sync commit merged after a newer one reverts canon, and rebasing does not save you.** When
+a member has two open sync PRs from different waves, merge order decides the outcome. Landing the
+newer wave first is right, but it leaves the older branch carrying a generated commit that describes
+canon as it stood days earlier; rebasing that branch onto the new default replays those files over
+the newer ones. Where the two waves touched the same paths this conflicts loudly, which is the good
+case. Where they did not, it applies clean and silently rolls canon back on exactly the files the
+older wave happened to cover.
+
+So an older mixed branch should not be rebased and merged — it should be **reduced to its
+member-authored commits**, which is the only part of it the reference rule says is irreplaceable. In
+practice: merge the current wave's PR, then cherry-pick the authored commits onto the default branch
+and drop the stale sync commit entirely. The next scheduled run re-emits everything it removed.
+`homelab` is the worked example — its `2026-08-09` PR carries one sync commit plus two authored ones
+(an asset-checker fix and a local policy trim), while its `2026-08-11` PR is pure canon.
+
 **Make the correct reference the cheap one.** The reason the sibling-branch comparison keeps getting
 made is not that anyone believes it is right — it is that both branches are local refs, so it needs no
 external lookup, while canon HEAD needs an API call against another repository. The wrong reference is
