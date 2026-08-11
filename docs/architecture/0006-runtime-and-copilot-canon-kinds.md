@@ -152,3 +152,19 @@ would report it as drift forever.
   hardcodes one comment syntax," and it is cheaper than rediscovering the same shape per instance.
   The corollary for authors: a rule that can only fail silently needs its authority read, not
   summarized — see the provenance table note in `docs/sync.md`.
+
+  **Green is not evidence that you went far enough.** Because each repair moves the rule to the unit
+  that was wrong *this* time, and lands wherever the current instance stopped, the pattern behaves
+  less like a class of mistakes people make and more like a gradient the system pulls toward: every
+  fix is a strictly finer unit than before, and the last correct-looking place to stop is exactly one
+  level short of correct. Directory → file was right for `.github/agents/` — correct *and complete*
+  there — and simultaneously correct and *incomplete* for provenance inside a managed file. Both look
+  identical from a passing check. So when fixing a wrong-unit rule, the question is not "is this unit
+  correct?" but **"what is the finest unit this property varies over, and did I go all the way
+  there?"** Nothing announces stopping one level short, because the check goes green.
+
+  **Status of this consequence: promising, not established.** Every instance was found by one
+  rollout, and the diagnostic above has so far only been validated by the people who wrote it. It
+  earns its place the first time someone outside that group hits a red check, applies it, and reaches
+  the cause faster. Recorded because the reasoning is cheap to apply and the failure it prevents is
+  expensive — not because it has been demonstrated.
