@@ -188,6 +188,16 @@ inputs, so agreement on the residual is fully consistent with the two parties re
 files. Report the convention *and* the revision; the residual settles the first and is blind to the
 second.
 
+**And a constant offset is equally the signature of a constant lag.** The same two sessions later
+diverged by ~34 lines at two unrelated revisions — far too large for the trailing-newline convention,
+which explains exactly 1. Neither figure was mismeasured: both were measured at the merge
+immediately *preceding* the one they were published under. Quoting your last measurement while
+naming current `HEAD` yields an offset equal to the document's growth over the lag, so on a
+steadily-growing file it is constant and looks precisely like a definitional difference. The
+discriminator is re-measurement, not shape: a convention survives re-measuring both figures at the
+same named revision, and a lag vanishes. Reach for the definitional explanation last, because *we
+were using different definitions* is the reconciliation that lets both parties keep their numbers.
+
 **And never write an unresolvable citation, even as an example.** There is no markup for
 use-versus-mention, so a document exhibiting a broken locator to illustrate the defect is
 indistinguishable from a document containing one — to a checker and to a skimming reader alike. This
@@ -1398,6 +1408,17 @@ to *did this come from canon?* rather than *is this well-formed?* — conformanc
 So when a sync PR touches a managed region, read the rendered block itself, and report a malformed
 render upstream rather than repairing it locally; a member cannot validate a rendering without
 reimplementing the renderer, which is the vendored-copy problem returning.
+
+**A remedy handed across the boundary must be executable with the artifacts the recipient holds.**
+A member was told to enumerate the population from canon's manifest; the manifest lives in the
+backbone, and the member has exactly two local artifacts — its own tree and
+`.studio-sync.lock.json`. The diagnosis was right and the instruction was not runnable, which is a
+distinct failure from being wrong: it cannot be refuted by trying it, only by noticing the
+prerequisite is missing. The recipient implemented the nearest executable thing and **said so**,
+which is the behaviour to copy — substituting silently would have left both sides believing a remedy
+had been applied that never could have been. Before prescribing across the boundary, name the
+artifact the remedy reads and confirm the recipient has it; when receiving one that is not runnable,
+report the substitution rather than the result.
 
 ### A correct verdict does not make the remedy correct
 

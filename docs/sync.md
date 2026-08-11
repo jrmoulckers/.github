@@ -2290,6 +2290,27 @@ identically zero. Which is the same trap recorded above under agreement deservin
 one level down: the five-row agreement between those two tables is not five confirmations, it is one
 convention applied five times.
 
+**A constant offset is equally the signature of a constant lag, and the two are indistinguishable
+by the residual test.** The same pair of sessions then diverged by ~34 lines, twice, at unrelated
+revisions — an offset far too large and too repeatable to be the trailing-newline convention, which
+explains exactly 1. It was not a convention at all. Both figures were measured at the merge
+immediately preceding the one they were published under:
+
+```
+5e9c4ef 2223  ->  bfc9a1c 2257    consecutive merges, +34
+b5c2bb2 2470  ->  15b5b9f 2504    consecutive merges, +34
+```
+
+A habit of quoting the last measurement while naming current `HEAD` produces an offset equal to the
+document's growth over the lag, so on a document growing at a steady rate it is **constant, and
+looks exactly like a convention**. Here the two magnitudes matched to the line by coincidence — two
+consecutive merges that each happened to add 34 — which made the convention reading more attractive
+still. The discriminator is not the shape of the offset but re-measurement: a convention difference
+survives re-measuring both figures at the same named revision, and a lag vanishes. So when an offset
+repeats, resolve both figures against the revision named before reaching for a definitional
+explanation, because *we are using different definitions* is the reconciliation that lets both
+parties keep their numbers.
+
 **A stable residual establishes the convention and certifies nothing about the corpus — which this
 episode also demonstrates, against itself.** Re-measuring the five revisions to check the offset
 reproduced four of them exactly and returned 887 against the other session's 2421 on the fifth. That
