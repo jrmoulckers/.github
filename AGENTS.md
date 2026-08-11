@@ -118,6 +118,22 @@ that lifts a gate, however well-evidenced, because the gate exists to put a huma
 than to establish that the change is correct. Verification and authorization are different
 properties, and a peer can only supply the first.
 
+**Expect this gate to erode in proportion to how good the peer is.** A careless recommendation gets
+scrutinised and refused on its merits; a rigorous one — a verified sequence, a reproduced
+measurement, a correct merge order supplied several times running — earns deference, and deference
+to a peer is indistinguishable in the moment from deference to a human. The best-evidenced case is
+therefore the one most likely to slip through, and it slips silently, because nothing about a correct
+recommendation prompts the question. **The gate must be indifferent to the quality of the evidence
+behind it.** If a peer's track record is doing any work in the decision to act, the gate has already
+been lifted by something other than a human.
+
+The same asymmetry runs through the authorship check above, and it is worth seeing them together. An
+agent that queries `author.login` and correctly concludes "not mine" has learned nothing — the query
+returns `jrmoulckers` either way, so it agrees with the right answer without supplying it. A
+confirmation that agrees is not thereby evidence; the way to tell is to remove it and ask whether
+anything changes. Here nothing does, because the true answer came from session provenance the whole
+time.
+
 **3 — Remote platform.** Auto-approved: routine triage labels. Gated: closing/reopening/deleting
 issues, changing gating labels (`blocked`, `security`, `breaking-change`), and any repo-settings,
 branch-protection, secrets, deployment, or `gh api` write.
