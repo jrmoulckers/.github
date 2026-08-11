@@ -276,6 +276,41 @@ test('canon is prepended so a more specific member rule keeps the last word', ()
   });
 });
 
+test('position is a proxy for precedence, and a lossy one — audit with check-attr', () => {
+  // A fleet audit keyed to "the region must be the first non-empty line" returned two hits and both
+  // were false positives, which is why the documented audit uses git's resolver instead. Comments
+  // above the region carry no precedence, and a member rule byte-identical to canon is overridden to
+  // the same value it already had. Both files look wrong positionally and are perfectly safe.
+  const spec = attributesSpec();
+  const region = buildFile('', canonicalizeInner(spec.content), markersFor(spec.targetPath)).trimEnd();
+
+  // Both shapes are observed on member default branches. Neither is engine output — the engine
+  // prepends — they arise from hand-seeding and from member edits made above an existing region.
+  const commentsAbove = `# Member notes.\n# Exceptions must stay below the region.\n\n${region}\n`;
+  const duplicateAbove = `* text=auto eol=lf\n\n${region}\n`;
+
+  for (const [name, content] of [['commentsAbove', commentsAbove], ['duplicateAbove', duplicateAbove]]) {
+    const firstLine = content.split('\n').find((line) => line.trim() !== '');
+    assert.notEqual(firstLine, '# studio:base:start', `${name} fails a positional check`);
+  }
+
+  withTmp((root) => {
+    const git = (args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
+    git(['init', '-q', '.']);
+
+    // The real regression, stated in the terms the damage occurs in: a member `binary` rule that
+    // canon's wildcard outranks. Neither false positive exhibits it.
+    for (const content of [commentsAbove, duplicateAbove]) {
+      writeFileSync(join(root, '.gitattributes'), `${content.trimEnd()}\n*.glb binary\n`, 'utf8');
+      assert.match(
+        git(['check-attr', 'text', '--', 'model.glb']),
+        /text: unset/,
+        'precedence is intact despite the region not being first',
+      );
+    }
+  });
+});
+
 test('an existing managed region is replaced in place, never relocated', () => {
   // A member whose region predates the placement rule keeps it where it is. Silently moving lines
   // around in a file the member owns is the failure this placement logic exists to prevent, so the

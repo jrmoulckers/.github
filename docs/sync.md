@@ -582,13 +582,30 @@ overlapping PR merges after it was opened.
 
 **Establish supersession from content, never from chronology.** When two sync PRs are open, "the
 later one merged, so the earlier is redundant" is a claim about *ordering*; redundancy is a fact
-about *content*. Diff the branch against the post-merge default branch before closing anything —
-`gh api repos/<owner>/<repo>/compare/main...<branch>` costs one call. Two duplicate
+about *content*. Diff the branch against the post-merge default branch before closing anything.
+Take the base ref from the API rather than assuming it — `gh api repos/<owner>/<repo> --jq
+.default_branch`; the fleet is not uniformly `main`, and `jrmoulckers/homelab` uses `master`. Two
+duplicate
 waves are rarely a superset of each other in either direction: each carries whatever canon existed
 when it was generated plus whatever member-side fixes were pushed to it. A closed PR whose branch
 was force-pushed **cannot be reopened**, so the recovery is a fresh PR from the same branch — which
 is only possible because the branch still exists. Preserve the branch and escalate rather than
 discarding work you believe is redundant.
+
+**`compare/A...B` is a merge-base diff, so it overstates what a branch uniquely carries.** Three
+dots describe B relative to the *merge base*, not relative to A's current tip: anything that reached
+A after the branch was cut still shows as added on B. Comparing two sync branches this way reports
+assets the other already has. For "what does this branch carry that the other does not", compare the
+tips — `git diff <A-tip> <B-tip>` — or, for generated assets, compare the lockfile entry sets, which
+answers it exactly and without ambiguity:
+
+```sh
+gh api repos/<owner>/<repo>/contents/.studio-sync.lock.json?ref=<branch> \
+  -H 'Accept: application/vnd.github.raw' | jq -r '.entries | keys[]'
+```
+
+Set-difference the two, then compare `targetSha256` on the shared keys. That distinguishes "a kind
+this branch alone carries" from "the same kind at a different revision", which the file list cannot.
 
 **`ahead_by` counts commits, not content, so the compare is asymmetric evidence.** `ahead: 0` is a
 sound close signal. Non-zero is a signal to *look*, not proof that unique content exists: a branch
@@ -661,6 +678,30 @@ the `.gitattributes` prepend fix appends the region instead, leaving canon's `*`
 matching line and every more specific member rule silently downgraded — and, where the member's file
 already held canon's stanza unmarked, leaves that stanza in the file twice. Merging such a branch
 costs a human edit to undo; regenerating it costs nothing.
+
+**Audit that exposure with git's resolver, not with the region's position.** The obvious check —
+"the managed region should be the first non-empty line" — is itself keyed to the wrong unit, and it
+was written and run against the whole fleet before the mistake showed. It returned two hits, and
+both were false positives. In one member every line above the region is a *comment*, which carries
+no precedence at all; in another the single rule above it is byte-identical to canon, so ordering is
+moot. Position is a proxy. The property that matters is whether any member rule is outranked by
+canon's wildcard, and only git can answer that:
+
+```sh
+git check-attr --source=<ref> text -- <path-the-member-protects>
+```
+
+Run it against the default branch and against the candidate branch and compare. `text: unset` on one
+side and `text: auto` on the other is the regression, stated in the terms the damage actually occurs
+in. A fleet audit by this method found **zero** exposure: the only carriers were two unmerged
+branches from the same pre-fix generation wave.
+
+This is worth stating plainly because it recurs: **a fix for a wrong-unit bug is itself liable to be
+keyed to the wrong unit.** The member checker that missed the appended region validated the block's
+*content* — hash and markers — and said nothing about precedence. The natural repair is to assert
+position, which is the same error one step over: still a proxy, still not the property, and it goes
+green or red for reasons unrelated to whether anything is actually overridden. When the original
+defect was a proxy standing in for a property, prefer a check that asks the authority directly.
 
 Members that validate their own generated assets must also respect two contract details, or they
 will report false failures — both were live in `jrmoulckers/homelab` on first sync:
