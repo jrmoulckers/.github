@@ -400,6 +400,17 @@ would report it as drift forever.
   naming the shape and citing instances that can be checked individually, and treat any number
   attached to a pattern as a claim needing the same evidence as the pattern itself.
 
+  **Cheapness and kind-triggering answer different halves.** These two consequences — that the wrong
+  unit is often the cheap one, and that some wrong units cannot be detected by looking harder — have
+  different countermeasures, and neither substitutes for the other. Making the correct reference
+  cheap removes the *pull* toward a nearby wrong one, which is what drives the reach-for-what's-local
+  failure. It does nothing where the correct unit is unreachable in principle: no amount of local
+  convenience surfaces an artifact's generation time, because the artifact does not carry it. Those
+  cases need a check that fires on the artifact's *kind* — this file is generated, therefore ask when
+  — rather than on suspicion, since no suspicion is available to trigger on. Both failures ran
+  concurrently during the rollout: sibling branches were compared because they were near, and nobody
+  asked when a branch was generated because nothing in it prompted the question.
+
   **Status of this consequence: promising, not established.** Every instance was found by one
   rollout, and the diagnostic above has so far only been validated by the people who wrote it.
   Recorded because the reasoning is cheap to apply and the failure it prevents is expensive — not

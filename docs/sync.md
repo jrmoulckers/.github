@@ -614,7 +614,7 @@ one:
 # 1. exactly one marker pair — a duplicated region is a merge artifact, not canon
 grep -c 'studio:base:start' <file>
 
-# 2. the managed region matches canon
+# 2. the managed region is byte-identical to its OWN pre-rebase value  (not to canon)
 # 3. member content OUTSIDE the markers is byte-identical to the default branch
 ```
 
@@ -622,6 +622,21 @@ Two of the three are about content the merge should not have touched at all, whi
 failure is invisible in the region under review and only shows in the parts nobody is looking at.
 `jrmoulckers/finance` ran this after both of its rebases and reported a clean result — zero
 conflicts *and* a verified-intact trim, which are two independent facts rather than one.
+
+**Capture the pre-rebase hashes before rebasing; canon HEAD is the wrong reference here.** The
+invariant being asserted is *the rebase changed nothing*, so its reference is the branch's own prior
+state. Checking the region against canon HEAD instead answers a different question — *is this branch
+stale?* — whose answer on any older sync branch is a harmless yes, since canon advances daily. A
+rebase-integrity check pointed at canon flags every slightly-stale branch as corrupt, and the obvious
+remedy is hand-porting canon into the region, which is drift and is discarded on the next sync. Both
+questions are legitimate and they are not the same question; only one of them is about staleness.
+
+**Extract the region defensively, because a broken extraction produces a plausible hash.** Canon
+stores these bodies **unwrapped** — the source files carry no markers, and the engine injects them
+along with the `synced from` line on emission. So "extract between the markers from canon" returns
+nothing, and hashing nothing yields `e3b0c442…`, the SHA-256 of the empty string. That value compares
+unequal to everything and looks like a genuine mismatch rather than a broken reader. Fail hard on an
+empty extraction rather than hashing it.
 
 **Name the exact path when claiming an asset survived.** A near-miss during the first rollout turned
 on `high-contrast` versus `high-contrast-dark`: the filenames differ by one suffix, sort adjacently,
