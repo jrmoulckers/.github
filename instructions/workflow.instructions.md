@@ -246,6 +246,20 @@ against an expected magnitude is** — a corpus size is only a check if somethin
 plausible. Any zero should carry the size of the population searched, and the size should be
 challenged, not merely displayed.
 
+**A zero can also come from a wholly healthy detector, and then it describes the detector's domain
+rather than the world.** Between the two failures above sits the commonest one: nothing malfunctions,
+so no integrity check fires, and the answer is *true* — but about a narrower question than the reader
+asked. Three instances from three surfaces, each answering the question that was cheap to compute:
+a precedence check reported no member needed migration, when an override setting a value to *itself*
+produces no delta to detect; a token diff reported no change from a release that only *added* tokens,
+which moved the rendered UI; and a `--dry-run` reported nothing would be forced, having never
+evaluated `--force` at all. Unlike the healthy-instrument case above the claim is not about a
+mechanism a mutation must isolate, and unlike the truncated search it is not impaired — which is why
+it survives review. The damage is
+that a zero is *quotable*: two of those three were published as reassurance, one into PR bodies read
+by people who never ran the tool. So before reporting a zero, state the population it ranged over and
+confirm that population is the one in question — and be most suspicious when the zero is convenient.
+
 **Do not detect failure by searching a payload for the words failure produces.** In the same turn, a
 guard testing whether an API call succeeded matched the response body against `error|not found|HTTP
 4` and declared an accessible issue inaccessible — because the body legitimately contained the
