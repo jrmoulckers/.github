@@ -201,6 +201,18 @@ test('rekeying is unaffected by whether the abandoned files were already deleted
   // its lock entries — finance did exactly this. If matching consulted the filesystem, deleting
   // the evidence first would strand every entry at the abandoned base with no later run able to
   // recover them, because a rekey is the only thing that carries a baseline across a base move.
+  //
+  // Note what this test is for, because it inverts the usual case. It does not protect existing
+  // behaviour against accidental breakage; it exists to **reject a specific, plausible-looking
+  // patch** — an `existsSync` guard added to the rekey loop, which reads as a defensive
+  // improvement and is the one change that would silently strand entries. A reviewer proposing it
+  // would be reasoning correctly from `prune`'s neighbouring guard. So if this test ever fails,
+  // the fix is not to relax it: the invariant is that reporting may look at the disk and deciding
+  // may not.
+  //
+  // Verified non-vacuous by mutation: adding that guard makes this fail, and reverting restores
+  // it. A cleanup-after-rekey ordering would pass while proving nothing, which is why both
+  // orderings are asserted against each other rather than only the hazardous one.
   const reconcile = (populateOldBase) =>
     withTmp((root) => {
       const { lock, writes } = relocatedMember(root);
