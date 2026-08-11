@@ -126,6 +126,25 @@ test('omitting the marker set throws instead of silently assuming HTML', () => {
   assert.equal(extractBlock(hashFile, markersFor('.gitattributes')), '* text=auto eol=lf');
 });
 
+test('comment syntax is derived from the file type and unknown types throw', () => {
+  // Every managed-merge target must resolve, or a sync run breaks for the whole fleet.
+  for (const [, targetPath] of MANAGED_MERGE_TARGETS) {
+    assert.ok(markersFor(targetPath).start, `${targetPath} must resolve to a marker set`);
+  }
+
+  // Derivation, not enumeration: a hash-syntax file the engine has never targeted still resolves.
+  for (const p of ['.gitignore', '.editorconfig', 'agency.toml', 'ci/config.yml']) {
+    assert.deepEqual(markersFor(p), MARKERS.hash, `${p} cannot carry an HTML comment`);
+  }
+  for (const p of ['AGENTS.md', 'profile/README.md', 'docs/x.markdown']) {
+    assert.deepEqual(markersFor(p), MARKERS.html);
+  }
+
+  // The hazard this replaces: an unrecognised type used to receive HTML markers silently, which
+  // the writer would then emit into a file where they are content rather than a comment.
+  assert.throws(() => markersFor('config.unknownext'), /unknown comment syntax/);
+});
+
 test('every line the engine writes into .gitattributes is a comment or a real rule', () => {
   const spec = attributesSpec();
   const rendered = buildFile('', canonicalizeInner(spec.content), markersFor(spec.targetPath));

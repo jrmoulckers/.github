@@ -1650,6 +1650,23 @@ denotes the bytes themselves, with no namespace, no revision, and no position, s
 different artifacts discover it in one comparison instead of four exchanges. Pair it with a quoted
 phrase and the two failure modes are covered; either alone leaves one open.
 
+**The same check applies before an artifact is read at all, and it is cheaper than either.** A member
+fetched `sync/lib/basemerge.mjs` through the contents API, decoded the base64 and wrote it out with
+`Out-File`, producing 8429 bytes against the 8067 the API had declared in the same response. In the
+mangled copy `HASH_MARKER_TARGETS` appeared exactly once — used, never defined — and they were one
+step from reporting an undefined-reference crash in the merge engine. The file is fine; the transport
+was not.
+
+Note what the corruption produced: not obvious garbage, but a **specific, plausible, actionable**
+defect, which is the same near-miss property that makes a stale line number worse than a broken one.
+Parsing successfully is not integrity. **An artifact fetched over a transport that can transform it
+must have its integrity checked before it is read as evidence** — and the check normally costs
+nothing, because `size` was already sitting in the response that delivered the content. This is the
+generalisation of the earlier finding rather than a separate one: there the two readers held
+different artifacts and only a coordinate dissented; here one reader held a corrupted artifact and
+only a byte count would have dissented. Content resolution cannot detect either, because in both
+cases the text found is real.
+
 **What makes a line number uniquely bad is that the act which invalidates it is correct, unrelated,
 and elsewhere.** A renamed function breaks its references visibly; a moved file breaks a link; a
 changed API breaks a build. Editing a document *above* a cited range breaks every citation into it

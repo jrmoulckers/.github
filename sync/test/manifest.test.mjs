@@ -296,9 +296,9 @@ test('managed-merge kinds own exactly one file at a fixed, Copilot-visible path'
 test('every managed target marks its region in the syntax its own grammar accepts', () => {
   // homelab shipped this bug member-side: a checker that hardcoded the HTML marker pair
   // reported drift on correct `.gitattributes` content, because that target's region is
-  // delimited with `# studio:base:*`. The engine is right today, but only `.gitattributes`
-  // is in HASH_MARKER_TARGETS while `markersFor` falls back to HTML — so a future managed
-  // target with a `#` grammar gets `<!-- ... -->` written into it silently.
+  // delimited with `# studio:base:*`. The engine derives the syntax from the file type and
+  // throws on an unknown one, so a future managed target with a `#` grammar can no longer
+  // receive `<!-- ... -->` silently.
   const managed = new Set();
   for (const resolved of resolveAll(manifest)) {
     for (const write of enumerateTargets(resolved, REPO_ROOT).writes) {
