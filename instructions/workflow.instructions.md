@@ -622,6 +622,47 @@ matters because the remedies are unrelated. 404 is fixed by configuring the bran
 only by changing plan or visibility, and until then no amount of workflow correctness makes a check
 enforceable.
 
+**That paragraph was written from a three-repo sample and is superseded by a census of all eleven
+members.** Its claim that only the backbone returned 200 is now false, and the shape of the fleet is
+not what a sample of three suggested:
+
+| protection endpoint | count | members |
+| --- | --- | --- |
+| `200` enforced | 1 | `finance` |
+| `404` protectable, unconfigured | 4 | `jrm-recipes`, `score-king`, `engineering`, `studio` |
+| `403` not protectable on this plan | 6 | `libro`, `cartridge`, `docket`, `product`, `homelab`, `windows` |
+
+The backbone is a twelfth repository at `200`. So **one member in eleven enforces anything**, and for
+six of them the enforcement state cannot be read at all from this account — which is the next rule.
+
+**A refusal is not a reading.** A `403` says the API declined to answer; it says nothing about how
+the branch is configured. A member reported one as *this repository has no protection*, reached the
+right conclusion, and reached it from a fact not in evidence — an instrument that distinguishes only
+`200` from *not `200`* collapses *configured as nothing* and *I may not tell you* into one bucket,
+and the second is not a finding about the repository at all. The general form: **an availability
+refusal converted into a factual claim is unfalsifiable by the instrument that produced it**, since
+the same refusal is returned whatever the underlying state. Say *undetermined on this plan* and
+carry it as undetermined. Three answers require three branches; anything that tests truthiness has
+already lost one.
+
+**Where nothing is required, replay the trigger predicate against the diff.** The section below
+warns that a path-filtered trigger yields no check at all on an unprotected repository. The
+compensating instrument is to evaluate the workflow's own filter against the pull request's actual
+changed files, rather than reading the regex and judging it correct: that is the only local test
+that distinguishes *the job correctly did not apply* from *the job silently never existed*. It has
+to be run per pull request, because applicability is a property of the diff and not of the workflow.
+On a protected repository this is redundant; on ten of eleven members here it is the whole gate.
+
+**And doctrine gets authored where it is cheapest to be right and applied where it is hardest to
+notice being wrong.** This section was written in the one repository whose platform contradicts a
+mistake immediately, then distributed to eleven where, by the census above, ten enforce nothing and
+six cannot even report their state. The asymmetry is self-concealing rather than merely unlucky: the
+authoring environment is *selected* for having the strongest feedback, which is exactly why guidance
+gets written there — so the confidence is earned in the one place the claim is cheap and spent in
+every place it is expensive. When writing a rule that depends on a platform behaviour, name the
+environment it was verified in, and check whether that environment is representative of the
+population receiving it or is the outlier that made verification easy.
+
 **The consequence inverts this section's failure mode.** Where checks are required, a path-filtered
 trigger hangs the pull request forever — loud, and self-limiting because nobody can merge past it.
 Where nothing is required, the identical misconfiguration produces a check that is simply never
