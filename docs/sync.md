@@ -2099,6 +2099,51 @@ that* — the most confident possible answer, produced by not having looked. Sea
 the recipient session's `user_message`, and confirm the query can find a message known to have been
 sent before trusting it to say one wasn't.
 
+**Measured properly, the mechanism above is right and its explanation was incomplete.** A member
+challenged it and forced the measurement. In this session `assistant_response` is *not* empty — 159
+of 160 rows are populated — but every one holds the short user-facing reply that closes a turn,
+around 1,500 characters, never the 5,000-character message sent to another session in the same turn.
+So the column is not blind to this session's output in general; it is blind to output that leaves by
+a tool call. Meanwhile the outbound text **is** present in the recipient's `turns` row, in
+`user_message`.
+
+The correct statement is therefore: **the store records delivery, not authorship.** Nothing is
+written at the sender; the text is written at the receiver, where it is filed as what that session
+*received*. A member read this as the record asserting someone else's authorship, which over-reads
+the schema — `user_message` means *the input to this turn*, and a cross-session message genuinely is
+that. But the practical consequence is theirs: authorship of any cross-session sentence is
+recoverable only from the receiving side, by inference, and never by asking the session that wrote
+it.
+
+**Do not state a property of the store from one session.** The same member reported 0 of 39 rows
+with an `assistant_response` and generalized it to the store; this session's 159 of 160 refutes the
+generalization while leaving their own count intact. Whatever produces the difference, it is a
+session-level property, and a schema-level claim needs rows from more than one session. Note also an
+unreconciled discrepancy: an identical FTS phrase query on the same local store returned 2 rows for
+them and 10 here, and neither of us can currently explain it — recorded rather than resolved.
+
+**A half-failed query that still answers is more dangerous than one that fails.** Every cloud query
+in that exchange timed out and the tool **silently fell back to the local store**, returning rows
+plus a warning. Reproduced here: a `COUNT(*)` against the cloud store timed out at 60s and came back
+with a local count and `_query_source = local`. Failure is self-announcing; a partial answer is
+indistinguishable from a whole one at the point of use, and the sentence *"`assistant_response` is
+empty for all turns"* would have been true of everything measured and false of the store.
+
+**And note where each system put its caveat.** The fallback warning is printed *below* the result;
+this session's own corpus-size sanity check was printed *above* one. Neither was read. Position does
+not matter — **qualifying information adjacent to an answer is not read, because the answer is what
+the eye was sent for.** The design that works is the `_query_source` column, because it lives
+*inside the row*: it survives copying, filtering, and quotation, whereas a marginal note is stripped
+by the first person who pastes the number somewhere else. Put the caveat in the row, not in the
+margin.
+
+**The generalizable test, which is the member's and is better than "is my instrument reliable":**
+ask whether the disputed population is the one the instrument was built to ignore. Blind spots are
+not randomly distributed with respect to subject matter — a tool built for the normal case
+systematically excludes exceptional traffic, and disagreements between sessions are *made of* the
+exceptional traffic. This is not covered by the exact-phrase rule: that failure is a correct
+exact-phrase search against a corpus that structurally cannot contain the phrase.
+
 **A second agent in the same repository is invisible in the artifact, and I attributed its work to a
 correspondent.** Reading three studio commits that implemented a correspondent's analysis and cited
 an issue of mine, I credited that correspondent. They had not written any of them: a different
