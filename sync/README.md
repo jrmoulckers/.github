@@ -277,6 +277,22 @@ Finance also retains a local `reusable-detect-changes.yml` by design. It is a
 languages and matching semantics are not interchangeable, so the finance workflow is not a
 vendored copy and must not be replaced as duplication without an explicit caller migration.
 
+#### Caller permission observations
+
+A real sync and a remote `--check` inspect each member's default branch plus every open pull-request
+head for calls to canonical workflows whose jobs declare `packages: read`. If a caller has an
+explicit workflow- or job-level `permissions:` ceiling that omits that scope, the engine warns with
+the exact ref, file, line, and job. GitHub otherwise rejects the whole workflow before creating a
+job, check-run, or readable log.
+
+These are upstream-state observations, not local integrity gates. An omitted caller
+`permissions:` block inherits repository defaults and is not reported as unsafe. An inaccessible
+PR head, a head that moves during inspection, or a YAML permission shape the dependency-free
+parser cannot resolve is reported as **unknown** and the sync continues; uncertainty is never
+silently certified as safe. The scanner evaluates direct calls to canonical workflows; it does not
+yet compose permission ceilings through a member-authored reusable workflow that calls canon
+indirectly. `--work-dir` remains offline and inspects only that working tree.
+
 ## What gets synced
 
 Resolution follows each member's `optIn` in the manifest:
@@ -1094,6 +1110,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/instruction-integrity.test.mjs` | Canonical instruction filename/roster parity, deterministic `applyTo` scopes, source/materialized ownership, precedence, curated member compatibility, infrastructure routing, local-agent collision safety, and immutable reusable-workflow examples. |
 | `test/agency-integrity.test.mjs` | Exact reviewed MCP package versions and tools, safe default server profile, pinned optional Playwright/memory profiles, and rejection of mutable specs, the nonexistent Playwright package, and wildcard grants. |
 | `test/member-facts.test.mjs` | Synthetic checkout derivation for each mode, independently optional infrastructure facts, pre-bootstrap transitions, root package managers, supported framework signatures, ambiguous/missing evidence, SHA-pinned backbone workflow calls (including aliases, flow mappings, quoted keys, and block scalars), shell-scalar exclusion, and field-specific diagnostics. No member facts or network access are pinned. |
+| `test/caller-permissions.test.mjs` | Direct reusable-workflow caller ceilings on default branches and open pull-request heads: package-reading workflows are derived from canonical permission declarations; workflow/job override order, inherited defaults, aliases, key order, and flow permissions are resolved; unsupported YAML and inaccessible or moving refs remain non-fatal unknown observations; one unreadable file cannot erase sibling findings. |
 | `test/workflow-integrity.test.mjs` | Canon/file parity, practical zero-dependency YAML surface checks, full-SHA action refs and version comments, permissions ceilings, timeouts, concurrency ownership, checkout credentials, shell interpolation, artifact contracts, Pages authority split, digest-pinned security scanning, change detection, and private-by-default Lighthouse behavior. |
 | `test/provenance.test.mjs` | Every real write equals `inject(targetPath, canon)` and never canon verbatim — so the documented hand-audit baseline stays correct; and that check is line-ending agnostic on the member side. |
 | `test/prbody.test.mjs` | An adoption-only run's PR body says its entire diff is the lockfile, and does not claim that when the run also wrote files (including via `--force`). The drift note states that `--force` is run-wide, offers the by-hand remedy first, and neither appears when the run has no drift. |

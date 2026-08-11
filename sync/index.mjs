@@ -46,6 +46,10 @@ import { formatDriftWarning, renderRunSummary, syncMembers } from './lib/runner.
 import { mirrorProfile, profileTarget } from './lib/profile.mjs';
 import { log } from './lib/log.mjs';
 import { assertMemberFacts } from './lib/member-facts.mjs';
+import {
+  formatCallerPermissionWarnings,
+  observeCallerPermissions,
+} from './lib/caller-permissions.mjs';
 import { mkdtempSync, rmSync, appendFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
@@ -190,6 +194,12 @@ function runWorkDir(plans, opts, manifest, date) {
   const { resolved, targets } = plans[0];
   const write = !opts.dryRun;
   const facts = assertMemberFacts(opts.workDir, resolved, manifest.backbone);
+  facts.workflowObservations.callerPermissions = observeCallerPermissions({
+    root: opts.workDir,
+    repo: resolved.repo,
+    backbone: manifest.backbone,
+    rootLabel: 'working tree',
+  });
   reportWorkflowObservations(resolved.repo, facts);
   const lock = readLock(opts.workDir, manifest.backbone);
   const { report } = apply(opts.workDir, targets.writes, lock, { force: opts.force, write });
@@ -206,6 +216,14 @@ function runCheck(plans, opts, manifest, token) {
     try {
       checkout = memberRootForCheck(resolved.repo, opts, token, manifest.backbone);
       const facts = assertMemberFacts(checkout.root, resolved, manifest.backbone);
+      facts.workflowObservations.callerPermissions = observeCallerPermissions({
+        root: checkout.root,
+        repo: resolved.repo,
+        backbone: manifest.backbone,
+        token,
+        includePullRequests: !opts.workDir,
+        rootLabel: opts.workDir ? 'working tree' : 'default branch',
+      });
       reportWorkflowObservations(resolved.repo, facts);
       const lock = readLock(checkout.root, manifest.backbone);
       const { report } = apply(checkout.root, targets.writes, lock, { force: false, write: false });
@@ -242,6 +260,12 @@ function reportWorkflowObservations(repo, facts) {
   const unused = facts.workflowObservations?.unusedDeclarations ?? [];
   if (unused.length) {
     log.info(`${repo}: reusable workflow availability not currently called: ${unused.join(', ')}`);
+  }
+  for (const warning of formatCallerPermissionWarnings(
+    repo,
+    facts.workflowObservations?.callerPermissions,
+  )) {
+    log.warn(warning);
   }
 }
 

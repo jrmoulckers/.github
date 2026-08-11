@@ -14,14 +14,20 @@ function redact(text) {
   return String(text ?? '').replace(/x-access-token:[^@]+@/g, 'x-access-token:***@');
 }
 
-function run(cmd, args, { cwd, token } = {}) {
+function run(cmd, args, { cwd, token, trim = true } = {}) {
   const env = { ...process.env };
   if (token) {
     env.GH_TOKEN = token;
     env.GITHUB_TOKEN = token;
   }
   try {
-    return execFileSync(cmd, args, { cwd, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    const output = execFileSync(cmd, args, {
+      cwd,
+      env,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    return trim ? output.trim() : output;
   } catch (err) {
     const detail = redact(err.stderr || err.stdout || err.message);
     throw new Error(`\`${redact(`${cmd} ${args.join(' ')}`)}\` failed: ${detail}`);
@@ -29,6 +35,7 @@ function run(cmd, args, { cwd, token } = {}) {
 }
 
 export const git = (args, cwd, token) => run('git', args, { cwd, token });
+export const gitRaw = (args, cwd, token) => run('git', args, { cwd, token, trim: false });
 export const gh = (args, token) => run('gh', args, { token });
 
 export function tokenUrl(repo, token) {
@@ -279,6 +286,59 @@ export function selectOtherOpenSyncPrs(prs, currentBranch) {
       };
     })
     .sort((left, right) => String(left.branch).localeCompare(String(right.branch)));
+}
+
+export function listOpenPullRequests(repo, token) {
+  const limit = 1000;
+  const pullRequests = JSON.parse(
+    gh(
+      [
+        'pr',
+        'list',
+        '--repo',
+        repo,
+        '--state',
+        'open',
+        '--limit',
+        String(limit + 1),
+        '--json',
+        'number,headRefName,headRefOid',
+      ],
+      token,
+    ) || '[]',
+  );
+  return {
+    pullRequests: pullRequests
+      .slice(0, limit)
+      .map((pullRequest) => ({
+        number: pullRequest.number,
+        headRefName: pullRequest.headRefName,
+        headRefOid: pullRequest.headRefOid,
+      }))
+      .sort((left, right) => left.number - right.number),
+    truncated: pullRequests.length > limit,
+  };
+}
+
+export function readPullRequestWorkflowSources(dest, pullRequest) {
+  const { number, headRefOid } = pullRequest;
+  if (!Number.isSafeInteger(number) || number <= 0) {
+    throw new Error(`invalid pull request number: ${number}`);
+  }
+  const ref = `refs/studio-sync/pull/${number}`;
+  git(['fetch', '--depth', '1', 'origin', `+refs/pull/${number}/head:${ref}`], dest);
+  const fetchedOid = git(['rev-parse', ref], dest);
+  if (headRefOid && fetchedOid !== headRefOid) {
+    throw new Error(
+      `pull request head moved during inspection (listed ${headRefOid}, fetched ${fetchedOid})`,
+    );
+  }
+  const listing = git(['ls-tree', '-r', '--name-only', ref, '--', '.github/workflows'], dest);
+  return listing
+    .split('\n')
+    .filter((path) => /\.ya?ml$/i.test(path))
+    .sort()
+    .map((path) => ({ path, text: gitRaw(['show', `${ref}:${path}`], dest) }));
 }
 
 export function selectOpenPr(prs, branch) {

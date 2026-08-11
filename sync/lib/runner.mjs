@@ -9,6 +9,7 @@
 import { log } from './log.mjs';
 import { syncMemberRepo } from './pr.mjs';
 import { formatBehind } from './copier.mjs';
+import { formatCallerPermissionWarnings } from './caller-permissions.mjs';
 
 /**
  * @param {Array<{resolved, targets}>} plans
@@ -55,6 +56,12 @@ export function syncMembers(plans, ctx, syncOne = syncMemberRepo) {
         log.info(
           `${resolved.repo}: reusable workflow availability not currently called: ${unused.join(', ')}`,
         );
+      }
+      for (const warning of formatCallerPermissionWarnings(
+        resolved.repo,
+        result.inspection?.workflowObservations?.callerPermissions,
+      )) {
+        log.warn(warning);
       }
     } catch (err) {
       failures.push({ repo: resolved.repo, message: err.message });
