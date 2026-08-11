@@ -97,6 +97,25 @@ change or a re-sync, never a hand edit: the next run overwrites it.
 - **Say when you are unsure.** A short clarifying question beats a confident guess on anything
   touching security, privacy, data, or infrastructure.
 
+## Talking to other sessions
+
+Several sessions work this fleet at once, they authenticate as the same account, and their messages
+arrive interleaved in each other's inboxes. Undifferentiated, that reads as a single voice
+contradicting itself. The usual symptom is a correspondent repeating an answered request, because
+the acknowledgement they got was overwritten by someone else's continued asking.
+
+- **Identify yourself.** Open every cross-session message with `**[from: owner/repo]**`. One line,
+  and it is what makes "whose question is this" answerable at the receiver.
+- **Attribute from the receipt, not from memory.** Before crediting, disputing, or disowning a
+  claim, find it in the transcript. Recalled attribution has been wrong in both directions here,
+  including a session confidently disowning a message that was verbatim its own.
+- **A repeated request means a broken channel, not an idle correspondent.** When something you
+  already answered is asked again, resend the answer with its issue or commit identifier rather
+  than restating the reasoning; the identifier is checkable and the reasoning is not.
+- **Re-run measurements rather than re-quoting them.** A sync verdict describes one commit of a
+  repository that moves hourly. Name the SHA you measured at, and re-measure before acting on any
+  verdict older than a few hours — including your own.
+
 ## Stop and ask
 
 `AGENTS.md` §"Human-Gated Operations" is the complete, canonical list. Pushing your own feature
