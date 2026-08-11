@@ -19,7 +19,7 @@ node sync/validate-prompts.mjs
 | `--dry-run` | Plan only. Prints the resolved file set per member. **No writes, git, or network.** |
 | `--members <a,b>` | Restrict to these member repos (`owner/name` or bare `name`). |
 | `--check` | CI gate. Exit non-zero if any member is out of date or has drift. |
-| `--force` | Overwrite locally-modified (drift) targets instead of skipping them. Applies to **every member in the run**, not per file. |
+| `--force` | Overwrite locally-modified (drift) targets instead of skipping them. **Requires `--members`.** Within those members it applies to **every drifted file**, not per file. |
 | `--work-dir <path>` | Apply/inspect against a local checkout; **requires exactly one matching `--members` value**, the path must be the checkout itself (a parent directory is rejected), and its `origin` must be that member — a different origin, or none at all, aborts with exit 1 even under `--dry-run`/`--check`. No clone/push/PR. |
 | `--allow-unverified-work-dir` | Proceed when `--work-dir`'s origin is not provably the named member (fork, mirror, local-only clone). Scoped to that one check; prints what it suppressed. |
 | `--studio-dir <path>` | Local checkout of the token source repo (`jrmoulckers/studio`) to vendor `@jrm/tokens` from, instead of cloning it. Offline seam for tokens. |
@@ -875,10 +875,18 @@ previously committed rendering is provably stale engine output, so it is updated
 Bytes matching no committed version remain drift, untouched.
 
 `--force` is not the tool for that. It is one flag for the whole invocation — `index.mjs` parses it
-once and threads it into every member, and `apply()` then applies it to every spec in each — so it
-rewrites **every** drifted file in **every member the run touches**. Using it to clear one stale
-copy would also discard genuine member-authored edits in repos you were not looking at. It is a
+once and threads it into every named member, and `apply()` then applies it to every spec in each —
+so it rewrites **every** drifted file in **every member the run touches**. Using it to clear one
+stale copy would also discard genuine member-authored edits elsewhere in those repos. It is a
 deliberate reviewer action against a known state, not a first-run cleanup.
+
+Because of that, `--force` **requires `--members`**: the run refuses to start otherwise, naming the
+flag. This does not make forcing safe — it only makes the blast radius something you stated rather
+than something you inherited. The fleet-wide form was previously reached by omitting a flag, which
+is the cheapest mistake there is. Note also what the guard is *not* evidence of: at the time it was
+added, finance had exactly one genuinely drifting file out of 81 lock entries, so the unscoped run
+would have been harmless that afternoon. That is a fact about member state, not about the command,
+and it expires the moment a member edits anything.
 
 The drift note in the PR body says so at the point of use, because that is the only text a reviewer
 reads before reaching for the flag, and it appears inside a single member's PR where a run-wide
@@ -1025,7 +1033,9 @@ vendored token files offline).
 ## Scheduled runs
 
 [`.github/workflows/studio-sync.yml`](../.github/workflows/studio-sync.yml) runs weekly and on
-`workflow_dispatch` (with `members` and `dry_run` inputs), using the `STUDIO_SYNC_TOKEN` secret.
+`workflow_dispatch` (with `members`, `dry_run` and `force` inputs), using the `STUDIO_SYNC_TOKEN`
+secret. A dispatch with `force: true` and a blank `members` is refused before the runner does any
+work; the engine refuses it too, and that one is the guard that matters.
 
 ## Tests
 
@@ -1054,6 +1064,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/prbody.test.mjs` | An adoption-only run's PR body says its entire diff is the lockfile, and does not claim that when the run also wrote files (including via `--force`). The drift note states that `--force` is run-wide, offers the by-hand remedy first, and neither appears when the run has no drift. |
 | `test/workdir.test.mjs` | `--work-dir` guards: a parent directory, a missing path and a file are all rejected; a git worktree (whose `.git` is a file) is accepted; identity resolves to `match` / `mismatch` / `unverifiable` across URL spellings and case, both failing verdicts abort, the refusal names the self-certifying lockfile, and `--allow-unverified-work-dir` overrides them without ever marking a matching checkout as overridden. |
 | `test/cli-workdir.test.mjs` | The same guards **through the CLI**: every operation — apply, `--check`, `--dry-run` — exits 1 on a wrong or absent origin; refused and fact-verification failures leave no file or lockfile; the override flag says what it suppressed; dry-run reports mode and zero-write members; checkout facts are verified before the sync lock is read or applied. |
+| `test/cli-force.test.mjs` | `--force` must name its members, at both surfaces that can silently disagree: the CLI refuses an unscoped force (including under `--dry-run`, which is the invocation an operator copies) while accepting a scoped one, and `studio-sync.yml` both exposes a `force` input and forwards it. Added after `--force` was found to be undispatchable — implemented in the engine, absent from the only workflow that runs it — and unscoped by construction, so the fleet-wide override was reached by omitting a flag. |
 | `test/agent-integrity.test.mjs` | Canonical agent roster validity: names, uniqueness, required sections and handoff references fail together with clear paths; manifest parity and canonical skill/prompt references are enforced; an explicit member roster must reference canon or declare a local replacement, and must declare its skills while prompt mentions stay optional. |
 | `test/prompt-integrity.test.mjs` | Canonical prompt roster validity: schema, names, dependencies, placeholders and `gh` fields fail with clear paths; selected prompts require their declared canonical agents; integer and agent-list parameters require defaults and positive bounds; bare lists and malformed interpolation delimiters are rejected. |
 | `test/prompt-safety.test.mjs` | Prompt authority: branch-mutating prompts prove ownership before isolation or mutation; cleanup audits before authority-gated targeted mutation; fleet prompts enforce bounded applicable local routing; Homelab receives only its audited conservative subset. |

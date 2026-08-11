@@ -12,7 +12,9 @@
 //   --check              CI gate. Exit non-zero if any member is out of date or has drift.
 //                        Needs member state: clones each member, or use with --work-dir.
 //   --force              Overwrite locally-modified (drift) targets instead of skipping them.
-//                        Run-wide: applies to every member in the run, not to one file.
+//                        Requires --members: forcing overrides the protection for
+//                        member-authored content, so the affected repos must be named.
+//                        Run-wide within them: applies to every drifted file, not to one file.
 //   --work-dir <path>    Treat <path> as a single member's checkout: apply/inspect locally,
 //                        no clone/push/PR. Requires exactly one --members. Offline testing seam.
 //                        Refuses to run unless the checkout's origin is that member.
@@ -68,6 +70,18 @@ function parseArgs(argv) {
       case '--help': case '-h': opts.help = true; break;
       default: throw new Error(`Unknown argument: ${arg}`);
     }
+  }
+  // `--force` overrides drift protection, which is the only thing standing between the engine
+  // and member-authored content. An unscoped `--force` means "override it on every member for
+  // every target", and that is one omitted flag away from a single-member recovery. Requiring
+  // the filter makes the fleet-wide shape unreachable rather than merely unusual: the blast
+  // radius has to be stated, never defaulted.
+  if (opts.force && !opts.members.length) {
+    throw new Error(
+      '--force requires --members. Forcing overwrites targets the engine classified as ' +
+        'member-authored drift, so the affected repositories must be named explicitly ' +
+        '(e.g. --force --members finance).',
+    );
   }
   return opts;
 }
@@ -393,8 +407,8 @@ Usage: node sync/index.mjs [options]
   --members <a,b>      Restrict to these member repos ("owner/name" or bare "name").
   --check              Exit non-zero if any member is out of date or has drift (CI gate).
   --force              Overwrite locally-modified (drift) targets instead of skipping.
-                       Run-wide: rewrites every drifted file in every member the run
-                       touches. Not a per-file fix.
+                       Requires --members. Run-wide within those members: rewrites every
+                       drifted file in each one. Not a per-file fix.
   --work-dir <path>    Apply/inspect against a local checkout (one --members); no clone/push/PR.
                        Must be the checkout itself, not a directory containing it, and its
                        origin must be the named member.
