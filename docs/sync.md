@@ -820,12 +820,19 @@ Access Token stored as the **`STUDIO_SYNC_TOKEN`** secret.
 
 | Permission | Level | Repositories |
 | --- | --- | --- |
-| Contents | Read and write | all 9 member repos + `jrmoulckers/jrmoulckers` |
+| Contents | Read and write | every repo in `members` + `jrmoulckers/jrmoulckers` |
 | Pull requests | Read and write | same set |
 
 Contents write covers branch pushes; Pull requests write covers opening and reusing sync PRs.
-`jrmoulckers/studio` is one of the nine members and the private token source, so its read needed for
+`jrmoulckers/studio` is one of the members and the private token source, so its read needed for
 vendoring is already included in the member Contents grant. Nothing else is exercised.
+
+**Grant the list, never a count.** A repo added to `members` does not add itself to the PAT, and the
+result is a `403` on `git clone` for that one member: every other member syncs, the run exits
+non-zero, and the weekly job goes permanently red. It failed that way for five consecutive weeks on
+`jrmoulckers/windows` because the token instructions still said "nine members" after the fleet had
+grown past nine (#176). A guard test now fails if any tracked file states a member count that
+disagrees with `studio.config.json`.
 
 **Do not grant the classic `workflow` scope.** Scopes should be derived from the paths a tool
 provably writes, not from the category of tool it is — and the engine never writes under
