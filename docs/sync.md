@@ -1494,6 +1494,25 @@ So carry a **merge time**, not only a reference. A reference answers *what*; onl
 the reporter distinguish an answer that never arrived from one that was already in flight, which is
 the distinction they are actually stuck on.
 
+**The same measurement is timestamped or unmoored depending on the channel it travels in, and only
+one of the two channels attaches the timestamp for you.** A test count in a commit message or a pull
+request body is safe by construction: it is bound to the revision it is attached to, and a reader
+resolves it against that revision without being asked to. The identical sentence in a cross-session
+message is read as *current*, because it arrives carrying no revision and lands in a conversation
+about now. Same words, different truth conditions, decided entirely by the medium. Three stale facts
+crossed between sessions in one night — a test count, a claim about a member's `.gitattributes`, an
+abbreviated quotation of a managed region — and every one of them travelled by message rather than by
+file. So: **in a cross-session message, a measurement without its SHA is not a measurement.** Not
+because the number is wrong when taken, but because the channel strips the only thing that would let
+a reader discover it had aged. This is why the merge time above is required rather than courteous;
+that rule is this one applied to a single kind of claim.
+
+The corollary constrains what to build next. Nothing in canon quotes a test count — verified across
+every tracked `.md`, zero hits — so a guard pinning the suite size would have **no live instance**
+and would be the shipped-documented-inert pattern acquiring a fresh example rather than losing one.
+The hazard is real and the docs are not where it lives; it lives in a channel no test can reach.
+Symmetry with an existing guard is not evidence that a new guard has anything to catch.
+
 
 Citing an artifact also terminates the exchange, which prose cannot do: prose's only confirmation
 channel is another message, and that message is subject to the same defect.
