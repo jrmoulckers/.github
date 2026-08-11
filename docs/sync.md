@@ -1335,10 +1335,30 @@ will report false failures — both were live in `jrmoulckers/homelab` on first 
 
 ### Answering a member session's report
 
-A member session cannot see this repository's issues, pull requests or merges. When it reports a
-problem here, the three states it needs to distinguish — not received, received and disputed,
-received and already fixed — are invisible to it by construction. It cannot resolve them by
-checking harder, so resolving them is the answerer's obligation.
+A member session is not required to watch this repository's issues, pull requests or merges, so when
+it reports a problem here, three states it needs to distinguish — not received, received and
+disputed, received and already fixed — are opaque to it in practice. Resolving them is the
+answerer's obligation; a reporter should not have to poll.
+
+**But they are not invisible *by construction*, and saying so was a load-bearing error.** This
+repository is public, and every session in this fleet authenticates as the owner besides, so canon is
+readable through the same token either way:
+
+```sh
+gh api repos/jrmoulckers/.github/pulls/281 --jq .merged_at   # 2026-08-11T08:02:12Z
+```
+
+Two independent reasons the claim fails, and the second is the fact recorded in
+`jrmoulckers/.github#286` — a shared account makes `author.login` useless for telling an agent from a
+human. There it made an authorization gate fail *permissively*; here it made an information claim
+fail *restrictively*. One fact, two entries, opposite directions.
+
+The consequence is that the sentence produced the condition it described: a member session told it
+is blind stops looking, and one re-sent a settled item three times that a single `gh api` call would
+have closed at any point. A reporter's cheap self-service check does not discharge the answerer's
+obligation, but it does terminate the exchange when an answer crosses or goes missing, and canon had
+closed that route by assertion.
+
 
 **Answer a report by naming an artifact the reporter can check without another round trip.** A
 prose confirmation — *I read the source, the hazard cannot occur* — may be entirely true and is
@@ -1347,11 +1367,27 @@ cannot come back negative. `sync/test/rekey.test.mjs:199`, merged in #220, can: 
 absent, may not assert what the reply claimed, may be skipped. That it can disagree is the whole
 value, and it is the same rule as the known-bad fixture, applied to a sentence instead of a check.
 
-The practical tell is repetition. A report arriving a second time is evidence that the previous
-answer was **unciteable**, not that the reporter is insistent — the cleanup-before-rekey hazard was
-sent three times, having been investigated, disproved and regression-tested after the first. Each
-reply asserted the finding; none named the test. Re-sending was the correct move on the information
-the reporter had.
+The practical tell is repetition, but it does not have a single cause and the obvious remedy fits
+only one of them. A report arriving again is *sometimes* evidence that the previous answer was
+**unciteable** rather than that the reporter is insistent — the cleanup-before-rekey hazard was sent
+three times, having been investigated, disproved and regression-tested after the first, and each
+reply asserted the finding while none named the test. Re-sending was the correct move on the
+information the reporter had.
+
+**Do not stop at that diagnosis.** A later exchange repeated an item whose answer named a file, a
+line range and a merged pull request — citeable by any standard — so at least two other causes are
+live, and writing a better citation addresses neither:
+
+| Cause | What actually fixes it |
+| --- | --- |
+| The answer was unciteable | Name an artifact that can disagree |
+| The answer and the re-send **crossed** | A timestamp the reporter can compare against their own send time |
+| The reporter believes the artifact is unreachable | Correct the belief — see the opening of this section |
+
+So carry a **merge time**, not only a reference. A reference answers *what*; only the timestamp lets
+the reporter distinguish an answer that never arrived from one that was already in flight, which is
+the distinction they are actually stuck on.
+
 
 Citing an artifact also terminates the exchange, which prose cannot do: prose's only confirmation
 channel is another message, and that message is subject to the same defect.
