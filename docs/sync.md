@@ -1575,6 +1575,40 @@ the same night by the author of the instruction. The citation did not survive th
 it was issued. **Key the rule to the property — a reference resolved by position — not to the
 vocabulary of ordinals.**
 
+**The line-number failure is worse than the bare-issue-number failure, for a reason specific to
+well-organised documents.** A bare `#N` resolves to an arbitrary issue, which is often visibly
+unrelated. A stale line number lands in the *neighbourhood* of its target, because related material
+is written together — so it returns real, plausible, on-topic prose and reads as confirmation. A
+member sent here for the provenance assertion landed twice, at two different revisions, on
+provenance-adjacent text while the assertion itself sat further down. A range that had fallen off the
+end of the file would have been **safer**: an error is a signal, a near-miss is not. The better the
+document's organisation, the more convincing the wrong answer.
+
+This was demonstrated inside the message that reported it. The sender's own coordinates for the
+passage did not resolve at the recipient's revision either, while the phrase they quoted —
+`one of the two inputs` — resolved for both readers immediately. Two readers, one file, two
+disagreeing coordinates and one agreeing locator.
+
+So the earlier split — paths are namespace-free, numbers are not — is too coarse, because
+`docs/sync.md:785` is a path *and* a number, and only the path half survives:
+
+| Locator | Survives |
+| --- | --- |
+| Path, SHA, blob hash | any reader, any revision |
+| Bare `#N` | one repository |
+| `path:LINE` | one revision |
+| **Quoted content** | any reader, any revision — and self-verifies on arrival |
+
+A line number is namespace-scoped exactly as a bare issue number is. Its namespace is a *revision*
+rather than a repository, and canon advances daily, so `path:LINE` was usually true when written.
+
+**Quoted content is the only locator that carries its own check.** Every coordinate resolves silently
+to whatever occupies the slot and none can report having landed in the wrong place; a distinctive
+phrase can, because the reader sees the text fail to match and recovers with `git grep` instead of
+with a question. That is the rule about naming an artifact that can come back negative, applied to
+the **address** rather than to the evidence — and it is why a quoted phrase beats a line cite for
+the same reason `sync/test/rekey.test.mjs:199` beat citing a pull request number.
+
 **A citation also only discharges the obligation if the artifact is reachable by the audience.** This
 document is backbone-internal: `docs/sync.md` is not a canon kind, appears in no member's lockfile,
 and is distributed to nobody. Telling a member to "see `docs/sync.md`" names an artifact they cannot
