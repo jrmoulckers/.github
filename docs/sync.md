@@ -616,6 +616,20 @@ doubled-CR mechanism behind that assertion. Run the check above **before** concl
 renormalization finished the job: a clean `format:check` on Linux CI can coexist with files that
 were never normalized at all.
 
+That guard protects *this* repository only — it inherits its population from the repo it runs in,
+which is the limitation recorded above for coverage claims generally. A member that receives canon's
+`.gitattributes` gains the rule but not the check, and the rule is precisely what goes inert if the
+member's own blobs are already corrupt. `studio` built its own after canon's thirteen files were
+repaired, keyed to its generated `packages/tokens/dist/**`. The portable core is two lines and needs
+no script:
+
+```bash
+git ls-files --eol | grep 'i/-text'   # must be empty, or every hit is exempt via check-attr
+```
+
+Members with generated or vendored output should run it in CI rather than re-deriving a bespoke
+classifier; the mechanism is git's, not the repository's, so the check does not need to be.
+
 ### While a sync PR is blocked, check its position rather than its contents
 
 A PR that cannot merge — billing, a missing secret, an unavailable reviewer — invites repeated
