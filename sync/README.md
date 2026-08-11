@@ -662,13 +662,25 @@ obvious test and it is wrong on the real fleet in both directions:
 | Member | Above the region | Position says | Git says |
 | --- | --- | --- | --- |
 | `finance` | a comment block | violation | fine — comments carry no precedence |
-| `docket` | a rule byte-identical to canon | violation | fine — it overrides a value to itself |
+| `docket` (until PR #92) | a rule byte-identical to canon | violation | fine — it overrides a value to itself |
 | `homelab` (sync branch) | `*.glb binary` | violation | **violation** — `text` flips `unset` → `auto` |
 
 So what is compared is *values*: a rule is reported only when canon's `*` sets an attribute to
 something different from what an earlier line already resolved it to. `binary` expands to
 `text: unset, diff: unset`; `-x` is unset, `!x` unspecified, `x=v` is `v`, bare `x` is set. Against
 every member file that currently carries a region, this reports zero.
+
+Docket's row is kept although docket has since moved its region to the top: it is the case that
+distinguishes the two checks, and a position-based test would have flagged it while git would not.
+
+**A duplicate of canon's rule is inert only while canon keeps setting that attribute.** Docket's
+stray `* text=auto eol=lf` above the region cost nothing because the region set both attributes to
+the same values immediately after. Had canon ever *dropped* `eol=lf`, the leftover would have
+survived as a live override of that removal — and it would be **structurally unreportable**, because
+a member rule setting an attribute canon does not set is indistinguishable from a deliberate
+override, which is precisely what the engine must not touch. That is why removing such a line is
+worth doing even while it is provably harmless, and why the remedy is a member edit rather than a
+report: the engine cannot tell the two apart at the moment it would need to.
 
 Only `.gitattributes` can produce this report. Markdown targets append by design, and nothing in a
 Markdown file resolves by position — the guard is explicit in `outrankedRules()`, and the invariant
