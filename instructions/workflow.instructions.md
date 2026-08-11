@@ -206,6 +206,22 @@ A recovered repo is also not a control group. Studio spent the night looking lik
 correct reading is the more informative one: it did not lack the condition, it left it early. That
 makes it a data point about the *scope* of a lift rather than a permanently uninformative baseline.
 
+**The annotation is a disjunction, and its two halves have different scopes — which is probably why
+the lift is uneven.** `recent account payments have failed` **or** `your spending limit needs to be
+increased` are not two phrasings of one condition. A spending limit is *usage-metered*, so it needs
+billable minutes and visibility and runner class genuinely bear on it. A failed payment is a *state
+of the account*: nothing about free minutes requires the account to be in good standing, so that half
+is visibility-independent, which is the half that admits the public-repo refusal above.
+
+Read that way, the divergence recorded here stops being anomalous. Under a single metered cause,
+public-standard recovering hours before private is hard to explain; under two clauses it is ordinary
+— payment is restored and free public standard minutes resume at once, while metered private usage
+stays refused until the limit itself is raised. **Two clauses, two recovery times.** Treat this as
+the working explanation rather than a documented mechanism: it is inferred from the annotation's own
+wording plus two observations, and GitHub's billing internals are not visible from here. It changes
+no procedure — the annotation was already the thing to resolve on — but it predicts that a repository
+can recover while a sibling does not, so do not read a fleet-mate's return to green as a lift.
+
 Discriminate before investigating, because the two look nearly identical and only one of them is
 a defect in this repository:
 

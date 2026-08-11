@@ -1690,6 +1690,30 @@ different artifacts and only a coordinate dissented; here one reader held a corr
 only a byte count would have dissented. Content resolution cannot detect either, because in both
 cases the text found is real.
 
+**Each detector covers one fault and is blind to the others, so adopting one is not adopting
+integrity.** The same member applied the size check twice within an hour and it worked both times —
+catching a truncated decode, then a 404 whose 127-byte JSON error body `Select-String` searched
+happily, reporting zero matches for a claim and thereby *confirming* it had been removed. Then they
+quoted canon's billing text as current and asked for a reopen. The text was real, it was in this
+repository, and it had been replaced one commit earlier: they were reading the parent of the fix.
+Size could not catch it — the file was intact — and content could not, because the words were
+genuinely canon's. Only a revision identifier distinguishes a stale artifact from a current one:
+
+| Fault | Detected by |
+| --- | --- |
+| corrupted or truncated bytes | size, hash |
+| wrong artifact entirely | hash, coordinate that fails to resolve |
+| wrong location within the right artifact | quoted content |
+| **right artifact, wrong revision** | **SHA or blob hash — nothing else** |
+
+Two properties are worth carrying out of this. First, **transport failures bias toward reassurance**:
+a truncated file yields a plausible defect, a 404 body yields zero matches that read as *fixed*, and
+a stale copy yields a claim that reads as *unrepaired*. None arrives as an error. Second, the
+integrity habit does not transfer between them — the member who had internalised the size check most
+thoroughly was the one it could not help, because a stale read passes every check that a corrupt read
+fails. **Report the revision you read, not just the text you found**, and the failure becomes visible
+to the reader who can resolve it.
+
 **What makes a line number uniquely bad is that the act which invalidates it is correct, unrelated,
 and elsewhere.** A renamed function breaks its references visibly; a moved file breaks a link; a
 changed API breaks a build. Editing a document *above* a cited range breaks every citation into it
