@@ -764,6 +764,47 @@ The backbone checkout must contain full Git history (`fetch-depth: 0` in Actions
 closed on a shallow checkout rather than pretending an incomplete evidence set is authoritative.
 Drift warnings name every skipped target so reconciliation does not require lockfile archaeology.
 
+#### A correct refusal that repeats forever is not a signal
+
+Refusing to overwrite a locally-modified file is right, and it must stay right. But a refusal that
+recurs on every run reads, in the output, exactly like a member who customised a file on purpose —
+and one of those two is a member silently frozen out of canon.
+
+That is measured, not hypothetical. `jrmoulckers/finance` carried
+`vendor/@jrm/tokens/css/default/tokens.css` at 20,889 characters against canon's 45,465, its lock
+baseline pinned at a `sourceSha256` of `343e10b1…` while the token source had already moved to
+`f7e03275…`. The engine refused correctly every time. The file simply stopped advancing, and the
+warning went into a log nobody read.
+
+So each drift item now carries **`withheld`** and **`lastWrittenAt`**, and the CLI, the run-log
+warning and the sync PR body all separate the two cases:
+
+| | `withheld` | Meaning |
+| --- | --- | --- |
+| canon unchanged since the member's baseline | `false` | the member edited a file that is otherwise current — they are missing nothing, and this can sit indefinitely |
+| canon has moved since the baseline | `true` | the member is behind, and the refusal is what keeps them there — every further run widens the gap |
+| never recorded at all | `true` | no baseline exists, and the bytes are neither canon nor a known rendering, so canon has never arrived |
+
+This needs no new state, no counter and no threshold, because the lockfile already holds both
+halves: `sourceSha256` is the canon the member last received, and comparing it with the canon this
+run resolved answers the question exactly.
+
+**A counter of consecutive skips was the obvious alternative and measures the wrong thing.** It
+counts how often the engine ran, not whether anything is being withheld — a file customised on
+purpose accrues precisely the same count as a frozen one, so the number grows in both cases and
+separates neither.
+
+`lastWrittenAt` is the entry's `syncedAt`, which drift deliberately leaves untouched so it keeps
+meaning *when this path last received canon*. Note what it is **not**: the moment drift began, which
+the engine cannot know, since a member may edit a file long after the write that baselined it. It is
+an upper bound on the refusal's age and an exact measure of the baseline's — and the baseline's age
+is what the harm is made of.
+
+A formatter is the most likely way to arrive here without meaning to: `.github/copilot-instructions.md`
+is Markdown, is a managed-region target, and is shipped to every member. A member running Prettier
+over it rewrites the region, the engine correctly refuses, and that member stops receiving the file
+— which is why members must exclude canon from their formatters.
+
 ### The lockfile follows the plan when a target base moves
 
 Lock keys are `targetPath`s, which are only stable while a member's target base is. When a base

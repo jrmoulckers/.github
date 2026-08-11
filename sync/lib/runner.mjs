@@ -54,8 +54,23 @@ export function syncMembers(plans, ctx, syncOne = syncMemberRepo) {
   return failures;
 }
 
+/**
+ * The warning line that goes to the run log.
+ *
+ * This is the surface that failed in practice: a correct refusal, repeated every run, reading
+ * identically whether the member customised the file or was frozen out of canon. So the line now
+ * leads with the consequence rather than the count — a withheld path is one where canon has moved
+ * since the member's baseline, so the refusal is actively costing them an update.
+ */
 export function formatDriftWarning(repo, drift) {
-  return `${repo}: locally-modified file(s) left untouched: ${drift
-    .map((item) => item.targetPath)
-    .join(', ')}`;
+  const withheld = drift.filter((item) => item.withheld);
+  const paths = drift.map((item) => item.targetPath).join(', ');
+  if (!withheld.length) {
+    return `${repo}: locally-modified file(s) left untouched: ${paths}`;
+  }
+  return (
+    `${repo}: locally-modified file(s) left untouched: ${paths}` +
+    ` — ${withheld.length} of ${drift.length} withholding a canon update` +
+    ` (${withheld.map((item) => `${item.targetPath} last synced ${item.lastWrittenAt ?? 'never'}`).join('; ')})`
+  );
 }

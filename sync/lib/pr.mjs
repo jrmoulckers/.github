@@ -176,7 +176,28 @@ export function buildPrBody(report, { date, intro } = {}) {
         'already checked across all of them.',
     );
     lines.push('');
-    for (const item of report.drift) lines.push(`- \`${item.targetPath}\``);
+    for (const item of report.drift) {
+      if (!item.withheld) {
+        lines.push(`- \`${item.targetPath}\``);
+        continue;
+      }
+      const since = item.lastWrittenAt
+        ? `last received canon ${item.lastWrittenAt}`
+        : 'never received canon';
+      lines.push(`- \`${item.targetPath}\` — ⚠️ **withholding an update** (${since})`);
+    }
+
+    const withheld = report.drift.filter((item) => item.withheld);
+    if (withheld.length) {
+      lines.push('');
+      lines.push(
+        `**${withheld.length} of these ${report.drift.length} are not merely customised — they are ` +
+          'behind.** Canon for those paths has changed since this repo last received it, so the ' +
+          'refusal above is what is keeping them stale, and every further run widens the gap. The ' +
+          'other entries differ from canon only by your own edits, with no pending update behind ' +
+          'them; those are fine to leave indefinitely.',
+      );
+    }
   }
 
   if (report.outranked?.length) {
