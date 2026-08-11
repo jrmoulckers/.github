@@ -382,3 +382,30 @@ test('a doubled CR terminator is what makes git call a text file binary', () => 
     assert.match(rows, /i\/-text\s+w\/-text\s+.*doubled\.md/, 'a doubled CR reads as binary');
   });
 });
+
+test('the documented hand-audit compares the region, because whole-file comparison reads as drift', () => {
+  const spec = attributesSpec();
+  const markers = markersFor(spec.targetPath);
+  const expected = canonicalizeInner(spec.content);
+
+  // A correctly-synced member: exactly what the engine writes, plus local content it owns.
+  const local = 'packages/tokens/dist/** text eol=lf\n';
+  const member = `${buildFile('', expected, markers).replace(/\n+$/, '\n')}\n${local}`;
+
+  // The whole-file recipe documented for ordinary copies calls this healthy file drift.
+  assert.notEqual(member, spec.content, 'whole-file comparison must not be the documented check');
+
+  // The region comparison is the one that is right.
+  assert.equal(extractBlock(member, markers), expected);
+
+  // Both hand-reconstruction traps the README names must actually fail this check.
+  const headerOutside = `# synced from jrmoulckers/.github\n${buildFile('', '* text=auto eol=lf', markers)}`;
+  assert.notEqual(extractBlock(headerOutside, markers), expected, 'provenance outside the markers');
+
+  const withoutComments = buildFile(
+    '',
+    expected.split('\n').filter((line) => !line.startsWith('# Normalize') && !line.startsWith("# Git's")).join('\n'),
+    markers,
+  );
+  assert.notEqual(extractBlock(withoutComments, markers), expected, "canon's comments are part of the region");
+});
