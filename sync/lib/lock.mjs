@@ -72,6 +72,84 @@ export function writeLock(memberRoot, lock) {
   writeFileSync(lockPath(memberRoot), serializeLock(lock), 'utf8');
 }
 
+/**
+ * Fold entries from the member's *current* default branch back into this run's lock.
+ *
+ * The lock is read once from a clone taken at run start and written wholesale at commit, so a run
+ * whose lifetime overlaps another's writes a lock built from a base that never contained the other
+ * run's entries. Entries this run did not touch are then silently reverted — a lost update on a
+ * whole-file artifact (#418). The observed instance moved `jrmoulckers/finance`'s `tokens.css`
+ * entry backwards by two days, and because a lock entry that disagrees with disk reads as member
+ * drift, the path was refused on every later run until someone hand-edited a generated file.
+ *
+ * Two deliberate narrowings, because the general problem has a question in it that should not be
+ * answered in passing:
+ *
+ *   - `touched` is excluded outright. Those entries describe bytes this run just wrote into its own
+ *     branch, so they are authoritative *for that branch* whatever another run did. The undecided
+ *     question in #418 — what "newer" should mean when two runs legitimately write the same path —
+ *     only arises for paths both runs write, and this declines to arbitrate them.
+ *   - Among the rest, the base wins only when it is strictly newer by `syncedAt`. A plain
+ *     "base wins" rule looks simpler and is wrong: on the branch-reuse path our lock comes from the
+ *     sync branch, which legitimately holds entries newer than the default branch, and taking the
+ *     base unconditionally would revert the previous run's work on our own branch.
+ *
+ * Never deletes. A key the base lacks may be one an overlapping run pruned, but it may equally be
+ * one an earlier commit on a reused branch added, and those are indistinguishable from here.
+ * Restoring too little leaves a stale entry that the next run corrects; deleting too much discards
+ * a baseline whose file is still on disk, which is the failure this function exists to prevent.
+ *
+ * @param {object} ours    entries this run produced
+ * @param {object} base    entries on the member's default branch, read immediately before commit
+ * @param {Set<string>} touched  lock keys this run deliberately authored or removed
+ */
+export function mergeNewerBaseEntries(ours, base, touched = new Set()) {
+  const entries = { ...ours };
+  const restored = [];
+
+  for (const [key, baseEntry] of Object.entries(base ?? {})) {
+    if (touched.has(key)) continue;
+    if (!baseEntry || typeof baseEntry !== 'object') continue;
+
+    const mine = entries[key];
+    if (!outranks(baseEntry, mine)) continue;
+    if (mine && sameBaseline(mine, baseEntry)) continue;
+
+    entries[key] = baseEntry;
+    restored.push({
+      targetPath: key,
+      from: mine ? (mine.syncedAt ?? null) : null,
+      to: baseEntry.syncedAt ?? null,
+    });
+  }
+
+  return { entries, restored };
+}
+
+/**
+ * Whether the default branch's entry should displace ours.
+ *
+ * A missing timestamp never outranks a present one in either direction: absence is not evidence of
+ * age, and letting it win would let an entry with no provenance overwrite one that has some.
+ */
+function outranks(baseEntry, mine) {
+  if (!mine) return true;
+  const theirs = timestamp(baseEntry);
+  const ours = timestamp(mine);
+  if (theirs === null) return false;
+  if (ours === null) return true;
+  return theirs > ours;
+}
+
+function timestamp(entry) {
+  const parsed = Date.parse(entry?.syncedAt ?? '');
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function sameBaseline(a, b) {
+  return a.sourceSha256 === b.sourceSha256 && a.targetSha256 === b.targetSha256;
+}
+
 function sortEntries(entries) {
   const out = {};
   for (const key of Object.keys(entries).sort()) out[key] = entries[key];

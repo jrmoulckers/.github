@@ -7,9 +7,9 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { readLock } from './lock.mjs';
+import { readLock, writeLock, mergeNewerBaseEntries, LOCK_FILENAME } from './lock.mjs';
 import { apply, formatBehind } from './copier.mjs';
-import { cloneShallow, prepareSyncBranch, commitAll, push, createPr, findOpenPr, findOtherOpenSyncPrs, CO_AUTHOR } from './git.mjs';
+import { cloneShallow, prepareSyncBranch, commitAll, push, createPr, findOpenPr, findOtherOpenSyncPrs, readFileAtRemoteBranch, CO_AUTHOR } from './git.mjs';
 import { log } from './log.mjs';
 import { assertMemberFacts } from './member-facts.mjs';
 import { observeCallerPermissions } from './caller-permissions.mjs';
@@ -68,8 +68,10 @@ export function syncRepo({ repo, writes, token, date, force, forcePaths, backbon
     }
 
     const lock = readLock(tmp, backbone);
-    const { report } = apply(tmp, writes, lock, { force, forcePaths, write: true });
+    const { report, lock: newLock, touchedKeys } = apply(tmp, writes, lock, { force, forcePaths, write: true });
     if (!report.changed) return { status: 'unchanged', report, inspection };
+
+    refreshLockAgainstDefault(tmp, defaultBranch, newLock, touchedKeys, repo, backbone);
 
     if (!commitAll(tmp, commitMessage(date))) return { status: 'unchanged', report, inspection };
 
@@ -114,8 +116,53 @@ export function syncRepo({ repo, writes, token, date, force, forcePaths, backbon
   }
 }
 
-export function syncMemberRepo(
-  { repo, member, writes, token, date, force, forcePaths, backbone },
+/**
+ * Fold back lock entries the member's default branch gained while this run was in flight.
+ *
+ * `apply` planned against a clone taken at run start. If another run merged since, this run's lock
+ * describes a state older than the member already has, and committing it wholesale reverts entries
+ * this run never touched (#418). Re-reading the default branch here — after all planning, before
+ * the commit — is the narrowest point where the newer state is knowable and still actionable.
+ *
+ * Reported, never silent. A restored entry means two runs overlapped, which is the condition worth
+ * knowing about even on the runs where it costs nothing.
+ */
+export function refreshLockAgainstDefault(dest, defaultBranch, lock, touchedKeys, repo, backbone, read = readFileAtRemoteBranch) {
+  const head = read(dest, defaultBranch, LOCK_FILENAME);
+  if (head.status === 'unavailable') {
+    // Not cosmetic, and deliberately not fatal. Proceeding is exactly the behaviour that shipped
+    // before this check existed, so a failed lookup is never worse than not looking — but silence
+    // here would claim the lock was reconciled when nothing was compared.
+    log.warn(
+      `${repo}: could not re-read ${defaultBranch}'s lockfile before committing — entries this run ` +
+        'did not touch were not checked against it, and an overlapping run may be reverted.',
+    );
+    return;
+  }
+  if (head.content === null) return;
+
+  let baseEntries;
+  try {
+    baseEntries = JSON.parse(head.content)?.entries ?? {};
+  } catch {
+    log.warn(`${repo}: ${defaultBranch}'s lockfile is not valid JSON — skipping the overlap check.`);
+    return;
+  }
+
+  const { entries, restored } = mergeNewerBaseEntries(lock.entries, baseEntries, touchedKeys);
+  if (!restored.length) return;
+
+  writeLock(dest, { ...lock, backbone, entries });
+  log.warn(
+    `${repo}: ${restored.length} lock entr(ies) were newer on ${defaultBranch} than in this run's ` +
+      'snapshot and were kept — another sync run merged while this one was in flight:',
+  );
+  for (const item of restored) {
+    log.warn(`    ${item.targetPath} (kept ${item.to}, this run had ${item.from ?? 'no entry'})`);
+  }
+}
+
+export function syncMemberRepo(  { repo, member, writes, token, date, force, forcePaths, backbone },
   sync = syncRepo,
   observe = observeCallerPermissions,
 ) {

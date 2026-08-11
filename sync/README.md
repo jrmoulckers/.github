@@ -1013,6 +1013,42 @@ sync commit reverts its lock entry in the same commit, leaving file and lock con
 
 This fixes the *consequence*, not the race that regresses the entry in the first place.
 
+#### The race itself: fold the default branch back in before committing
+
+A run reads the lock once, from a clone taken at run start, and writes it wholesale at commit.
+Nothing in between re-reads the member's default branch. If another run's PR merges inside that
+window, the second to merge writes a lock built from a base that never contained the first's
+entries, and **entries the second run did not touch are silently reverted**. It is a lost update on
+a whole-file artifact, and it is not specific to tokens.
+
+So `syncRepo` re-reads the default branch's lockfile after planning and before `commitAll`, and
+folds back any entry it did not itself author. Two narrowings keep the rule decidable:
+
+- **Entries this run authored are excluded outright.** They describe bytes it just wrote into its
+  own branch, so they are authoritative *for that branch*. Taking a base entry there would leave
+  the lock disagreeing with the file beside it — manufacturing the drift this exists to prevent.
+  The genuinely open question (what "newer" should mean when two runs legitimately write the same
+  path) only arises for those paths, and this declines to arbitrate them.
+- **Among the rest, the base wins only when strictly newer by `syncedAt`.** A plain "base wins" rule
+  reads as simpler and is wrong: on the branch-reuse path our lock comes from the sync branch, which
+  legitimately holds entries the default branch has not seen yet, and preferring the base would
+  revert the previous run's work on our own branch — a new regression introduced by the fix for one.
+
+Note which class this has to reach: a **withheld** target's entry is left untouched by `apply()`,
+so it is never in the authored set. That is deliberate. The observed instance was a drifting token
+file, and claiming withheld entries would have made the fold inert on the only case that motivated
+it.
+
+It never deletes. A key the base lacks may be one an overlapping run pruned, or one an earlier
+commit on a reused branch added — indistinguishable from here. Restoring too little leaves a stale
+entry the next run corrects; deleting too much discards a baseline whose file is still on disk.
+
+The lookup is three-state, like `foreignCommits`. `unavailable` (the fetch failed) leaves the lock
+exactly as the run wrote it and says so, because that is the behaviour that shipped before the check
+existed — a failed lookup is never worse than not looking, but silence would claim a reconciliation
+that never happened. `ok` with no lockfile is a member's first sync, and is not the same as reading
+an empty entry set.
+
 `--force` is not the tool for that. It is one flag for the whole invocation — `index.mjs` parses it
 once and threads it into every named member, and `apply()` then applies it to every spec in each —
 so it rewrites **every** drifted file in **every member the run touches**. Using it to clear one
@@ -1228,7 +1264,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/rekey.test.mjs` | Lock reconciliation when a target base moves: a relocated tree ends with every planned file tracked and no entry pointing at a nonexistent path, and converges as `updated` instead of freezing as drift; a baseline moves only onto a file it provably describes, and an unproven file is left unrecorded so historical recovery stays available to it; the moved baseline still catches a genuine hand-edit; a stale entry is pruned only when its file is gone, while an unplanned entry whose file remains keeps its baseline; an ambiguous relocation is left alone; a root-level managed target is never rekeyed; a steady-state re-run rekeys and prunes nothing and still produces no diff. |
 | `test/revisions-behind.test.mjs` | The staleness magnitude: revisions are ordered newest-first and a revert does not count twice; a withheld file reports how many versions it has missed; a file customised on top of *current* canon is not withheld and stays at zero forever; a baseline matching no published version reports `null` rather than 0, because unanswerable must not read as up to date; a target with no baseline at all is answerable and maximal — behind every published version, on the same scale as the recorded case, one past the oldest — while an empty history stays `null` rather than collapsing to 0; the aggregate warning and the per-file CLI line both carry the count, and it pluralizes. |
 | `test/tokens-history.test.mjs` | Historical-canon evidence for vendored `@jrm/tokens`: the set is non-empty and rendered with the *package's* provenance note (not the backbone default) and excludes current canon; the rendered-only set is non-empty, holds no raw blobs, and is a subset of the historical set; a vendored file frozen on an older release converges as `updated` instead of drifting forever; a member-authored file is still refused; and history read from a shallow token checkout raises rather than degrading to an empty set. |
-| `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; raw-canon stamping; exact historical-output recovery; empty-evidence and one-byte-mutation refusal; a recorded target is recovered from a *superseded rendering* but never from raw canon (a stripped header stays a local edit), never on historical-but-not-rendered evidence, and never from member-authored bytes; `--force` refuses a target with no lock entry, honours it when named in `--force-paths`, and naming one path does not authorize the others. |
+| `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; raw-canon stamping; exact historical-output recovery; empty-evidence and one-byte-mutation refusal; a recorded target is recovered from a *superseded rendering* but never from raw canon (a stripped header stays a local edit), never on historical-but-not-rendered evidence, and never from member-authored bytes; `--force` refuses a target with no lock entry, honours it when named in `--force-paths`, and naming one path does not authorize the others; `touchedKeys` claims what the run wrote and leaves a withheld target foldable. |
 | `test/history.test.mjs` | Full-history enforcement and committed-blob enumeration; end-to-end target enumeration recovers a member holding a prior engine rendering. |
 | `test/rendering-stability.test.mjs` | Pins the rendered first line of every classified comment-syntax type, because `inject` is a hashed interface rather than a formatter: `attachCanonHistory` reconstructs past engine output by rendering historical raw canon through the *current* renderer, so any change to that output orphans every file already stamped in the old form and reports untouched member files as drifted. Also asserts every classified type is pinned (so a new type cannot be added unguarded) and that `none` types are returned unstamped. Added after `31b5271` and `e4e8f23` each changed rendered output — the latter for six of sixteen types while closing the HTML-fallback gap — under a warning that guarded `PROVENANCE_NOTE`, the one input that had never changed in seven revisions. |
 | `test/manifest.test.mjs` | The real `studio.config.json` validates; all nine consumers and their explicit modes are registered; disabled infrastructure members produce no writes; local-agent metadata remains compatible; application defaults, Docket's completed mode transition, and mode-specific fact schema are enforced; `canon` matches disk; native kinds are never written. |
@@ -1238,6 +1274,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/caller-permissions.test.mjs` | Direct reusable-workflow caller ceilings on default branches, open pull-request heads, and the strict local lint: package-reading workflows are derived from canonical permission declarations; workflow/job override order, inherited defaults, aliases, key order, flow permissions, arbitrary valid indentation, immutable remote scanner pins, and local same-commit binding are resolved; local failures name the file/job and every sibling job in the blast radius; unsupported local YAML fails while inaccessible or moving upstream refs remain non-fatal unknown observations; one unreadable file cannot erase sibling findings. |
 | `test/workflow-integrity.test.mjs` | Canon/file parity, practical zero-dependency YAML surface checks, full-SHA action refs and version comments, permissions ceilings, timeouts, concurrency ownership, checkout credentials, shell interpolation, artifact contracts, Pages authority split, digest-pinned security scanning, change detection, caller-lint immutable resolution/separate-file harness, and private-by-default Lighthouse behavior. |
 | `test/provenance.test.mjs` | Every real write equals `inject(targetPath, canon)` and never canon verbatim — so the documented hand-audit baseline stays correct; and that check is line-ending agnostic on the member side. |
+| `test/lock-overlap.test.mjs` | The pre-commit fold that reconciles this run's lock against the member's default branch: an untouched entry the default branch moved forward is kept (pinned at the values of the observed `tokens.css` regression), an entry it gained is added back, an entry this run authored is never displaced, and an *older* base entry never wins — the branch-reuse case a plain "base wins" rule breaks. Never deletes on absence. A missing or unparseable `syncedAt` outranks nothing in either direction. At the call site, `unavailable` leaves the lockfile byte-identical, a readable branch with no lockfile is not read as an empty one, a corrupt base lockfile is skipped rather than thrown, and a fold restoring nothing does not rewrite the file (which would stamp a fresh `generatedAt` into every PR). |
 | `test/prbody.test.mjs` | An adoption-only run's PR body says its entire diff is the lockfile, and does not claim that when the run also wrote files (including via `--force`). The drift note states that `--force` is run-wide, offers the by-hand remedy first, names the never-delivered exception and `--force-paths`, and none of it appears when the run has no drift. |
 | `test/workdir.test.mjs` | `--work-dir` guards: a parent directory, a missing path and a file are all rejected; a git worktree (whose `.git` is a file) is accepted; identity resolves to `match` / `mismatch` / `unverifiable` across URL spellings and case, both failing verdicts abort, the refusal names the self-certifying lockfile, and `--allow-unverified-work-dir` overrides them without ever marking a matching checkout as overridden. |
 | `test/cli-workdir.test.mjs` | The same guards **through the CLI**: every operation — apply, `--check`, `--dry-run` — exits 1 on a wrong or absent origin; refused and fact-verification failures leave no file or lockfile; the override flag says what it suppressed; dry-run reports mode and zero-write members; checkout facts are verified before the sync lock is read or applied. |
