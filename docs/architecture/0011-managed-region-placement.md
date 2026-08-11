@@ -115,12 +115,23 @@ is inert in practice; this one is not, and it applies to every member using `bin
 exactly, which is the property worth having: adopting canon changes what was previously unspecified
 and nothing else.
 
-**Members may still pre-seed.** Placing the markers by hand remains valid and now agrees with the
-default rather than compensating for it. Studio's pre-seeded region stays correct unchanged.
+**Members may still pre-seed, but the region will not be byte-identical.** Placing the markers by
+hand remains valid and now agrees with the default rather than compensating for it. What a
+hand-seeded region cannot reproduce is the provenance line: `inject()` adds it to the rendered
+content, so it does not appear in the canonical source anyone copies from, and omitting it is
+guaranteed by construction rather than caused by carelessness. Two members did exactly that
+(`jrmoulckers/studio`, `jrmoulckers/jrm-recipes`, both since corrected).
+
+The consequence is small and contained — `findBlock()` matches on markers, replaces in place, and
+the first sync writes the correct bytes — but it means **a pre-seeded region is an `update` on first
+sync, not a no-op.** Do not read "I copied canon faithfully" as evidence of sync-cleanliness; the
+one line that distinguishes them is the one copying cannot supply. See #180.
 
 **Audit rather than infer.** The reliable check is empirical: run `git check-attr` on a
 representative file in a member before and after its first sync. Reasoning from the rendered text
-is what allowed this defect to ship, because the text looked right in both orderings.
+is what allowed this defect to ship, because the text looked right in both orderings. For whether a
+region is byte-current, `node sync/index.mjs --dry-run --members <name> --work-dir <checkout>` is
+authoritative where eyeballing is not.
 
 ## Alternatives considered
 

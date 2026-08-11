@@ -500,9 +500,32 @@ is a formatter failure git will not show you:
 - Prettier reads raw bytes, sees the CRs, and fails.
 
 So the file is simultaneously clean to git and failing to the formatter, and it will never
-self-heal. The fix is to force the worktree to be rewritten from the index — delete the offending
-files and check them out again (`git rm --cached -r . && git reset --hard` also works), or clone
-fresh. Confirmed in `jrmoulckers/jrm-recipes`, where `.studio-sync.lock.json` held 302 stray CRs
+self-heal. **Adding `.gitattributes` does not rewrite an existing working tree** — expect the fix to
+land and change nothing for anyone who already has a clone. That is the shape most likely to be
+misread as "the fix didn't work":
+
+| Stage (scratch repo, `core.autocrlf=true`, index already pure LF) | worktree bytes |
+| --- | --- |
+| fresh checkout, no `.gitattributes` | `CR=3 LF=3` (`i/lf w/crlf`) |
+| after committing `* text=auto eol=lf` | `CR=3 LF=3` — **unchanged** |
+| after forcing a re-checkout | `CR=0 LF=3` |
+
+The fix is to force the worktree to be rewritten from the index — delete the offending files and
+check them out again, or clone fresh. `git rm --cached -r . && git reset --hard` also works, but
+**it discards every uncommitted change in the repo**; commit or stash first. Fresh clones and CI are
+unaffected, which is why CI never reproduces this.
+
+Where the index is already clean, note that **`eol=lf` is the clause doing the work, not
+`text=auto`.** With a correct index there is nothing for `text=auto` to normalize; `eol=lf` is what
+overrides a repo-local `core.autocrlf=true` at checkout time. Canon carries both, so this is a "why
+it works" note rather than a change — but it also means adopting canon in a member whose index is
+already clean produces **no renormalization commit at all**, and the `.gitattributes` addition is
+the entire diff. Check with `git ls-files --eol` before planning one: where the index is dirty you
+get the large mechanical commit and the fixture/snapshot/`.bat` audit genuinely matters, and where
+it is clean neither applies. Confirmed in `jrmoulckers/jrm-recipes` (1237 files, `i/crlf: 0`) and
+`jrmoulckers/studio` (199 files, `i/lf: 199`).
+
+Confirmed in `jrmoulckers/jrm-recipes`, where `.studio-sync.lock.json` held 302 stray CRs
 while reporting clean.
 
 Worth recognizing by shape: a formatter failing on a file `git diff` says is unmodified is almost

@@ -35,7 +35,7 @@ import { fileURLToPath } from 'node:url';
 import { loadManifest, validateManifest, MANAGED_MERGE_TARGETS, BOOLEAN_KINDS, KINDS } from '../lib/manifest.mjs';
 import { resolveAll } from '../lib/resolve.mjs';
 import { enumerateTargets } from '../lib/assets.mjs';
-import { inject } from '../lib/provenance.mjs';
+import { inject, PROVENANCE_NOTE } from '../lib/provenance.mjs';
 import { markersFor, MARKERS, END_MARKER, extractBlock, buildFile, canonicalizeInner } from '../lib/basemerge.mjs';
 import { apply } from '../lib/copier.mjs';
 import { hashText } from '../lib/lock.mjs';
@@ -408,4 +408,47 @@ test('the documented hand-audit compares the region, because whole-file comparis
     markers,
   );
   assert.notEqual(extractBlock(withoutComments, markers), expected, "canon's comments are part of the region");
+});
+
+test('the provenance line is engine-injected, so hand-seeding cannot reproduce the region', () => {
+  // Two members pre-seeded this region from canon and both omitted the provenance line
+  // (jrmoulckers/studio, jrmoulckers/jrm-recipes). That is not carelessness twice: inject() adds
+  // the line when the spec is built, so it is absent from the file a person copies from, and
+  // copying faithfully still yields a region the engine will rewrite. See #180.
+  const spec = attributesSpec();
+  const markers = markersFor(spec.targetPath);
+  const source = readFileSync(join(REPO_ROOT, '.gitattributes'), 'utf8');
+
+  // The construction: absent from the source, present exactly once in what the engine writes.
+  assert.ok(
+    !source.includes(PROVENANCE_NOTE),
+    'the canonical source must not carry the provenance line - inject() prepends unconditionally, ' +
+      'so putting it here emits it twice, and "do not edit here" is false of the one file that is edited here',
+  );
+  assert.equal(
+    spec.content.split('\n').filter((line) => line.includes(PROVENANCE_NOTE)).length,
+    1,
+    'the rendered spec carries the provenance line exactly once',
+  );
+
+  // Therefore a faithful hand-seed differs from canon, and differs ONLY by that line.
+  const handSeeded = buildFile('', canonicalizeInner(source), markers);
+  const expected = canonicalizeInner(spec.content);
+  assert.notEqual(
+    extractBlock(handSeeded, markers),
+    expected,
+    'if these ever match, the omission is no longer by construction and this guard is obsolete',
+  );
+  assert.deepEqual(
+    expected.split('\n').filter((line) => !extractBlock(handSeeded, markers).split('\n').includes(line)),
+    [`# ${PROVENANCE_NOTE}`],
+    'the provenance line is the whole of the difference',
+  );
+
+  // And it is harmless: findBlock keys on markers, so the region is still located and replaced.
+  assert.equal(
+    extractBlock(buildFile(handSeeded, expected, markers), markers),
+    expected,
+    'a pre-seeded region must be corrected in place by the first sync, not duplicated',
+  );
 });
