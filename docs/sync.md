@@ -430,6 +430,15 @@ carries cases the prose elides, including basename matches for extensionless dot
 set of script and native extensions. Anyone writing a member-side check must mirror that file by
 reading it, never by transcribing this paragraph.
 
+**Do not scan a fixed window of leading lines for the stamp.** The paragraph above places it *after*
+any YAML frontmatter, so on agent and skill files it sits well down the file, and a check that reads
+the first N lines silently classifies every one of them as member-owned. `studio` shipped exactly
+this — an eight-line window that saw 24 of 59 locked paths and none of the 22 under
+`.github/agents/`, while reporting OK. Widening the window is the wrong repair: it swaps one
+arbitrary boundary for another and leaves the real error, which is that **recognising the stamp
+proves a file is canon while failing to recognise it proves nothing**. Enumerate from
+`.studio-sync.lock.json` and keep the stamp as a signal that can only add.
+
 The reason is the failure direction. An incomplete marker table fails **silently in the safe
 direction**: an unlisted target simply never matches, so a correctly stamped file reports as
 missing its marker — indistinguishable from real drift. An abbreviated table therefore cannot
