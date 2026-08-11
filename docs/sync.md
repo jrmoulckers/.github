@@ -1053,6 +1053,19 @@ go and look, which makes this the more dangerous half of the practice. So mutati
 check load-bearing", and only a reconstruction of the real case answers "is it pointed at the right
 thing" — naming a real member as the motivation is the trigger to go and build it.
 
+**A test that iterates a discovered population reports `pass` when the population is empty.** The
+explicit form is a conditional `skipTest`, and the trap there is that the skip condition is usually
+the failure mode restated: skipping because a synced file is absent means the test goes quiet in
+exactly the state a broken sync produces. The implicit form — a `for` loop over a `filter`, or an
+`?? []` on a missing key — is worse, because a skip at least prints `skipped` in the summary while
+an empty loop is indistinguishable from a real assertion and the run reports `skipped: 0` besides.
+Three checks in `sync/test/` had this shape, each iterating a population that is non-empty only by
+coincidence of today's data; a filter mutated to match nothing left the suite fully green. So assert
+the population before iterating it, and say in the message that the check would otherwise assert
+nothing. Where a genuine precondition exists, key the skip to the thing that *decides* whether the
+file is owed — the lockfile entry — and fail when the entry exists but the file does not, rather
+than keying it to the file's own presence.
+
 **Audit that exposure with git's resolver, not with the region's position.** The obvious check —
 "the managed region should be the first non-empty line" — is itself keyed to the wrong unit, and it
 was written and run against the whole fleet before the mistake showed. It returned two hits, and
