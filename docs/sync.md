@@ -866,7 +866,42 @@ with the least evidence for it. Confirm against a *private* member: a live run, 
 history. The block's signature is unmistakable when you look at the right repo — jobs with
 `steps: 0`, downstream jobs `skipped`, and an annotation naming payments or the spending limit.
 
+### A failed lookup must not be spelled like an empty result
+
+`foreignCommits` reported reviewer commits preserved on a reused sync branch. Its `--unshallow` fetch
+is a network call, so failure is ordinary rather than exceptional, and it returned `[]` on failure.
+`pr.mjs` warns only `if (base.foreign.length)`. So a failed lookup asserted **no reviewer work is
+present**, on the one path whose entire purpose is preserving reviewer work.
+
+`[]`, `null`, `{}` and `0` are all legitimate *answers*. None of them can also serve as "I could not
+find out," because every consumer already has a branch for the answer and none has one for the
+absence. Return an explicit third state — `{ status: 'unavailable' }` — and let the consumer decide;
+the compiler cannot help here, but a caller that ignores the discriminator is at least visible.
+
+Two audits missed this before a test caught it, and neither was careless. The first inspected all
+seven `catch` blocks in the engine and reported clean. The second was written by the author of one of
+the defects, in the same change that reported the class, with a warning about this exact shape in its
+own description. **The defect is not visible where it lives** — `catch { return []; }` is ordinary
+defensiveness at the site, and only the caller's use of the value makes it wrong. That is an argument
+for a structural test rather than for closer reading, and the test is the one now in place: parse each
+function body, assert its `catch` yields an explicit `unavailable`, with a matching `doesNotMatch`
+for the bare-empty shape.
+
+Not every such return is a defect, and the discriminator is whether the caller degrades **noisily**.
+`findOpenPr` also returns `null` on failure, but the engine then attempts `gh pr create`, which fails
+against an existing PR. The erasure is corrected by the next step rather than absorbed, so it stays.
+
+**The evidence for this class was already in hand and was read as something else.** A GraphQL
+node-budget rejection during an earlier rollout (`--limit 50` → 505,050 nodes, over the 500,000 cap)
+was diagnosed as a query-cost bug and fixed as one. It was equally a demonstration of the erasure:
+under the old shape that malformed query was indistinguishable from *a fleet with no older waves*,
+permanently and with no symptom. The measurement was correct and the local explanation was
+sufficient, and sufficiency is what removed the reason to ask the second question — *what would this
+output look like if a failure were being swallowed?* A symptom that admits a mundane local
+explanation will get one.
+
 ### A fleet-wide outage makes genuine regressions unreadable while it holds
+
 
 The block does not merely stop work; it destroys the signal that would tell you whether anything
 else is wrong. Measured on `2026-08-11`, every private member was refused and every public one was
