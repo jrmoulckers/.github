@@ -2497,6 +2497,34 @@ a lock fail to cover for each other in precisely this seam: the stamp is unrelia
 only ever *add* candidates to an enumeration, while the lock is reliable per-entry but cannot report
 what it never recorded. Neither is sufficient; their union is what closes it.
 
+**Insertion purity and correct placement are different properties, and one check does not see
+both.** The standing guard for a prose edit here is `git diff -U0 | Select-String '^-[^-]'`, which
+must show zero removals. It reliably proves *nothing was lost* — it has caught a heading dropped from
+a replacement, a paragraph split by a mid-sentence anchor, and a sentence truncated by a partial
+anchor. It is structurally blind to *where the new text went*: an insertion that lands under the
+wrong heading removes nothing, so the guard passes. A peer reported the same shape from the other
+direction, where replacing the block that ends a section silently reparents what followed.
+
+A rule filed under the wrong heading is worse than an absent one, because it will be found by
+readers of a section it does not govern, and canon is consumed by search. So run a second, separate
+check after every insertion — resolve the nearest preceding heading for each added hunk and confirm
+it is the section you intended:
+
+```powershell
+$f = 'instructions/workflow.instructions.md'
+$new = Get-Content $f
+git --no-pager diff -U0 -- $f | Select-String '^@@' | ForEach-Object {
+  if ($_ -match '\+(\d+)') { [int]$Matches[1] }
+} | ForEach-Object {
+  $h = $new[0..($_ - 1)] | Select-String '^#{2,4} ' | Select-Object -Last 1
+  "line $_ -> $(if ($h) { $h.Line.Trim() } else { '(no heading)' })"
+}
+```
+
+The general form is the one that keeps recurring: **a passing check licenses exactly the property it
+measures**, and a guard that has caught several real faults earns a trust that quietly extends to
+faults it cannot see.
+
 ## Idempotency & drift
 
 - The tool is **idempotent**: once a member carries a lockfile, re-running with no upstream change
