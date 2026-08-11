@@ -411,6 +411,20 @@ would report it as drift forever.
   concurrently during the rollout: sibling branches were compared because they were near, and nobody
   asked when a branch was generated because nothing in it prompted the question.
 
+  **Agreement is corroboration only between instruments that could have disagreed.** Two sessions
+  reaching the same number is worth nothing if both computed it the same way — a line count taken by
+  splitting on newlines is wrong by one on every newline-terminated file, and it is wrong identically
+  for everyone who takes it that way, so confirming it against another session confirms the
+  convention rather than the file. What settled that count was three instruments that could have
+  disagreed: a line-collection count, a byte-level LF count, and a fetch from the API. Not one
+  instrument run three times.
+
+  This is the fixture rule in social form, and a fleet of cooperating sessions is unusually exposed
+  to it, because cross-checking is cheap, feels like verification, and is most often performed by
+  running the same command in a different working directory. Before treating a second opinion as
+  evidence, ask what result would have made the two disagree; if no such result exists, the second
+  run measured nothing. An instrument that cannot return a different answer is not measuring.
+
   **Status of this consequence: promising, not established.** Every instance was found by one
   rollout, and the diagnostic above has so far only been validated by the people who wrote it.
   Recorded because the reasoning is cheap to apply and the failure it prevents is expensive — not
