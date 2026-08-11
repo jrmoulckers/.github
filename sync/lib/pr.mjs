@@ -37,7 +37,7 @@ export function commitMessage(date) {
  *
  * @returns {{ status: 'unchanged'|'pr', prUrl?: string, branch?: string, reused?: boolean, report }}
  */
-export function syncRepo({ repo, writes, token, date, force, backbone, title, intro, inspectCheckout }) {
+export function syncRepo({ repo, writes, token, date, force, forcePaths, backbone, title, intro, inspectCheckout }) {
   const tmp = mkdtempSync(join(tmpdir(), 'studio-sync-'));
   try {
     const defaultBranch = cloneShallow(repo, token, tmp);
@@ -68,7 +68,7 @@ export function syncRepo({ repo, writes, token, date, force, backbone, title, in
     }
 
     const lock = readLock(tmp, backbone);
-    const { report } = apply(tmp, writes, lock, { force, write: true });
+    const { report } = apply(tmp, writes, lock, { force, forcePaths, write: true });
     if (!report.changed) return { status: 'unchanged', report, inspection };
 
     if (!commitAll(tmp, commitMessage(date))) return { status: 'unchanged', report, inspection };
@@ -115,7 +115,7 @@ export function syncRepo({ repo, writes, token, date, force, backbone, title, in
 }
 
 export function syncMemberRepo(
-  { repo, member, writes, token, date, force, backbone },
+  { repo, member, writes, token, date, force, forcePaths, backbone },
   sync = syncRepo,
   observe = observeCallerPermissions,
 ) {
@@ -125,6 +125,7 @@ export function syncMemberRepo(
     token,
     date,
     force,
+    forcePaths,
     backbone,
     inspectCheckout: (root) => {
       const facts = assertMemberFacts(root, member, backbone);
@@ -209,17 +210,19 @@ export function buildPrBody(report, { date, intro, waveLookup } = {}) {
         'and let the next sync add it.',
     );
     lines.push('');
-    // `--force` is per *invocation*, not per file and not per member: one CLI flag is threaded
-    // into every member of the run. This note sits inside one member's PR next to that member's
-    // drift list, so "re-run with --force" reads as scoped to the paths directly below it. It is
-    // not. Naming the scale here is the only place it reaches the person about to act on it —
-    // the flag's name already reads like the answer, and nobody opens the design doc to check an
-    // answer they were just handed.
+    // `--force` is per *invocation*, not per file: one CLI flag is threaded into every member of
+    // the run. `--members` narrows the run; it does not narrow the override. This note sits inside
+    // one member's PR next to that member's drift list, so "re-run with --force" reads as scoped to
+    // the paths directly below it. It is not. Naming the scale here is the only place it reaches
+    // the person about to act on it — the flag's name already reads like the answer, and nobody
+    // opens the design doc to check an answer they were just handed.
     lines.push(
-      '> **`--force` is not a per-file fix.** It is a single flag for the whole run: it rewrites ' +
-        '**every** drifted file in **every** member that run touches, discarding member-authored ' +
-        'edits in repos whose PRs you may never open. Use it only against a state you have ' +
-        'already checked across all of them.',
+      '> **`--force` is not a per-file fix.** It rewrites **every** drifted file in **every** ' +
+        'member that run touches, discarding member-authored edits in repos whose PRs you may ' +
+        'never open. `--members` scopes the run, not the override. The one exception is a target ' +
+        'canon has never delivered: those are refused, and overwriting one requires naming its ' +
+        'path in `--force-paths`, because its current bytes exist nowhere else. Use `--force` ' +
+        'only against a state you have already checked across every member in the run.',
     );
     lines.push('');
     for (const item of report.drift) {

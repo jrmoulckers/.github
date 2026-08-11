@@ -84,3 +84,40 @@ test('the sync workflow can dispatch a forced run, and refuses an unscoped one',
     'workflow must refuse force with a blank members filter',
   );
 });
+
+test('--force-paths on its own is refused by the CLI', () => {
+  // The flag names paths, which reads like a narrowing. It is not: without `--force` there is
+  // nothing to narrow, and a run that quietly ignored it would report success having skipped the
+  // very target the operator named. Refuse rather than no-op.
+  const { code, out } = run(['--dry-run', '--force-paths', 'a.md']);
+  assert.notEqual(code, 0, '--force-paths alone must not be accepted');
+  assert.match(out, /--force-paths requires --force/);
+});
+
+test('--force-paths with --force and --members is accepted by argument parsing', () => {
+  // Non-vacuity for the refusal above: proves it comes from the missing `--force` and not from
+  // the flag being unparseable. Deleting the flag entirely would otherwise pass that test.
+  const { code, out } = run(['--force', '--force-paths', 'a.md', '--members', 'finance', '--dry-run']);
+  assert.doesNotMatch(out, /--force-paths requires --force/);
+  assert.equal(code, 0, `a scoped forced dry run should plan cleanly, got:\n${out}`);
+});
+
+test('the sync workflow can dispatch a path-scoped forced run', () => {
+  // Same failure this file was written for: `--force` was implemented in the engine and absent
+  // from the only workflow that runs it, so the capability was unreachable. `--force-paths` is
+  // the sole way to overwrite a target canon has never delivered, so if it is undispatchable the
+  // refusal it exists to relieve becomes a dead end for anyone operating through the UI.
+  const yml = readFileSync(WORKFLOW, 'utf8');
+
+  assert.match(yml, /^\s{6}force_paths:$/m, 'workflow_dispatch must expose a `force_paths` input');
+  assert.match(
+    yml,
+    /FORCE_PATHS:\s*\$\{\{\s*inputs\.force_paths\s*\}\}/,
+    '`force_paths` must reach the run step env',
+  );
+  assert.match(
+    yml,
+    /if\s+\[\s+-n\s+"\$FORCE_PATHS"\s+\];\s+then\s+args\+=\("--force-paths"\s+"\$FORCE_PATHS"\)/,
+    '`force_paths` must be appended to the CLI arguments',
+  );
+});

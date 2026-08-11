@@ -107,8 +107,19 @@ test('the drift note offers the per-file remedy before mentioning --force', () =
   assert.ok(byHand < flag, 'the by-hand remedy must precede any mention of --force');
 });
 
-test('no drift means no --force wording anywhere in the body', () => {
-  // A warning that fires on every run is one a reader learns to skip past.
+test('the drift note names the never-delivered exception and the flag that authorizes it', () => {
+  // The scope sentence above tells a reader --force is broader than they think. That alone would
+  // read as "so be careful", which is what the requester who called it "low-risk on one known
+  // file" already believed. The exception has to be stated positively: the unrecoverable class is
+  // refused outright, and the only way past it is naming the path — a step no one takes by
+  // accident. Pinned because the sentence is the sole member-facing description of the refusal.
+  const body = buildPrBody(report({ drift: paths('AGENTS.md') }), { date: '2026-08-04' });
+
+  assert.match(body, /canon has never delivered/);
+  assert.match(body, /--force-paths/);
+});
+
+test('no drift means no --force wording anywhere in the body', () => {  // A warning that fires on every run is one a reader learns to skip past.
   const body = buildPrBody(report({ added: paths('AGENTS.md') }), { date: '2026-08-04' });
 
   assert.doesNotMatch(body, /--force/);

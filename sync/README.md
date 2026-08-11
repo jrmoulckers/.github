@@ -19,7 +19,8 @@ node sync/validate-prompts.mjs
 | `--dry-run` | Plan only. Prints the resolved file set per member. **No writes, git, or network.** |
 | `--members <a,b>` | Restrict to these member repos (`owner/name` or bare `name`). |
 | `--check` | CI gate. Exit non-zero if any member is out of date or has drift. |
-| `--force` | Overwrite locally-modified (drift) targets instead of skipping them. **Requires `--members`.** Within those members it applies to **every drifted file**, not per file. |
+| `--force` | Overwrite locally-modified (drift) targets instead of skipping them. **Requires `--members`.** Within those members it applies to **every drifted file**, not per file — except targets canon has never delivered, which are refused (see `--force-paths`). |
+| `--force-paths <a,b>` | Restrict `--force` to exactly these target paths. The only way to overwrite a target canon has never delivered, whose current bytes exist nowhere else. **Requires `--force`**; alone it authorizes nothing. |
 | `--work-dir <path>` | Apply/inspect against a local checkout; **requires exactly one matching `--members` value**, the path must be the checkout itself (a parent directory is rejected), and its `origin` must be that member — a different origin, or none at all, aborts with exit 1 even under `--dry-run`/`--check`. No clone/push/PR. |
 | `--allow-unverified-work-dir` | Proceed when `--work-dir`'s origin is not provably the named member (fork, mirror, local-only clone). Scoped to that one check; prints what it suppressed. |
 | `--studio-dir <path>` | Local checkout of the token source repo (`jrmoulckers/studio`) to vendor `@jrm/tokens` from, instead of cloning it. Offline seam for tokens. |
@@ -1030,6 +1031,41 @@ The drift note in the PR body says so at the point of use, because that is the o
 reads before reaching for the flag, and it appears inside a single member's PR where a run-wide
 remedy looks scoped to the list beneath it.
 
+#### `--force` refuses targets canon has never delivered
+
+`--members` closed *run-wide → member-wide*. It does not close *member-wide → file-wide*, and the
+request `--force` answers is almost always about one file. That gap has a live instance: finance
+asked twice for `--force --members finance` as "low-risk on one known file", and the dry-run
+reported `force-updated: 3`. The two extra targets were `.github/skills/edge-sync/SKILL.md` and
+`.github/skills/fleet-orchestration/SKILL.md` — 11,216 and 18,553 bytes against canon's 9,647 and
+9,745, carrying 13 and 45 headings that exist nowhere in canon.
+
+Not every forced target is equally recoverable, and the engine already knows which is which. A
+target **with** a lock entry has received canon before, so canon still holds something to restore
+from. A target that has **never** received canon — `withholdingState()` calls this `neverReceived`
+— exists only in the member's working tree. Forcing it is not an overwrite; it is a delete of the
+only copy.
+
+So `--force` refuses that class and names each refusal:
+
+```
+force refused — never received canon; name this path in --force-paths to overwrite it
+```
+
+`--force-paths <a,b>` authorizes exactly the listed paths and nothing else. It requires `--force`;
+on its own it authorizes nothing. Targets with a lock entry are unaffected, so ordinary recovery is
+no harder than before — only the unrecoverable class left the blast radius.
+
+Two things this deliberately does *not* do. It does not ask whether the member's bytes look
+valuable: size and heading counts are what made this instance obvious, and a rule built on them
+would exempt a small file that is equally irreplaceable. And it does not warn-and-proceed. The
+warning already existed — `WITHHOLDING an update (last received canon never)` — in the run the
+operator was about to authorize, which is not where the decision was made. The decision was made
+when they were told "one known file"; a refusal is the only outcome that survives that gap.
+
+Managed merge targets need no such guard: `planManaged()` splices canon's region and preserves
+everything outside the markers, so a force there cannot reach member-authored content.
+
 ### Auditing a member by hand: compare against `inject()`, not against canon
 
 "Byte-identical to canon" above is shorthand, and the shorthand will mislead you if you reach for
@@ -1192,7 +1228,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/rekey.test.mjs` | Lock reconciliation when a target base moves: a relocated tree ends with every planned file tracked and no entry pointing at a nonexistent path, and converges as `updated` instead of freezing as drift; a baseline moves only onto a file it provably describes, and an unproven file is left unrecorded so historical recovery stays available to it; the moved baseline still catches a genuine hand-edit; a stale entry is pruned only when its file is gone, while an unplanned entry whose file remains keeps its baseline; an ambiguous relocation is left alone; a root-level managed target is never rekeyed; a steady-state re-run rekeys and prunes nothing and still produces no diff. |
 | `test/revisions-behind.test.mjs` | The staleness magnitude: revisions are ordered newest-first and a revert does not count twice; a withheld file reports how many versions it has missed; a file customised on top of *current* canon is not withheld and stays at zero forever; a baseline matching no published version reports `null` rather than 0, because unanswerable must not read as up to date; a target with no baseline at all is answerable and maximal — behind every published version, on the same scale as the recorded case, one past the oldest — while an empty history stays `null` rather than collapsing to 0; the aggregate warning and the per-file CLI line both carry the count, and it pluralizes. |
 | `test/tokens-history.test.mjs` | Historical-canon evidence for vendored `@jrm/tokens`: the set is non-empty and rendered with the *package's* provenance note (not the backbone default) and excludes current canon; the rendered-only set is non-empty, holds no raw blobs, and is a subset of the historical set; a vendored file frozen on an older release converges as `updated` instead of drifting forever; a member-authored file is still refused; and history read from a shallow token checkout raises rather than degrading to an empty set. |
-| `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; raw-canon stamping; exact historical-output recovery; empty-evidence and one-byte-mutation refusal; a recorded target is recovered from a *superseded rendering* but never from raw canon (a stripped header stays a local edit), never on historical-but-not-rendered evidence, and never from member-authored bytes. |
+| `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; raw-canon stamping; exact historical-output recovery; empty-evidence and one-byte-mutation refusal; a recorded target is recovered from a *superseded rendering* but never from raw canon (a stripped header stays a local edit), never on historical-but-not-rendered evidence, and never from member-authored bytes; `--force` refuses a target with no lock entry, honours it when named in `--force-paths`, and naming one path does not authorize the others. |
 | `test/history.test.mjs` | Full-history enforcement and committed-blob enumeration; end-to-end target enumeration recovers a member holding a prior engine rendering. |
 | `test/manifest.test.mjs` | The real `studio.config.json` validates; all nine consumers and their explicit modes are registered; disabled infrastructure members produce no writes; local-agent metadata remains compatible; application defaults, Docket's completed mode transition, and mode-specific fact schema are enforced; `canon` matches disk; native kinds are never written. |
 | `test/instruction-integrity.test.mjs` | Canonical instruction filename/roster parity, deterministic `applyTo` scopes, source/materialized ownership, precedence, curated member compatibility, infrastructure routing, local-agent collision safety, and immutable reusable-workflow examples. |
@@ -1201,10 +1237,10 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/caller-permissions.test.mjs` | Direct reusable-workflow caller ceilings on default branches, open pull-request heads, and the strict local lint: package-reading workflows are derived from canonical permission declarations; workflow/job override order, inherited defaults, aliases, key order, flow permissions, arbitrary valid indentation, immutable remote scanner pins, and local same-commit binding are resolved; local failures name the file/job and every sibling job in the blast radius; unsupported local YAML fails while inaccessible or moving upstream refs remain non-fatal unknown observations; one unreadable file cannot erase sibling findings. |
 | `test/workflow-integrity.test.mjs` | Canon/file parity, practical zero-dependency YAML surface checks, full-SHA action refs and version comments, permissions ceilings, timeouts, concurrency ownership, checkout credentials, shell interpolation, artifact contracts, Pages authority split, digest-pinned security scanning, change detection, caller-lint immutable resolution/separate-file harness, and private-by-default Lighthouse behavior. |
 | `test/provenance.test.mjs` | Every real write equals `inject(targetPath, canon)` and never canon verbatim — so the documented hand-audit baseline stays correct; and that check is line-ending agnostic on the member side. |
-| `test/prbody.test.mjs` | An adoption-only run's PR body says its entire diff is the lockfile, and does not claim that when the run also wrote files (including via `--force`). The drift note states that `--force` is run-wide, offers the by-hand remedy first, and neither appears when the run has no drift. |
+| `test/prbody.test.mjs` | An adoption-only run's PR body says its entire diff is the lockfile, and does not claim that when the run also wrote files (including via `--force`). The drift note states that `--force` is run-wide, offers the by-hand remedy first, names the never-delivered exception and `--force-paths`, and none of it appears when the run has no drift. |
 | `test/workdir.test.mjs` | `--work-dir` guards: a parent directory, a missing path and a file are all rejected; a git worktree (whose `.git` is a file) is accepted; identity resolves to `match` / `mismatch` / `unverifiable` across URL spellings and case, both failing verdicts abort, the refusal names the self-certifying lockfile, and `--allow-unverified-work-dir` overrides them without ever marking a matching checkout as overridden. |
 | `test/cli-workdir.test.mjs` | The same guards **through the CLI**: every operation — apply, `--check`, `--dry-run` — exits 1 on a wrong or absent origin; refused and fact-verification failures leave no file or lockfile; the override flag says what it suppressed; dry-run reports mode and zero-write members; checkout facts are verified before the sync lock is read or applied. |
-| `test/cli-force.test.mjs` | `--force` must name its members, at both surfaces that can silently disagree: the CLI refuses an unscoped force (including under `--dry-run`, which is the invocation an operator copies) while accepting a scoped one, and `studio-sync.yml` both exposes a `force` input and forwards it. Added after `--force` was found to be undispatchable — implemented in the engine, absent from the only workflow that runs it — and unscoped by construction, so the fleet-wide override was reached by omitting a flag. |
+| `test/cli-force.test.mjs` | `--force` must name its members, at both surfaces that can silently disagree: the CLI refuses an unscoped force (including under `--dry-run`, which is the invocation an operator copies) while accepting a scoped one, and `studio-sync.yml` both exposes a `force` input and forwards it. `--force-paths` is refused on its own, accepted alongside `--force`, and dispatchable from the workflow. Added after `--force` was found to be undispatchable — implemented in the engine, absent from the only workflow that runs it — and unscoped by construction, so the fleet-wide override was reached by omitting a flag. |
 | `test/change-detection.test.mjs` | The change-detection classifier, executed rather than pattern-matched: its script is extracted from the workflow heredoc and run against a real two-commit repository. A change set matching no path group is reported as an output, in the step summary and as a `::warning::`; a fully classified set and the default catch-all `["."]` report nothing, so the warning stays worth reading; and deletions reach the classifier at all, guarding the `D` in the diff filter. Added after a 13-file vendored deletion skipped every build job with no signal that anything had gone unclassified. |
 | `test/agent-integrity.test.mjs` | Canonical agent roster validity: names, uniqueness, required sections and handoff references fail together with clear paths; manifest parity and canonical skill/prompt references are enforced; an explicit member roster must reference canon or declare a local replacement, and must declare its skills while prompt mentions stay optional. |
 | `test/prompt-integrity.test.mjs` | Canonical prompt roster validity: schema, names, dependencies, placeholders and `gh` fields fail with clear paths; selected prompts require their declared canonical agents; integer and agent-list parameters require defaults and positive bounds; bare lists and malformed interpolation delimiters are rejected. |

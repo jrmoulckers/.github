@@ -49,6 +49,11 @@ on:
         required: false
         type: boolean
         default: false
+      force_paths:
+        description: 'Comma-separated target paths. Restricts force to exactly these, and is the only way to force a target canon has never delivered. Requires force.'
+        required: false
+        type: string
+        default: ''
 
 permissions: {}
 
@@ -98,10 +103,12 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
           MEMBERS: ${{ inputs.members }}
           FORCE: ${{ inputs.force }}
+          FORCE_PATHS: ${{ inputs.force_paths }}
         run: |
           args=()
           if [ "$DRY_RUN" = "true" ]; then args+=("--dry-run"); fi
           if [ -n "$MEMBERS" ]; then args+=("--members" "$MEMBERS"); fi
           if [ "$FORCE" = "true" ]; then args+=("--force"); fi
+          if [ -n "$FORCE_PATHS" ]; then args+=("--force-paths" "$FORCE_PATHS"); fi
           echo "Running: node sync/index.mjs ${args[*]}"
           node sync/index.mjs "${args[@]}"

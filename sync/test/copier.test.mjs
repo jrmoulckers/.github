@@ -727,3 +727,68 @@ test('the warning says nothing about withholding when nothing is withheld', () =
     assert.doesNotMatch(warning, /withholding/);
   });
 });
+// `--force` is scoped by member, but the request it answers is almost always about one file.
+// A member-wide override of every drifted target is how "force this one known file" becomes a
+// silent delete of member-authored documentation that canon holds no copy of. Measured on a real
+// finance checkout: a plain `--force --members finance` reported 3 force-updated where the
+// requester expected 1, the extra two being member-elaborated SKILL.md files with 13 and 45
+// headings that exist nowhere upstream.
+test('member-wide --force refuses a target that never received canon', () => {
+  withTmp((root) => {
+    const s = spec(CONTENT_V2);
+    seed(root, s.targetPath, '# member-authored, never synced\n');
+    const { report } = apply(root, [s], readLock(root, BACKBONE), { force: true, write: true });
+
+    assert.equal(report.forced.length, 0, 'must not overwrite content canon never delivered');
+    assert.equal(report.drift.length, 1);
+    assert.match(report.drift[0].note, /force refused/);
+    assert.equal(
+      readFileSync(join(root, ...s.targetPath.split('/')), 'utf8'),
+      '# member-authored, never synced\n',
+      'the member bytes must survive',
+    );
+  });
+});
+
+test('--force-paths overwrites only the named never-received target', () => {
+  withTmp((root) => {
+    const named = spec(CONTENT_V2);
+    const other = {
+      ...spec(CONTENT_V2),
+      name: 'qa-tester',
+      sourcePath: 'agents/qa-tester.agent.md',
+      targetPath: '.github/agents/qa-tester.agent.md',
+    };
+    seed(root, named.targetPath, '# member A\n');
+    seed(root, other.targetPath, '# member B\n');
+
+    const { report } = apply(root, [named, other], readLock(root, BACKBONE), {
+      force: true,
+      forcePaths: [named.targetPath],
+      write: true,
+    });
+
+    assert.deepEqual(
+      report.forced.map((f) => f.targetPath),
+      [named.targetPath],
+      'naming one path must not authorize the others',
+    );
+    assert.equal(report.drift.length, 1);
+    assert.equal(report.drift[0].targetPath, other.targetPath);
+    assert.equal(readFileSync(join(root, ...other.targetPath.split('/')), 'utf8'), '# member B\n');
+  });
+});
+
+test('--force still overwrites a target that has received canon before', () => {
+  withTmp((root) => {
+    const s = spec();
+    apply(root, [s], readLock(root, BACKBONE), { write: true });
+    seed(root, s.targetPath, '# locally edited after baseline\n');
+
+    const v2 = spec(CONTENT_V2);
+    const { report } = apply(root, [v2], readLock(root, BACKBONE), { force: true, write: true });
+
+    assert.equal(report.forced.length, 1, 'a recoverable target is still forceable member-wide');
+    assert.equal(readFileSync(join(root, ...v2.targetPath.split('/')), 'utf8'), CONTENT_V2);
+  });
+});
