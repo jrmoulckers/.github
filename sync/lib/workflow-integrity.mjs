@@ -369,6 +369,19 @@ function validateChangeDetectionContract(text = '', errors) {
   ) {
     errors.push('reusable-change-detection.yml: change detection must use validated data and git arguments');
   }
+  // Files matching no path group are dropped from every group, which is correct, but a caller
+  // gating on changed-groups-json cannot tell that from "nothing relevant changed". The residue
+  // must therefore be both computed and surfaced: an output alone would let the reporting rot
+  // into something derived and never read, which is the same silence one layer down.
+  if (
+    !/unclassified-files-json:/.test(text) ||
+    !/matched no path group/.test(text) ||
+    !/::warning::/.test(text)
+  ) {
+    errors.push(
+      'reusable-change-detection.yml: unclassified changed files must be reported as an output, in the step summary, and as a warning',
+    );
+  }
 }
 
 export function validateNativeSmokeContract(text = '', errors = []) {
