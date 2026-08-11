@@ -525,8 +525,16 @@ which stamp a file carries.
   therefore safe" folds every correctly-ignored path into the safe bucket — and **inverting the
   ignore list leaves the result unchanged**, which is the tell. Make two calls: one with
   `resolveConfig` for the parser, one with `ignorePath` for `ignored`, and report a gap only when
-  `parser && !ignored`. Running it once against an inverted list is the known-bad fixture for this
-  check and costs nothing.
+  `parser && !ignored`. Build the inverted list **into** the check rather than running it by hand
+  once: write an empty probe ignore-file, re-run the same coverage pass against it, and fail when the
+  gap count did not increase. Run once at authoring time it certifies the check as it was that day;
+  run every time it certifies the check that is about to report.
+  Two cautions on that self-test. **Its negative has two preimages** — an unchanged count means
+  either the check never read the ignore file or the real list excludes nothing, and those are
+  indistinguishable from outside while needing opposite fixes, so name both rather than asserting
+  one. And **the probe must not survive any exit path**: `process.exit()` inside a `try` skips the
+  `finally`, so the first member implementation left a `.prettierignore.selftest-<pid>` file behind
+  on exactly the failure path, dirtying the tree it was auditing. Remove the probe first, then exit.
 - **Patterns anchor to the ignore file's own directory.** Passing an `ignorePath` from outside the
   repository root stops slash-containing patterns such as `.github/agents/` matching, while bare
   patterns such as `AGENTS.md` and `vendor/` keep matching at any depth. The mixed result reads as

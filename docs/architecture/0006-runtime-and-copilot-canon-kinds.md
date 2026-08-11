@@ -341,6 +341,16 @@ would report it as drift forever.
   there and silently incomplete the moment it is copied to a consumer. **A check inherits the
   population of the repository it was written in, and says nothing about that.**
 
+  The control against this is itself subject to it. Canon recorded the known-bad fixture — run the
+  check against an inverted ignore list, confirm it reports differently — as something an author does
+  once. A control performed once certifies the check as it was on that day, and every later edit to
+  the check, the artifact, or the schema is unverified; this is the ownership entry below applied to
+  a safeguard rather than a gap. The member that built this check made the fixture a **mechanism**
+  instead, re-running coverage against an empty probe list on every invocation. Doing so introduced
+  one new ambiguity worth naming rather than hiding: an unchanged count means either the check never
+  read the list or the list excludes nothing, two conditions with opposite fixes and no way to
+  distinguish them from outside — the instrument added to remove ambiguity produced its own.
+
   **Candidate class, deliberately not promoted: a repair tool's safety guarantee can exempt exactly
   the states that need repairing.** `git add --renormalize` skips a blob git classifies binary, and a
   doubled `\r\r\n` terminator is what makes it binary — so the corruption disables the mechanism that
