@@ -221,6 +221,29 @@ one of those causes can produce a stepless job is an empirical question — answ
 answering, but not by restating the selection rule. When reporting the answer, name the population
 searched, since a bounded negative and a universal one are written identically.
 
+**An instrument's error has a direction relative to the hypothesis, and one direction ends the
+inquiry.** Two filters written the same evening to check the same figure failed in opposite ways: one
+over-matched and disagreed with the number under test, so its author kept pulling until the fault
+surfaced; the other degraded to no filter at all and agreed, which would have closed the question.
+An instrument that errs *toward* the claim terminates; one that errs *away* self-reports. Note what
+that implies about remedies — the agreeing instance was not caught by its author but by an
+independent re-measurement from another repository, because the terminating direction removes the
+prompt to look again. **Where a checker's failure mode agrees with what you expect, self-scrutiny is
+structurally unavailable; the remedy is a second party or a second method, not more care.** Buying
+the bias is not free — an instrument that errs away spends investigation on true claims, which the
+rule above prices — so buy it where acceptance is the default outcome.
+
+**A durable artifact needs the measurement's procedure, not only its result.** An artifact written
+to survive must restate a figure rather than cite it, or it breaks when its source moves. But the
+property that makes it survive is the same one that makes it unfalsifiable in place: restating
+severs the number from the reasoning that could have caught it, and a reader with no way to
+re-derive has no way to doubt. This is the summary problem one level down — a restated figure *is* a
+summary of a measurement, derived from a source it then cannot disagree with. Prose resolves it by
+pointing at the argument; a durable artifact cannot point, so it must carry the smallest
+self-contained thing that permits re-derivation. **Record the procedure beside the number, and the
+faults you found in it** — not as candour, but because the procedure is the only part a later reader
+can run.
+
 **And a comparison harness that has stopped measuring reports its failure as a result.** Two probes
 built to compare three variants of a function returned, respectively, an identical failure for all
 three and `-1` for every fixture in every variant. Both tables were well-formed, and both were empty.
@@ -1568,6 +1591,14 @@ sent and so almost certainly correct at measurement time. That is the hub-versus
 register over — the discriminating fact is *when you measured*, and it is held only by the sender.
 Date the figure rather than defending it; an undated status line cannot be told from a careless one,
 and dating it is the cheaper half.
+
+**Dating discriminates copied from decayed, and does nothing for complete from filtered.** A
+standing list of open pull requests here named three and omitted a fourth that had been open six
+hours — far too long to be transit decay, and equally consistent with a deliberate scope, since the
+list was about a sync sequence the omitted branch had no part in. Both render identically to the
+reader, and the author is the only party holding the difference. **State the scope of a status list,
+not only when you took it.** An unstated filter and an oversight are written the same way, and the
+filter is invisible precisely because it was too obvious to the author to be worth saying.
 
 **Naming a revision does not certify the figures beside it.** A reader binds every number in a
 message to the SHA that message names, so a coordinate measured at one revision and published
