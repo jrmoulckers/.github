@@ -494,6 +494,41 @@ Being keyed to a machine-readable file, this is checkable rather than remembered
 That check belongs in the member, because the ignore file is member-owned. The lock file itself is
 emitted as two-space JSON and needs no entry.
 
+**Enumerate from the lock, not from the provenance stamp — there are two stamps and one of them is
+plan-derived.** A guard that walks tracked files and treats "carries the canon header" as the test
+for ownership sees only half the surface:
+
+| Source | Stamp |
+| --- | --- |
+| `sync/lib/provenance.mjs` | `synced from jrmoulckers/.github — canonical source; do not edit here` |
+| `sync/lib/assets.mjs` | `` `generated + synced from ${plan.sourceRepo} ${plan.package} …` `` |
+
+The second is built from the plan, so it is not a second constant to add — it renders today as
+`generated + synced from jrmoulckers/studio @jrm/tokens` and would render differently for another
+source or a renamed package. A guard hardcoding the first classifies every vendored token file as
+member-owned and never examines the vendor tree, which is the largest canon-owned surface in a
+consuming member and the one with a recorded drift incident behind it.
+
+The failure is invisible in the repository where such a guard is most likely to be written. `studio`
+has no `vendor/` tree at all, being the token source, so a guard correct there is silently
+incomplete the moment it is copied to a consumer — and it reports success while omitting the
+population. Enumerate `.studio-sync.lock.json`; it is what the engine maintains and it does not care
+which stamp a file carries.
+
+**Two Prettier API traps, both live, one silent.** A member check will hit these:
+
+- **`inferredParser: null` is one value for two conditions.** `getFileInfo()` returns it both for a
+  file with no parser and for a file that is *ignored*. So "no parser, therefore nothing to format,
+  therefore safe" folds every correctly-ignored path into the safe bucket — and **inverting the
+  ignore list leaves the result unchanged**, which is the tell. Make two calls: one with
+  `resolveConfig` for the parser, one with `ignorePath` for `ignored`, and report a gap only when
+  `parser && !ignored`. Running it once against an inverted list is the known-bad fixture for this
+  check and costs nothing.
+- **Patterns anchor to the ignore file's own directory.** Passing an `ignorePath` from outside the
+  repository root stops slash-containing patterns such as `.github/agents/` matching, while bare
+  patterns such as `AGENTS.md` and `vendor/` keep matching at any depth. The mixed result reads as
+  partial coverage rather than as a broken harness; one member measured 57 false gaps this way.
+
 Note that these exclusions are **whole-file even for managed-region targets**. `AGENTS.md` and
 `.github/copilot-instructions.md` are only partly canonical, but a formatter cannot be pointed at
 half a file, and the region must stay byte-identical to canon or the sync stops matching. Excluding
