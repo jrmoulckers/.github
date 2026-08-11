@@ -511,6 +511,25 @@ backbone's"* — it is a declaration, not an install.
 
 Treat conflicts with the same urgency as red CI.
 
+**Git detects textual overlap, and the dangerous staleness in a long-open PR usually has none.** A
+branch that adds a *new* file at a name someone else has since claimed produces no conflict at all,
+because the two changes touch different paths — the collision is in a namespace, not in any line. A
+PR open here since `2026-08-07` adds `docs/architecture/0002-four-authority-topology.md`; that ADR
+landed months-equivalent ago as `0003-four-authority-topology.md`, and `0002` now belongs to a
+different decision entirely. Merging it would add a duplicate ADR under a number that means something
+else, and nothing in git would object.
+
+What makes this worth its own rule is that it defeats the review habit the rest of this document
+recommends. The diff is coherent, the branch is self-consistent, and its contents are exactly what
+they were when they were correct — **a stale branch's own contents can never tell you that it is
+stale**, because supersession happened outside it. So for any change that claims a *new named slot*
+— an ADR number, a migration id, a fixture path, a workflow filename — validate the name against the
+destination as it is now, not against the branch. `git ls-tree main <dir>` before merging is the
+whole check.
+
+The disposition also differs from a conflict: a superseded branch is **closed**, not resolved. If its
+content already exists on the default branch, rebasing it produces a clean, mergeable, wrong change.
+
 Detect every polling cycle:
 
 ```bash
@@ -558,6 +577,24 @@ nothing until someone gives it work; an unexercised exemption does nothing until
 arrives, and then it fires *permissively*, silently, on the reading that looks green. Absence of an
 instance is a reason not to add machinery and never a reason to keep an allowlist entry: the missing
 instance is precisely what stops anyone noticing the entry was wrong.
+
+**A deliberately permissive direction is not a blind spot if it announces itself.** The sync engine
+is asymmetric about reusable workflows on purpose: an *undeclared use* is a hard error
+(`member-facts.mjs` raises `workflow availability does not declare checkout use …`, pinned by test),
+while a *declaration with no caller* passes. That is the same permissive shape faulted above, and it
+is correct here, because the gap between declaring availability and migrating callers **is** the
+migration window — making it an error would forbid doing the two steps in the only order that works.
+What keeps it from being a blind spot is that the tolerated state is **logged** every run
+(`reusable workflow availability not currently called: …`, emitted from two call sites). The
+distinction to carry: a permissive branch that is *silent* hides its own population, while one that
+*prints* is an observation anybody can act on. **When you deliberately allow a state, make it
+announce itself, and it becomes a window rather than a hole.**
+
+The ordering consequence is load-bearing and easy to invert: because undeclared use is fatal and
+unused declaration is benign, **availability must be declared before any caller migrates**. A member
+that switches its callers first fails its own sync until the declaring change lands — so a config PR
+that looks like tidy-up can be the prerequisite, and reading it as a follow-up leaves the migration
+blocked with no obvious cause.
 
 **Rank a shared default by its worst caller, not its typical one, and read/write is usually that
 split.** The same `markers = MARKERS.html` default sat on a reader and a writer in this engine, and
