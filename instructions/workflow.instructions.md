@@ -166,10 +166,36 @@ Rules:
 - Omitting `permissions:` entirely inherits the repo default — safe, but less explicit.
 - If a scope truly cannot be granted, disable the job that needs it instead
   (e.g. `semantic-pr-title: false` for `reusable-ci-lint`).
-- Debug a `startup_failure` with no log by checking caller permissions first.
+- Debug a `startup_failure` with no log by checking caller permissions first — but confirm the
+  failure is scoped to the calling job before you do (see below).
 - Caller workflows own CI concurrency. Put the concurrency group on the caller workflow so matrix or
   multi-package reusable jobs do not cancel sibling calls. Canonical Pages deployment is the
   exception: it serializes repository deployments with `cancel-in-progress: false`.
+
+### A no-log failure is not always a permissions problem
+
+The permissions trap above is not the only way a run dies in seconds with an empty log. On a
+**private** repository, exhausting the Actions spending limit refuses the run before any job
+starts, with `recent account payments have failed or your spending limit needs to be increased`.
+Actions is free on public repositories for every runner type, so this cannot happen there.
+
+Discriminate before investigating, because the two look nearly identical and only one of them is
+a defect in this repository:
+
+| | Caller permissions | Spending limit |
+| --- | --- | --- |
+| What failed | Only the job that `uses:` the callee | **Every** job in the run, including untouched ones |
+| Triggered by | Adding or narrowing a `permissions:` block | Adding an expensive runner, or simply reaching the monthly cap |
+| Fixed in | The workflow file | Billing settings — nothing in the repository is wrong |
+
+**Check the run summary first: if jobs you did not touch failed alongside the one you did, stop
+reading YAML and check billing.** A green history proves nothing here, because the cap is reached
+by cumulative spend rather than by anything in the diff.
+
+Non-Linux runners carry a minute multiplier — macOS bills at 10x and Windows at 2x — so adding a
+single macOS job can exhaust a budget that Linux jobs had comfortably fit inside. Budget for the
+multiplier when you add one, and prefer `ubuntu-latest` unless the job genuinely requires the
+platform (Swift and Xcode toolchains do; Node builds do not).
 
 ### Taking only part of `reusable-ci-lint`
 

@@ -147,6 +147,11 @@ function validateContent(byName, errors) {
       [/local `AGENTS\.md` decides.*self-merge.*operational authority/is, 'local merge authority'],
       [/reviewed immutable commit SHA/i, 'immutable reusable workflow policy'],
       [/app-native isolated project session\/worktree/i, 'app-native isolation'],
+      [/spending limit/i, 'Actions spending-limit cliff'],
+      [
+        /jobs you did not touch failed[\s\S]{0,200}check billing/i,
+        'no-log failure discriminator',
+      ],
     ],
     errors,
   );
