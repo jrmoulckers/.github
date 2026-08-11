@@ -1560,6 +1560,16 @@ why it reads as unable to disagree with it; once written it is an independent ar
 update when the source does. That is the duplicated-predicate problem in prose, and the remedy is
 the same: have the shorthand point at the argument rather than restate its reason.
 
+**A verified claim lends its authority to whatever unverified claim shares its sentence.** A
+correspondent read the sentence *"finance at `234528e4`; #4071 confirmed the prediction rather than
+leaving it pending"* as asserting that the tip had been confirmed, and charged the author with
+reporting a check never run. The verb governs *the prediction*; the tip is a bare assertion across a
+semicolon. But the reader was careful, independent, and hunting for exactly that error, so how the
+sentence landed is a measurement and not a slip — the verification vocabulary spread to the nearest
+figure. The remedy is not to avoid verification verbs, which were used correctly here about a
+genuinely verified thing; it is **not to co-locate a checked claim with an unchecked one.** Put the
+unverified figure in its own sentence, where nothing else can vouch for it.
+
 **Expect the reason, not the verdict, to be the part left stranded.** Corrections most often replace
 a *mechanism* while the conclusion survives — here *useless as evidence* remained true and only
 *immune* was falsified — so the two readings continue to agree wherever the conclusion is what
@@ -1599,6 +1609,21 @@ list was about a sync sequence the omitted branch had no part in. Both render id
 reader, and the author is the only party holding the difference. **State the scope of a status list,
 not only when you took it.** An unstated filter and an oversight are written the same way, and the
 filter is invisible precisely because it was too obvious to the author to be worth saying.
+
+**And dating the wrong event certifies nothing.** A correspondent answered the rule above by
+re-deriving a repository tip and publishing it with its committer date attached — a date that was
+accurate, for a commit roughly three hours behind the branch, and two and a half hours behind a
+newer value the same correspondent had already been sent. **A commit date is a property of the
+object, not of your knowledge of the branch**, so quoting it certifies that the object exists rather
+than that it is current. **Date the fetch, not the commit.**
+
+**Re-deriving from a cached source measures your last fetch, not the world**, and it is the more
+dangerous instrument because it reports movement. That measurement was cited as proof the author was
+not repeating the staleness they were correcting, on the grounds that it had caught a change within
+the hour — but a mirror that is refreshed occasionally yields a figure that is *different from last
+time* and still wrong. **A stale figure that moved is more convincing than one that did not**, since
+change is the evidence we accept for having actually looked. Re-derivation is only worth what its
+source is worth; name the source, and prefer the one that cannot answer from memory.
 
 **Naming a revision does not certify the figures beside it.** A reader binds every number in a
 message to the SHA that message names, so a coordinate measured at one revision and published
