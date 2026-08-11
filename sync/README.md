@@ -383,6 +383,22 @@ still on disk that the current plan no longer targets — and it appears in both
 the sync PR body. It is deliberately *not* counted as drift: it does not fail a run, set `hasDrift`,
 or gate a PR, because it is the expected state mid-transition and only a human can resolve it.
 
+Three shapes are found, and the third is the one that motivated the report. An orphaned entry that
+could not be rekeyed; the `from` side of a rekey; and **any other file still sitting under a base
+this run's rekeys prove has been abandoned**. Finance needs the third: an earlier sync wrote its
+native tokens to the old base while minting their lock entries at the new one, so no entry and no
+rekey points at them. They are absent from every record the engine keeps, and one of them is the
+Kotlin that cannot compile.
+
+The sweep is bounded by evidence, not by convention. A rekey pair proves the engine used to write
+into the directory the entry came from, and only such directories are walked — never the member at
+large, and never the *current* target base, where an unplanned file is a member's own business
+rather than something the engine abandoned.
+
+The limit is worth stating plainly: if every entry under an old base had already been re-minted
+elsewhere, no rekey occurs, no base is identified, and files stranded there stay invisible. Nothing
+in the engine's records would point at them. Finding those would require scanning the member at
+large, which is the licence this deliberately declines to take.
 Each entry records whether a lock entry still covers it, because that decides how it can be cleaned
 up. An orphan that was left alone keeps its baseline, so the hash-verified procedure below applies
 unchanged. A file whose entry was **rekeyed** to the new base has no lock record at all — the

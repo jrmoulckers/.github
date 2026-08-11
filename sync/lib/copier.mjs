@@ -25,7 +25,7 @@
 // The lockfile is only rewritten when entries actually change (a write or an adoption), so a
 // re-run with no upstream change produces no diff (and therefore no PR).
 
-import { existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, mkdirSync, writeFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { hashText, writeLock } from './lock.mjs';
 import { reconcileLockKeys } from './rekey.mjs';
@@ -117,17 +117,21 @@ export function apply(memberRoot, writes, lock, opts = {}) {
  * plan, and a mechanism that can delete outside its plan can be wrong outside its plan.
  *
  * What was missing is the other half — nothing said which files had been abandoned, so the
- * documented cleanup procedure had no trigger. Two shapes reach here:
+ * documented cleanup procedure had no trigger. Three shapes reach here:
  *
  *   - an orphaned entry that could not be rekeyed, whose file still exists;
  *   - the `from` side of a rekey whose file still exists. Reconciliation moves the entry to the
  *     new base, which is right for the baseline, but it leaves the old file with *no* lock record
- *     at all — making it less visible after reconciliation than it was before.
+ *     at all — making it less visible after reconciliation than it was before;
+ *   - any *other* file still sitting under a base that this run's rekeys prove has been abandoned.
  *
- * `jrmoulckers/finance` is the second shape. It repointed `tokens.targetPath` to the repo root,
- * then a sync resolving older canon wrote the native files to the old base, where they sit today
- * carrying the pre-#121 comment syntax that cannot compile. finance is the only `kmp-web` member,
- * so it is the one repo with a Kotlin toolchain that would try to build them.
+ * The third shape is the one that motivated all of this, and neither of the first two catches it.
+ * `jrmoulckers/finance` repointed `tokens.targetPath` to the repo root; a later sync resolving
+ * older canon wrote the native token files to the *old* base and minted their lock entries at the
+ * *new* one. So there is no entry under the old base and no rekey pointing at it — the files are
+ * absent from every record the engine keeps. They are still there today, and one of them carries
+ * the pre-#121 comment syntax that Kotlin cannot parse; finance is the only `kmp-web` member, so
+ * it is the one repository in the fleet with a toolchain that would compile it.
  *
  * Informational, and deliberately excluded from `hasDrift`: expected mid-transition, resolvable
  * only by a human, and never a reason to fail a run or gate a PR.
@@ -145,12 +149,63 @@ function findAbandoned(memberRoot, writes, entries, rekeyed) {
     .map((item) => item.from)
     .filter((from) => !planned.has(from) && onDisk(from));
 
-  return [...new Set([...orphaned, ...relocated])].sort().map((targetPath) => ({
+  const swept = [];
+  for (const base of abandonedBases(writes, rekeyed)) {
+    for (const found of walkFiles(memberRoot, base)) {
+      if (!planned.has(found)) swept.push(found);
+    }
+  }
+
+  return [...new Set([...orphaned, ...relocated, ...swept])].sort().map((targetPath) => ({
     targetPath,
     // An untracked abandoned file has no hash to verify a safe deletion against, so it needs a
     // different cleanup from one the lock still remembers.
     tracked: Object.hasOwn(entries, targetPath),
   }));
+}
+
+/**
+ * Bases this run proved the engine has moved away from.
+ *
+ * A rekey pair is evidence: the entry `from` and the planned target `to` differ only in their
+ * base, so stripping the shared plan-relative tail from `from` yields a directory the engine
+ * demonstrably used to write into. That evidence is what bounds the sweep — the engine never goes
+ * looking through a member at large, only into directories its own lockfile attests to.
+ *
+ * The limit is real and worth stating rather than implying: if *every* entry under an old base had
+ * already been re-minted elsewhere, no rekey happens, no base is identified, and files stranded
+ * there stay invisible. Nothing in the engine's records would point at them, so there is nothing
+ * to reason from. A member-wide scan would find them, and is precisely the licence this declines
+ * to take.
+ */
+function abandonedBases(writes, rekeyed) {
+  const baseOf = new Map(writes.map((spec) => [spec.targetPath, spec.targetBase]));
+  const bases = new Set();
+
+  for (const { from, targetPath } of rekeyed) {
+    const newBase = baseOf.get(targetPath);
+    if (!newBase || newBase === '.') continue;
+    const rel = targetPath.slice(`${newBase.replace(/\/+$/, '')}/`.length);
+    if (!rel || !from.endsWith(`/${rel}`)) continue;
+    const oldBase = from.slice(0, from.length - rel.length - 1);
+    // A base that is still targeted is not abandoned, and an empty one would sweep the repo root.
+    if (oldBase && oldBase !== newBase) bases.add(oldBase);
+  }
+  return [...bases];
+}
+
+/** Every file under `base`, as member-relative POSIX paths. Missing directories yield nothing. */
+function walkFiles(memberRoot, base) {
+  const abs = join(memberRoot, ...base.split('/'));
+  if (!existsSync(abs)) return [];
+
+  const found = [];
+  for (const dirent of readdirSync(abs, { withFileTypes: true })) {
+    const child = `${base}/${dirent.name}`;
+    if (dirent.isDirectory()) found.push(...walkFiles(memberRoot, child));
+    else if (dirent.isFile()) found.push(child);
+  }
+  return found;
 }
 
 function planFile(memberRoot, spec, entries, force) {
