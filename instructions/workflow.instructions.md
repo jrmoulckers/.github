@@ -83,6 +83,31 @@ Typical coverage:
 If any check fails, fix it, rerun the relevant checks, create a new scoped commit, and push again.
 Amend only when the user explicitly requests it and applicable authority permits it.
 
+### A test for a repaired bug must be checked against the bug
+
+A test written alongside a fix passes. That is not evidence, because a test asserting nothing passes
+too, and so does one that exercises a path the bug never reached. Before committing, **revert the fix
+and confirm the new test fails.** If it still passes, it is pinning something other than the defect,
+and you have learned that in ten seconds rather than in a later regression.
+
+Extend the same step to fixes you rejected. When you chose a broader fix than the one proposed, the
+argument for choosing it is a claim about a specific input the narrow fix mishandles, and that claim
+is checkable: substitute the rejected fix and confirm a test fails. Two assertions that both pass
+against your implementation show only that it is self-consistent. Each earns its place by naming a
+wrong implementation it excludes — the original bug for one, the rejected fix for the other.
+
+This matters most when the fix is to a *guard* and a *branch that runs only when the guard passes*.
+Both are then expressing the same rule, and if each expresses it separately they can disagree. A
+branch whose predicate is **stricter** than its guard fails closed and surfaces as an unhandled case;
+one that is **looser** runs on inputs the guard never admitted, and nothing downstream catches it,
+because everything downstream was written against the guard's meaning. Prefer deleting the second
+predicate — one shared constant used by both — over correcting it, since a corrected third expression
+of the rule has to be re-checked against the guard exactly as carefully as the bug did.
+
+Note also that prose beside code is not a weaker specification than the code. A comment stating the
+correct rule above a line that implements a different one makes the divergence *harder* to see, not
+easier: a reader checking the code against its own comment finds them agreeing.
+
 ## Calling reusable workflows
 
 Studio product repos call the backbone's reusable workflows at a reviewed immutable commit SHA:

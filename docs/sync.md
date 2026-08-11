@@ -2044,6 +2044,63 @@ to notice. Both directions are mistakes and both are possible under genuine unce
 is not about which is less likely but about which one someone else can still act on. Prefer the
 findable error; a paraphrase and a silent over-delete both fail by becoming unfindable.
 
+### A guard and the branch it guards must share one predicate object
+
+`hasFrontmatter` decided whether a file had frontmatter; `injectAfterFrontmatter`, which runs only
+when that guard passes, decided where the frontmatter *ended*. Both answer "is this line the closing
+delimiter," and both had their own answer for it — the guard matched `---` at column 0, the branch
+matched `lines[i].trim() === '---'`, which also accepts an indented one. Nine lines apart, in the
+same file.
+
+A markdown horizontal rule inside a YAML block scalar is enough to separate them:
+
+```yaml
+---
+description: |
+  A rule, then a horizontal rule:
+  ---
+  and more text after it.
+name: example
+---
+```
+
+The guard sees frontmatter ending at the real closer; the branch stops three lines early and splices
+the provenance stamp **inside** the frontmatter, into the middle of `description`. It stays valid
+YAML, because the comment is just more text in a literal block, so no parser objects and no test
+fails. The stamp is still emitted, still on its own line, still exactly the expected string — it is
+simply no longer provenance, having become part of a value.
+
+Three things generalize past this bug:
+
+**The guard's promise does not constrain the branch when the branch re-derives the predicate.** A
+proof that "the stamp always lands one line after the frontmatter ends" is a property of the code and
+so inherits every branch of the code — including the branch that computes "ends" differently from the
+guard that let it run. The proof was sound and the conclusion false, which is only possible because
+the two functions did not share the term.
+
+**The permissive copy is the dangerous direction.** A re-derivation that is *stricter* than its guard
+fails closed and shows up as an unhandled case. One that is *looser* runs on inputs the guard never
+admitted reasoning about, and there is nothing downstream to catch it, because everything downstream
+was written against the guard's meaning.
+
+**The comment stated the correct predicate the code ignored.** The line above the loop read "find the
+next line that is exactly `---`" while the code called `.trim()`. Prose adjacent to code is not a
+weaker specification than the code; here it was the *accurate* one, and its accuracy is what made the
+divergence invisible — a reader checking the loop against its own comment finds them in agreement.
+
+The fix is not to correct the second predicate but to delete it: one exported `DELIMITER_RE`, used by
+both. Correcting it in place reproduces the defect in a new position — and the obvious correction
+here, strict `lines[i] === '---'`, does exactly that. The guard tolerates trailing spaces or tabs on
+the closer, so strict equality is narrower than the guard, the loop finds no delimiter, and the
+fallback prepends the comment **before line 1** — destroying the frontmatter outright rather than
+misplacing a stamp inside it. A fix that re-expresses the rule a third time has to be checked against
+the guard exactly as carefully as the bug did, which is the argument for there being nothing to check.
+
+Pin a repaired divergence by **mutation**, not by the repaired code passing: revert to the original
+predicate and confirm the new test fails, then substitute the *rejected* fix and confirm the other new
+test fails. Two assertions that both pass against the fix prove only that the fix is self-consistent;
+each one earns its place by naming a specific wrong implementation it excludes.
+
 ## Idempotency & drift
 
 - The tool is **idempotent**: once a member carries a lockfile, re-running with no upstream change

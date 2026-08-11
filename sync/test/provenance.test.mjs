@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { loadManifest, MANAGED_MERGE_TARGETS } from '../lib/manifest.mjs';
 import { resolveAll } from '../lib/resolve.mjs';
 import { enumerateTargets } from '../lib/assets.mjs';
-import { inject, toLF, PROVENANCE_NOTE } from '../lib/provenance.mjs';
+import { inject, toLF, PROVENANCE_NOTE, hasFrontmatter } from '../lib/provenance.mjs';
 import { buildFile, canonicalizeInner, extractBlock, markersFor } from '../lib/basemerge.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
@@ -186,3 +186,44 @@ test('the documented managed-target list matches the engine', () => {
   );
 });
 
+
+// `hasFrontmatter` gates the branch that splices the stamp, so the two must recognize a delimiter
+// by the SAME predicate. They did not: the guard required `---` at column 0 while the splice loop
+// used `.trim() === '---'`, which also accepts an indented one. A markdown horizontal rule inside a
+// YAML block scalar is ordinary in a long `description:`, and it made the loop stop early and inject
+// the stamp INSIDE the frontmatter -- still valid YAML, so nothing errored, and the stamp silently
+// became part of a value instead of provenance.
+test('an indented --- inside a block scalar is not the frontmatter delimiter', () => {
+  const src = [
+    '---',
+    'description: |',
+    '  A rule, then a horizontal rule:',
+    '  ---',
+    '  and more text after it.',
+    'name: example',
+    '---',
+    '',
+    '# Body',
+  ].join('\n');
+
+  assert.equal(hasFrontmatter(src), true);
+  const lines = inject('agents/example.agent.md', src).split('\n');
+  const stamp = lines.findIndex((l) => l.includes('<!--'));
+
+  assert.equal(lines[3], '  ---', 'the indented rule stays inside the block scalar');
+  assert.equal(lines[stamp - 1], '---', 'the stamp follows the real closing delimiter');
+  assert.equal(stamp, 7, 'the stamp lands after the frontmatter, not inside it');
+});
+
+// The narrow fix -- strict `=== '---'` -- would have regressed this case into the fallback, which
+// prepends the comment BEFORE line 1 and destroys the frontmatter entirely. The guard accepts a
+// delimiter with trailing spaces or tabs, so the splice must accept exactly the same set.
+test('a closing delimiter with trailing whitespace is still the delimiter', () => {
+  const src = ['---', 'name: example', '---   ', '', '# Body'].join('\n');
+
+  assert.equal(hasFrontmatter(src), true);
+  const lines = inject('agents/example.agent.md', src).split('\n');
+
+  assert.equal(lines[0], '---', 'frontmatter still opens at line 1');
+  assert.equal(lines[3], '<!-- ' + PROVENANCE_NOTE + ' -->', 'the stamp follows the delimiter');
+});

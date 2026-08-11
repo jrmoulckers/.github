@@ -107,22 +107,33 @@ export function inject(filePath, rawContent, opts = {}) {
   return `${htmlComment}\n\n${content}`;
 }
 
+/**
+ * The one predicate for a frontmatter delimiter line: `---` at column 0, optionally followed by
+ * trailing spaces or tabs. `hasFrontmatter` and `injectAfterFrontmatter` must agree exactly — when
+ * the second is more permissive than the first, the guard's promise no longer constrains it.
+ */
+const DELIMITER_RE = /^---[ \t]*$/;
+
 /** True when the content opens with a YAML frontmatter block (`---` ... `---`). */
 export function hasFrontmatter(content) {
   const lf = toLF(content);
   if (!lf.startsWith('---\n')) return false;
-  return /\n---[ \t]*(\n|$)/.test(lf.slice(3));
+  return lf.slice(4).split('\n').some((line) => DELIMITER_RE.test(line));
 }
 
 function injectAfterFrontmatter(content, htmlComment) {
-  const lines = content.split('\n');
-  // lines[0] === '---'. Find the next line that is exactly '---'.
+  const lines = toLF(content).split('\n');
+  // lines[0] === '---'. Find the next delimiter line, using the same predicate as the guard.
+  // An indented `---` is NOT one: it is ordinary text, and a markdown horizontal rule inside a
+  // YAML block scalar is the common case. Splicing there would put the stamp inside the
+  // frontmatter — still valid YAML, so nothing would error, and the stamp would silently become
+  // part of a value instead of provenance.
   for (let i = 1; i < lines.length; i++) {
-    if (lines[i].trim() === '---') {
+    if (DELIMITER_RE.test(lines[i])) {
       lines.splice(i + 1, 0, htmlComment);
       return lines.join('\n');
     }
   }
-  // No closing delimiter found (shouldn't happen given hasFrontmatter); fall back.
+  // Unreachable: hasFrontmatter has already found a delimiter under the same predicate.
   return `${htmlComment}\n\n${content}`;
 }
