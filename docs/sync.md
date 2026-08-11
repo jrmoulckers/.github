@@ -1498,6 +1498,27 @@ the distinction they are actually stuck on.
 Citing an artifact also terminates the exchange, which prose cannot do: prose's only confirmation
 channel is another message, and that message is subject to the same defect.
 
+**Replacing a rule leaves its justifications behind, and they survive as competing rules.** Every
+other duplication rule in this document treats duplication as something an author introduces through
+carelessness or convenience. This kind is produced by a **correct fix**. When assertion 2 was changed
+from equality-with-a-reference to provenance, the statement was updated and the places that had
+argued for it were not, because a fix draws attention to what a rule says and not to where it was
+justified. What remained two paragraphs below was a rationale for capturing the pre-rebase hash on
+the superseded grounds that equality with it was the property — beside the current grounds that it is
+merely expensive to recover afterwards. Two rules, neither a paraphrase of the other, so the
+delete-don't-paraphrase rule does not reach them, and each reading perfectly well in isolation. This
+variety is more durable than ordinary duplication precisely because the survivor was correct when it
+was written. **After changing what a rule asserts, search for the text that explains why** — the
+reconciliation at *Capture the pre-rebase hashes* below is what that search produces, and it happened
+only because a reader went looking.
+
+**Write a hazard and the invariant that detects it in the same place.** The merge hazard above and
+the provenance assertion were written the same night against the same failure and did not reference
+each other, because one was filed as a warning and the other as a check. That mattered: of the three
+assertions, provenance is the only one that tests whether the region is *unmixed*, which is exactly
+the property a conflict prompt on backbone-owned lines invites a resolver to violate. Filing them
+apart cost the link between the two, and neither reader had cause to look for it.
+
 **Qualify every issue and PR number that leaves this repository — `jrmoulckers/studio#73`, never
 `#73`.** A citation discharges the obligation above only if it denotes the same object in the
 reader's namespace, and a bare number does not: the recipient resolves it against *their* repo,
