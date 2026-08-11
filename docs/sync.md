@@ -13,7 +13,7 @@ assets propagate very differently:
 | Class | Examples | How it reaches product repos |
 | --- | --- | --- |
 | **Native** | Community-health files, reusable workflows | GitHub inherits default health files from this `.github` repo automatically; reusable workflows are called directly with `uses: jrmoulckers/.github/.github/workflows/reusable-*.yml@<reviewed-commit-sha>`. **No sync needed — and a member must not keep its own copy** (see below). |
-| **Canonical source** | `agents/`, `skills/`, `prompts/`, `instructions/`, `AGENTS.md`, `agency.toml`, `copilot-instructions.md`, `.gitattributes` | Copilot does **not** auto-inherit these across repos. The sync tool materializes them as `.github/agents/`, `.github/skills/`, `.github/prompts/`, `.github/instructions/`, `.github/copilot-instructions.md`, and selected root files. Consumer copies are generated and read-only — **except `AGENTS.md` and `.github/copilot-instructions.md`, which are managed-region files: read-only *between* the `studio:base` markers, member-owned outside them.** |
+| **Canonical source** | `agents/`, `skills/`, `prompts/`, `instructions/`, `AGENTS.md`, `agency.toml`, `copilot-instructions.md`, `.gitattributes` | Copilot does **not** auto-inherit these across repos. The sync tool materializes them as `.github/agents/`, `.github/skills/`, `.github/prompts/`, `.github/instructions/`, `.github/copilot-instructions.md`, and selected root files. Consumer copies are generated and read-only — **except the managed-region files (`AGENTS.md`, `.github/copilot-instructions.md` and `.gitattributes`; `sync/lib/copier.mjs` is authoritative), which are read-only *between* the `studio:base` markers and member-owned outside them.** |
 | **External vendored** | `@jrm/tokens` built outputs (CSS custom properties, Tailwind preset, typed JS) | Live in a *different* private backbone repo (`jrmoulckers/studio`), registry-free. The same engine copies studio's committed `dist/` tree into opted-in members under `vendor/@jrm/tokens/`. See [Vendored tokens](#vendored-tokens-jrmtokens). |
 
 ## Flow (scheduled PR)
@@ -597,10 +597,10 @@ convincing. `gh pr list --state open` is the query that answers the second quest
 Members that validate their own generated assets must also respect two contract details, or they
 will report false failures — both were live in `jrmoulckers/homelab` on first sync:
 
-- **Managed-region files are not whole-file copies.** For `AGENTS.md` and
-  `.github/copilot-instructions.md`, `targetSha256` is the hash of the **inner managed block**, not
-  the file. The file legitimately carries member content outside the markers, so a whole-file hash
-  could never be stable.
+- **Managed-region files are not whole-file copies.** For every managed-merge target — `AGENTS.md`,
+  `.github/copilot-instructions.md` and `.gitattributes` today, per `sync/lib/copier.mjs` —
+  `targetSha256` is the hash of the **inner managed block**, not the file. The file legitimately
+  carries member content outside the markers, so a whole-file hash could never be stable.
 - **The provenance marker is not always an HTML comment.** It follows the target's own comment
   syntax, per the list above. A checker hardcoding `<!-- … -->` reports `agency.toml` as unstamped.
 
@@ -648,6 +648,13 @@ The risk comes from **product overlays**, not from canon. The live example was a
 same product design rules in three places — its `DESIGN.md`, a "Product design constraints" section
 in root `AGENTS.md`, and its local section of `.github/copilot-instructions.md`. Name one owner and
 let the other two point at it.
+
+**Underneath both rules: when uncertain, prefer the error that leaves a trace.** Delete rather than
+paraphrase, because a deletion is recoverable from canon and a paraphrase is indistinguishable from
+it. Over-keep and say so, because an over-keep is visible in review and an over-delete leaves nothing
+to notice. Both directions are mistakes and both are possible under genuine uncertainty — the choice
+is not about which is less likely but about which one someone else can still act on. Prefer the
+findable error; a paraphrase and a silent over-delete both fail by becoming unfindable.
 
 ## Idempotency & drift
 

@@ -100,7 +100,7 @@ would report it as drift forever.
   updating: managed-region files hash only their inner block, and `agency.toml` carries a `#`
   provenance comment rather than an HTML one. Both assumptions were live in `jrmoulckers/homelab`
   and produced false failures on first sync.
-- **The rollout's three defects were one pattern: a rule keyed on the wrong unit.** The two above
+- **The rollout's defects were one pattern: a rule keyed on the wrong unit.** Two of the first three
   keyed on the file rather than the managed block, and on one comment syntax rather than the target's
   own; canon separately declared `.github/` read-only, keying on the directory rather than each
   file's provenance marker, which is wrong wherever canonical and member-authored agents share a
@@ -112,7 +112,7 @@ would report it as drift forever.
   unit the property actually varies over and key on that, preferring the marker or lookup the engine
   itself uses over a path- or filename-shaped proxy.
 
-  Two further instances arrived after this was first written, and both sharpen it. Conflict-resolution
+  Further instances arrived after this was first written, and they sharpen it. Conflict-resolution
   guidance told members to take canon's side wholesale — file-shaped advice that silently reverts
   merged member work in a managed-region file. And the fix for the `.github/` defect, which moved the
   provenance rule from the directory to the file, itself became a wrong-unit rule at the next level
@@ -151,6 +151,31 @@ would report it as drift forever.
   wrong statement is worse than a missing one: nothing signals to the reader that they should go
   check, so the stale copy is read as authoritative. When changing a rule, grep for every place that
   restates it and fix them in the same PR.
+
+  **Sweep the ADRs too, including this one.** They are the highest-risk restatement site, not the
+  lowest: an ADR carries the strongest presumption of correctness in the tree, so a superseded
+  statement inside one is the most authoritative-looking wrong statement available. The trap is that
+  ADRs feel like history — a record of what was decided — which makes leaving them untouched seem
+  correct rather than negligent. The distinction is between the *decision*, which is immutable and
+  should never be rewritten, and any *general rule* the ADR states, which is live text and goes stale
+  exactly like the normative source.
+
+  This ADR proved the point on itself. Its consequence heading read "the rollout's **three** defects
+  were one pattern," with a later paragraph adding "**two** further instances" — counts that were
+  accurate when written and wrong by the next amendment, in a section that has since been amended
+  many times. A count is a summary of the instance list keyed to its length, so it is guaranteed to
+  go stale on the next append while still reading as settled fact. **Prefer formulations that do not
+  encode a count**, and treat any number in a heading as a maintenance obligation you are unlikely to
+  meet. That is the wrong-unit pattern applied to a document's own bookkeeping: the claim varies per
+  instance, the count keys on the list length.
+
+- **When uncertain, prefer the error that leaves a trace.** Several rules here resolve the same way
+  and are worth stating as one principle. Delete rather than paraphrase, because a bad paraphrase is
+  indistinguishable from canon and a deletion is recoverable from canon. Over-keep and declare it
+  rather than over-delete silently, because an over-keep is visible in review and an over-delete
+  leaves nothing to notice. In each case both errors are possible and one is *findable* — choose that
+  one. The asymmetry is not about which error is less likely but about which error someone else can
+  still act on after you are gone.
 
 - **Diagnostic: suspect the unit before the content.** What makes this pattern a debugging trap
   rather than a design nit is that a coarse-unit rule does not error. It quietly matches nothing, or
