@@ -527,6 +527,53 @@ find one in a member repo, delete it; that is the whole fix.
 Opting in to `health` or `workflows` in `studio.config.json` means *"this member relies on the
 backbone's"* — it is a declaration, not an install.
 
+### Exclude synced canon from your formatter
+
+Canon is authored upstream and is **not** formatted to your Prettier config, so `prettier --check .`
+over your whole tree fails on files you do not own and must not fix — editing them is drift, and the
+next sync skips the file. Your ignore file is member-owned, so **the sync cannot add this for you**:
+
+```
+# synced from jrmoulckers/.github — canonical source, not authored here
+.github/agents/
+.github/skills/
+.github/prompts/
+.github/instructions/
+.github/copilot-instructions.md
+AGENTS.md
+```
+
+**Treat that as an example, not the specification.** The rule is keyed to `.studio-sync.lock.json`:
+your ignore file must cover every lock path your formatter can parse, and must be re-checked whenever
+the sync starts emitting a new one. Written as a fixed list it goes stale on exactly the event that
+matters — a new canon kind landing in a formatted path — and then reads as complete while being wrong.
+Machine-read files no formatter touches need no entry; resolve that with Prettier's `getFileInfo`
+rather than by pattern-matching.
+
+The exclusions are **whole-file even for `AGENTS.md`**, which is only partly canonical: a formatter
+cannot be pointed at half a file, and the managed region must stay byte-identical to canon or the sync
+stops matching.
+
+If you build a coverage check for this, three traps are known to be live:
+
+- **`inferredParser: null` means both "no parser" and "ignored".** Treating it as "nothing to format,
+  therefore safe" folds every correctly-ignored path into the safe bucket, and the tell is that
+  **inverting your ignore list leaves the result unchanged**. Make two calls — `resolveConfig` for the
+  parser, `ignorePath` for `ignored` — and report a gap only when `parser && !ignored`.
+- **Ignore patterns anchor to the ignore file's own directory.** Passing an `ignorePath` from outside
+  the repo root silently stops slash-containing patterns such as `.github/agents/` matching while bare
+  ones such as `AGENTS.md` keep matching at any depth. It reads as partial coverage, not as a broken
+  harness; one member measured 57 false gaps this way.
+- **Do not re-implement a parse the engine already performs.** A member scanning this file for
+  Markdown headings with `^#{1,4} ` counted 12 fenced `#` comment lines as headings — a 43% inflation
+  — because `#` is a heading in Markdown and a comment in `.prettierignore` and `.gitattributes`. The
+  engine masks fenced blocks before matching and has a test pinning it; a re-implementation inherits
+  neither. Conform against the engine's **output** where you can.
+
+Introducing a canon kind that lands in a formatted path is a **cross-repo event**: every affected
+member needs its ignore entry before its sync PR can go green. The `copilot` kind's first distribution
+failed CI in four members for exactly this reason.
+
 ## Merge Conflict Protocol
 
 Treat conflicts with the same urgency as red CI.
