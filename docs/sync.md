@@ -2278,6 +2278,58 @@ predicate and confirm the new test fails, then substitute the *rejected* fix and
 test fails. Two assertions that both pass against the fix prove only that the fix is self-consistent;
 each one earns its place by naming a specific wrong implementation it excludes.
 
+### Repairing one copy of a duplicated predicate leaves the pair worse than it found it
+
+The rule above says delete the second predicate rather than correct it. Here is the cost of doing
+half of that, discovered by `jrmoulckers/studio` while verifying the repair that caused it.
+
+`basemerge.mjs` answered "which comment syntax do this file's managed-region markers use?" and
+`provenance.mjs` answered "which comment syntax does this file's header use?" — the same question,
+asked by two callers, from two tables. When `markersFor` lost its default and became
+derive-or-throw, its table was widened to be correct. The other was not. The pair then disagreed by
+**eight types** — `.conf .dockerignore .editorconfig .gitmodules .npmrc .prettierignore .properties
+.sh` — with `basemerge` advertising hash-comment support for files the stamper was prepending
+`<!-- … -->` to. The disagreement was one-directional: a strict superset, so no reverse case existed
+to make it obvious.
+
+**Both copies being wrong together is a more stable state than one being right.** While both tables
+were narrow, a reader who thought to compare them found agreement and correctly concluded there was
+no divergence *between them*. Repairing one destroyed that: the pair became inconsistent, and the
+inconsistency is visible only to a reader who diffs two tables in two files and knows they are meant
+to be the same table. A duplicated predicate has no partially-correct state — improving one copy
+converts a shared error into a divergence, which is the harder defect to see.
+
+**Rank a shared default by its worst caller, not by its typical one.** The default that was removed
+and the fallback that survived are the same construct, and the survivor was the more dangerous of
+the two on both axes that matter:
+
+| | removed default (`markersFor`) | surviving fallback (`inject`) |
+| --- | --- | --- |
+| population | closed — canon-authored target paths | **open** — any unclassified extension |
+| path | read and write; the reader was loud | **write only** |
+
+A default over a closed population can be audited by enumerating the population. A default over an
+open one cannot, because the inputs that break it do not exist yet. That the removed one was easier
+to reason about is why it got fixed first, and is unrelated to which one should have been.
+
+**An obligation stated in prose fires in nobody's run.** The surviving fallback was not undocumented.
+Its header comment diagnosed it exactly — HTML is "often *silently* wrong for anything with a real
+grammar," so a new extension "must be classified here" — and prescribed manual enumeration, the
+mechanism deleted nine files away for that same reason. The two conclusions shipped simultaneously,
+in sibling modules.
+
+What makes the prose remedy unenforceable is not that people ignore comments. It is that **the
+enumeration and the event that invalidates it live in different repositories.** The table is canon's;
+the act of emitting a new file type belongs to whichever repo owns a distribution — `@jrm/tokens` in
+studio, which that comment names. Studio's CI cannot read canon's table. Canon's tests cannot know
+studio added an output format. So the obligation binds an author whom no run can check, in the repo
+that did not change. A `throw` binds nobody and catches everybody: it fires in canon's own test run,
+on the first artifact that needs classifying, without either side having to remember the other
+exists.
+
+Prefer the throw wherever an invariant spans a repository boundary. A rule enforced only where it is
+written is enforced only against the people who were already going to follow it.
+
 ### A validator must not enumerate from the artifact it validates
 
 Canon already requires pinning a discovered population before iterating it, because an empty loop

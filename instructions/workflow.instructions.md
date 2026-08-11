@@ -816,6 +816,39 @@ Note that two partial signals can be complementary here rather than redundant: a
 unreliable per file but can only ever *add* candidates to an enumeration, while an index is reliable
 per entry but cannot report what it never recorded. Neither closes the seam; their union does.
 
+### An invariant that spans two repos must be enforced by a throw, not by a comment
+
+If a rule can be broken by a change in one repo and is written down in another, it is not enforced.
+Neither CI can see the pair: the repo holding the rule does not know the other one changed, and the
+repo making the change cannot read the rule.
+
+The instance: canon classifies every file type it stamps, and its comment said a new extension "must
+be classified here." But the enumeration lives in canon while the act that invalidates it — emitting
+a new output format — belongs to whichever repo owns a distribution. Correct diagnosis, accurate
+severity, and an obligation binding an author no run could check, in the repo that did not change.
+
+**Make the invariant fail closed in the run that can see it.** A `throw` on the unclassified case
+fires in canon's own tests, on the first artifact that needs classifying, with neither side having to
+remember the other exists. It binds nobody and catches everybody; the comment bound an author and
+caught only the people already going to comply.
+
+This applies wherever you document a requirement for someone else's repo — an expected file layout,
+a required field, a supported type. Ask which run fails if it is violated. If the answer is "none,"
+you have written a preference, and it will be discovered by the outage rather than by the check.
+
+Two corollaries worth applying directly:
+
+**Rank a shared default by its worst caller, not its typical one.** A default over a *closed*
+population can be audited by enumerating the population; one over an *open* population cannot,
+because the inputs that break it do not exist yet. Being easier to reason about is why the closed
+case tends to get fixed first, and is unrelated to which one should have been.
+
+**Repairing one copy of a duplicated rule leaves the pair worse than it found it.** While both copies
+are wrong they agree, and a reader comparing them correctly finds no divergence between them. Fixing
+one converts a shared error into an inconsistency visible only to someone who diffs two files and
+already knows they are meant to match. There is no partially-correct state for a duplicated rule —
+delete the copy, do not improve it.
+
 ### Reporting a defect in canon from a repo that holds a synced copy
 
 You hold a copy of these instructions at `.github/instructions/`, and it is **generated, not

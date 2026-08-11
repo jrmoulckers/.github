@@ -22,6 +22,7 @@ import { resolveAll } from '../lib/resolve.mjs';
 import { enumerateTargets } from '../lib/assets.mjs';
 import { inject, toLF, PROVENANCE_NOTE, hasFrontmatter } from '../lib/provenance.mjs';
 import { buildFile, canonicalizeInner, extractBlock, markersFor } from '../lib/basemerge.mjs';
+import { commentSyntaxFor, CLASSIFIED_TYPES } from '../lib/comment-syntax.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const manifest = loadManifest(ROOT);
@@ -286,4 +287,82 @@ test('the plan is enumerated from canon, so it does not inherit a lockfile omiss
     /entries\[spec\.targetPath\]/,
     'the lock must be indexed by planned target, not iterated as the population',
   );
+});
+
+// --- One classifier, two consumers (issue #377) -------------------------------------------
+
+// A classified type is either a whole basename (`.gitattributes`) or a suffix (`.toml`). Build
+// whichever path form actually resolves, so the test exercises the real lookup rather than
+// silently skipping the basenames.
+function pathFor(type) {
+  for (const candidate of [`x/${type}`, `x/name${type}`]) {
+    try {
+      commentSyntaxFor(candidate);
+      return candidate;
+    } catch {
+      /* try the other form */
+    }
+  }
+  throw new Error(`${type} is exported as classified but resolves in neither path form`);
+}
+
+test('the marker syntax and the header syntax are the same classification, not two tables', () => {
+  const paths = CLASSIFIED_TYPES.map(pathFor);
+  const hashLike = paths.filter((p) => commentSyntaxFor(p) === 'hash');
+  const htmlLike = paths.filter((p) => commentSyntaxFor(p) === 'html');
+  assert.ok(hashLike.length > 0 && htmlLike.length > 0, 'no types classified: asserts nothing');
+
+  // The defect: basemerge claimed hash markers for eight types provenance stamped with HTML.
+  // Neither call may be allowed to answer for a family the other disagrees with.
+  for (const path of hashLike) {
+    assert.equal(markersFor(path).start.startsWith('#'), true, `${path}: marker syntax is not hash`);
+    assert.equal(
+      inject(path, 'body\n').startsWith('# '),
+      true,
+      `${path}: basemerge writes hash markers but the stamper does not write a hash comment`,
+    );
+  }
+  for (const path of htmlLike) {
+    assert.equal(
+      markersFor(path).start.startsWith('<!--'),
+      true,
+      `${path}: marker syntax is not html`,
+    );
+    assert.equal(
+      inject(path, 'body\n').includes('<!--'),
+      true,
+      `${path}: basemerge writes HTML markers but the stamper does not write an HTML comment`,
+    );
+  }
+});
+
+test('an unclassified type is refused by the stamper rather than given HTML', () => {
+  // The fallback made this an open population: any extension nobody had classified was stamped
+  // `<!-- … -->`, which is not a comment in a file with a real grammar. The obligation to
+  // classify was stated in prose and bound a different repo than the one that could check it.
+  for (const path of ['native/app.gradle', 'ios/Tokens.xcconfig', 'pkg/Tokens.podspec']) {
+    assert.throws(
+      () => inject(path, 'body\n'),
+      /unknown comment syntax/,
+      `${path}: stamped instead of refused`,
+    );
+  }
+  // A file that cannot carry any comment is classified, not unknown: it ships unstamped.
+  assert.equal(inject('dist/map.json', '{}\n'), '{}\n');
+});
+
+test('every file the engine plans to write is classified, so the throw is unreachable today', () => {
+  const members = resolveAll(loadManifest(ROOT));
+  let checked = 0;
+  for (const member of members) {
+    for (const spec of enumerateTargets(member, ROOT).writes) {
+      if (spec.type !== 'file') continue;
+      assert.doesNotThrow(
+        () => commentSyntaxFor(spec.targetPath),
+        `${spec.targetPath} is planned for write but has no comment syntax`,
+      );
+      checked += 1;
+    }
+  }
+  assert.ok(checked > 0, 'no planned writes inspected: this test would assert nothing');
 });
