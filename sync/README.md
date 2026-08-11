@@ -704,7 +704,8 @@ will all read as drift.
 #### The whole-file recipe reports false drift on managed-region targets
 
 The check above compares whole files, so it is wrong for the three managed-merge targets
-(`AGENTS.md`, `.github/copilot-instructions.md`, `.gitattributes`). Those files are spliced, not
+(`AGENTS.md`, `.github/copilot-instructions.md`, `.gitattributes` — [`MANAGED_MERGE_TARGETS`](lib/manifest.mjs)
+is authoritative and this list grows with any new managed-merge kind). Those files are spliced, not
 copied: the engine writes only the marker-delimited *inner* and deliberately preserves whatever the
 member has outside it. `rendered === member` is therefore **false for every correctly-synced managed
 target**, because the member legitimately holds local content the rendered canon never contained.
@@ -721,6 +722,10 @@ const expected = canonicalizeInner(inject(target, readFileSync(target, 'utf8')))
 const actual = extractBlock(readFileSync(`<member>/${target}`, 'utf8'), markersFor(target));
 expected === actual;   // true → unchanged;  false → the region is rewritten next sync
 ```
+
+No `toLF` is needed on the member side here, unlike the whole-file recipe above: `extractBlock`
+normalizes its input itself, so a CRLF checkout compares equal. That is a property of the function,
+not an accident of the example — it is pinned by a test.
 
 Two properties of the region are easy to get wrong when reconstructing one by hand:
 

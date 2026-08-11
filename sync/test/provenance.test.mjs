@@ -17,10 +17,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadManifest } from '../lib/manifest.mjs';
+import { loadManifest, MANAGED_MERGE_TARGETS } from '../lib/manifest.mjs';
 import { resolveAll } from '../lib/resolve.mjs';
 import { enumerateTargets } from '../lib/assets.mjs';
 import { inject, toLF, PROVENANCE_NOTE } from '../lib/provenance.mjs';
+import { buildFile, canonicalizeInner, extractBlock, markersFor } from '../lib/basemerge.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const manifest = loadManifest(ROOT);
@@ -102,3 +103,86 @@ test('every vendored @jrm/tokens file type gets a header its own compiler accept
     }
   }
 });
+
+// The hand-audit recipe above is a *whole-file* comparison, and the managed-merge targets are not
+// whole-file copies. A member legitimately keeps content outside the markers, so `rendered ===
+// member` is false for every correctly-synced managed target — the recipe reports drift on a healthy
+// file, which is the exact false-positive class that section exists to prevent.
+//
+// This pins both halves of the documented fix: the whole-file form genuinely fails, and the region
+// form genuinely succeeds, against a realistic member file carrying local content on both sides of
+// the block. Asserting the failure matters as much as the success: if a future change made the
+// whole-file comparison start passing, the doc's premise would be wrong and nothing else would say
+// so.
+test('the managed-target audit compares the region, not the whole file', () => {
+  const managed = realWrites().filter((w) => w.type === 'managed');
+  assert.ok(managed.length > 0, 'the manifest must produce managed writes to test against');
+
+  for (const w of managed) {
+    const markers = markersFor(w.targetPath);
+    const canonInner = canonicalizeInner(w.content);
+
+    const memberFile = buildFile(
+      `LOCAL PREAMBLE for ${w.targetPath}\n`,
+      canonInner,
+      markers,
+    );
+
+    assert.notEqual(
+      memberFile,
+      w.content,
+      `${w.targetPath}: a correctly-synced managed file is NOT equal to the rendered canon — ` +
+        'the whole-file recipe would report drift here',
+    );
+    assert.equal(
+      extractBlock(memberFile, markers),
+      canonInner,
+      `${w.targetPath}: the documented region comparison must succeed on a healthy file`,
+    );
+    assert.ok(
+      memberFile.includes('LOCAL PREAMBLE'),
+      `${w.targetPath}: member content outside the markers must survive`,
+    );
+    assert.ok(
+      canonInner.includes(PROVENANCE_NOTE),
+      `${w.targetPath}: the provenance note lives INSIDE the markers for managed targets, ` +
+        'so a region rebuilt with the header outside it will not match',
+    );
+  }
+});
+
+// The managed-target recipe in sync/README.md deliberately omits the `toLF` the whole-file recipe
+// requires, because `extractBlock` normalizes its own input. That asymmetry between two adjacent
+// documented recipes looks like an oversight and invites someone to "fix" it in either direction —
+// by adding a redundant toLF, or by dropping the normalization inside extractBlock. Pin it.
+//
+// Worth recording how this test came to exist: it was written to prove the opposite. The docstring
+// on the *internal* findBlock says "already-LF-normalized text", and reading that as a constraint on
+// the *exported* extractBlock is the wrong-unit error one level down — a property of the helper
+// inferred onto its caller. The test failed, which is how the docs got the correct claim.
+test('extractBlock is line-ending agnostic by construction, so the region recipe needs no toLF', () => {
+  const [w] = realWrites().filter((w) => w.type === 'managed');
+  const markers = markersFor(w.targetPath);
+  const expected = canonicalizeInner(w.content);
+  const memberFile = buildFile('LOCAL\n', expected, markers);
+  const asCheckedOutOnWindows = memberFile.replace(/\n/g, '\r\n');
+
+  assert.notEqual(asCheckedOutOnWindows, memberFile, 'the CRLF form really is different bytes');
+  assert.equal(
+    extractBlock(asCheckedOutOnWindows, markers),
+    expected,
+    'a CRLF checkout must compare equal without the caller normalizing first',
+  );
+});
+
+// A hand-maintained list of managed targets beside a code path that already enumerates them is the
+// same duplication problem the sync engine exists to remove. Canon's prose named two of these files
+// for a while after a third was added, and nothing caught it, because no check keyed on the prose.
+test('the documented managed-target list matches the engine', () => {
+  assert.deepEqual(
+    [...MANAGED_MERGE_TARGETS.values()].sort(),
+    ['.gitattributes', '.github/copilot-instructions.md', 'AGENTS.md'],
+    'update sync/README.md and docs/sync.md in the same PR as any change here',
+  );
+});
+
