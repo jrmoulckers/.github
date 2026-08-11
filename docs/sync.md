@@ -475,6 +475,27 @@ half a file, and the region must stay byte-identical to canon or the sync stops 
 the whole path is therefore correct — it costs formatting on the member-owned remainder, which is a
 smaller price than perpetual drift.
 
+#### Phantom formatter failures on a pre-`.gitattributes` Windows worktree
+
+The `attributes` kind delivers `* text=auto eol=lf`. On a Windows worktree created **before** that
+landed, files checked out under `core.autocrlf=true` keep their CRLF bytes on disk, and the result
+is a formatter failure git will not show you:
+
+- `git status` and `git diff` report the file **clean**, because `text=auto eol=lf` normalizes
+  worktree→index on read — git compares the normalized form and sees no change.
+- `git add --renormalize .` stages **nothing**, for the same reason: the index is already correct.
+  Renormalization fixes files whose *index* content is wrong, not a worktree that is stale.
+- Prettier reads raw bytes, sees the CRs, and fails.
+
+So the file is simultaneously clean to git and failing to the formatter, and it will never
+self-heal. The fix is to force the worktree to be rewritten from the index — delete the offending
+files and check them out again (`git rm --cached -r . && git reset --hard` also works), or clone
+fresh. Confirmed in `jrmoulckers/jrm-recipes`, where `.studio-sync.lock.json` held 302 stray CRs
+while reporting clean.
+
+Worth recognizing by shape: a formatter failing on a file `git diff` says is unmodified is almost
+always this, not content. CI never reproduces it, because CI always clones fresh.
+
 ### Resolving conflicts in a sync PR
 
 "Take canon's side wholesale" is right for whole-file canon and **wrong for managed-region files**,
