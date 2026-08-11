@@ -192,6 +192,11 @@ jobs:
   );
 });
 
+// Both halves of the asymmetry are asserted here against the same fixture on purpose: an unused
+// declaration is tolerated (which is what keeps a migration window open) and an undeclared use is
+// rejected. The rejection half is also covered elsewhere; the tolerance half is covered only here.
+// Splitting these into separate tests removes coverage rather than tidying, and would leave this
+// test's name promising a guarantee nothing asserts.
 test('comparison reports unused availability and rejects checkout uses missing from the registry', () => {
   const files = {
     'package.json': JSON.stringify({ devDependencies: { svelte: '5.0.0' } }),

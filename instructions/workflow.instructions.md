@@ -152,6 +152,31 @@ And note the strongest instance of it: a defect of this class was introduced by 
 *reported* the class, in code whose own description warned about the shape. Holding the pattern in
 mind while writing is not protection, which is the whole argument for the test.
 
+The stronger form, from a pair of episodes pointing opposite ways: an innocuous-looking guard was
+nearly reported as inert when it was fine, and an audit passed two guards that genuinely were. Both
+came from judging a site by its shape instead of following it to where its output goes. So **the
+shape at the site has no positive predictive value, not merely a poor one** — which converts the
+advice from *look more carefully* into *the site cannot answer this question at all; follow the
+value*.
+
+### Assert both halves of an asymmetry against the same fixture
+
+When a property is an asymmetry — tolerate X, reject Y — its halves can end up asserted in different
+tests, each of which reads as complete on its own. Delete the tolerance assertion and the rejection
+test still passes, the suite stays green, and the rule still reads as enforced while the tolerated
+case has quietly become untested.
+
+This is not the single-check failure covered above. Both tests discriminate correctly; what goes
+uncovered is the **property spanning them**, which belongs to neither.
+
+The aggravating case is a test whose *name* promises both halves. A name is what an auditor reads
+when deciding whether something is tested, so a name that outlives the assertion behind it reports
+coverage that no longer exists — worse than an unnamed gap, because it answers the question wrongly
+instead of leaving it open.
+
+So assert both halves **against the same fixture, in one test**, and treat a proposal to split them
+as removing coverage rather than tidying.
+
 ### A reported near miss certifies the reasoning around it
 
 Writing up a mistake you caught reads as an audit and functions as a **certificate**. What was
