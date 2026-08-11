@@ -212,7 +212,22 @@ would report it as drift forever.
   because the data was real.
 
   **Status of this consequence: promising, not established.** Every instance was found by one
-  rollout, and the diagnostic above has so far only been validated by the people who wrote it. It
-  earns its place the first time someone outside that group hits a red check, applies it, and reaches
-  the cause faster. Recorded because the reasoning is cheap to apply and the failure it prevents is
-  expensive — not because it has been demonstrated.
+  rollout, and the diagnostic above has so far only been validated by the people who wrote it.
+  Recorded because the reasoning is cheap to apply and the failure it prevents is expensive — not
+  because it has been demonstrated.
+
+  **Promotion requires a report of use, not a measured outcome.** The obvious bar — someone outside
+  this group hits a red check, applies the diagnostic, and reaches the cause faster — is not
+  observable. Nobody logs the counterfactual, and success here looks like an uneventful debugging
+  session that leaves no trace, so that bar can never visibly clear. Silence would then read as
+  failure, or the hedge would sit untouched until someone strips it as stale. So promote on a single
+  report from outside this conversation that the diagnostic was *used* — "I hit a red check,
+  suspected the unit, and that was it." Weak evidence that can actually be collected beats strong
+  evidence that cannot. A rule keyed to something unobservable is a rule that cannot announce whether
+  it is working, which is the same defect this section is about, one level up.
+
+  Note what the status marker is doing, because the editorial instinct will be to tidy it away: a
+  section whose subject is rules that fail silently in the safe-looking direction would otherwise
+  itself contain a hypothesis dressed as a finding, with nothing signalling a reader to check. The
+  marker is not caution about the diagnostic — it is the diagnostic applied to itself. Keep it until
+  it is earned, then remove it deliberately and say who earned it.
