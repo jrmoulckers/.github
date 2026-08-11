@@ -26,7 +26,7 @@
 //   --help               Show this help.
 //
 // Env: STUDIO_SYNC_TOKEN — fine-grained PAT with Contents + Pull requests read/write on
-// all nine members and the profile destination (required for real syncs and for --check
+// all members and the profile destination (required for real syncs and for --check
 // without --work-dir). Studio is both a member and the private token source, so that grant
 // includes vendoring reads. No `workflow` scope and no blanket `repo` scope — see docs/sync.md.
 // The default GITHUB_TOKEN cannot push to other repos.
@@ -367,9 +367,9 @@ Usage: node sync/index.mjs [options]
   --date <YYYY-MM-DD>  Override the sync date used for branch/commit naming.
   --help               Show this help.
 
-Env: STUDIO_SYNC_TOKEN — fine-grained PAT: Contents + Pull requests read/write on all nine
-members and the profile destination. Studio is both a member and token source. No workflow
-scope, no blanket repo scope. See docs/sync.md.`);
+Env: STUDIO_SYNC_TOKEN — fine-grained PAT: Contents + Pull requests read/write on every repo
+in studio.config.json "members", plus the profile destination. Studio is both a member and token
+source. No workflow scope, no blanket repo scope. See docs/sync.md.`);
   return 0;
 }
 

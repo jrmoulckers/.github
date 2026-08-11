@@ -765,7 +765,7 @@ open. If an active branch moves mid-run, the push is rejected loudly instead of 
 **One member's failure no longer aborts the run.** Each member is synced inside its own
 try/catch ([`lib/runner.mjs`](lib/runner.mjs)): a git or network error is reported, that member is
 skipped, and the remaining members — and the profile mirror — still run. The process exits non-zero
-with a summary of every failed target. The engine touches nine member repositories plus the profile destination over the network, so
+with a summary of every failed target. The engine touches every member repository plus the profile destination over the network, so
 treating the first error as fatal turned one transient failure into a total outage.
 
 **Recovering from a bad run:** pass a fresh `--date`. The branch is `studio-sync/<date>`, so a new
@@ -774,9 +774,19 @@ date means a new branch and a new PR, leaving the previous attempt untouched for
 ## Authentication
 
 Set `STUDIO_SYNC_TOKEN` to a **fine-grained** PAT with Contents + Pull requests **Read and write**
-on all nine member repos and `jrmoulckers/jrmoulckers`. `jrmoulckers/studio` is both a member and
+on **every repo in `members`** and `jrmoulckers/jrmoulckers`. `jrmoulckers/studio` is both a member and
 the private token source, so the member Contents grant includes the read needed for vendoring. The default
 `GITHUB_TOKEN` is scoped to the backbone repo only and **cannot** operate cross-repo.
+
+Grant the list, not a remembered count. A member added to `studio.config.json` is **not** added to the
+PAT, and the failure is a `403` on `git clone` for that member alone — the other members sync, the run
+exits non-zero, and a weekly job that is always red stops being read. This is not hypothetical: the
+scheduled run failed five weeks running on `jrmoulckers/windows` because the instructions here said
+"nine members" after the fleet had grown past nine (#176). Read the current list with:
+
+```bash
+node -e "import('./sync/lib/manifest.mjs').then(m=>console.log(m.loadManifest(process.cwd()).members.map(x=>x.repo).join('\n')))"
+```
 
 **No `workflow` scope.** The engine never writes under `.github/workflows/` — `workflows` and
 `health` are native, resolved and reported but dropped before the write list, and a test asserts it.

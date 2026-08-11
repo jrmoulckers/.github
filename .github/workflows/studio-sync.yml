@@ -12,8 +12,10 @@
 #   The default `GITHUB_TOKEN` is scoped to THIS repo only; it CANNOT push branches or open
 #   PRs in other repositories. Cross-repo sync therefore requires a Personal Access Token
 #   stored as the `STUDIO_SYNC_TOKEN` secret. Use a FINE-GRAINED token with exactly:
-#     - Contents: Read and write      — all 9 member repos + `jrmoulckers/jrmoulckers`
+#     - Contents: Read and write      — every repo in studio.config.json `members` + `jrmoulckers/jrmoulckers`
 #     - Pull requests: Read and write — same destinations
+#   Enumerate that list at grant time; do not rely on a count recorded here. A member present in
+#   the manifest but absent from the PAT 403s on clone, and only that member fails (see #176).
 #   `jrmoulckers/studio` is both a member and the private @jrm/tokens source, so its
 #   Contents: Read and write grant already includes the read needed for vendoring.
 #   Do NOT grant the classic `workflow` scope. The engine never writes under
@@ -75,7 +77,7 @@ jobs:
           STUDIO_SYNC_TOKEN: ${{ secrets.STUDIO_SYNC_TOKEN }}
         run: |
           if [ -z "$STUDIO_SYNC_TOKEN" ]; then
-            echo "::error::STUDIO_SYNC_TOKEN is required. Grant Contents + Pull requests: Read and write on all 9 members and jrmoulckers/jrmoulckers. Studio is both a member and the token source, so no separate read-only grant is needed. Do not grant workflow scope."
+            echo "::error::STUDIO_SYNC_TOKEN is required. Grant Contents + Pull requests: Read and write on every repo listed in studio.config.json \"members\" (not a remembered count) and jrmoulckers/jrmoulckers. Studio is both a member and the token source, so no separate read-only grant is needed. Do not grant workflow scope."
             exit 1
           fi
 
