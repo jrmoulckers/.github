@@ -14,17 +14,22 @@
 // Correcting "nine" to "eleven" would only reset that clock. This test fails the build instead the
 // next time a count disagrees with the manifest, which is the only version of the fix that survives
 // the twelfth member.
+//
+// #246: the first version of this guard could not see the engine's own source. `sync/lib/runner.mjs`
+// said "the engine talks to nine member repos" through *two* independent gaps — the file was not in
+// the surface list, and the phrase carries no literal "all", so listing it would not have helped
+// either. Prose and source therefore get different patterns, for a reason given at each.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { readFileSync, readdirSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadManifest } from '../lib/manifest.mjs';
 
 const REPO_ROOT = join(dirname(dirname(dirname(fileURLToPath(import.meta.url)))));
 
-/** Files that describe the fleet to a human who is about to grant something. */
+/** Prose that describes the fleet to a human who is about to grant something. */
 const SURFACES = [
   'sync/README.md',
   'sync/index.mjs',
@@ -67,6 +72,40 @@ const COUNT_PHRASE = new RegExp(
 
 function toNumber(token) {
   return WORD_NUMBERS.get(token.toLowerCase()) ?? Number(token);
+}
+
+/**
+ * The same claim in engine source, with the "all" requirement dropped.
+ *
+ * Narrowness is correct for prose and pointless here. A module under `sync/` can import
+ * `loadManifest` — the list is reachable from the same file — so a comment there has no reason to
+ * state a fleet size in any phrasing, totality or subset. Requiring "all" bought nothing and cost
+ * exactly the blind spot in #246. If this ever fires on a legitimate sentence, rephrase it to point
+ * at the manifest; do not re-narrow the pattern, or the blind spot comes back.
+ */
+const ANY_COUNT_PHRASE = new RegExp(
+  String.raw`\b(\d+|${[...WORD_NUMBERS.keys()].join('|')})\s+member(?:s|\s+repos?|\s+repositories)\b`,
+  'gi',
+);
+
+/**
+ * Discovered, never enumerated.
+ *
+ * A hardcoded surface list is the same wrong-unit error one level up: it protects the files someone
+ * remembered, and the next `sync/lib/*.mjs` arrives unguarded. Walking the tree means a new module
+ * is covered the moment it exists.
+ *
+ * `sync/test/**` is excluded on purpose — the counts there are quoted regression fixtures and
+ * narrative about #176, and a test that asserts a wrong count fails on its own.
+ */
+function engineSources(dir = join(REPO_ROOT, 'sync'), found = []) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === 'test' || entry.name === 'node_modules') continue;
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) engineSources(full, found);
+    else if (entry.name.endsWith('.mjs')) found.push(full);
+  }
+  return found;
 }
 
 test('no surface states a member count that disagrees with the manifest', () => {
@@ -118,4 +157,51 @@ test('the count phrases this guard looks for are the ones that actually appear',
   ]) {
     assert.deepEqual([...line.matchAll(COUNT_PHRASE)].map((m) => m[0]), [], `must not fire on: ${line}`);
   }
+});
+
+test('engine source states no fleet size in any phrasing', () => {
+  const wrong = [];
+
+  for (const file of engineSources()) {
+    const text = readFileSync(file, 'utf8');
+    for (const match of text.matchAll(ANY_COUNT_PHRASE)) {
+      wrong.push(`${relative(REPO_ROOT, file).split('\\').join('/')}: "${match[0].trim()}"`);
+    }
+  }
+
+  assert.deepEqual(
+    wrong,
+    [],
+    `Engine source can read studio.config.json; point at it instead of counting it:\n  - ${wrong.join('\n  - ')}`,
+  );
+});
+
+test('the engine-source sweep reaches the modules it claims to cover', () => {
+  // A walk that silently returns nothing passes the test above forever — a broken check fails
+  // clean (#203). Pin that the discovery actually reaches the file #246 was found in, that it
+  // descends into lib/, and that it stays out of the fixture directory.
+  const found = engineSources().map((file) => relative(REPO_ROOT, file).split('\\').join('/'));
+
+  for (const expected of ['sync/index.mjs', 'sync/lib/runner.mjs', 'sync/lib/copier.mjs']) {
+    assert.ok(found.includes(expected), `discovery must reach ${expected}; found ${found.length} files`);
+  }
+
+  assert.deepEqual(
+    found.filter((file) => file.startsWith('sync/test/')),
+    [],
+    'regression fixtures live in sync/test and must stay out of the strict sweep',
+  );
+});
+
+test('the source pattern catches the claim the prose pattern let through', () => {
+  // #246 in one assertion. This exact line sat in sync/lib/runner.mjs against a manifest of
+  // eleven. It is why the two tiers are not the same pattern: adding runner.mjs to SURFACES
+  // would have left it passing, because it never says "all".
+  const line = 'The engine talks to nine member repos plus the profile destination';
+
+  assert.deepEqual([...line.matchAll(COUNT_PHRASE)].map((m) => m[0]), [], 'prose pattern misses it — that was the gap');
+
+  const strict = [...line.matchAll(ANY_COUNT_PHRASE)];
+  assert.equal(strict.length, 1, 'source pattern must fire on it');
+  assert.equal(toNumber(strict[0][1]), 9, 'and must read the stated count');
 });

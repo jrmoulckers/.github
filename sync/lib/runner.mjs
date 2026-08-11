@@ -2,9 +2,9 @@
 //
 // Extracted from the CLI so failure isolation is testable: a member whose push or PR call
 // fails must not take down the members after it, nor the profile mirror. The engine talks to
-// nine member repos plus the profile destination — treating the first git error as fatal to the whole
-// run makes a transient failure look like a total outage and silently skips work that would
-// have succeeded.
+// every member in studio.config.json plus the profile destination — treating the first git error
+// as fatal to the whole run makes a transient failure look like a total outage and silently skips
+// work that would have succeeded.
 
 import { log } from './log.mjs';
 import { syncMemberRepo } from './pr.mjs';
