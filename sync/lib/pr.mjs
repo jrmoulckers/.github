@@ -12,6 +12,7 @@ import { apply, formatBehind } from './copier.mjs';
 import { cloneShallow, prepareSyncBranch, commitAll, push, createPr, findOpenPr, findOtherOpenSyncPrs, CO_AUTHOR } from './git.mjs';
 import { log } from './log.mjs';
 import { assertMemberFacts } from './member-facts.mjs';
+import { observeCallerPermissions } from './caller-permissions.mjs';
 
 
 export function branchName(date) {
@@ -113,7 +114,11 @@ export function syncRepo({ repo, writes, token, date, force, backbone, title, in
   }
 }
 
-export function syncMemberRepo({ repo, member, writes, token, date, force, backbone }, sync = syncRepo) {
+export function syncMemberRepo(
+  { repo, member, writes, token, date, force, backbone },
+  sync = syncRepo,
+  observe = observeCallerPermissions,
+) {
   return sync({
     repo,
     writes,
@@ -121,7 +126,17 @@ export function syncMemberRepo({ repo, member, writes, token, date, force, backb
     date,
     force,
     backbone,
-    inspectCheckout: (root) => assertMemberFacts(root, member, backbone),
+    inspectCheckout: (root) => {
+      const facts = assertMemberFacts(root, member, backbone);
+      facts.workflowObservations.callerPermissions = observe({
+        root,
+        repo,
+        backbone,
+        token,
+        includePullRequests: true,
+      });
+      return facts;
+    },
   });
 }
 

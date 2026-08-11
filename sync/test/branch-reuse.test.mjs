@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, readFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import {
@@ -14,6 +14,7 @@ import {
   selectOpenPr,
   selectOtherOpenSyncPrs,
   foreignCommits,
+  readPullRequestWorkflowSources,
 } from '../lib/git.mjs';
 
 const BRANCH = 'studio-sync/2026-08-03';
@@ -83,6 +84,27 @@ function makeOrigin(root) {
   git(['push', '-u', 'origin', BRANCH], seed);
   return { origin, seed };
 }
+
+test('pull-request workflow reads preserve exact file content and leading lines', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sync-pr-workflow-test-'));
+  try {
+    const { origin, seed } = makeOrigin(root);
+    git(['checkout', 'main'], seed);
+    mkdirSync(join(seed, '.github', 'workflows'), { recursive: true });
+    const contents = '\n\nname: Leading lines\njobs: {}\n';
+    commit(seed, '.github/workflows/ci.yml', contents, 'test: add workflow');
+    const headRefOid = git(['rev-parse', 'HEAD'], seed);
+    git(['push', 'origin', 'HEAD:refs/pull/7/head'], seed);
+    const work = clone(root, origin, 'work', ['--depth', '1']);
+
+    assert.deepEqual(
+      readPullRequestWorkflowSources(work, { number: 7, headRefOid }),
+      [{ path: '.github/workflows/ci.yml', text: contents }],
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test('an active open PR reuses its branch and reports only ahead-of-default reviewer commits', () => {
   const root = mkdtempSync(join(tmpdir(), 'sync-branch-test-'));

@@ -158,3 +158,34 @@ test('drift warnings name every exact skipped file', () => {
       '.github/prompts/backlog.prompt.md, .github/prompts/review.prompt.md',
   );
 });
+
+test('caller permission findings remain warnings rather than sync failures', () => {
+  const { failures } = syncMembers([plan('o/a')], ctx, () => ({
+    status: 'unchanged',
+    report: { drift: [] },
+    inspection: {
+      workflowObservations: {
+        callerPermissions: {
+          refs: [
+            {
+              label: 'PR #7 (feature)',
+              findings: [
+                {
+                  path: '.github/workflows/ci.yml',
+                  line: 12,
+                  job: 'web',
+                  workflow: 'reusable-ci-web',
+                  state: 'unsafe',
+                  source: 'workflow',
+                },
+              ],
+              unknown: [],
+            },
+          ],
+          unknown: [],
+        },
+      },
+    },
+  }));
+  assert.deepEqual(failures, []);
+});

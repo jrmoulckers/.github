@@ -58,6 +58,16 @@ const PERMISSION_CEILINGS = new Map([
 // consumed by npm and pnpm during install; nothing else may enter through workflow_call.
 const ALLOWED_CALL_SECRETS = new Set(['NODE_AUTH_TOKEN']);
 
+export function reusableWorkflowsDeclaringPermission(permission) {
+  return [...PERMISSION_CEILINGS]
+    .filter(([fileName, jobs]) => {
+      if (!fileName.startsWith('reusable-')) return false;
+      return [...jobs.values()].some((permissions) => permissions.has(permission));
+    })
+    .map(([fileName]) => fileName.replace(/\.ya?ml$/i, ''))
+    .sort();
+}
+
 export function validateWorkflowIntegrity(repoRoot, manifest) {
   const errors = [];
   const workflowDir = join(repoRoot, '.github', 'workflows');

@@ -424,6 +424,7 @@ test('real member sync wires checkout verification into the clone-owning operati
           inspected = true;
           return { status: 'unchanged', report: { drift: [] } };
         },
+        () => ({ refs: [], unknown: [] }),
       );
 
       assert.equal(inspected, true);

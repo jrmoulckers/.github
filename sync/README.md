@@ -277,6 +277,22 @@ Finance also retains a local `reusable-detect-changes.yml` by design. It is a
 languages and matching semantics are not interchangeable, so the finance workflow is not a
 vendored copy and must not be replaced as duplication without an explicit caller migration.
 
+#### Caller permission observations
+
+A real sync and a remote `--check` inspect each member's default branch plus every open pull-request
+head for calls to canonical workflows whose jobs declare `packages: read`. If a caller has an
+explicit workflow- or job-level `permissions:` ceiling that omits that scope, the engine warns with
+the exact ref, file, line, and job. GitHub otherwise rejects the whole workflow before creating a
+job, check-run, or readable log.
+
+These are upstream-state observations, not local integrity gates. An omitted caller
+`permissions:` block inherits repository defaults and is not reported as unsafe. An inaccessible
+PR head, a head that moves during inspection, or a YAML permission shape the dependency-free
+parser cannot resolve is reported as **unknown** and the sync continues; uncertainty is never
+silently certified as safe. The scanner evaluates direct calls to canonical workflows; it does not
+yet compose permission ceilings through a member-authored reusable workflow that calls canon
+indirectly. `--work-dir` remains offline and inspects only that working tree.
+
 ## What gets synced
 
 Resolution follows each member's `optIn` in the manifest:
