@@ -226,6 +226,44 @@ test('an empty history is unanswerable, and must not collapse to zero', () => {
     assert.equal(formatBehind(fresh.revisionsBehind), '');
   });
 });
+// The same degenerate history, reached through the *other* function. The test above routes through
+// `neverReceived` because it passes no lock entry, so it never executes `revisionsBehind`'s own
+// empty-history guard — mutating that guard to return 0 left the whole suite green. Both functions
+// answer "how far behind" and both must refuse to answer with 0 when there is nothing to count.
+//
+// Reachable wherever a lock entry exists for a path canon has not committed: `spec.sourceSha256`
+// hashes canon's working tree while `canonRevisionSha256` walks committed history, so any run
+// against a dirty checkout (`--dry-run`, `--work-dir`, `--studio-dir`) mints exactly this pairing.
+test('an empty history is unanswerable for a recorded file too, not zero', () => {
+  withStudio([V1], ({ studio, member }) => {
+    const rel = 'css/default/fresh.css';
+    const freshTarget = `${PLAN.targetBase}/${rel}`;
+    const published = ':root { --new: 1 }\n';
+    const previously = ':root { --new: 0 }\n';
+
+    // Published on disk but never committed, so the path has no history to count.
+    writeFile(studio, `${PLAN.sourceBase}/${rel}`, published);
+    writeFile(member, freshTarget, 'member edited this\n');
+
+    const { report } = apply(member, enumerateTokenTargets(PLAN, studio), {
+      backbone: 'b',
+      entries: {
+        [freshTarget]: {
+          sourceSha256: hashText(previously),
+          targetSha256: hashText(inject(freshTarget, previously, { note: NOTE })),
+          syncedAt: '2026-01-01T00:00:00.000Z',
+        },
+      },
+    });
+
+    const fresh = report.drift.find((d) => d.targetPath === freshTarget);
+    assert.ok(fresh, 'the uncommitted path is still planned and still drifts');
+    assert.equal(fresh.withheld, true, 'the baseline is not current canon, so it is withheld');
+    assert.equal(fresh.revisionsBehind, null, 'no committed history means unknown, never 0');
+    assert.equal(formatBehind(fresh.revisionsBehind), '');
+  });
+});
+
 // The per-file CLI line is a SECOND renderer, written inline in index.mjs, and it printed
 // "last received canon never" with no magnitude while the aggregate warning and the PR body both
 // carried one. A signal that exists in the data and not on the surface people read is inert, so
