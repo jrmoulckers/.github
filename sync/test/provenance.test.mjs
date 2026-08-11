@@ -227,3 +227,34 @@ test('a closing delimiter with trailing whitespace is still the delimiter', () =
   assert.equal(lines[0], '---', 'frontmatter still opens at line 1');
   assert.equal(lines[3], '<!-- ' + PROVENANCE_NOTE + ' -->', 'the stamp follows the delimiter');
 });
+
+// The lock's rendered hash is taken over the engine's OWN output, so it detects a member drifting
+// from what the engine produced and CANNOT detect the engine producing the wrong thing. That makes it
+// a real residual assertion against tampering and an empty one against incorrectness -- the
+// distinction that decides whether an exemption skipping some other check alongside it is inert or a
+// trapdoor. Asserted structurally, against the source, because the property is an ordering between
+// two functions rather than a value any single call returns: a behavioural test would have to compare
+// a rendering against itself, which is a tautology that passes whatever the engine does.
+test('the lock hash is derived from engine output, so it cannot witness an engine defect', () => {
+  const assets = readFileSync(join(ROOT, 'sync', 'lib', 'assets.mjs'), 'utf8');
+  const copier = readFileSync(join(ROOT, 'sync', 'lib', 'copier.mjs'), 'utf8');
+
+  assert.match(
+    assets,
+    /content:\s*inject\(targetPath,\s*raw\)/,
+    'assets.mjs must render target content through inject() for this property to hold',
+  );
+  assert.match(
+    copier,
+    /const\s+renderedHash\s*=\s*hashText\(rendered\)/,
+    'copier.mjs must hash the rendered (post-inject) content into the lock entry',
+  );
+  assert.match(
+    copier,
+    /const\s+rendered\s*=\s*spec\.content/,
+    'the hashed value must be the same rendering that is written to the member',
+  );
+
+  // If any of the three moves, the reasoning above is stale and the exemptions justified by
+  // "the hash still asserts" need re-deriving rather than inheriting.
+});

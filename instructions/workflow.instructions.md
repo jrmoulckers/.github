@@ -670,6 +670,33 @@ arrives, and then it fires *permissively*, silently, on the reading that looks g
 instance is a reason not to add machinery and never a reason to keep an allowlist entry: the missing
 instance is precisely what stops anyone noticing the entry was wrong.
 
+**But "has it fired?" is the wrong question, and a better one reads off the code: when this arm
+fires, what still fails if the artifact is wrong?** An exemption is dangerous in proportion to what
+remains asserted after it fires, not in proportion to whether it has fired. Allowlisting `neutral`
+narrows a gate from *{did this check pass}* to *{}* — nothing remains, which is why its first live
+instance would have been silent. An exemption that skips one assertion while another still runs
+narrows *{a, b}* to *{a}*, and is inert rather than a trapdoor. **`nothing` is the alarm.** That test
+costs one reading of the branch, where counting instances costs a fleet scan and answers a weaker
+question.
+
+**Non-empty is necessary and not sufficient: the surviving assertion must be load-bearing for the
+same fault.** A residual that tests a different property leaves the exemption exactly as open as an
+empty one, while looking safe. The engine supplies the instance. A member's content hash is the
+obvious residual to lean on — but `assets.mjs:131` sets `content: inject(targetPath, raw)` and
+`copier.mjs:217-218` records `hashText(rendered)` into the lock, so **the hash's reference is the
+engine's own output.** It detects a member drifting from what the engine produced and is structurally
+incapable of detecting the engine producing the wrong thing. When the frontmatter emitter injected a
+stamp *inside* a YAML block scalar, the defective output would have been hashed into the lock,
+matched on every subsequent run, and reported clean forever. So "the hash still asserts" is a real
+residual for tampering and an empty one for correctness, and which of those the exemption was
+covering decides whether it is inert.
+
+Keep the justifications separate, too. An exemption that mirrors a genuine engine property — a
+`.json` target cannot carry a comment, so a marker check must skip it — is justified by
+**conformance**, and that argument stands whether or not anything else asserts. Stacking a weak
+safety argument beside a strong conformance one lets the strong one launder the weak one, and the
+weak one is what gets reused as precedent somewhere the conformance argument does not hold.
+
 **A deliberately permissive direction is not a blind spot if it announces itself.** The sync engine
 is asymmetric about reusable workflows on purpose: an *undeclared use* is a hard error
 (`member-facts.mjs` raises `workflow availability does not declare checkout use …`, pinned by test),
