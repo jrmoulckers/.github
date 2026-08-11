@@ -549,6 +549,23 @@ that restates policy reintroduces exactly the drift the canon split removes. The
 drift detection hashes only the inner block, so duplicated policy outside the markers is invisible
 to the sync engine and to member asset checkers alike. It is a review-time obligation.
 
+**Delete duplicates; don't paraphrase them.** Softening a duplicated rule instead of removing it is
+strictly worse than either keeping or deleting it, because a paraphrase matches nothing canon would
+ever overwrite — so no future sync can correct it, and a subtly wrong restatement survives
+indefinitely. That asymmetry holds even when you are wrong about *why* a line is a duplicate:
+deleting a line that turns out to be load-bearing is a visible, recoverable mistake, while
+paraphrasing one is a silent, permanent one.
+
+**The exception is a line that is the only written record of a real local constraint.** That is not
+a duplicate, and the trim rule does not reach it — the test is whether canon or root `AGENTS.md`
+actually owns the rule, not whether the line reads as generic. When a genuinely local constraint is
+sitting among generic neighbours, move it into an explicitly scoped local section and **say in the
+PR that you over-kept it**, so a reviewer can drop it deliberately. Over-keeping visibly is
+recoverable at review; deleting the sole record of a constraint is not recoverable at all, because
+nothing remains to notice its absence. The live case was a member whose generic-looking bullets
+included three real finance-specific rules (domain terminology in identifiers, integration tests
+required for sync operations, dependency security posture for financial libraries).
+
 The risk comes from **product overlays**, not from canon. The live example was a member holding the
 same product design rules in three places — its `DESIGN.md`, a "Product design constraints" section
 in root `AGENTS.md`, and its local section of `.github/copilot-instructions.md`. Name one owner and
