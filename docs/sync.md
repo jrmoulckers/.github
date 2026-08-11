@@ -508,6 +508,35 @@ while reporting clean.
 Worth recognizing by shape: a formatter failing on a file `git diff` says is unmodified is almost
 always this, not content. CI never reproduces it, because CI always clones fresh.
 
+### `git add --renormalize` cannot repair a file with doubled CRs
+
+The section above covers a **stale worktree** whose index is already correct. This is the opposite
+case: the committed blob itself is wrong, and renormalization still will not fix it.
+
+Git's binary detection is not only about NUL bytes. A file whose CR count exceeds its CRLF pairs —
+one carrying doubled `\r\r\n` terminators, which is what a CRLF-writing tool produces against
+content that already ended in CRLF — is classified `-text`. A `-text` file is exempt from `eol=lf`,
+and `git add --renormalize` skips it. **The corruption blocks its own repair**, so it survives the
+remedy, reports success, and stays invisible in a rendered diff.
+
+All thirteen of this repo's community-health files were in exactly that state: canon's own LF rule
+was inert for the files GitHub serves org-wide.
+
+```bash
+# any file listed here is classified binary, so eol=lf does not apply to it
+git ls-files --eol | grep 'i/-text'
+
+# repair: strip the stray CRs and commit. renormalize alone will not do it.
+```
+
+Telling the two apart: if `git diff` is clean and the formatter fails, it is the stale worktree
+above. If `git ls-files --eol` reports `i/-text`, it is this — and the fix must be committed.
+
+`sync/test/gitattributes.test.mjs` asserts no tracked file here is classified `-text` and pins the
+doubled-CR mechanism behind that assertion. Run the check above **before** concluding that
+renormalization finished the job: a clean `format:check` on Linux CI can coexist with files that
+were never normalized at all.
+
 ### Resolving conflicts in a sync PR
 
 "Take canon's side wholesale" is right for whole-file canon and **wrong for managed-region files**,
