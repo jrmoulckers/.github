@@ -212,6 +212,38 @@ mutation that cannot express disagreement can never test a claim about two thing
 a claim is about a *relationship* between components, mutating anything they now share tests the
 wrong world, and the repair itself is what makes that mutation the convenient one.
 
+**A search over silently truncated input reports *not found* for everything, and that is the answer
+that ends a search.** Checking a correspondent's claim that a token appeared nowhere in an issue,
+this session ran a `gh issue view --jq` expression whose quoting was mangled by the shell; it
+returned 132 characters of a 9,309-character artifact. The token count came back `0` — confirming
+the claim under test, from a corpus that was 1.4% of the real one. The instrument agreed with the
+hypothesis while measuring almost nothing, which is the errs-toward direction: it terminated the
+inquiry rather than announcing itself.
+
+**The disconfirming evidence was in that same output and went unread.** The corpus size was printed
+directly above the result, specifically as a sanity check, and it said `132`. A number written to
+catch this exact failure sat one line from the number it was meant to qualify, and the eye went to
+the one that answered the question. So printing a sanity metric is not the control; **comparing it
+against an expected magnitude is** — a corpus size is only a check if something asserts it is
+plausible. Any zero should carry the size of the population searched, and the size should be
+challenged, not merely displayed.
+
+**Do not detect failure by searching a payload for the words failure produces.** In the same turn, a
+guard testing whether an API call succeeded matched the response body against `error|not found|HTTP
+4` and declared an accessible issue inaccessible — because the body legitimately contained the
+string `log not found`, quoted inside instructions for reading a probe. Use the channel that carries
+status (exit code, an explicit `errors` field) rather than the channel that carries content, since
+any sufficiently detailed document about failures contains the vocabulary of failure. Note the pair:
+one instrument that turn erred *toward* the claim and one *away* from it, and only the second
+announced itself — the first was caught by an unrelated errand.
+
+**And agreement is evidence only about the dimension the instrument varies along.** Two parties here
+confirmed a line-counting convention by comparing a residual that came out identical — while reading
+*different revisions* of the file. The residual was invariant to revision, so it discriminated
+perfectly on convention and was blind to the other question entirely, and its silence was read as
+assent. Before treating a match as corroboration, say what the instrument would have to vary for the
+match to be informative; **"we agree" is incomplete until it says on what.**
+
 **A control that cannot fire at all scores perfectly and reports nothing.** A refusal predicate
 requiring `steps == 0` was censused against ordinary CI failures and returned no false positives —
 but an ordinary failing job has run steps, so the two populations never overlap and that score holds
@@ -1688,6 +1720,25 @@ the hour — but a mirror that is refreshed occasionally yields a figure that is
 time* and still wrong. **A stale figure that moved is more convincing than one that did not**, since
 change is the evidence we accept for having actually looked. Re-derivation is only worth what its
 source is worth; name the source, and prefer the one that cannot answer from memory.
+
+**Correcting an output does not correct the procedure, and the procedure is what outlives the
+correction.** A correspondent found an overcount in an issue of theirs, corrected the figure in
+three places — title, an in-body banner, and a comment carrying the SHAs — and left standing, in the
+same document, the instruction telling a future reader how to re-measure. That instruction described
+the *wide* measurement that had produced the wrong number. So the artifact simultaneously warned
+that 76 was wrong and told the reader how to regenerate 76, and nothing about it looked
+contradictory from inside, because a **method** was being checked against a **figure** and the two
+are never compared. When you correct a published number, search the same artifact for the recipe
+that made it; a corrected output with an uncorrected procedure has a shorter half-life than no
+correction at all, since the next reader derives the bad value themselves and finds it confirmed.
+
+**Expect the durable artifact to be *fresher* than the message reporting on it.** The intuition runs
+the other way — artifacts go stale, live prose is current — but a status footer is written from
+memory while an artifact is edited on the occasion of a measurement. Verified here: a correspondent's
+message reported a probe run with six jobs, and their own issue, updated more recently, named a
+*different and later* run with eight; querying the API, the run their message named also had eight,
+so the prose was wrong about both which run and how many jobs. The artifact was right on both counts.
+Where a message and its artifact disagree, check which one was written while looking.
 
 **Naming a revision does not certify the figures beside it.** A reader binds every number in a
 message to the SHA that message names, so a coordinate measured at one revision and published
