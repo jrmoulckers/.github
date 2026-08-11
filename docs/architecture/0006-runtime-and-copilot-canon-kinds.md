@@ -335,6 +335,27 @@ would report it as drift forever.
   where the artifact cannot refuse, as with a rule like *do not diff the whole file*, which no
   program is in a position to enforce.
 
+  That fallback case arrived within the hour, and it shows the separation is worst where the prose is
+  *best*. This document spent three paragraphs establishing that `i/-text` alone is not a corruption
+  signal, that the bare filter returns 60 hits and no defect on a real member, and that `check-attr`
+  cannot substitute for the NUL test — and then offered `git ls-files --eol | grep 'i/-text'` as
+  "the portable core", for members to run in CI, with an inline comment its own preceding paragraph
+  refutes. Correct prose does not protect an incorrect artifact; it is the artifact that travels,
+  and being surrounded by the right explanation is not a property the reader who copies it inherits.
+
+  **Prefer controls that fail closed over controls that merely fail loudly.** The repair here is not
+  a better filter but a different shape. A filter fails *open*: a legitimate new binary produces a
+  hit, hits that are usually spurious get skimmed, and the check keeps passing while training the
+  reader to dismiss it — noise is not a weaker signal, it is an anti-signal that degrades the
+  operator. An allowlist fails *closed*: the same new binary breaks the build until a human puts it
+  on the list, which converts an unnoticed default into a recorded decision. The member's guard
+  that survives this critique does so structurally rather than by foresight — `const ALLOWED_BINARY
+  = new Set()`, annotated *an entry here is a decision, not a default* — which is why the allowlist
+  form ports to other repositories and the filter does not. Stated generally: **enumerate, exempt
+  explicitly, fail closed** — and note that a check whose discriminator is a conjunction of a
+  classification and a content test can never be a filter expression at all, so reaching for a
+  one-liner already presupposes the wrong shape.
+
   **A guard that proves it found something has bounded nothing about what it missed.** The strongest
   version of the fixture rule seen in this fleet is a canon-ownership check that refuses to report
   success when it classifies zero files, on the stated grounds that a guard silently matching nothing
