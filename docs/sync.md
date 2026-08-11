@@ -577,6 +577,37 @@ which stamp a file carries.
   still audible. Audited here: every `catch` in `sync/lib/` either rethrows with context or records an
   explicit failure on `runner.mjs`'s failure list; none answers with an empty success.
 
+- **A conformance check keyed on names erases the comparison it did not make, and the change it is
+  least able to see is the one that matters most.** Third of the family: the two above erase
+  *absence* and *failure*; this one erases *the check*. A member vendors five of this engine's
+  constants into a Python asset checker — a copy with no link back, so canon moving makes it wrong
+  quietly and in the passing direction. Knowing that, they built a comparator that parses the
+  `new Set([…])` literals out of the engine and set-diffs them against their copy, re-ran it after
+  three canon PRs landed, and got five `OK … identical` lines. One of the five was
+  `HASH_MARKER_TARGETS`, which **this engine had deleted** in the same window: `git grep` for it at
+  `HEAD` exits 1, and the constant last existed at `e4b4ba6^`. The comparator found no literal to
+  parse, compared nothing, and printed the same word it prints for agreement.
+
+  The consequence was not confined to one row. That checker also derives an invariant from those
+  sets, and it reported provenance-hash `{.gitattributes, .gitignore}` against managed-hash
+  `{.gitattributes}` — *holds, not converged*. At `HEAD` the managed side is seven basenames and six
+  extensions, and `markersFor` returns hash syntax for `.gitignore`, `.editorconfig`, `.npmrc` and
+  `agency.toml` alike. **The relation had not merely drifted, it had inverted** — provenance-hash is
+  now a strict subset of managed-hash — and the instrument built to detect exactly that reported the
+  old direction with the old cardinality.
+
+  Two rules come out of it, and the second is the load-bearing one. **A comparator must assert the
+  population it compared, not only the mismatches it found**; a name it could not resolve is a
+  failure, never a pass, because *nothing to compare* and *compared and equal* are the same output
+  otherwise. And **a name-keyed check verifies values, not concepts**: replacing an enumeration with
+  a derivation is both the change most likely to alter behaviour and the change that removes the name
+  the checker keys on, so such a check is blindest precisely where the delta is largest. That defeats
+  the obvious remedy of publishing the tables as JSON for members to conform against — the key would
+  simply have stopped being present, and the failure would be identical. Conform against the
+  **derivation** instead: call `markersFor(path)` over a list of paths and compare answers. Paths
+  outlive the constants that classify them, an inverted relation shows up as changed answers, and a
+  concept that has been replaced rather than edited still returns something to disagree with.
+
 Note that these exclusions are **whole-file even for managed-region targets**. `AGENTS.md` and
 `.github/copilot-instructions.md` are only partly canonical, but a formatter cannot be pointed at
 half a file, and the region must stay byte-identical to canon or the sync stops matching. Excluding
