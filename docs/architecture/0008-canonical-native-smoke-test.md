@@ -67,7 +67,14 @@ third variant, and the shared layer keeps having nothing to offer them.
 - Callers must grant `packages: read` in addition to `contents: read` because the web job installs
   Node dependencies, following ADR-0007.
 - The macOS and Windows runners this workflow uses are billed at a higher rate than Linux. Callers
-  should narrow `platforms` on non-release runs.
+  should narrow `platforms` on non-release runs. Note what makes this sharper than a general cost
+  note: a census of canon shows this is the **only** reusable workflow declaring a non-Linux runner
+  — `ios` on `macos-15` (10x) and `windows` on `windows-latest` (2x), with every other canon
+  workflow `ubuntu-latest` throughout. So the multiplier is chosen here and paid by the caller,
+  which sees no `runs-on` at its call site. It costs nothing today because no member opts in and
+  every non-Linux runner in the fleet sits in a public repository; it is free only while that holds.
+  A `runs-on` census cannot measure this exposure — a member that only calls reusable workflows
+  declares zero runners and inherits all of them.
 - Static validation cannot observe execution. `.github/workflows/native-smoke-harness.yml` calls
   this workflow with a trivial single-platform input set and asserts on its `result` output, so the
   normalisation, `fromJSON` gating, skipped-counts-as-pass, and output plumbing are proven on a
