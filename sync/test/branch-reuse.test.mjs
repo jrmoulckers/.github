@@ -12,6 +12,7 @@ import {
   push,
   remoteSyncBranches,
   selectOpenPr,
+  selectOtherOpenSyncPrs,
 } from '../lib/git.mjs';
 
 const BRANCH = 'studio-sync/2026-08-03';
@@ -230,6 +231,103 @@ test('open PR lookup candidates include every retained dated and rerun remote br
   }
 });
 
+// The real `jrmoulckers/homelab` pairing that motivated the report, as `gh pr list --json` returned
+// it: #25 pure canon on the current wave, #20 mixed and two days older. A synthetic fixture here
+// would only contain the shapes I already expected — this one is the population as it actually is,
+// including the `unrelated` PR that has to be ignored.
+const HOMELAB_OPEN_PRS = [
+  {
+    number: 29,
+    url: 'https://github.com/jrmoulckers/homelab/pull/29',
+    headRefName: 'jrmoulckers-automatic-spoon',
+    createdAt: '2026-08-10T00:00:00Z',
+    commits: [{ authors: [{ name: 'Jeffrey Moulckers' }], messageHeadline: 'feat: unrelated' }],
+  },
+  {
+    number: 25,
+    url: 'https://github.com/jrmoulckers/homelab/pull/25',
+    headRefName: 'studio-sync/2026-08-11',
+    createdAt: '2026-08-11T04:27:54Z',
+    commits: [
+      { authors: [{ name: 'jrm-studio-sync' }], messageHeadline: 'chore(sync): update studio canon (2026-08-11)' },
+    ],
+  },
+  {
+    number: 20,
+    url: 'https://github.com/jrmoulckers/homelab/pull/20',
+    headRefName: 'studio-sync/2026-08-09',
+    createdAt: '2026-08-09T22:23:46Z',
+    commits: [
+      { authors: [{ name: 'jrm-studio-sync' }], messageHeadline: 'chore(sync): update studio canon (2026-08-09)' },
+      { authors: [{ name: 'Jeffrey Moulckers' }], messageHeadline: 'fix(ci): teach the asset checker managed regions' },
+      { authors: [{ name: 'Jeffrey Moulckers' }], messageHeadline: 'docs(copilot): trim repo-local policy' },
+      { authors: [{ name: 'Jeffrey Moulckers' }], messageHeadline: 'fix(ci): select managed-region markers per target' },
+    ],
+  },
+];
+
+test('an older open wave is reported, and its own wave is not', () => {
+  const waves = selectOtherOpenSyncPrs(HOMELAB_OPEN_PRS, 'studio-sync/2026-08-11');
+  assert.deepEqual(
+    waves.map((wave) => wave.number),
+    [20],
+    'only the 2026-08-09 wave is other; the current wave and the unrelated PR are excluded',
+  );
+});
+
+test('mixed-vs-pure is decided by authorship, not by commit count', () => {
+  const [older] = selectOtherOpenSyncPrs(HOMELAB_OPEN_PRS, 'studio-sync/2026-08-11');
+  assert.equal(older.total, 4);
+  assert.deepEqual(older.authored, [
+    'fix(ci): teach the asset checker managed regions',
+    'docs(copilot): trim repo-local policy',
+    'fix(ci): select managed-region markers per target',
+  ]);
+
+  // Same lookup from the older wave's side: the newer one is pure, so `authored` must be empty
+  // rather than merely short. A classifier that counted commits would call a 1-commit branch
+  // "small"; only authorship says it is replaceable.
+  const [newer] = selectOtherOpenSyncPrs(HOMELAB_OPEN_PRS, 'studio-sync/2026-08-09');
+  assert.equal(newer.number, 25);
+  assert.equal(newer.total, 1);
+  assert.deepEqual(newer.authored, []);
+});
+
+test('a rerun branch is the same wave as the dated branch it reruns', () => {
+  // `studio-sync/<date>-rerun-2` is this run's own branch after a retained branch was bypassed.
+  // Comparing raw branch names would report the run's own wave back to it as though it were older.
+  const waves = selectOtherOpenSyncPrs(
+    [
+      ...HOMELAB_OPEN_PRS,
+      {
+        number: 26,
+        url: 'https://github.com/jrmoulckers/homelab/pull/26',
+        headRefName: 'studio-sync/2026-08-11-rerun-2',
+        createdAt: '2026-08-11T05:00:00Z',
+        commits: [{ authors: [{ name: 'jrm-studio-sync' }], messageHeadline: 'chore(sync): rerun' }],
+      },
+    ],
+    'studio-sync/2026-08-11-rerun-2',
+  );
+  assert.deepEqual(waves.map((wave) => wave.branch), ['studio-sync/2026-08-09']);
+});
+
+test('an unattributed commit counts as authored — the report errs toward looking', () => {
+  const waves = selectOtherOpenSyncPrs(
+    [
+      {
+        number: 7,
+        url: 'https://example.invalid/7',
+        headRefName: 'studio-sync/2026-08-01',
+        createdAt: '2026-08-01T00:00:00Z',
+        commits: [{ authors: [], messageHeadline: 'commit from a deleted account' }],
+      },
+    ],
+    'studio-sync/2026-08-11',
+  );
+  assert.deepEqual(waves[0].authored, ['commit from a deleted account']);
+});
+
 test('push never force-pushes: a diverged active branch is rejected, not overwritten', () => {
   const root = mkdtempSync(join(tmpdir(), 'sync-branch-reject-'));
   try {
@@ -253,5 +351,24 @@ test('push never force-pushes: a diverged active branch is rejected, not overwri
     );
   } finally {
     rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// The wave lookup degrades to "no other waves" on any error, which makes a malformed query
+// indistinguishable from a clean repo — permanently and silently. This is not hypothetical:
+// requesting `commits` alongside a PR *list* is rejected by GitHub outright ("requests up to
+// 505,050 possible nodes which exceeds the maximum limit of 500,000" at `--limit 50`), and the
+// catch swallowed it. Commits must be fetched per PR, where the node count cannot multiply out.
+test('the wave lookup never requests commits from a PR list query', () => {
+  const source = readFileSync(new URL('../lib/git.mjs', import.meta.url), 'utf8');
+  const listCalls = [...source.matchAll(/\['pr', 'list',[^\]]*\]/g)].map((match) => match[0]);
+
+  assert.ok(listCalls.length > 0, 'expected to find at least one `gh pr list` invocation to check');
+  for (const call of listCalls) {
+    assert.doesNotMatch(
+      call,
+      /commits/,
+      `a PR list query asks for commits and will be rejected by the node budget: ${call}`,
+    );
   }
 });

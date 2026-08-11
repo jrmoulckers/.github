@@ -177,6 +177,78 @@ export function findOpenPr(repo, branch, token, dest) {
   }
 }
 
+/** Any `studio-sync/<date>` branch, with or without a `-rerun-N` suffix. */
+const SYNC_BRANCH = /^studio-sync\/\d{4}-\d{2}-\d{2}(?:-rerun-[0-9]+)?$/;
+
+/**
+ * Open sync PRs belonging to a wave other than `currentBranch`'s.
+ *
+ * `findOpenPr` deliberately looks only at the current dated branch, so a wave left open from an
+ * earlier day is invisible to the run that opens the next one. That is the state `docs/sync.md`
+ * warns about — merging the older branch after the newer one replays stale canon, and where the
+ * two waves touched different paths it applies clean and rolls those files back with no conflict
+ * to raise the alarm. Reporting is all this does: the disposition is the reviewer's to choose, and
+ * refusing to open the new wave would punish exactly the members already behind.
+ *
+ * `authored` carries the commits the engine did not write, because mixed-vs-pure is the single
+ * fact that selects the disposition. A commit with no author attributed counts as authored: this
+ * is a prompt to look, so over-reporting is the safe direction.
+ *
+ * @returns {{ number, url, branch, createdAt, authored: string[], total: number }[]} oldest first.
+ */
+export function findOtherOpenSyncPrs(repo, currentBranch, token) {
+  try {
+    // `commits` is deliberately NOT requested here. Asking for it across a PR list multiplies out
+    // to a GraphQL node count that GitHub rejects outright — `--limit 50` on a real member returns
+    // "requests up to 505,050 possible nodes which exceeds the maximum limit of 500,000", and 49
+    // only squeaks under a ceiling nothing in this repo controls. Because the whole lookup is
+    // wrapped in a catch that degrades to "no other waves", that failure would have been permanent
+    // and completely silent. The cheap list is unconditional; commits are fetched per PR below,
+    // and only for the sync branches, which is normally none.
+    const json = gh(
+      ['pr', 'list', '--repo', repo, '--state', 'open', '--limit', '100', '--json', 'number,url,headRefName,createdAt'],
+      token,
+    );
+    const others = JSON.parse(json || '[]').filter((pr) => isOtherSyncWave(pr.headRefName, currentBranch));
+    const enriched = others.map((pr) => ({
+      ...pr,
+      commits: JSON.parse(
+        gh(['pr', 'view', String(pr.number), '--repo', repo, '--json', 'commits'], token) || '{}',
+      ).commits,
+    }));
+    return selectOtherOpenSyncPrs(enriched, currentBranch);
+  } catch {
+    return [];
+  }
+}
+
+/** True when `head` is a sync branch from a wave other than `currentBranch`'s. */
+export function isOtherSyncWave(head, currentBranch) {
+  if (!SYNC_BRANCH.test(head ?? '')) return false;
+  const dated = (name) => String(name ?? '').replace(/-rerun-[0-9]+$/, '');
+  return dated(head) !== dated(currentBranch);
+}
+
+/** Pure half of `findOtherOpenSyncPrs`, split out so the classification is testable offline. */
+export function selectOtherOpenSyncPrs(prs, currentBranch) {
+  return prs
+    .filter((pr) => isOtherSyncWave(pr.headRefName, currentBranch))
+    .map((pr) => {
+      const commits = pr.commits ?? [];
+      return {
+        number: pr.number,
+        url: pr.url,
+        branch: pr.headRefName,
+        createdAt: pr.createdAt,
+        total: commits.length,
+        authored: commits
+          .filter((commit) => (commit.authors?.[0]?.name ?? '') !== COMMIT_NAME)
+          .map((commit) => commit.messageHeadline ?? ''),
+      };
+    })
+    .sort((left, right) => String(left.branch).localeCompare(String(right.branch)));
+}
+
 export function selectOpenPr(prs, branch) {
   const escaped = branch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const candidates = prs

@@ -114,3 +114,48 @@ test('no drift means no --force wording anywhere in the body', () => {
   assert.doesNotMatch(body, /--force/);
   assert.doesNotMatch(body, /Locally modified/);
 });
+
+test('an older mixed wave is named in the body with the commits that make it mixed', () => {
+  const body = buildPrBody(report({ added: paths('AGENTS.md') }), {
+    date: '2026-08-11',
+    otherWaves: [
+      {
+        number: 20,
+        url: 'https://github.com/jrmoulckers/homelab/pull/20',
+        branch: 'studio-sync/2026-08-09',
+        total: 4,
+        authored: ['fix(ci): teach the asset checker managed regions'],
+      },
+    ],
+  });
+
+  assert.match(body, /An older sync wave is still open \(1\)/);
+  assert.match(body, /pull\/20/);
+  assert.match(body, /\*\*mixed\*\* — 1 of 4 commit\(s\) not authored by the engine/);
+  assert.match(body, /fix\(ci\): teach the asset checker managed regions/);
+  // The disposition for a mixed branch is reduction, never rebase-and-merge.
+  assert.match(body, /must not be rebased and merged/);
+});
+
+test('a pure older wave is reported as closable, not as salvage', () => {
+  const body = buildPrBody(report({ added: paths('AGENTS.md') }), {
+    date: '2026-08-11',
+    otherWaves: [
+      {
+        number: 25,
+        url: 'https://example.invalid/25',
+        branch: 'studio-sync/2026-08-09',
+        total: 1,
+        authored: [],
+      },
+    ],
+  });
+
+  assert.match(body, /\*\*pure canon\*\* — all 1 commit\(s\) authored by the engine/);
+  assert.match(body, /can simply be closed/);
+});
+
+test('a run with no older wave carries none of the wording', () => {
+  const body = buildPrBody(report({ added: paths('AGENTS.md') }), { date: '2026-08-11' });
+  assert.doesNotMatch(body, /older sync wave/);
+});
