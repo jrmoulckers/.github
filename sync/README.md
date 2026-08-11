@@ -522,8 +522,7 @@ only a marked region within each:
 ```
 
 The marker identifier is `studio:base` for **every** managed target, not just the `base` kind: it
-names "the studio-managed region", and `copilot` has always shared it. Only the *comment syntax*
-varies, because a marker has to be a comment in the file it lives in. Markdown targets use HTML
+names "the studio-managed region", and `copilot` has always shared it. Markdown targets use HTML
 comments; `.gitattributes` has none, so it uses `#` lines:
 
 ```
@@ -531,6 +530,19 @@ comments; `.gitattributes` has none, so it uses `#` lines:
 …canonical content…
 # studio:base:end
 ```
+
+**Comment syntax is not the only thing that varies, and the other difference is semantic.** Where the
+region sits is cosmetic in Markdown — a member's preamble reads better above canon, but nothing
+depends on it — so Markdown targets **append**. In `.gitattributes` position *is* meaning: git
+resolves an attribute by the **last** matching pattern and canon's `*` matches every path, so a
+region placed at the end silently outranks every member rule beneath it. That target therefore
+**prepends**, and the guarantee that content outside the markers is member-owned depends on it: a
+member-owned region that canon can be emitted after is not actually owned by the member.
+
+Placement rides on the `MARKERS` entry beside the comment syntax and resolves through the same
+`markersFor()` lookup, because both follow from the target's format. Adding a fourth target means
+deciding its placement, not just its comment style — and the two questions look alike only until the
+new format turns out to have precedence rules of its own.
 
 This is not cosmetic. An `<!-- studio:base:start -->` line in a `.gitattributes` is not ignored by
 git — it is read as a *pattern rule*. The same applies to the provenance header, which is emitted as

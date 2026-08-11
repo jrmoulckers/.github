@@ -311,6 +311,25 @@ test('position is a proxy for precedence, and a lossy one — audit with check-a
   });
 });
 
+test('placement varies per target, so the marker table is not just comment syntax', () => {
+  // The prose once said only the comment syntax varied between managed targets. Placement varies
+  // too, and semantically: cosmetic in Markdown, precedence-deciding in .gitattributes. Pinned so a
+  // fourth target cannot be added by copying a marker entry and thinking only about comments.
+  const placements = new Map(Object.entries(MARKERS).map(([name, m]) => [name, m.placement]));
+
+  assert.equal(placements.get('html'), 'append');
+  assert.equal(placements.get('hash'), 'prepend');
+  assert.equal(
+    new Set(placements.values()).size > 1,
+    true,
+    'targets do not share a single placement, so the difference must stay documented',
+  );
+
+  for (const [name, placement] of placements) {
+    assert.ok(placement, `marker set ${name} must declare a placement, not inherit one`);
+  }
+});
+
 test('an existing managed region is replaced in place, never relocated', () => {
   // A member whose region predates the placement rule keeps it where it is. Silently moving lines
   // around in a file the member owns is the failure this placement logic exists to prevent, so the
