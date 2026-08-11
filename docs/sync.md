@@ -617,6 +617,41 @@ The same distinction applies to the PR set itself. Looking up a known list of PR
 and every individual fact returned is still correct, which is what makes the resulting conclusion
 convincing. `gh pr list --state open` is the query that answers the second question.
 
+**Compare a generated file against canon HEAD, never against a sibling branch.** The supersession
+rule above says "from content", but it does not name the reference, and for generated assets the
+intuitive reference is the wrong one. Two open sync branches are two *renderings of canon at
+different moments*; diffing them tells you which snapshot is newer, not whether anything is at risk.
+The trap is that the finding looks conclusive — the extra sections are real, they really are absent
+from the other branch, and the comparison is a correct answer to a question nobody needed answered.
+
+During the first fleet rollout a session compared its open sync PR against a sibling sync PR, found
+~87 lines in two sections present in neither the sibling nor the default branch, and concluded the
+branch had to be preserved. Canon already carried both sections, and canon's copy of that file was
+488 lines against the branch's 311: the branch was *behind* canon, not ahead of it. For anything the
+engine generates, the only reference that answers "is this at risk" is the canonical source, because
+the next sync re-emits from there regardless of what any branch holds.
+
+The reference therefore depends on who owns the content, and the two cases invert:
+
+- **Generated content** — compare against **canon HEAD**. If canon still has it, nothing is at risk
+  and the branch is discardable.
+- **Member-authored content**, including anything inside a member's own region — compare against the
+  **member's default branch**. Canon never had it and never will re-emit it, so the branch may be the
+  only copy.
+
+**A sync branch is a rendering of the engine, not only of canon, and so it has a shelf life.** The
+branch holds whatever the engine did at generation time, and merging an old one re-applies behaviour
+that has since been fixed. Before merging, check the branch's creation time against the last change
+under `sync/lib/`; if the engine moved in between, regenerate rather than merge.
+
+That is worth a real check rather than a habit, because the engine's non-relocation guarantee turns
+one class of staleness into permanent damage. A managed region is replaced *where it already is*, so
+a region merged into the wrong position is never repaired by a later sync. A branch generated before
+the `.gitattributes` prepend fix appends the region instead, leaving canon's `*` wildcard as the last
+matching line and every more specific member rule silently downgraded — and, where the member's file
+already held canon's stanza unmarked, leaves that stanza in the file twice. Merging such a branch
+costs a human edit to undo; regenerating it costs nothing.
+
 Members that validate their own generated assets must also respect two contract details, or they
 will report false failures — both were live in `jrmoulckers/homelab` on first sync:
 

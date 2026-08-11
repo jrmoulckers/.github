@@ -211,6 +211,32 @@ would report it as drift forever.
   claim varies over that unit or a different one. The tell is that verification feels unnecessary
   because the data was real.
 
+  **The reference is part of the unit.** A third read-side instance chose the right *kind* of
+  comparison and the wrong thing to compare against: a session established supersession from content
+  rather than chronology, exactly as required, but diffed its generated file against a sibling sync
+  branch instead of against canon. Two branches are two renderings of the same source at different
+  moments, so the comparison reports which is newer and says nothing about what is at risk — it found
+  real content genuinely absent from the sibling while canon held a superset of it. "From content,
+  not chronology" was followed and still produced the wrong answer, because a rule that names an
+  operation without naming its reference is only half-specified. For generated assets the reference
+  is canon; for member-authored content it is the member's default branch. Compare against whatever
+  will regenerate the file, since that is what decides whether losing it costs anything.
+
+  **Artifacts are renderings of the tooling, not only of its inputs.** The same instance carried a
+  second, sharper version of the wrong-unit error. A sync branch is usually treated as a snapshot of
+  canon, but it equally freezes the engine's behaviour at generation time, so a branch predating an
+  engine fix reintroduces the bug on merge. The reporting session read one such branch as evidence of
+  a live engine defect exposing the whole fleet — when the defect had been fixed hours after the
+  branch was cut, on that same session's own earlier report. Age, not the engine, was the variable.
+  Before merging any generated artifact, ask what the generator looked like when it was produced.
+
+  This one deserves a check rather than a habit, because a safety property converts it into permanent
+  damage: managed regions are replaced where they already sit and are deliberately never relocated,
+  so a region merged into the wrong position is never repaired by any later sync. The guarantee that
+  the engine will not silently reorder a member's file is the same guarantee that it will not
+  silently fix one. Every invariant that protects against unasked-for change should be read twice —
+  once for what it prevents, once for what it therefore cannot undo.
+
   **Status of this consequence: promising, not established.** Every instance was found by one
   rollout, and the diagnostic above has so far only been validated by the people who wrote it.
   Recorded because the reasoning is cheap to apply and the failure it prevents is expensive — not

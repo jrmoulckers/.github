@@ -136,6 +136,12 @@ function renderBlock(inner, markers) {
  * block sits in the wrong position keeps it until a human moves it: silently reordering rules in a
  * file the member owns is the very failure this placement logic exists to prevent, and doing it
  * unasked would be worse than the original defect.
+ *
+ * Read that guarantee the other way before merging an old sync branch: a region that lands in the
+ * wrong position stays there permanently, and no later sync repairs it. For `.gitattributes` that
+ * silently downgrades every member rule the canonical `*` outranks. Branches generated before
+ * jrmoulckers/.github#125 append the region instead of prepending it, so merging one is not merely
+ * stale — it is unrecoverable without a human edit. Regenerate such a branch rather than merging it.
  */
 export function buildFile(existingContent, inner, markers = MARKERS.html) {
   const block = renderBlock(inner, markers);

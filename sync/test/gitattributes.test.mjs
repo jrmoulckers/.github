@@ -288,6 +288,41 @@ test('an existing managed region is replaced in place, never relocated', () => {
   assert.equal(extractBlock(merged, MARKERS.hash), '* text=auto eol=lf', 'content still updates');
 });
 
+test('a stale-branch region merged at the bottom is permanent, not self-healing', () => {
+  // The counterpart of the guarantee above, and the reason an old sync branch must be regenerated
+  // rather than merged. Branches generated before the prepend fix (#124/#125) appended the region to
+  // a member file that already carried canon's stanza unmarked. Merging one leaves the stanza in the
+  // file twice and the member's more specific rule ABOVE canon's `*` — and because the engine
+  // replaces a region where it already is, no later sync ever repairs either problem.
+  const staleBranchResult = [
+    '* text=auto eol=lf',
+    '',
+    'packages/tokens/dist/** text eol=lf',
+    '',
+    '# studio:base:start',
+    '* text=auto eol=lf',
+    '# studio:base:end',
+    '',
+  ].join('\n');
+
+  let merged = staleBranchResult;
+  for (let sync = 0; sync < 3; sync += 1) {
+    merged = buildFile(merged, '* text=auto eol=lf', MARKERS.hash);
+  }
+
+  const memberRule = merged.indexOf('packages/tokens/dist/**');
+  const canonStart = merged.indexOf('# studio:base:start');
+  assert.ok(
+    memberRule < canonStart,
+    'repeated syncs never lift the member rule below canon: the damage is permanent',
+  );
+  assert.equal(
+    merged.split('\n').filter((line) => line.trim() === '* text=auto eol=lf').length,
+    2,
+    'the duplicated unmarked stanza also survives, because the engine only owns the region',
+  );
+});
+
 test('Markdown targets still append, so product preamble stays on top', () => {
   // Placement is a property of the format, not a global switch: flipping it for Markdown would
   // bury every member's own AGENTS.md preamble beneath canon.
