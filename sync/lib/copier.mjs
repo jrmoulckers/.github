@@ -57,6 +57,7 @@ export function apply(memberRoot, writes, lock, opts = {}) {
     adopted: [],
     rekeyed: reconciled.rekeyed,
     pruned: reconciled.pruned,
+    ambiguous: reconciled.ambiguous,
     outranked: [],
   };
 
