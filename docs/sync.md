@@ -941,6 +941,15 @@ The fixture has to be shaped like the defect being hunted, not merely be some ca
 harness that reports empty because it is broken is indistinguishable from one that reports empty
 because nothing is wrong, and a wrongly-shaped fixture certifies the wrong path.
 
+**Store the fixture's bytes; record the ref as provenance only.** `a450c472` above is a live ref in
+a repository this one does not control. Force-push, GC or a branch deletion and it stops being
+known-bad — and it does not stop loudly: the check errors on a missing object, or resolves to a
+descendant that is clean, and reads as a fixture that has nothing to say. A fixture that quietly
+stops being bad reinstates the exact silence it was installed to break, so a control keyed to
+another repository's history is keyed to something outside its own suite. Vendor the bytes and cite
+the commit as where they came from. This applies to any citation that reads as helpfully concrete
+while being a dependency in disguise.
+
 Where a check is code rather than a command, the general form is cheaper and stronger than keeping a
 fixture: introduce the regression deliberately, confirm the check fails, then revert. Doing this to
 `sync/lib/rekey.mjs` — adding an `existsSync` guard to the rekey loop, which is what a future reader
@@ -982,6 +991,26 @@ keyed to the wrong unit.** The member checker that missed the appended region va
 position, which is the same error one step over: still a proxy, still not the property, and it goes
 green or red for reasons unrelated to whether anything is actually overridden. When the original
 defect was a proxy standing in for a property, prefer a check that asks the authority directly.
+
+**But keep the position check as well, at a lower severity — the resolver replaces it only for the
+question it asks.** The two answer different questions and diverge on a live member:
+
+| Question | Instrument | Severity |
+| --- | --- | --- |
+| Is this **sound**? Are member rules above the region void of effect? | position | informational |
+| Is this **damaged**? Does an attribute change on a protected path? | `git check-attr` | failing |
+
+`docket` is the case. Its region sits at line 3 with one member rule above it — the fleet's only
+remaining structural instance — and that rule is byte-identical to canon, so `check-attr` reports it
+clean, correctly. A resolver-only audit therefore passes on the last real instance in the fleet, and
+passes while doing nothing. A position-only audit fires on it and on the two false positives above.
+Collapsing the pair loses a real defect in one direction or cries wolf in the other, because
+`docket` is unsound but undamaged: a coincidence is doing the work, and coincidences are not
+maintained. Report it, and do not fail on it.
+
+So a wrong-unit repair has a second failure mode beyond being keyed to another proxy: it can
+**discard a coarse instrument that was answering a question the fine one does not ask.** Replacing
+is the reflex; the coarse check usually survives as a demotion.
 
 Members that validate their own generated assets must also respect two contract details, or they
 will report false failures — both were live in `jrmoulckers/homelab` on first sync:
