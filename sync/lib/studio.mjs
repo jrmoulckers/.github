@@ -6,7 +6,12 @@
 // { root, cleanup } handle shared by every opted-in member:
 //
 //   - --studio-dir <path>  -> use a local checkout as-is (offline seam; mirrors --work-dir).
-//   - otherwise            -> shallow-clone sourceRepo with STUDIO_SYNC_TOKEN into a temp dir.
+//   - otherwise            -> clone sourceRepo with STUDIO_SYNC_TOKEN into a temp dir.
+//
+// The clone carries FULL history, not `--depth 1`. Token canon lives in this repo, so its dist/
+// history is the only evidence that a vendored member file is stale engine output rather than
+// member-authored content (see assets.enumerateTokenTargets). A shallow clone would silently
+// shrink that evidence set to one commit and turn recoverable files into permanent drift.
 //
 // Only invoked when at least one (post-filter) member has tokens enabled, so runs that don't
 // touch tokens never clone anything.
@@ -14,7 +19,7 @@
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { cloneShallow } from './git.mjs';
+import { cloneFull } from './git.mjs';
 
 const NOOP = () => {};
 
@@ -50,7 +55,7 @@ export function resolveStudioRoot(opts, manifest, token, { allowClone = true } =
 
   const tmp = mkdtempSync(join(tmpdir(), 'studio-tokens-'));
   try {
-    cloneShallow(sourceRepo, token, tmp);
+    cloneFull(sourceRepo, token, tmp);
   } catch (err) {
     rmSync(tmp, { recursive: true, force: true });
     throw err;

@@ -41,6 +41,18 @@ export function cloneShallow(repo, token, dest) {
   return git(['rev-parse', '--abbrev-ref', 'HEAD'], dest);
 }
 
+/**
+ * Clone a repo with its full history; returns the checked-out default branch name.
+ *
+ * Used for the token source repo, whose committed dist/ history is the only evidence that a
+ * vendored member file is stale engine output rather than member-authored content. A shallow
+ * clone would drop the blob that proves it, so recovery must not run against one.
+ */
+export function cloneFull(repo, token, dest) {
+  git(['clone', tokenUrl(repo, token), dest]);
+  return git(['rev-parse', '--abbrev-ref', 'HEAD'], dest);
+}
+
 export function createBranch(dest, branch) {
   git(['checkout', '-b', branch], dest);
 }

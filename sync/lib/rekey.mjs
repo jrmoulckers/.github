@@ -28,20 +28,34 @@
 // from one. Declining to decide is a decision, and a decision nothing surfaces cannot be acted
 // on by the human it was deferred to — so every declined match is returned in `ambiguous`.
 //
+// A bijective match is necessary but not sufficient. When a file already exists at the new path,
+// the orphaned baseline must also **describe the bytes there**: the entry moves only when the file
+// hashes to the `targetSha256` it records, which is proof the engine wrote that exact content. When
+// nothing is at the new path yet, the entry follows freely — the engine writes the file this run
+// and replaces the baseline with the truth, so no unproven claim can persist.
+//
+// That rule matters more than it looks. Moving a baseline onto a file it does not describe would
+// write a claim into the lock that is false on its face, and worse, it would convert an unrecorded
+// file — which first-sync recovery can still rescue from committed canon history — into a recorded
+// one, where a mismatch is by definition a local edit. The engine would be permanently unable to
+// repair a file it could otherwise have proven was its own stale output. An orphan that fails this
+// check keeps the ordinary prune/report treatment; nothing is invented for it.
+//
 // This module never touches files. Entries are moved and dropped; nothing outside the plan is
 // deleted from disk. An abandoned file left behind at an old base is a separate decision for a
 // human, and pruning its lock entry is deliberately conditioned on the file already being gone.
 //
-// The invariant behind that asymmetry, stated so it survives future edits: **reporting may look
-// at the disk; deciding may not.** Prune reports that a record describes nothing, so consulting
-// the filesystem is exactly right. Rekey decides where a baseline belongs, and its evidence is
-// the lock entry plus the plan — both of which survive a member deleting the abandoned tree.
-// Gating rekey on the old file's presence would therefore strand every entry whose base moved
-// after a cleanup, permanently, because a rekey is the only thing that carries a baseline across
-// a base move. See the cleanup-order test in `../test/rekey.test.mjs`.
+// The invariant behind that asymmetry, stated so it survives future edits: **the old path is
+// never evidence.** Prune reports that a record describes nothing, so consulting the filesystem
+// there is exactly right. Rekey decides where a baseline belongs, and its evidence is the lock
+// entry, the plan, and the bytes at the *new* path — all of which survive a member deleting the
+// abandoned tree. Gating rekey on the old file's presence would instead strand every entry whose
+// base moved after a cleanup, permanently, because a rekey is the only thing that carries a
+// baseline across a base move. See the cleanup-order test in `../test/rekey.test.mjs`.
 
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { hashText } from './lock.mjs';
 
 /**
  * Reconcile `entries` against the resolved plan.
@@ -62,6 +76,7 @@ export function reconcileLockKeys(memberRoot, writes, entries) {
 
   const rekeyed = [];
   for (const { from, to } of pairs) {
+    if (!baselineFits(memberRoot, to, next[from])) continue;
     next[to] = next[from];
     delete next[from];
     rekeyed.push({ from, targetPath: to });
@@ -115,6 +130,26 @@ function matchRelocations(writes, entries, orphans) {
     pairs.push({ from, to: targetPath });
   }
   return { pairs, ambiguous };
+}
+
+/**
+ * Whether `entry` may follow a file to `targetPath`.
+ *
+ * Yes when the file's bytes hash to the recorded `targetSha256` — proof the engine wrote exactly
+ * these bytes, merely at a different path. Yes, too, when nothing is there yet: the engine will
+ * write the file this run and overwrite the baseline with the truth, so no false claim survives.
+ * No when a file is present and hashes to something else — a stale copy or a hand-edit, neither of
+ * which the orphaned baseline describes.
+ */
+function baselineFits(memberRoot, targetPath, entry) {
+  const abs = join(memberRoot, ...targetPath.split('/'));
+  if (!existsSync(abs)) return true;
+  if (!entry?.targetSha256) return false;
+  try {
+    return hashText(readFileSync(abs, 'utf8')) === entry.targetSha256;
+  } catch {
+    return false;
+  }
 }
 
 /**
