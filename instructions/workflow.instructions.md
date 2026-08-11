@@ -192,6 +192,20 @@ a defect in this repository:
 reading YAML and check billing.** A green history proves nothing here, because the cap is reached
 by cumulative spend rather than by anything in the diff.
 
+That check is free but not always decisive — a single-job workflow presents identically under both
+causes. **`gh run view --log-failed` cannot separate them either; it returns `log not found` for
+both.** When the observation cannot decide, read the annotation, which survives even though the log
+does not:
+
+```bash
+gh run view <run-id> --json jobs --jq '.jobs[].databaseId'
+gh api repos/OWNER/REPO/check-runs/<check-run-id>/annotations
+```
+
+The billing refusal carries its `recent account payments have failed…` message there. A permissions
+failure does not. (Reported by `jrmoulckers/studio` from the live incident; the endpoint itself is
+verified, returning `[]` for a healthy run.)
+
 Non-Linux runners carry a minute multiplier — macOS bills at 10x and Windows at 2x — so adding a
 single macOS job can exhaust a budget that Linux jobs had comfortably fit inside. Budget for the
 multiplier when you add one, and prefer `ubuntu-latest` unless the job genuinely requires the

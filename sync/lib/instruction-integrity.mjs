@@ -152,6 +152,7 @@ function validateContent(byName, errors) {
         /jobs you did not touch failed[\s\S]{0,200}check billing/i,
         'no-log failure discriminator',
       ],
+      [/check-runs\/[^\s`]*\/annotations/i, 'no-log failure annotation fallback'],
     ],
     errors,
   );
