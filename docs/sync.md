@@ -574,6 +574,41 @@ while looking like the safe, canon-respecting choice. Resolve per tier:
 | Managed-region file | Per region: canon inside the `studio:base` markers, the default branch's content outside them. Prefer rebasing — the two sides usually touch different parts of the file and auto-merge correctly |
 | Member-owned file | Ordinary review; canon has no opinion |
 
+**A clean rebase is the case that needs checking, not the case that excuses it.** The revert this
+section warns about produces **no conflict marker** — the sides touch different regions, git merges
+them without complaint, and the member's trimmed content is restored to its pre-trim state silently.
+So "it rebased cleanly, no conflicts" is not evidence that member work survived; it is a description
+of the exact circumstance in which the loss goes unnoticed. Rebasing is still the right default. It
+just cannot be the last step.
+
+Assert the invariant instead, on the merge result, after **every** rebase rather than only the final
+one:
+
+```sh
+# 1. exactly one marker pair — a duplicated region is a merge artifact, not canon
+grep -c 'studio:base:start' <file>
+
+# 2. the managed region matches canon
+# 3. member content OUTSIDE the markers is byte-identical to the default branch
+```
+
+Two of the three are about content the merge should not have touched at all, which is the point: the
+failure is invisible in the region under review and only shows in the parts nobody is looking at.
+`jrmoulckers/finance` ran this after both of its rebases and reported a clean result — zero
+conflicts *and* a verified-intact trim, which are two independent facts rather than one.
+
+**Name the exact path when claiming an asset survived.** A near-miss during the first rollout turned
+on `high-contrast` versus `high-contrast-dark`: the filenames differ by one suffix, sort adjacently,
+and a substring search for the shorter one matches the longer. Reading a directory listing is where
+that goes wrong. Ask the tree for the exact token:
+
+```sh
+git ls-tree -r --name-only <ref> | grep '<exact-token>'
+```
+
+One call, no listing to misread, and it pairs with the file-level diff above rather than replacing
+it.
+
 The red flag is a canon PR showing changes to member-owned content **outside** the markers. Canon
 never authors outside them, so such a diff is stale base content, not an upstream change — and
 accepting it reverts whatever landed in the meantime. This is ordinary git staleness, not an engine
