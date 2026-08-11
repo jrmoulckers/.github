@@ -203,22 +203,37 @@ reading YAML and check billing.** A green history proves nothing here, because t
 by cumulative spend rather than by anything in the diff.
 
 That check is free but not always decisive — a single-job workflow presents identically under both
-causes. **`gh run view --log-failed` cannot separate them either; it returns `log not found` for
-both.** When the observation cannot decide, read the annotation, which survives even though the log
-does not:
+causes, and a live one did: the billing-refused run in the table below contained exactly **one**
+job, leaving the comparison with nothing to compare against.
+
+**`gh run view --log-failed` settles it, and it is the fastest route.** Both causes produce a
+`log not found`, but not the same one, because a permissions failure kills the run *before any job
+is created* while billing creates the job and then refuses to start it:
+
+| | Caller permissions | Spending limit |
+| --- | --- | --- |
+| `--log-failed` says | `failed to get run log: log not found` | `log not found: 93677247471` |
+| Jobs in the run | **0** | **1**, with `steps: 0` |
+| Failing check-runs | **0** | 1, `annotations_count: 1` |
+
+**The discriminator is whether the message carries an ID** — and that ID is exactly what the
+annotations endpoint needs, so the command that looks like a dead end hands over the key to the one
+that answers the question:
 
 ```bash
-# From a run
-gh run view <run-id> --json jobs --jq '.jobs[].databaseId'
-gh api repos/OWNER/REPO/check-runs/<check-run-id>/annotations --jq '.[].message'
-
-# From a pull request, which is usually where you are looking
-gh api repos/OWNER/REPO/commits/$(gh api repos/OWNER/REPO/pulls/<n> --jq .head.sha)/check-runs \
-  --jq '.check_runs[] | select(.conclusion=="failure") | .id'
+gh run view <run-id> --log-failed          # -> log not found: 93677247471
+gh api repos/OWNER/REPO/check-runs/93677247471/annotations --jq '.[].message'
 ```
 
 The billing refusal carries its `recent account payments have failed…` message there. A permissions
-failure does not. (The endpoint returns `[]` for a healthy run.)
+failure has no check-run to carry one. (The endpoint returns `[]` for a healthy run.)
+
+**Do not pin recognition to that wording.** The annotation has a structural signature that survives
+a rewrite, verified identical across three runs in two repositories: `path` is `.github` — not a
+real file, and its `blob_href` 404s — with `start_line` and `end_line` both `1`, null columns, and
+**both `title` and `raw_details` empty**, against a check-run whose `output.title` and
+`output.summary` are `null`. A genuine lint or test annotation populates at least one of those. *An
+annotation with no title, no details, and a path that is not a file* is the shape to look for.
 
 **Expect to misread this one, and know why.** An account-scoped fault strikes many repositories
 within minutes of each other, taking unrelated pull requests down with the sync engine's. That
