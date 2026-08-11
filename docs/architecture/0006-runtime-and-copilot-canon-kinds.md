@@ -409,6 +409,16 @@ would report it as drift forever.
   is not fresher records but recording the *query* instead of its result — note that a tip is needed
   here, not which tip it was.
 
+  The same rule governs expected values inside a check. An invariant shipped with a literal pasted
+  hash has the shelf life of whatever it hashes, and it fails in the worst available direction:
+  it reports drift in the one region nobody edited, sending the reader to look for a change that
+  never happened. A region digest quoted at one commit was already wrong by the time the member ran
+  it, because an intervening sync had legitimately replaced the region — the check was correct, its
+  constant was not, and nothing in the failure distinguishes those two cases. Assert the relationship
+  — *this region equals canon's body for that emission* — and compute the reference at run time.
+  Any expected value pasted rather than derived is a record of a moment wearing the costume of a
+  property.
+
   **A fix on a conditional path cannot reach the population that motivated it.** The prepend fix
   corrects placement only where no managed region exists yet, because replacement is deliberately
   in-place. So it makes every *future* adoption permanently correct and does nothing whatsoever for

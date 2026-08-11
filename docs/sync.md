@@ -884,6 +884,16 @@ and drop the stale sync commit entirely. The next scheduled run re-emits everyth
 `homelab` is the worked example — its `2026-08-09` PR carries one sync commit plus two authored ones
 (an asset-checker fix and a local policy trim), while its `2026-08-11` PR is pure canon.
 
+**Enumerate the member's other PRs before deciding the reduction, not before merging it.** The
+enumeration is usually filed as a pre-merge safety check, which puts it one step too late: what the
+older branch should be reduced *to* depends on what the newer wave already covers, so running the
+check at merge time can only confirm a decision that was made on incomplete information. `studio`
+merged `2026-08-09` ten minutes after `2026-08-11` and was unharmed, but only because the branch had
+already been reduced to a single member-authored hunk for the unrelated reason that it looked stale.
+Had the supersession analysis left one sync hunk in place, that hunk would have reverted the newer
+wave — clean, green, and with no conflict to raise the alarm. A safeguard that holds by coincidence
+of another decision is not a safeguard, and the near miss is the evidence, not the outcome.
+
 **Make the correct reference the cheap one.** The reason the sibling-branch comparison keeps getting
 made is not that anyone believes it is right — it is that both branches are local refs, so it needs no
 external lookup, while canon HEAD needs an API call against another repository. The wrong reference is
@@ -1065,6 +1075,26 @@ the population before iterating it, and say in the message that the check would 
 nothing. Where a genuine precondition exists, key the skip to the thing that *decides* whether the
 file is owed — the lockfile entry — and fail when the entry exists but the file does not, rather
 than keying it to the file's own presence.
+
+**Count marker *delimiters*, never marker names, and prescribe the engine's predicate rather than
+describing it.** `basemerge.mjs` matches `^<!-- studio:base:start -->[ \t]*$` against text whose
+fenced blocks have been masked, and both hardenings are there because the region's own body
+documents the convention it implements. Canon's `copilot-instructions.md` mentions
+`` `studio:base:start` `` in prose at line 44, so the bare name occurs **twice** in an emitted file
+while the delimiter occurs once — a check counting the name reports two marker pairs on every member
+in the fleet. The failure direction is the damaging one: "two pairs" reads as exactly the corruption
+such a check exists to catch, and the obvious remedy is to delete one, which means editing canon's
+own prose out of the managed region. Note also that *found the markers* and *found the region* are
+different successes, so a reader should hard-fail on inverted or missing markers rather than
+returning an empty region.
+
+The general point outlives the specific bug. This defect was not in the engine, which has been right
+about it for as long as the prose has existed; it was in a check specified to a member **in prose**,
+which silently re-derived a weaker predicate and dropped both hardenings. The rule for answering a
+report is to cite the artifact rather than explain it; the rule for *specifying* a check is the same
+one and it is stronger, because a re-derived predicate does not merely fail to convince — it ships,
+and it ships fleet-wide with the engine's accumulated corrections stripped out. Point at the exported
+function.
 
 **Audit that exposure with git's resolver, not with the region's position.** The obvious check —
 "the managed region should be the first non-empty line" — is itself keyed to the wrong unit, and it

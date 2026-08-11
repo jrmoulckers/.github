@@ -10,11 +10,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 import {
   extractBlock,
   buildFile,
   canonicalizeInner,
+  MARKERS,
   START_MARKER,
   END_MARKER,
 } from '../lib/basemerge.mjs';
@@ -198,4 +202,26 @@ test('a genuinely edited managed block is still drift, with a note when implausi
     );
     assert.match(report.drift[0].note, /stray studio:base markers/);
   });
+});
+
+// The real canon body, not a synthetic one. The synthetic cases above prove the reader
+// rejects a phantom block; only the shipped file proves it is pointed at the right thing.
+// canon's own prose quotes the bare marker names, so a check counting NAMES sees two
+// "pairs" on every member in the fleet while the delimiter occurs once. That reads as
+// corruption, and its obvious remedy is to delete canon's prose out of the managed region.
+test('canon quotes the marker names in prose, and only the delimiter form is counted', () => {
+  const canon = readFileSync(join(REPO_ROOT, 'copilot-instructions.md'), 'utf8');
+  const file = buildFile('', canon, MARKERS.html);
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  // Guard the premise: if canon stops documenting the convention this test proves nothing.
+  assert.match(canon, /studio:base:start/, 'canon must quote the marker name for this to mean anything');
+
+  assert.equal((file.match(/studio:base:start/g) ?? []).length, 2, 'bare name appears twice');
+  assert.equal(
+    (file.match(new RegExp('^' + esc(START_MARKER) + '[ \\t]*$', 'gm')) ?? []).length,
+    1,
+    'exactly one delimiter-anchored start marker',
+  );
+  assert.notEqual(extractBlock(file, MARKERS.html), null, 'the region still resolves');
 });
