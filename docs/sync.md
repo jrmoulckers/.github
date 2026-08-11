@@ -558,6 +558,24 @@ which stamp a file carries.
   boundary, and default freely afterwards**: this engine validates that `members` must be an array in
   `sync/lib/manifest.mjs` before any of its `?? []` sites run, which is why the same idiom is safe
   there. A default is safe exactly when something upstream has already refused the absent case.
+- **An error handler that returns empty is the same defect one register up, and defensiveness is
+  what makes it permanent.** The sibling above erases *absence*; this one erases *failure*. A
+  backbone session built a lookup for open sync PRs from other waves and had it degrade to `[]` on
+  any error — deliberately, so that a reporting nicety could never break a sync run. The query was
+  malformed and GitHub rejected it outright (`up to 505,050 possible nodes… exceeds the maximum limit
+  of 500,000`, at `--limit 50`; `49` passes, a 1% margin against a ceiling this repository does not
+  control). Because the handler answered `[]`, **"no other waves exist" and "I could not look" were
+  the same output**, so the feature would have reported all-clear forever, on every member, and
+  nothing would ever have failed.
+
+  Note where it came from: not carelessness, but a correct instinct to keep an accessory from
+  breaking the main job. **The defensiveness converted a transient failure into a permanent silence**,
+  and that is a property of the fallback's shape rather than of the bug behind it — any future error
+  in that path would have been swallowed identically. A subordinate feature may absolutely decline to
+  fail the run; what it may not do is report a *result* it did not obtain. Degrade to a distinct
+  third state — warn, or return a value that says *unknown* — so the run survives and the silence is
+  still audible. Audited here: every `catch` in `sync/lib/` either rethrows with context or records an
+  explicit failure on `runner.mjs`'s failure list; none answers with an empty success.
 
 Note that these exclusions are **whole-file even for managed-region targets**. `AGENTS.md` and
 `.github/copilot-instructions.md` are only partly canonical, but a formatter cannot be pointed at
@@ -1054,8 +1072,13 @@ So an older mixed branch should not be rebased and merged — it should be **red
 member-authored commits**, which is the only part of it the reference rule says is irreplaceable. In
 practice: merge the current wave's PR, then cherry-pick the authored commits onto the default branch
 and drop the stale sync commit entirely. The next scheduled run re-emits everything it removed.
-`homelab` is the worked example — its `2026-08-09` PR carries one sync commit plus two authored ones
-(an asset-checker fix and a local policy trim), while its `2026-08-11` PR is pure canon.
+`homelab` is the worked example — its `2026-08-09` PR carries one sync commit plus several
+member-authored ones, while its `2026-08-11` PR is pure canon. **That sentence deliberately does not
+state how many.** It said "two" when written and the branch has since accumulated a third, because an
+undrained wave keeps taking commits for as long as it stays open: any count of them written into
+prose has a shelf life equal to the drainage delay, and the example decayed by the exact mechanism it
+exists to describe. The number is worth knowing at the moment someone is about to merge such a
+branch, which is why the engine reports it per run rather than a paragraph carrying it.
 
 **This is a queue-drainage property, not a property of any member.** Any repository that accumulates
 two open sync PRs has it, and the precondition is ordinary rather than exotic: a fleet sweep found
