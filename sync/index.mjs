@@ -332,6 +332,16 @@ function printReport(report) {
       log.warn('    ⚠️ AGENTS.md was NOT updated — this member has no current base guide.');
     }
   }
+  if (report.abandoned?.length) {
+    // Left on disk, and the plan no longer names them, so they are frozen at whatever the last
+    // run that did target them wrote. Saying so is the only thing that ever triggers the manual
+    // cleanup procedure — and after a rekey the lock no longer records them either.
+    log.warn(`    ⚠️ still present but no longer synced: ${report.abandoned.length}`);
+    for (const item of report.abandoned) {
+      log.warn(`        ${item.targetPath}${item.tracked ? '' : ' (no lock entry — nothing records this file)'}`);
+    }
+    log.warn('        These are never updated again. See "Deselection cleanup" in sync/README.md.');
+  }
   const status = report.changed
     ? 'changes pending'
     : report.hasDrift

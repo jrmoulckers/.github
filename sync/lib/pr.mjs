@@ -179,6 +179,32 @@ export function buildPrBody(report, { date, intro } = {}) {
     for (const item of report.drift) lines.push(`- \`${item.targetPath}\``);
   }
 
+  if (report.abandoned?.length) {
+    lines.push('');
+    lines.push(`### 📌 Still present but no longer synced (${report.abandoned.length})`);
+    lines.push('');
+    lines.push(
+      'The plan no longer targets these paths — usually because a kind was deselected or a ' +
+        '`targetPath` moved. The engine does not prune, so the files were **not** deleted. ' +
+        'Nothing here is broken by this PR.',
+    );
+    lines.push('');
+    lines.push(
+      'What matters is that they are now **frozen**: no future sync will update them, so they keep ' +
+        'whatever the last run that did target them wrote — including defects fixed upstream since. ' +
+        'Where a lock entry was relocated to the new base, the file left behind is no longer ' +
+        'recorded anywhere, which makes it easier to miss, not harder. Removing them is a separate, ' +
+        'hash-verified cleanup; see "Deselection cleanup is manual and hash-verified" in ' +
+        '`sync/README.md`.',
+    );
+    lines.push('');
+    for (const item of report.abandoned) {
+      lines.push(
+        `- \`${item.targetPath}\`${item.tracked ? '' : ' — no lock entry; verify against history before deleting'}`,
+      );
+    }
+  }
+
   lines.push('');
   lines.push('---');
   lines.push(

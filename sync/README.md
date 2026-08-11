@@ -365,6 +365,34 @@ The engine does not prune. A file omitted from a new selection is absent from th
 existing consumer file **and stale `.studio-sync.lock.json` entry remain untouched**. A later sync
 neither deletes the file nor removes that lock entry.
 
+**Changing a `targetPath` is a deselection of every path under the old base.** The section above
+covers what happens to the lock *entries*; this is about the *files*. Reconciliation moves a
+baseline or drops a dead one, but it never deletes anything from disk, so a file written under an
+abandoned base stays exactly where it is. No current plan names it, so no run will update it again:
+it is frozen at whatever the last run that did target it wrote, including defects fixed upstream
+afterwards.
+
+`jrmoulckers/finance` is again the worked example, and the sharp end of it. A sync resolving canon
+from before the retarget wrote the native token files to the *old* base, after the move had already
+relocated everything else. Those two files carry the pre-#121 HTML comment syntax that Kotlin and
+Swift cannot parse — and finance is the only `kmp-web` member, so it is the one repository in the
+fleet with a toolchain that compiles them.
+
+**Abandoned paths are reported, not pruned.** `apply()` returns `report.abandoned` — every file
+still on disk that the current plan no longer targets — and it appears in both the CLI output and
+the sync PR body. It is deliberately *not* counted as drift: it does not fail a run, set `hasDrift`,
+or gate a PR, because it is the expected state mid-transition and only a human can resolve it.
+
+Each entry records whether a lock entry still covers it, because that decides how it can be cleaned
+up. An orphan that was left alone keeps its baseline, so the hash-verified procedure below applies
+unchanged. A file whose entry was **rekeyed** to the new base has no lock record at all — the
+baseline followed the plan, correctly, but nothing now attests to the abandoned copy. Reconciliation
+therefore makes that file *less* visible than it was, which is precisely why it has to be named:
+verify it against repository history rather than the lockfile before deleting it.
+
+Reporting rather than deleting is the same judgement `excluded` was given: pruning files means
+writing outside the current plan, and a mechanism that can delete outside its plan can be wrong
+outside its plan. The report supplies the trigger; the human supplies the deletion.
 After this instruction-profile change, later consumer work must make these exact transitions:
 
 | Member | Add through sync | Remove through hash-verified consumer cleanup |
