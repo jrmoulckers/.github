@@ -294,6 +294,21 @@ would report it as drift forever.
   familiarity, not gaps in knowledge. Where a rule can be made mechanical — a test, a required
   command, a check that fails loudly — that is worth more than another paragraph here.
 
+  **A broken check fails clean.** Sharper than the above, and the reason this consequence keeps
+  earning entries. A fleet sweep for attribute damage was written, run, and returned no findings. It
+  was inoperative: shell-quoting defects meant one revision of it compared CR-terminated paths that
+  match no pattern, and the next never resolved the parent ref at all. Both produced an empty diff,
+  which is the same output a genuinely clean fleet produces. The bugs were found only because one
+  member was a *known positive* and its known damage failed to appear.
+
+  So a negative result carries information only from a check that has been shown capable of returning
+  a positive one. The rule is cheap and mechanical: **keep a known-bad fixture and run the check
+  against it first.** Note the direction of the failure — of the three defects, the two that produced
+  reassurance were nearly shipped as a second false all-clear an hour after the first was corrected,
+  while the third produced false alarms and was caught immediately. A check is far more dangerous
+  when its bugs are silent than when they are noisy, which is worth weighing when choosing how a
+  check reports.
+
   **Status of this consequence: promising, not established.** Every instance was found by one
   rollout, and the diagnostic above has so far only been validated by the people who wrote it.
   Recorded because the reasoning is cheap to apply and the failure it prevents is expensive — not
