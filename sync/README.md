@@ -701,6 +701,45 @@ across a Windows checkout will disagree with this check and the check is the one
 Vendored tokens pass their own `note`, so audit those with the same `note` the copier uses or they
 will all read as drift.
 
+#### The whole-file recipe reports false drift on managed-region targets
+
+The check above compares whole files, so it is wrong for the three managed-merge targets
+(`AGENTS.md`, `.github/copilot-instructions.md`, `.gitattributes`). Those files are spliced, not
+copied: the engine writes only the marker-delimited *inner* and deliberately preserves whatever the
+member has outside it. `rendered === member` is therefore **false for every correctly-synced managed
+target**, because the member legitimately holds local content the rendered canon never contained.
+
+That is the same false-positive class this section exists to prevent, so reduce the member side to
+its region before comparing:
+
+```js
+import { inject } from './sync/lib/provenance.mjs';
+import { canonicalizeInner, extractBlock, markersFor } from './sync/lib/basemerge.mjs';
+
+const target = '.gitattributes';
+const expected = canonicalizeInner(inject(target, readFileSync(target, 'utf8')));
+const actual = extractBlock(readFileSync(`<member>/${target}`, 'utf8'), markersFor(target));
+expected === actual;   // true → unchanged;  false → the region is rewritten next sync
+```
+
+Two properties of the region are easy to get wrong when reconstructing one by hand:
+
+- **The provenance line belongs inside the markers.** `assets.mjs` applies `inject()` to the inner
+  before the merge, so a header placed above `# studio:base:start` does not match.
+- **Canon's own explanatory comments are part of the region.** For `.gitattributes` that is the two
+  comment lines above the rule. A region holding only the marker pair and `* text=auto eol=lf` is
+  not the engine's output.
+
+Neither mismatch breaks anything — `findBlock()` still matches on the markers and replaces the
+region in place — but the sync is an `update`, not the no-op it looks like. If all you need is that
+answer, ask the engine instead of reconstructing bytes:
+
+```bash
+node sync/index.mjs --dry-run --members <name> --work-dir <path-to-member-checkout>
+```
+
+`unchanged` means the next real run leaves the file alone; `update` means it rewrites the region.
+
 ## PR flow
 
 For each member with changes the tool clones (shallow), checks out `studio-sync/<YYYY-MM-DD>`,
