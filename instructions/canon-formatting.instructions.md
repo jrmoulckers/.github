@@ -157,8 +157,9 @@ which stamp a file carries.
 
 - **Absence at a remembered location has at least two causes, and the confirming evidence is the
   same for both.** Chasing that same trigger, the member searched `sync/lib/copier.mjs` for
-  `canonicalizeInner`, found nothing, briefly read it as a removal, then saw the import at
-  `copier.mjs:32` and concluded it had been refactored into `basemerge.mjs`. The conclusion — *this
+  `canonicalizeInner`, found nothing, briefly read it as a removal, then saw it in the
+  `./basemerge.mjs` import list at the top of `copier.mjs` and concluded it had been refactored into
+  `basemerge.mjs`. The conclusion — *this
   change does not reach me* — was right. The story was invented: `git log -S "function
   canonicalizeInner" -- sync/lib/copier.mjs` returns nothing at all, because it was defined in
   `basemerge.mjs` by the engine's first commit `5f18f19` and has never lived anywhere else. There

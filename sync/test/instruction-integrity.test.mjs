@@ -155,3 +155,51 @@ test('every heading citation in canon resolves to a real heading', () => {
   // still reporting `pass`.
   assert.ok(citations > 0, 'no heading citations discovered — this check would assert nothing');
 });
+
+// Member-facing instructions must address code by name, not by position: a line number decays
+// silently while the prose around it stays true, so the reader has no trigger to re-check. The
+// motivating instance cited `copier.mjs:217-218` for `hashText(rendered)`, which had moved to 240.
+//
+// docs/ and sync/README.md are deliberately out of scope. Neither is in any canon kind, so they
+// reach no member, and docs/sync.md is where the rule itself is argued -- it has to be able to quote
+// the bad form as an example. That is the same hazard as canon quoting `studio:base:start` in prose
+// while the marker check counts only the delimiter form.
+test('member-facing instructions cite code by name, not by line number', () => {
+  const dir = join(REPO_ROOT, 'instructions');
+  const files = readdirSync(dir).filter((name) => name.endsWith('.instructions.md'));
+
+  // A citation is a backticked source file followed by a line or line range.
+  const CITATION = /`[A-Za-z0-9_./-]+\.(?:mjs|js|json|ya?ml)*:\d+(?:-\d+)?`/g;
+
+  // The expected count is zero, so the detector has to be shown capable of returning the other
+  // answer. A pattern that matches nothing passes this test perfectly while checking nothing.
+  assert.deepEqual('see `copier.mjs:217-218` and `assets.mjs:131`'.match(CITATION), [
+    '`copier.mjs:217-218`',
+    '`assets.mjs:131`',
+  ]);
+
+  assert.ok(files.length > 0, 'no instruction files discovered — this check would assert nothing');
+
+  for (const name of files) {
+    const lines = readFileSync(join(dir, name), 'utf8').replace(/\r\n/g, '\n').split('\n');
+
+    // Fenced examples are excluded on the same reasoning as the heading-citation check above: a
+    // block quoting a coordinate is showing one, not relying on one.
+    let inFence = false;
+    const prose = [];
+    for (const line of lines) {
+      if (/^\s*(```|~~~)/.test(line)) {
+        inFence = !inFence;
+        continue;
+      }
+      if (!inFence) prose.push(line);
+    }
+
+    const found = prose.join('\n').match(CITATION) ?? [];
+    assert.deepEqual(
+      found,
+      [],
+      `instructions/${name}: cites ${found.join(', ')} by line number; name the function or symbol instead`,
+    );
+  }
+});
