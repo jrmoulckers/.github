@@ -737,6 +737,35 @@ canon twelve minutes after its author had withdrawn it — **a retraction that c
 indistinguishable from one that was never sent**, and the cost is paid by whoever acts on the stale
 half.
 
+### Cite by name, and resolve the name as a heading
+
+Prefer a section name over a line range when pointing at any document. A line number is invalidated by
+an edit made **above** it — an act that is correct, unrelated, elsewhere, and produces no diff at the
+citation site, no conflict, no failing check, and no notification to anyone holding the reference. A
+name survives edits above it and degrades to a search rather than to silence.
+
+But a name only helps if it names a **structural element**. `§ X` asserts that X is a heading; a
+plain text search confirms only that those characters occur somewhere, and returns the same answer
+whether the match is a heading, a bold lead-in, a table cell, or a line inside a fenced block. So
+**resolve a cited name with a heading-anchored pattern (`^#{1,6}\s`) that masks fenced blocks, not
+with a substring search.** The negative result is the informative one: a name that appears but is not
+a heading is exactly the case a substring search reports as success.
+
+This is not hypothetical. A citation in canon named a section that had never existed at any revision —
+the string was real, at the line reported, but it was **bold paragraph text**, which gets no anchor
+and so fails as both a heading scan and an in-page link. Two readers validated it independently, both
+by content, both landed on the correct line, and both were wrong about what kind of thing was there.
+
+Two failure modes, and checking for one does not check the other:
+
+- **Stale line number** — right-shaped, wrong-valued. It resolves, to the wrong place.
+- **Name that is not a heading** — fresh, wrong-shaped. It never resolved, and the obvious check
+  reports success.
+
+Both are the same mistake at different levels: reading Markdown as flat text rather than as
+structure. Whichever form you use, **quote a sentence from the target**, because quoted content
+self-verifies against the reader's copy and a coordinate of either kind does not.
+
 ### Reporting a defect in canon from a repo that holds a synced copy
 
 You hold a copy of these instructions at `.github/instructions/`, and it is **generated, not
