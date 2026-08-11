@@ -983,9 +983,66 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/prbody.test.mjs` | An adoption-only run's PR body says its entire diff is the lockfile, and does not claim that when the run also wrote files (including via `--force`). The drift note states that `--force` is run-wide, offers the by-hand remedy first, and neither appears when the run has no drift. |
 | `test/workdir.test.mjs` | `--work-dir` guards: a parent directory, a missing path and a file are all rejected; a git worktree (whose `.git` is a file) is accepted; identity resolves to `match` / `mismatch` / `unverifiable` across URL spellings and case, both failing verdicts abort, the refusal names the self-certifying lockfile, and `--allow-unverified-work-dir` overrides them without ever marking a matching checkout as overridden. |
 | `test/cli-workdir.test.mjs` | The same guards **through the CLI**: every operation — apply, `--check`, `--dry-run` — exits 1 on a wrong or absent origin; refused and fact-verification failures leave no file or lockfile; the override flag says what it suppressed; dry-run reports mode and zero-write members; checkout facts are verified before the sync lock is read or applied. |
+| `test/agent-integrity.test.mjs` | Canonical agent roster validity: names, uniqueness, required sections and handoff references fail together with clear paths; manifest parity and canonical skill/prompt references are enforced; an explicit member roster must reference canon or declare a local replacement, and must declare its skills while prompt mentions stay optional. |
+| `test/prompt-integrity.test.mjs` | Canonical prompt roster validity: schema, names, dependencies, placeholders and `gh` fields fail with clear paths; selected prompts require their declared canonical agents; integer and agent-list parameters require defaults and positive bounds; bare lists and malformed interpolation delimiters are rejected. |
+| `test/prompt-safety.test.mjs` | Prompt authority: branch-mutating prompts prove ownership before isolation or mutation; cleanup audits before authority-gated targeted mutation; fleet prompts enforce bounded applicable local routing; Homelab receives only its audited conservative subset. |
+| `test/prompts.test.mjs` | Every canon listing command bounds its own page size — plus a self-check that the sweep detects an unbounded listing when one is present, and that it actually reads the canon asset directories rather than passing on an empty set. |
+| `test/member-count.test.mjs` | No documentation surface states a member count that disagrees with `studio.config.json` — plus a self-check that the phrasings it looks for are the ones that actually appear. Added after five documents said "nine members" against a manifest of eleven and the weekly sync failed five times. |
+| `test/readme-tests.test.mjs` | Every `test/*.test.mjs` on disk appears in the table above, so a new suite cannot be added silently. |
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs the suite plus an offline
 `--dry-run` on every PR.
+
+That table is pinned by `test/readme-tests.test.mjs`: every `test/*.test.mjs` on disk must appear in
+it. A hand-maintained list beside a directory that enumerates the same thing drifts, and it drifted
+here — five suites were missing when the check was added, including `member-count.test.mjs`, which
+exists only because five documents said "nine members" against a manifest of eleven.
+
+### Mutation testing proves non-vacuity, not fidelity
+
+Every feature in this engine ships with its tests proven non-vacuous by mutation: break the code
+deliberately, confirm a test fails, restore, confirm no residue. Keep doing it. But be exact about
+what it establishes, because the procedure is reassuring out of proportion to its reach.
+
+**A mutation shows the code does what the test says. Nothing in it asks whether the test describes
+the state the world is in.** The two failures look identical from inside the suite — green, with a
+mutation table underneath.
+
+The worked instance is #186/#187, which added `report.abandoned` and shipped a false negative on
+**the exact case its own PR body named as the motivation**: `jrmoulckers/finance`'s two orphaned
+native token files. That PR had four mutations, each restored and residue-checked, and passing tests
+for both shapes it claimed to cover. All of it was true. The fixtures encoded the shape finance was
+*believed* to have, and the mutations confirmed, rigorously, that the belief had been implemented.
+Rebuilding finance's actual reported state and running `apply()` against it returned `abandoned=0` on
+the first attempt. #194/#197 fixed it.
+
+So the review-time rule is mechanical rather than a matter of judgement:
+
+> **If a PR body names a real member state as its motivation, a test must reconstruct that state.**
+> Naming the case is the trigger. A synthetic fixture "of that shape" is the thing being warned
+> about, not a substitute for it.
+
+**And confirm the mutation actually mutated.** Writing these two README assertions, the first
+mutation run reported *both* as vacuous. They were not — the harness was. The mutation was applied
+from PowerShell with the file content in a quoted string, and the backticks that make a code span out
+of a suite name in the table above are PowerShell's escape character, so the search string never
+matched and the file was rewritten unchanged. A no-op mutation is indistinguishable from a vacuous
+test: both report *pass*. This is the same mechanism as `--stdin` CRLF silently emptying the
+`check-attr` sweep in #203, one level up — the tool you verify **with** needs verifying too. Prefer
+mutating through something that does not re-quote the content (edit the file, or change the state
+the assertion reads), and treat an unexpected "vacuous" verdict as a claim about the harness until
+the diff proves otherwise.
+
+The second assertion earned itself immediately: the paragraph above originally used an invented
+`test/…` filename as an illustration, and the check failed on it in the first full-suite run — a
+citation naming a suite that does not exist, introduced by the very PR that added the check. That is
+better evidence than either deliberate mutation, because nobody arranged it.
+
+This is the sibling of *"a broken check fails clean"* ([#203](../docs/sync.md)), with the source of
+confidence moved: there, a check ran and its output was wrong, so there was a result to distrust.
+Here no reality check ran at all, because a sound argument for correctness was mistaken for an
+argument that verification was unnecessary. The countermeasure is earlier and cheaper than keeping a
+known-positive fixture — it is refusing to let the motivating case go untested.
 
 ## Profile mirror caveat
 
