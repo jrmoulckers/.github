@@ -609,6 +609,41 @@ up with the region below your rules is to place it there by hand, and the engine
 > old position keeps it until a human moves it. Silently reordering lines in a file the member owns
 > is the failure this placement rule exists to prevent, so the engine will not do it unasked.
 
+#### A region that has lost precedence is reported — `report.outranked`
+
+Not relocating it means the state is permanent, so `apply()` names it instead. `report.outranked`
+lists every member rule that canon's `*` overrides from above, and it is printed by the CLI and
+rendered as a table in the sync PR body. `jrmoulckers/homelab`'s `studio-sync/2026-08-10` branch is
+a real instance rather than a hypothetical: `git check-attr text -- house.glb` reads `unset`
+against the member's own file and `auto` against that branch — a `.glb` handed to git's content
+heuristic because a region below `*.glb binary` re-enables text detection.
+
+**The check is precedence, not position.** "Is the region the first rule in the file" is the
+obvious test and it is wrong on the real fleet in both directions:
+
+| Member | Above the region | Position says | Git says |
+| --- | --- | --- | --- |
+| `finance` | a comment block | violation | fine — comments carry no precedence |
+| `docket` | a rule byte-identical to canon | violation | fine — it overrides a value to itself |
+| `homelab` (sync branch) | `*.glb binary` | violation | **violation** — `text` flips `unset` → `auto` |
+
+So what is compared is *values*: a rule is reported only when canon's `*` sets an attribute to
+something different from what an earlier line already resolved it to. `binary` expands to
+`text: unset, diff: unset`; `-x` is unset, `!x` unspecified, `x=v` is `v`, bare `x` is set. Against
+every member file that currently carries a region, this reports zero.
+
+Only `.gitattributes` can produce this report. Markdown targets append by design, and nothing in a
+Markdown file resolves by position — the guard is explicit in `outrankedRules()`, and the invariant
+that makes it currently redundant (canon's Markdown carries no line parsing as a universal
+attribute rule) is asserted by a test, so if canon ever gains one the guard becomes load-bearing
+and the suite says so rather than silently starting to report.
+
+To confirm a finding by hand, ask git rather than reading the file:
+
+```bash
+git check-attr text -- <path>   # in the member checkout, on the branch in question
+```
+
 **A hand-seeded region is never byte-identical to what the engine writes.** The provenance line is
 added by `inject()` when the spec is built, so it is absent from the canonical source that a person
 copies from — omitting it is a property of the procedure, not a mistake. Two members pre-seeded and

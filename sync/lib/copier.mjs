@@ -57,6 +57,7 @@ export function apply(memberRoot, writes, lock, opts = {}) {
     adopted: [],
     rekeyed: reconciled.rekeyed,
     pruned: reconciled.pruned,
+    outranked: [],
   };
 
   for (const spec of writes) {
@@ -65,6 +66,7 @@ export function apply(memberRoot, writes, lock, opts = {}) {
         ? planManaged(memberRoot, spec, entries, force)
         : planFile(memberRoot, spec, entries, force);
     const item = { targetPath: spec.targetPath, kind: spec.kind, name: spec.name };
+    if (res.outranks?.length) report.outranked.push({ ...item, rules: res.outranks });
 
     switch (res.action) {
       case 'add':
@@ -253,13 +255,97 @@ function planManaged(memberRoot, spec, entries, force) {
     return { action: 'add', newContent: buildFile(existing, inner, markers), newEntry };
   }
   const currentHash = hashText(currentInner);
+  const outranks = outrankedRules(existing, markers, spec.targetPath);
   if (isLocallyModified(entries[spec.targetPath], currentHash, renderedHash)) {
     return force
-      ? { action: 'forced', newContent: buildFile(existing, inner, markers), newEntry }
-      : { action: 'drift', note: suspectBlockNote(spec.targetPath, currentInner, inner) };
+      ? { action: 'forced', newContent: buildFile(existing, inner, markers), newEntry, outranks }
+      : { action: 'drift', note: suspectBlockNote(spec.targetPath, currentInner, inner), outranks };
   }
-  if (currentHash === renderedHash) return { action: 'unchanged', newEntry };
-  return { action: 'update', newContent: buildFile(existing, inner, markers), newEntry };
+  if (currentHash === renderedHash) return { action: 'unchanged', newEntry, outranks };
+  return { action: 'update', newContent: buildFile(existing, inner, markers), newEntry, outranks };
+}
+
+/**
+ * Member rules that canon's region silently overrides because the region sits after them.
+ *
+ * Only meaningful for `prepend` targets. In `.gitattributes` the *last* matching pattern wins and
+ * canon's `*` matches every path, so a region below a member's rules outranks all of them. A
+ * member that marks `*.glb binary` — shorthand for `-text -diff`, *never inspect this file* — has
+ * that flipped to `text: auto`, handing a binary asset to git's content heuristic. That is the
+ * corruption ADR-0011 exists to prevent, and it is the one case where the engine's own output is
+ * worse than doing nothing.
+ *
+ * `buildFile` prepends, so the engine never creates this. It is reachable two ways: a region
+ * placed by hand, or one written by a sync that predates the placement fix. Both are permanent,
+ * because an existing region is replaced in place and never relocated — deliberately, since
+ * silently reordering a file the member owns is its own failure. So nothing repairs this and,
+ * until now, nothing reported it either.
+ *
+ * Detection is by *precedence*, not position. Position is a lossy proxy: a comment above the
+ * region carries no precedence at all, and a rule byte-identical to canon overrides a value to
+ * itself. Both read as violations if you check "is the region first" and neither is one. What
+ * matters is whether an earlier line sets an attribute canon's `*` then resets — so that is what
+ * is checked, and only those lines are named.
+ */
+function outrankedRules(existing, markers, targetPath) {
+  if (markers.placement !== 'prepend') return [];
+  const start = existing.indexOf(markers.start);
+  if (start <= 0) return [];
+
+  const canonAttrs = canonAttributeValues(existing, markers);
+  if (!canonAttrs.size) return [];
+
+  const outranked = [];
+  for (const raw of existing.slice(0, start).split('\n')) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue; // comments carry no precedence
+    const [pattern, ...attrs] = line.split(/\s+/);
+    const lost = [];
+    for (const [name, value] of attributeValues(attrs)) {
+      // A rule canon resets to the value it already had loses nothing. This is the case that
+      // makes position a lossy proxy: a member repeating canon's own stanza reads as a violation
+      // by position and is not one by precedence.
+      if (canonAttrs.has(name) && canonAttrs.get(name) !== value) lost.push(name);
+    }
+    if (lost.length) outranked.push({ pattern, line, attributes: [...new Set(lost)] });
+  }
+  return outranked;
+}
+
+/** Attribute values canon's universal (`*`) rules set inside the managed region. */
+function canonAttributeValues(existing, markers) {
+  const values = new Map();
+  for (const raw of (extractBlock(existing, markers) ?? '').split('\n')) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const [pattern, ...attrs] = line.split(/\s+/);
+    if (pattern !== '*') continue; // only a universal pattern outranks everything beneath it
+    for (const [name, value] of attributeValues(attrs)) values.set(name, value);
+  }
+  return values;
+}
+
+/**
+ * Resolve attribute tokens to git's own value vocabulary, so comparison is on what git decides
+ * rather than on how it was spelled. `binary` is a macro for `-text -diff`.
+ */
+function attributeValues(tokens) {
+  const out = [];
+  for (const token of tokens) {
+    if (token === 'binary') {
+      out.push(['text', 'unset'], ['diff', 'unset']);
+    } else if (token.startsWith('-')) {
+      out.push([token.slice(1), 'unset']);
+    } else if (token.startsWith('!')) {
+      out.push([token.slice(1), 'unspecified']);
+    } else if (token.includes('=')) {
+      const [name, ...rest] = token.split('=');
+      out.push([name, rest.join('=')]);
+    } else {
+      out.push([token, 'set']);
+    }
+  }
+  return out;
 }
 
 /**

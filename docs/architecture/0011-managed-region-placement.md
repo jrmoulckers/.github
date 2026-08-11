@@ -127,6 +127,24 @@ the first sync writes the correct bytes — but it means **a pre-seeded region i
 sync, not a no-op.** Do not read "I copied canon faithfully" as evidence of sync-cleanliness; the
 one line that distinguishes them is the one copying cannot supply. See #180.
 
+**A region already in the wrong position is now reported.** The engine prepends, so it never
+creates this state, and it replaces an existing region in place rather than relocating it — so a
+region placed below member rules by hand, or written by a sync predating this decision, is
+permanent. `jrmoulckers/homelab`'s `studio-sync/2026-08-10` branch is a live example: `git
+check-attr text -- house.glb` reads `unset` against the member's own file and `auto` against that
+branch, which is precisely the corruption the `binary` case above describes.
+
+`apply()` therefore returns `report.outranked`, naming each member rule canon's `*` overrides, in
+the CLI output and the sync PR body. It reports rather than relocates, consistent with the rule
+above: silently reordering a file the member owns is the failure this ADR exists to prevent, and
+that does not stop being true when the engine is confident.
+
+**Detection is by precedence, not position.** Checking "is the region first" produces false
+positives on the real fleet — `finance` has a comment block above its region, and comments carry no
+precedence; `docket`'s rule above its region is byte-identical to canon, so the override sets a
+value to itself. Both look like violations by position and neither is one. What is checked is
+whether an earlier line sets an attribute to a value canon then *changes*, which is what git
+resolves. Measured against every member file carrying a region, that reports zero.
 **Audit rather than infer.** The reliable check is empirical: run `git check-attr` on a
 representative file in a member before and after its first sync. Reasoning from the rendered text
 is what allowed this defect to ship, because the text looked right in both orderings. For whether a

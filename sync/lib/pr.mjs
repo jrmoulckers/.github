@@ -179,6 +179,35 @@ export function buildPrBody(report, { date, intro } = {}) {
     for (const item of report.drift) lines.push(`- \`${item.targetPath}\``);
   }
 
+  if (report.outranked?.length) {
+    lines.push('');
+    lines.push('### ⚠️ The managed region is losing precedence to your own rules');
+    lines.push('');
+    lines.push(
+      'In `.gitattributes` the **last** matching pattern wins, and canon\'s `*` matches every path. ' +
+        'The managed region here sits *below* rules of yours, so canon silently overrides them. ' +
+        'The engine did not put it there — it prepends — but it replaces an existing region in ' +
+        'place and never relocates it, so **this does not fix itself**.',
+    );
+    lines.push('');
+    for (const file of report.outranked) {
+      lines.push(`\`${file.targetPath}\` — ${file.rules.length} rule(s) overridden:`);
+      lines.push('');
+      lines.push('| Your rule | Attribute lost |');
+      lines.push('| --- | --- |');
+      for (const rule of file.rules) {
+        lines.push(`| \`${rule.line}\` | \`${rule.attributes.join('`, `')}\` |`);
+      }
+      lines.push('');
+    }
+    lines.push(
+      'A `binary` rule losing `text` is the serious one: `binary` means *never inspect this file*, ' +
+        'so overriding it hands an asset to git\'s content heuristic and to EOL conversion. ' +
+        '**Move the region above these rules by hand before merging.** Verify with ' +
+        '`git check-attr text -- <a matching file>`: it should not read `text: auto`. See ADR-0011.',
+    );
+  }
+
   if (report.abandoned?.length) {
     lines.push('');
     lines.push(`### 📌 Still present but no longer synced (${report.abandoned.length})`);
