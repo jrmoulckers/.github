@@ -60,6 +60,25 @@ test('--force with --members is accepted by argument parsing', () => {
   assert.equal(code, 0, `a scoped forced dry run should plan cleanly, got:\n${out}`);
 });
 
+test('a forced run names the files it overwrote, rather than only counting them', () => {
+  // Every *skipped* file is printed by name; forcing was reported as a bare integer. That is the
+  // asymmetry under test, and it ran the wrong way: a skip is reversible and re-announces itself
+  // on the next run, while a forced write destroys member-authored content once. A count also
+  // cannot separate re-asserting a known baseline from a first-ever overwrite — the distinction
+  // the operator authorizing the run is actually deciding on.
+  const source = readFileSync(CLI, 'utf8');
+  assert.match(
+    source,
+    /for \(const item of report\.forced\)\s*log\.info\(/,
+    'printReport must iterate report.forced and emit each targetPath, not just its length',
+  );
+
+  // Non-vacuity: proves the file really is being read and that the count-only helper still exists
+  // for the buckets where a count is the right unit. Without this, an empty or wrong path would
+  // fail the assertion above for a reason that has nothing to do with the property.
+  assert.match(source, /line\('unchanged', report\.unchanged\)/, 'the count-only helper is still in use');
+});
+
 test('the sync workflow can dispatch a forced run, and refuses an unscoped one', () => {
   const yml = readFileSync(WORKFLOW, 'utf8');
 

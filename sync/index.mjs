@@ -408,7 +408,15 @@ function printReport(report) {
   line('added', report.added);
   line('updated', report.updated);
   line('unchanged', report.unchanged);
-  line('force-updated', report.forced);
+  // Named, not counted. Forcing is the only action in a run that destroys member-authored work,
+  // and it was the one reported as a bare integer while every *skipped* file was listed by name —
+  // the reversible outcome legible and the irreversible one not. A count also cannot separate
+  // re-asserting a known baseline from overwriting something canon never delivered, which is the
+  // distinction an operator authorizing the run is actually deciding on.
+  if (report.forced?.length) {
+    log.info(`    force-updated: ${report.forced.length}`);
+    for (const item of report.forced) log.info(`        ${item.targetPath}`);
+  }
   line('baselined (lock only)', report.adopted);
   line('relocated in lockfile', report.rekeyed);
   line('stale lock entries removed', report.pruned);
