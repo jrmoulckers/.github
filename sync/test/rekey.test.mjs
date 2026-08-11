@@ -196,6 +196,45 @@ test('a root-level managed target is never rekeyed onto some other path', () => 
   });
 });
 
+test('rekeying is unaffected by whether the abandoned files were already deleted', () => {
+  // Cleanup-before-rekey. A member may delete the old tree by hand before the sync that moves
+  // its lock entries — finance did exactly this. If matching consulted the filesystem, deleting
+  // the evidence first would strand every entry at the abandoned base with no later run able to
+  // recover them, because a rekey is the only thing that carries a baseline across a base move.
+  const reconcile = (populateOldBase) =>
+    withTmp((root) => {
+      const { lock, writes } = relocatedMember(root);
+      if (populateOldBase) {
+        for (const rel of RELOCATED) {
+          write(root, `${OLD_BASE}/${rel}`, inject(`${OLD_BASE}/${rel}`, oldDist(rel), { note: NOTE }));
+        }
+      }
+      const { entries, rekeyed, pruned } = reconcileLockKeys(root, writes, lock.entries);
+      return {
+        keys: Object.keys(entries).sort(),
+        rekeyed: rekeyed.map((r) => `${r.from} -> ${r.targetPath}`).sort(),
+        pruned: pruned.map((p) => p.targetPath).sort(),
+      };
+    });
+
+  const deletedFirst = reconcile(false);
+  const stillPresent = reconcile(true);
+
+  assert.deepEqual(
+    deletedFirst,
+    stillPresent,
+    'reconciliation must key on the lock and the plan, never on what survives on disk',
+  );
+  assert.equal(deletedFirst.rekeyed.length, RELOCATED.length, 'every relocated entry rekeys');
+  assert.deepEqual(deletedFirst.pruned, [], 'a rekeyed entry is moved, never pruned');
+  for (const rel of RELOCATED) {
+    assert.ok(
+      deletedFirst.keys.includes(`${NEW_BASE}/${rel}`),
+      `${rel} must end up keyed at the new base`,
+    );
+  }
+});
+
 test('a steady-state run rekeys nothing and prunes nothing', () => {
   withTmp((root) => {
     const writes = RELOCATED.map((rel) => tokenSpec(rel));
