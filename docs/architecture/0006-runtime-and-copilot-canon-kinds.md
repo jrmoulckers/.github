@@ -399,6 +399,16 @@ would report it as drift forever.
   history, `git fetch && git log HEAD..origin/main` is a command not yet run, and the reachable check
   displaced the informative one *repeatedly* precisely because it kept coming back green.
 
+  A narrower rule sits underneath all of this: **some facts should never be recorded at all, only
+  re-read.** A branch tip is a moment rather than a property, so writing one into durable state — a
+  status table, a tracking issue, a summary — converts something instantaneously true into something
+  that reads as an attribute of the repository. The record does not merely expire; it was a category
+  error when written, because the thing recorded was never the kind of fact that persists. Both
+  sessions in one exchange did this: one reported a tip in good faith, the other stored it, and it
+  was stale within minutes for reasons neither could have prevented by being more careful. The fix
+  is not fresher records but recording the *query* instead of its result — note that a tip is needed
+  here, not which tip it was.
+
   **A fix on a conditional path cannot reach the population that motivated it.** The prepend fix
   corrects placement only where no managed region exists yet, because replacement is deliberately
   in-place. So it makes every *future* adoption permanently correct and does nothing whatsoever for
