@@ -275,6 +275,25 @@ would report it as drift forever.
   attempt would, not less. Where an authority can answer the question directly, ask it: `git
   check-attr` settles precedence in the terms the damage occurs in.
 
+  **A snapshot cannot distinguish "never broken" from "already fixed".** The read-side twin has a
+  temporal form that is worth separating out, because it produced the most confident wrong claim of
+  the rollout. A fleet audit for a known defect returned clean and was reported as zero exposure. One
+  member had in fact merged the defect and repaired it sixty-six minutes earlier, and a second was
+  carrying it in an open PR that the audit's hand-assembled set did not include. Every byte the audit
+  read was current and correct. The claim varied over the *process* — what has happened, what is
+  pending — and the query was keyed to a *moment*. The usable tell: **an audit whose only outcomes are
+  "clean" and "found it" is answering about a state, not a process**, and is therefore silent about
+  both the damage already repaired and the damage not yet landed, which mid-rollout are the two
+  states that matter.
+
+  **Knowing the rule does not prevent breaking it.** The same audit enumerated the pull requests it
+  already knew about rather than querying what was open — the precise error recorded above as the
+  read-side twin, filed as an issue hours earlier by the author of the audit, after another session
+  made it. Documenting a rule is therefore not sufficient to prevent its violation, and this ADR
+  should not be read as if it were: these are failure modes that recur under time pressure and
+  familiarity, not gaps in knowledge. Where a rule can be made mechanical — a test, a required
+  command, a check that fails loudly — that is worth more than another paragraph here.
+
   **Status of this consequence: promising, not established.** Every instance was found by one
   rollout, and the diagnostic above has so far only been validated by the people who wrote it.
   Recorded because the reasoning is cheap to apply and the failure it prevents is expensive — not
