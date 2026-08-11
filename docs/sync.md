@@ -2213,6 +2213,21 @@ the alternative is not a single source of truth — it is a dangling pointer. If
 genuinely unacceptable, the fix is upstream: promote the section to a distributed instructions file,
 and only then may the member delete its copy and cite it.
 
+**The sharper form of the same boundary: decide which half of canon a correction belongs in before
+recording it.** The rule above covers *pointing* at this document. It does not cover *writing the
+correction here* while the distributed instructions go on asserting the thing that was refuted —
+which is worse than a dangling pointer, because nobody is pointed anywhere and nothing indicates a
+correction exists. The readers governed by the rule keep the false rule **and** lose the chance of
+rediscovery, because the question now looks settled to everyone who can see the analysis.
+
+This has happened twice in consecutive messages, so treat it as the default failure rather than an
+edge case. Distributed canon asserted that quoted content self-verifies for as long as it took
+someone to argue the opposite point; the correction had been recorded here the whole time. In the
+next exchange, the only positive recommendation the locator argument produced — that a range degrades
+more gracefully than a point — was likewise recorded here and absent from the file that actually
+governs citation. **After landing any correction, ask what the distributed half now says about the
+same subject**, and treat "the analysis is fixed" as only half the work.
+
 ### What belongs in the member's own region
 
 Everything above concerns the *managed* region. The region **outside** the markers is the part

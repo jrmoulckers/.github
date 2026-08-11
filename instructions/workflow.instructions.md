@@ -868,6 +868,14 @@ an edit made **above** it — an act that is correct, unrelated, elsewhere, and 
 citation site, no conflict, no failing check, and no notification to anyone holding the reference. A
 name survives edits above it and degrades to a search rather than to silence.
 
+When a coordinate is used anyway, **prefer a range to a point**. The ordering is `name > range >
+point`: a range absorbs drift up to its own width, so it keeps resolving after an edit above it that
+would leave a point resolving to the wrong place. Measured on a real case, a passage cited as
+`785-803` sat at `785`, moved to `794` a revision later — still inside the range, still correct — and
+had left the range entirely by the revision after that. So a range **buys revisions, not
+permanence**. It degrades gracefully rather than immediately, which is a genuine advantage over a
+point and is not immunity; it does not make a coordinate durable, and it does not displace the name.
+
 But a name only helps if it names a **structural element**. `§ X` asserts that X is a heading; a
 plain text search confirms only that those characters occur somewhere, and returns the same answer
 whether the match is a heading, a bold lead-in, a table cell, or a line inside a fenced block. So
