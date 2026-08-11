@@ -29,6 +29,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -41,6 +42,7 @@ import { apply } from '../lib/copier.mjs';
 import { hashText, readLock } from '../lib/lock.mjs';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), 'fixtures');
 const manifest = loadManifest(REPO_ROOT);
 
 function attributesSpec() {
@@ -597,6 +599,54 @@ test('a rule canon resets to the value it already had loses nothing', () => {
     writeFileSync(join(root, '.gitattributes'), regionBelow(spec, '* text=auto eol=lf\n'), 'utf8');
     const { report } = apply(root, [spec], readLock(root, 'jrmoulckers/.github'), { write: false });
     assert.deepEqual(report.outranked, [], 'overriding a value to itself is not a loss');
+  });
+});
+
+test('the branch that motivated the detector, byte for byte', () => {
+  withTmp((root) => {
+    // #254. The three tests above are hand-written shapes, and #216 is the case where a
+    // mutation-proven suite still missed the member its own PR body named. This one is not a
+    // shape: it is jrmoulckers/homelab's `.gitattributes` at `studio-sync/2026-08-10`, the ref
+    // that motivated #202, committed verbatim.
+    const real = readFileSync(join(FIXTURES, 'homelab-2026-08-10.gitattributes.txt'), 'utf8');
+
+    // A fixture copied from a real artifact is only evidence while it is still that artifact.
+    // Git's blob id is content-addressed, so this is checkable against the branch by anyone:
+    //   gh api repos/jrmoulckers/homelab/contents/.gitattributes?ref=studio-sync/2026-08-10 --jq .sha
+    const blob = createHash('sha1').update(`blob ${Buffer.byteLength(real)}\0`).update(real).digest('hex');
+    assert.equal(blob, '2f2e28c7b3b93a0955ba5c1521358a17aa1f1dcb', 'fixture must still be homelab-s blob');
+
+    writeFileSync(join(root, '.gitattributes'), real, 'utf8');
+    const git = (args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
+    git(['init', '-q', '.']);
+
+    // Precondition, through git rather than our own parser: the model whose header looks
+    // text-like is handed to EOL conversion, which is the corruption the member's rule prevents.
+    assert.match(git(['check-attr', 'text', '--', 'house.glb']), /text: auto/);
+
+    const { report } = apply(root, [attributesSpec()], readLock(root, 'jrmoulckers/.github'), { write: false });
+    assert.equal(report.outranked.length, 1);
+    const [file] = report.outranked;
+
+    // Recall: every rule the region outranks, both kinds. `binary` is text UNSET and the six
+    // explicit rules are text SET; canon's `*` flips both to `auto`, so both are real losses.
+    assert.deepEqual(
+      file.rules.map((rule) => rule.pattern),
+      [
+        '*.yml', '*.yaml', '*.conf', '*.xml', '*.sh', '*.md',
+        '*.glb', '*.png', '*.jpg', '*.jpeg', '*.gif', '*.webp', '*.ico', '*.pdf',
+        '*.zip', '*.gz', '*.tgz', '*.woff', '*.woff2', '*.ttf', '*.otf',
+      ],
+    );
+
+    // Precision, and the reason this file beats three synthetic ones: homelab's own first rule is
+    // `* text=auto eol=lf`, byte-identical to canon. The docket false positive is present INLINE,
+    // alongside 21 genuine losses, so the fixture proves the detector separates them in one pass.
+    assert.equal(
+      file.rules.some((rule) => rule.pattern === '*'),
+      false,
+      "the member's own `* text=auto eol=lf` is overridden to the value it already had",
+    );
   });
 });
 
