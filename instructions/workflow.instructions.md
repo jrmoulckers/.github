@@ -174,19 +174,37 @@ Rules:
 
 ### A no-log failure is not always a permissions problem
 
-The permissions trap above is not the only way a run dies in seconds with an empty log. On a
-**private** repository, exhausting the Actions spending limit refuses the run before any job
-starts, with `recent account payments have failed or your spending limit needs to be increased`.
-Standard runners are free on public repositories, so this cannot happen there — but
-**GitHub-hosted larger runners are billed on public repositories too**, so a repo being public
-only rules the cause out while it sticks to standard runners.
+The permissions trap above is not the only way a run dies in seconds with an empty log. Exhausting
+the Actions spending limit refuses the run before any job starts, with `recent account payments have
+failed or your spending limit needs to be increased`.
 
-**In a fleet, check repository visibility first — it is free and it is a control, not a hint.**
-If the failing repos are all private while public ones stay green, the cause is account-scoped
-billing. The reasoning is not the correlation; it is that neither a sync-distributed defect nor a
-bad caller `permissions:` block cares whether a repository is public, so **the public repos
-staying green falsifies every repository-side hypothesis at once.** A live incident split the
-twelve studio repos exactly along that line, six green and six failing.
+**This is not confined to private repositories, and canon claimed otherwise until a member falsified
+it.** The earlier text here said standard runners are free on public repositories so the refusal
+cannot happen there. `jrmoulckers/studio` is public — `"private": false` — and run `31437443369` on
+`2026-08-10T22:14:21Z` was refused with that exact annotation on **9 of 9 jobs**, every one of them on
+`ubuntu-latest`, `windows-latest` or `macos-latest`. No larger runners involved. The claim was
+falsifiable, was load-bearing, and was false.
+
+**Do not replace it with a narrower exemption.** The failure mode was never the specific claim; it
+was having *any* rule that lets a reader skip the check. The annotation fetch discriminates both
+causes outright and costs two API calls, so it needs no precondition at all. A reader on a public
+repo who prunes billing by construction goes hunting for a `permissions:` defect in a workflow that
+is correct — and canon's own framing, that only one of the two causes is a defect in this repository,
+sends them to search the branch that has none. **Repository visibility is prior likelihood. It is
+never a gate.**
+
+**In a fleet, check visibility because it is cheap, but resolve with the annotation.** The
+correlation is genuine — a live incident split the twelve studio repos six green and six failing,
+close to the visibility line — and the reason it is *only* a correlation is that the refusal does not
+lift uniformly. Same account, same night: studio (public) was refused at 22:14Z and green again by
+23:47Z, while `jrmoulckers/homelab` (private) was still being refused at 06:15Z, seven hours later.
+So a green public repo does not falsify a repository-side hypothesis, and a sibling's recovery
+licenses no inference about a repo that has not been re-run. **Each repository's own annotation is
+the only evidence about that repository.**
+
+A recovered repo is also not a control group. Studio spent the night looking like one, and the
+correct reading is the more informative one: it did not lack the condition, it left it early. That
+makes it a data point about the *scope* of a lift rather than a permanently uninformative baseline.
 
 Discriminate before investigating, because the two look nearly identical and only one of them is
 a defect in this repository:
@@ -194,9 +212,15 @@ a defect in this repository:
 | | Caller permissions | Spending limit |
 | --- | --- | --- |
 | What failed | Only the job that `uses:` the callee | **Every** job in the run, including untouched ones |
-| Scope | One repository | The **account** — every private repo at once |
+| Scope | One repository | The **account** — but observed lifting at different times per repository |
 | Triggered by | Adding or narrowing a `permissions:` block | Adding an expensive runner, or simply reaching the monthly cap |
 | Fixed in | The workflow file | Billing settings — nothing in the repository is wrong |
+
+**Read `steps: 0` as a relation, not a count.** Healthy runs contain zero-step jobs routinely — a
+skipped `security / Dependency review` is one — so studio's green runs carry one or two of them while
+its refused run carried nine. The discriminator is that **every** job in the run is at zero, and even
+that is only a symptom: the annotation is the evidence. A shorthand quoting the bare number does not
+survive being repeated by someone who does not have the annotation in front of them.
 
 **Check the run summary next: if jobs you did not touch failed alongside the one you did, stop
 reading YAML and check billing.** A green history proves nothing here, because the cap is reached
