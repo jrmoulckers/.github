@@ -274,6 +274,34 @@ confident absence. Note this is not the exact-phrase rule: it is a correct exact
 against a corpus that structurally cannot contain the phrase, which no amount of care in composing
 the query will fix.
 
+**Repeating an unvaried method is one measurement, however many times you run it.** A correspondent
+had probed a blocked pipeline thirteen times and reported thirteen agreeing readings; every one was
+the same command against the same run id, the same trigger, the same branch. Agreement across
+identical inputs is arithmetic, not corroboration, and it certifies a hypothesis the method cannot
+distinguish — here, that *replayed* runs are refused while fresh ones would schedule. They found the
+gap themselves and closed it, and the closing evidence had been **free and already in the repository
+all day**: runs created by other sessions, one listing away, a population they had not thought of as
+theirs. Before adding another repetition, ask which input would have to differ for the new reading
+to be worth more than the last, and look for an existing population that already varies it.
+
+**Vary along an axis the system actually has.** That same table labelled its rows `rerun`,
+`pull_request` and `push` as three trigger types. The API reports the first as `event=pull_request`:
+a rerun replays an existing run object and does not change its event, so the table showed three
+categories where the data model has two. The conclusion survived — the population did vary, on
+*fresh versus replayed* and on event — but a reader reconciling it against the API finds a mismatch
+in the exact dimension being varied. Name the axis in the vocabulary of the system being measured,
+or the variation cannot be checked.
+
+**A boundary measured on one side is not a boundary.** Verifying that work, this session bracketed
+the outage to a forty-minute window: the last successful run, then eighteen consecutive
+zero-step failures after it, none with an executed step. The figure was clean, the window was
+crisp, and it was about to be published. The control — sampling failures from *before* the boundary
+— refuted it: six of ten were the same zero-step signature, the oldest twelve days earlier, with
+ordinary failures executing five to ten steps interleaved between them. The outage is **episodic**,
+and the "onset" was an artifact of only ever looking forward. A one-sided extremum always exists;
+what makes it a boundary is that the other side differs, and that is a separate measurement nobody
+is prompted to take, because the first one already produced a satisfying number.
+
 **A control that cannot fire at all scores perfectly and reports nothing.** A refusal predicate
 requiring `steps == 0` was censused against ordinary CI failures and returned no false positives —
 but an ordinary failing job has run steps, so the two populations never overlap and that score holds
