@@ -680,6 +680,27 @@ would report it as drift forever.
   made them worth citing together — as against the two-sessions-running-the-same-command case
   recorded further up, which produces perfect agreement and no information.
 
+  **The strongest case for the relation is a quantity that cannot have a correct constant at all.**
+  A member's classifier looked for the provenance stamp in the first eight lines of a file. Read as a
+  mistuned constant, the repair is a bigger window; that reading is wrong, and the bigger window is
+  the *plausible* fix that leaves the defect alive. The stamp's position is a function of frontmatter
+  length, which is author-controlled and unbounded — measured across 56 emitted canon files it ranged
+  from line 1 to line 26 with no gap in the distribution, and a window of 8 saw 21 of them. Any
+  constant that passes today becomes a latent recurrence the first time someone writes a longer
+  `description:`. The invariant underneath is exact and needs no tuning ever: **the stamp is the line
+  immediately following the frontmatter, or line 1 when there is none.** That is not an observed
+  regularity but a guarantee of the emitter — `injectAfterFrontmatter` in `sync/lib/provenance.mjs`
+  splices the comment at `i + 1` where `lines[i]` is the closing `---`, so it holds for files that do
+  not exist yet, which no measurement can establish.
+
+  Two properties of this case are worth carrying. First, it is the preference above arriving
+  prospectively rather than retrospectively: the rule was recorded before this defect was diagnosed
+  and would have prevented it, which is the strongest thing that can be said for a written rule.
+  Second, the two instruments here measured **different populations** — canon stores these bodies
+  unwrapped, so scanning the sources in this repository finds zero stamped files and says nothing,
+  while the member-side measurement finds 56. A correct instrument pointed at the wrong population
+  returns a confident, uninformative answer; the emitter was the only source that answered for both.
+
   **Replacing a coarse unit with a fine one can discard the question the coarse unit answered.**
   The documented repair for a wrong-unit check is to ask the authority directly instead of a proxy,
   and that is right as far as it goes — but the proxy is often coarse rather than simply wrong, and
