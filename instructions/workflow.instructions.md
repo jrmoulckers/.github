@@ -1180,8 +1180,9 @@ question.
 **Non-empty is necessary and not sufficient: the surviving assertion must be load-bearing for the
 same fault.** A residual that tests a different property leaves the exemption exactly as open as an
 empty one, while looking safe. The engine supplies the instance. A member's content hash is the
-obvious residual to lean on — but `assets.mjs:131` sets `content: inject(targetPath, raw)` and
-`copier.mjs:217-218` records `hashText(rendered)` into the lock, so **the hash's reference is the
+obvious residual to lean on — but `enumerateTokenTargets` in `assets.mjs` sets
+`content: inject(targetPath, raw)` and `planFile` in `copier.mjs` records `hashText(rendered)` into
+the lock, so **the hash's reference is the
 engine's own output.** It detects a member drifting from what the engine produced and is structurally
 incapable of detecting the engine producing the wrong thing. When the frontmatter emitter injected a
 stamp *inside* a YAML block scalar, the defective output would have been hashed into the lock,
