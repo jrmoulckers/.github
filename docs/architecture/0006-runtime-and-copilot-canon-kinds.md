@@ -172,6 +172,20 @@ would report it as drift forever.
   correct?" but **"what is the finest unit this property varies over, and did I go all the way
   there?"** Nothing announces stopping one level short, because the check goes green.
 
+  **The pattern has a read-side twin: a correct query answering the wrong question.** Every instance
+  above is a *rule* keyed to the wrong unit, but the same shape appears when gathering evidence, and
+  it is harder to catch because nothing is broken. Reading a three-dot diff to decide whether a file
+  exists on the base, or looking up a known list of PR numbers to decide what is open, are both
+  queries that return entirely accurate data about a unit adjacent to the one in question. Deltas
+  answer "what changes"; sets of known identifiers answer "what is the state of these". Neither
+  answers "what exists". Two sessions made exactly these two errors during the first fleet rollout,
+  within an hour of each other, and both produced confident, fully-evidenced, wrong conclusions —
+  one concluded a file was newly created when the branch appended to an existing one, another
+  concluded a PR did not exist because it was outside the set queried. The diagnostic transfers:
+  when a conclusion rests on a query, ask what unit the query is actually keyed to, and whether the
+  claim varies over that unit or a different one. The tell is that verification feels unnecessary
+  because the data was real.
+
   **Status of this consequence: promising, not established.** Every instance was found by one
   rollout, and the diagnostic above has so far only been validated by the people who wrote it. It
   earns its place the first time someone outside that group hits a red check, applies it, and reaches
