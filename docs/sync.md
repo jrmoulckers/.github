@@ -557,17 +557,37 @@ The portable core is therefore a script, and its shape matters more than its fil
 exempt explicitly, fail closed.** A grep fails *open* — a newly added binary produces noise, and
 noise is skimmed rather than acted on, so the check quietly trains dismissal while continuing to
 pass. An allowlist fails *closed* — a newly added binary breaks the build until a human puts it on
-the list. `studio`'s guard is correct for this reason rather than by foresight, and the reason is
-one line of it:
+the list.
 
-```js
-// Deliberately empty. An entry here is a decision, not a default.
-const ALLOWED_BINARY = new Set();
-```
+**This section previously held up `studio`'s allowlist as the exemplar, and `studio` has since
+deleted it.** The recommended line was `const ALLOWED_BINARY = new Set()`, annotated *"deliberately
+empty. An entry here is a decision, not a default."* Confirmed absent at
+`jrmoulckers/studio@37e1271`, blob `6478b157` of `scripts/validate-text-classification.mjs`: the set
+is gone and the classification is computed from the bytes. Two lessons, and the second is the one
+worth carrying.
 
-Use the conjunction above as the body, an explicit allowlist as the only exemption, and a non-zero
-exit on anything unlisted. The bare grep survives as a **candidate list** — a useful first look, and
-not a check, because it cannot be green.
+**An exemption list that stays empty is evidence the question was empirical all along.** The set was
+not disciplined, it was unused — nothing was ever exempted because no case ever required a human
+decision, and a decision point that never has to decide is a computation waiting to be written. So
+the earlier rule *allowlist by explicit declaration, never by inference* is not repealed; it is
+bounded. It governs which **kind** of list to keep once you need one, and this governs whether you
+need one: **compute the question the bytes can answer, and reserve the declared list for the
+question they cannot.** Here that split is exact — *is this file binary* is answerable from the
+presence of a NUL byte, whereas *does canon's provenance comment survive in this format* is a
+property of the format's conventions and must be declared.
+
+**And a guard inherits its population from the repository it runs in, so it can be green for
+free.** That allowlist's pass was vacuous: the conjunction can only fire on a file classified
+binary, and `studio` tracks none, so no input could reach the exemption branch and the guard scored
+perfectly against an empty set. This is the *control that cannot fire* defect relocated from the
+control to the **subject** population, which is harder to see because nothing about the guard looks
+untested — it runs, it passes, it is wired into CI. Have such a check report how many files it
+classified, so a green with a population of zero is distinguishable from a green with something in
+it, and pair it with a fixture supplying the inputs the repository does not.
+
+Use the conjunction above as the body, an explicit allowlist as the only exemption **for the
+declarative half**, and a non-zero exit on anything unlisted. The bare grep survives as a
+**candidate list** — a useful first look, and not a check, because it cannot be green.
 
 Members with generated or vendored output should run that in CI rather than re-deriving a bespoke
 classifier; the mechanism is git's, not the repository's, so the check does not need to be.
