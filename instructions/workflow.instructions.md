@@ -1428,6 +1428,31 @@ after it lands. libro's blocked `#37` was generated at `04:27:21Z`; the authorsh
 merged at `11:21:19Z`, and its `AGENTS.md` blob contains neither. Merging it would have closed the PR
 and left that gap intact.
 
+**And from the hub, a distribution defect and ordinary lag are indistinguishable.** Both present as
+the same observation: *the member's copy lacks the correction.* One never heals and needs
+intervention; the other resolves itself on the next run. I diagnosed the first when the truth was the
+second — a member was missing a rule that had been repaired, and I attributed it to the correction
+landing in a surface the member does not receive. Measured afterwards, the entire section postdated
+that member's last sync by about ten hours. **They had never held the refuted rule at all.**
+
+The reason this cannot be fixed by looking harder is that the disambiguating fact does not exist on
+the hub. Canon knows what it shipped and when it fixed something; it does not know when any given
+member last took delivery. That is recorded only in the member's own `.studio-sync.lock.json`, as
+`syncedAt` and `targetSha256` — one call, on the other side of the boundary. So the hub is
+structurally unable to tell the two apart at any level of care, while the member answers it
+immediately.
+
+Two consequences. **When you cannot see the member's lock, do not name a cause** — report the
+observation ("this correction is absent from your copy") and ask for `syncedAt`, because the
+diagnosis you would otherwise reach converts a self-correcting condition into a defect and aims a
+fix at working code. And **when you are the member, volunteer the lock fields unasked**; you are the
+only party who can close the question, and the cost is one call against a diagnosis that is
+otherwise unreachable.
+
+Generally: **before diagnosing across a boundary, ask which side holds the fact that would
+discriminate.** Where it is the other side's, no amount of care on yours substitutes for asking —
+and the failure is invisible because both hypotheses fit everything you can see.
+
 That is worth stating because the merge is the point where the gap stops being visible. While the PR
 is open it is a tracked reminder that you are behind; afterwards there is nothing to look at, and a
 green merged sync PR reads to everyone downstream as *this member is current*. So after merging a wave
