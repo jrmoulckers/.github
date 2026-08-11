@@ -1883,6 +1883,22 @@ nothing prompts you to revisit. **After withdrawing a claim, search for the pass
 offered as proof of it** — they do not mention the claim by name and will not surface in a search for
 it.
 
+**And keep the withdrawn claim's own wording inside the withdrawal.** The sentence above retains
+*two readers, one file, two disagreeing coordinates and one agreeing locator* on purpose. Delete the
+wording and a reader who remembers the claim searches for it, finds nothing, and concludes the entry
+was **never there** rather than that it was retracted — absence is not a distinguishable state, so a
+clean deletion makes the retraction invisible to precisely the reader who needs it.
+
+The aggravating case is who that reader is. **Whoever searches for a withdrawn claim's phrase is
+usually whoever acted on it** — they remember the wording because they used it — so the population
+that most needs the retraction is the one a tidy deletion serves worst, and it fails silently for
+them, because a zero-hit search reads as a settled question.
+
+This is also load-bearing for a procedure canon publishes. Members are told to search the exact
+phrase, not its topic, when checking whether a rule reached them; that instrument cannot separate
+*never existed* from *deleted on retraction*. So deleting a withdrawn claim's words does not merely
+lose history, it degrades a check the fleet is instructed to run.
+
 So the earlier split — paths are namespace-free, numbers are not — is too coarse, because
 `docs/sync.md:785` is a path *and* a number, and only the path half survives:
 
