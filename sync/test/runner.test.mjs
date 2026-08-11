@@ -145,7 +145,56 @@ test('the summary is actually wired to the CI surface', () => {
   const source = readFileSync(new URL('../index.mjs', import.meta.url), 'utf8');
   assert.match(source, /renderRunSummary/, 'index.mjs must render the summary');
   assert.match(source, /GITHUB_STEP_SUMMARY/, 'index.mjs must write it where Actions surfaces it');
-  assert.match(source, /publishRunSummary\(outcomes\)/, 'runSync must publish before returning');
+  assert.match(source, /publishRunSummary\(outcomes, opts, manifest, 'sync'\)/, 'runSync must publish before returning');
+});
+
+test('a dry run says so, so a green badge cannot read as delivery', () => {
+  // The observed failure: a dispatched `--dry-run --members studio` produced a green check on a
+  // workflow named "Studio sync", and a careful reader concluded from the run list that the
+  // transport was healthy. It had written nothing and contacted no repository. The green bit is
+  // more dangerous than the red one precisely because it is trusted.
+  const summary = renderRunSummary([{ repo: 'o/studio', status: '59 file(s) would be written' }], {
+    mode: 'dry-run',
+    members: ['o/studio'],
+    fleetSize: 11,
+  });
+
+  assert.match(summary, /DRY RUN/);
+  assert.match(summary, /Nothing was written/);
+  assert.match(summary, /no pull request was opened/);
+  // Scope must be stated in the same breath: "1 of 1 succeeded" is true and useless.
+  assert.match(summary, /1 of 11 member\(s\): o\/studio/);
+});
+
+test('a filtered run cannot pass for a complete one', () => {
+  const filtered = renderRunSummary([{ repo: 'o/a', status: 'opened' }], {
+    mode: 'sync',
+    members: ['o/a'],
+    fleetSize: 11,
+  });
+  const full = renderRunSummary([{ repo: 'o/a', status: 'opened' }], {
+    mode: 'sync',
+    fleetSize: 1,
+  });
+
+  assert.match(filtered, /1 of 11 member\(s\)/);
+  assert.match(full, /all 1 member\(s\)/);
+  assert.notEqual(filtered, full);
+  // A real sync carries no caveat; only the modes that wrote nothing do.
+  assert.doesNotMatch(full, /Nothing was written/);
+});
+
+test('every mode publishes a summary, not only the writing one', () => {
+  // runDryRun and runWorkDir previously returned without publishing anything, which is how the
+  // no-op run came to have no durable record of being a no-op.
+  const source = readFileSync(new URL('../index.mjs', import.meta.url), 'utf8');
+  for (const mode of ['sync', 'dry-run', 'work-dir']) {
+    assert.match(
+      source,
+      new RegExp(`publishRunSummary\\([\\s\\S]{0,400}'${mode}'`),
+      `the ${mode} path must publish a summary`,
+    );
+  }
 });
 
 test('drift warnings name every exact skipped file', () => {

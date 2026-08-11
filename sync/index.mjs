@@ -187,6 +187,15 @@ function runDryRun(plans, opts, manifest, backboneRoot, date) {
     out(`  ${profile.repo}:${profile.write.targetPath}  ⟵ profile/README.md`);
   }
   out('\nDry run complete — no files written and no network operations performed.');
+  publishRunSummary(
+    plans.map(({ resolved, targets }) => ({
+      repo: resolved.repo,
+      status: `${targets.writes.length} file(s) would be written`,
+    })),
+    opts,
+    manifest,
+    'dry-run',
+  );
   return 0;
 }
 
@@ -205,6 +214,12 @@ function runWorkDir(plans, opts, manifest, date) {
   const { report } = apply(opts.workDir, targets.writes, lock, { force: opts.force, write });
   log.step(`${resolved.repo} → ${opts.workDir}${write ? '' : '  (dry-run: no writes)'}`);
   printReport(report);
+  publishRunSummary(
+    [{ repo: resolved.repo, status: write ? 'applied to local checkout' : 'inspected (no writes)' }],
+    opts,
+    manifest,
+    'work-dir',
+  );
   return 0;
 }
 
@@ -297,7 +312,7 @@ function runSync(plans, opts, manifest, token, date) {
   } else {
     log.info('Profile mirror skipped (member filter active).');
   }
-  publishRunSummary(outcomes);
+  publishRunSummary(outcomes, opts, manifest, 'sync');
   log.info(`${outcomes.filter((o) => o.status !== 'failed').length} of ${outcomes.length} target(s) succeeded.`);
   if (failures.length) {
     log.error(`${failures.length} of ${outcomes.length} target(s) failed:`);
@@ -313,11 +328,18 @@ function runSync(plans, opts, manifest, token, date) {
  * Best-effort by design: a summary that cannot be written must never fail a sync that otherwise
  * succeeded, and outside Actions there is no file to write to at all.
  */
-function publishRunSummary(outcomes) {
+function publishRunSummary(outcomes, opts, manifest, mode) {
   const path = process.env.GITHUB_STEP_SUMMARY;
-  if (!path || !outcomes.length) return;
+  if (!path) return;
   try {
-    appendFileSync(path, renderRunSummary(outcomes));
+    appendFileSync(
+      path,
+      renderRunSummary(outcomes, {
+        mode,
+        members: opts.members,
+        fleetSize: manifest.members.length,
+      }),
+    );
   } catch (err) {
     log.warn(`could not write run summary — ${err.message}`);
   }
