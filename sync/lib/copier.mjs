@@ -472,11 +472,20 @@ function isSupersededEngineOutput(lockEntry, currentHash, spec) {
  * `revisionsBehind` is the magnitude: how many distinct versions canon has published since the one
  * the member last received. It is the number that grows, and growth is what separates a file
  * frozen out of updates from one customised on purpose, which sits at zero forever. `null` means
- * the question is unanswerable rather than zero — no baseline, or a baseline describing content
- * that appears nowhere in the source's history — and unanswerable must not read as "up to date".
+ * the question is unanswerable rather than zero — a baseline describing content that appears
+ * nowhere in the source's history — and unanswerable must not read as "up to date".
+ *
+ * Having *no* baseline is a third thing, and it is answerable: the member has received zero of the
+ * versions canon published, so the answer is all of them. Reporting that as `null` was the original
+ * shape and it was silent for the worst class of file — an unrecorded target cannot self-heal,
+ * because both recovery paths require a hash match and neither mints a baseline for content
+ * matching nothing. Every file that *can* recover got a growing number; the permanently stuck ones
+ * printed nothing. See `neverReceived`.
  */
 function withholdingState(lockEntry, spec) {
-  if (!lockEntry) return { withheld: true, lastWrittenAt: null, revisionsBehind: null };
+  if (!lockEntry) {
+    return { withheld: true, lastWrittenAt: null, revisionsBehind: neverReceived(spec) };
+  }
   return {
     withheld: lockEntry.sourceSha256 !== spec.sourceSha256,
     lastWrittenAt: lockEntry.syncedAt ?? null,
@@ -494,6 +503,23 @@ function revisionsBehind(lockEntry, spec) {
   if (!revisions?.length || !lockEntry.sourceSha256) return null;
   const index = revisions.indexOf(lockEntry.sourceSha256);
   return index < 0 ? null : index;
+}
+
+/**
+ * Magnitude for a target the member has never received: the whole published history.
+ *
+ * This keeps the same index semantics as the recorded case rather than inventing a scale. A member
+ * holding the oldest version sits at index `length - 1` and is that many behind, so "holds none of
+ * them" is `length` — exactly one past the oldest, and monotone with every recorded value.
+ *
+ * An empty history stays `null`, not `0`. Zero published versions cannot support a claim in either
+ * direction, and `0` is already spoken for: it means *customised on current canon*, the benign
+ * state. Returning it here would print nothing while asserting the one thing this whole signal
+ * exists to prevent — that a file nobody can measure reads as up to date.
+ */
+function neverReceived(spec) {
+  const revisions = spec.canonRevisionSha256;
+  return revisions?.length ? revisions.length : null;
 }
 
 /**
