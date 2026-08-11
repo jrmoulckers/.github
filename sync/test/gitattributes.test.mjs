@@ -433,27 +433,47 @@ test('binary rules survive the merge, so assets are never handed to git text det
     assert.match(after, /a\.yml: text: set/, 'and explicit text rules keep their explicit form');
   });
 });
-test('no tracked file is classified binary, so eol=lf actually reaches every file', () => {
+test('every tracked file is committed as LF, so eol=lf actually reaches all of them', () => {
   // A stray CR is not cosmetic. Git's binary heuristic is not only about NUL bytes: a file whose
-  // CR count exceeds its CRLF pairs is classified `-text`, and a `-text` file is exempt from the
-  // very `eol=lf` normalization this kind exists to apply. All thirteen of this repo's
-  // community-health files carried doubled `\r\r\n` terminators and were classified binary, so
-  // canon's own rule was inert for exactly the files GitHub serves org-wide.
+  // CR count differs at all from its CRLF count (`cr != crlf`) is classified `-text`, and a
+  // `-text` file is exempt from the very `eol=lf` normalization this kind exists to apply. All
+  // thirteen of this repo's community-health files carried doubled `\r\r\n` terminators and were
+  // classified binary, so canon's own rule was inert for exactly the files GitHub serves org-wide.
   //
   // The failure is self-shielding, which is why it survived: `git add --renormalize .` — the
   // standard remedy — skips binary files, so the corruption blocks its own repair. Asserted
   // through `git ls-files --eol` because the claim is about git's classification of the committed
   // blob, not about bytes we happen to see in a working tree.
+  //
+  // #258: this asserts `i/lf`, not merely "not `i/-text`". The two are equivalent for every state
+  // reachable today — I filed #258 believing there was a recoverable `i/mixed` band beneath the
+  // binary heuristic, and measurement says there is not: one lone CR flips it outright, and an
+  // `i/crlf` index entry is not reachable under this repo's settings. The stronger form is kept
+  // because it states the property directly ("is it LF") instead of by exclusion, and because the
+  // exemption below keeps it correct if the repo ever gains a real binary. Its extra coverage is
+  // theoretical, not demonstrated — see the lone-CR test for what is actually pinned.
   const rows = execFileSync('git', ['ls-files', '--eol'], { cwd: REPO_ROOT, encoding: 'utf8' })
     .split('\n')
     .filter(Boolean);
   assert.ok(rows.length > 0, 'the repo must have tracked files for this to mean anything');
 
-  const binary = rows.filter((row) => /^i\/-text/.test(row)).map((row) => row.split('\t')[1]);
+  // A binary file is legitimately not LF, so ask git whether it is *declared* binary rather than
+  // guessing from the path. Pattern-matching the exemption is the error ADR-0011 and #202 exist to
+  // avoid: only git resolves attributes. There are no such files today, and this is written so
+  // that adding a logo does not require rewriting the invariant.
+  const notLf = rows.filter((row) => !/^i\/lf/.test(row)).map((row) => row.split('\t')[1]);
+  const undeclared = notLf.filter((path) => {
+    const resolved = execFileSync('git', ['check-attr', 'text', '--', path], {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+    });
+    return !/text: unset/.test(resolved);
+  });
+
   assert.deepEqual(
-    binary,
+    undeclared,
     [],
-    'these are text files git treats as binary, so eol=lf does not apply to them',
+    'these are text files git did not store as LF, so canon eol=lf is not reaching them',
   );
 });
 
@@ -471,6 +491,31 @@ test('a doubled CR terminator is what makes git call a text file binary', () => 
     const rows = git(['ls-files', '--eol']);
     assert.match(rows, /i\/lf\s+w\/lf\s+.*clean\.md/, 'a clean file normalizes to LF');
     assert.match(rows, /i\/-text\s+w\/-text\s+.*doubled\.md/, 'a doubled CR reads as binary');
+  });
+});
+
+test('one lone CR is enough — the heuristic is cr != crlf, not a majority', () => {
+  // #258 was filed believing a file could carry stray CRs and stay text until they outnumbered
+  // the CRLF pairs, giving a recoverable window. That is wrong, and the comment in #155 that said
+  // so was wrong with it. Git's rule is `stats->cr != stats->crlf`: ONE carriage return outside a
+  // CRLF pair classifies the file binary, whatever the ratio. Measured, not read off the source.
+  //
+  // The correction matters in the direction that hurts. "CR count exceeds CRLF pairs" invites a
+  // reader to conclude a couple of stray CRs are survivable; there is no such margin, and the
+  // moment it tips, `renormalize` stops working and the corruption shields its own repair.
+  withTmp((root) => {
+    const git = (args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
+    git(['init', '-q', '.']);
+    writeFileSync(join(root, '.gitattributes'), '* text=auto eol=lf\n', 'utf8');
+
+    // Twenty proper CRLF terminators and exactly one lone CR, so cr = 21, crlf = 20.
+    writeFileSync(join(root, 'oneStray.md'), `a\rb\r\n${'x\r\n'.repeat(19)}`, 'utf8');
+    writeFileSync(join(root, 'allCrlf.md'), 'x\r\n'.repeat(20), 'utf8');
+    git(['add', '-A']);
+
+    const rows = git(['ls-files', '--eol']);
+    assert.match(rows, /i\/-text\s+w\/-text\s+.*oneStray\.md/, 'a single lone CR is already binary');
+    assert.match(rows, /i\/lf\s+.*allCrlf\.md/, 'while pure CRLF normalizes cleanly — cr == crlf');
   });
 });
 
