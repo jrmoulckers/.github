@@ -990,6 +990,16 @@ and drop the stale sync commit entirely. The next scheduled run re-emits everyth
 `homelab` is the worked example — its `2026-08-09` PR carries one sync commit plus two authored ones
 (an asset-checker fix and a local policy trim), while its `2026-08-11` PR is pure canon.
 
+**Re-derive a list at the point of use; never quote one forward.** The enumeration above decays the
+moment it is written down, and the failure is not that the list is wrong when assembled — it is that
+prose preserves it perfectly while the repository moves underneath it. A cherry-pick list assembled
+from a branch's log and then restated in a later message dropped a commit that had been pushed in
+between, and the omission was invisible because the list read as authoritative and internally
+consistent. The same shape produced the stale tips, counts, and expected hashes elsewhere in this
+document; a list is simply the plural case. Re-run `git log`, `gh pr list`, or the query itself at
+the moment you act on it, and treat any list carried across a message boundary as a description of a
+repository that no longer exists.
+
 **Enumerate the member's other PRs before deciding the reduction, not before merging it.** The
 enumeration is usually filed as a pre-merge safety check, which puts it one step too late: what the
 older branch should be reduced *to* depends on what the newer wave already covers, so running the

@@ -341,6 +341,22 @@ would report it as drift forever.
   there and silently incomplete the moment it is copied to a consumer. **A check inherits the
   population of the repository it was written in, and says nothing about that.**
 
+  **Candidate class, deliberately not promoted: a repair tool's safety guarantee can exempt exactly
+  the states that need repairing.** `git add --renormalize` skips a blob git classifies binary, and a
+  doubled `\r\r\n` terminator is what makes it binary — so the corruption disables the mechanism that
+  would fix it and survives its own remedy, reporting success. The sync engine has a structurally
+  similar case: a root-level managed target is never rekeyed onto another path, which is a real
+  safety property, and it means a baseline orphaned by a genuine relocation of such a file cannot be
+  carried across by the one mechanism that carries baselines. In both, the property that makes the
+  tool safe is the property that makes the damage permanent, and in both the tool reports success.
+
+  It is recorded here as a shape to watch rather than a rule, because the evidence does not support
+  more. Two instances, both surfaced the same night, both from inside the same pair of cooperating
+  sessions — which is precisely the population the entry on cross-session agreement says to discount.
+  The generalisation is also not yet tight: one case is an idempotent formatter declining an input,
+  the other a deliberate domain restriction, and calling them one class may be the wrong-unit error
+  applied to this document's own taxonomy. Promotion needs an instance from outside this rollout.
+
   **Harmless is not the same as fixed, when a coincidence is doing the work.** The fleet sweep found
   one member whose managed region is permanently mis-placed and whose effective attributes are
   nonetheless unchanged — because the single member rule it overrides is byte-identical to canon, so
