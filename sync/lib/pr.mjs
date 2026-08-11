@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readLock } from './lock.mjs';
 import { apply } from './copier.mjs';
-import { cloneShallow, prepareSyncBranch, commitAll, push, createPr, findOpenPr, CO_AUTHOR } from './git.mjs';
+import { cloneShallow, prepareSyncBranch, commitAll, push, createPr, findOpenPr, findOtherOpenSyncPrs, CO_AUTHOR } from './git.mjs';
 import { log } from './log.mjs';
 import { assertMemberFacts } from './member-facts.mjs';
 
@@ -65,18 +65,35 @@ export function syncRepo({ repo, writes, token, date, force, backbone, title, in
     if (!commitAll(tmp, commitMessage(date))) return { status: 'unchanged', report, inspection };
 
     push(tmp, branch);
+
+    // Only meaningful once this run has actually produced a wave to sit beside an older one.
+    const otherWaves = findOtherOpenSyncPrs(repo, branch, token);
+    for (const wave of otherWaves) {
+      const kind = wave.authored.length
+        ? `mixed — ${wave.authored.length} of ${wave.total} commit(s) not authored by the engine`
+        : 'pure canon';
+      log.warn(`${repo}: an older sync wave is still open: ${wave.url} (${wave.branch}, ${kind}).`);
+      for (const headline of wave.authored) log.warn(`    ${headline}`);
+    }
+
     if (existing) {
-      return { status: 'pr', prUrl: existing.url, branch, reused: true, report, inspection };
+      // Reuse fast-forwards an open PR and never rewrites its body, so a wave that opened after
+      // that body was written cannot appear in it. This log line is the only place the pairing is
+      // reported on the reuse path.
+      if (otherWaves.length) {
+        log.warn(`${repo}: ${existing.url} was updated in place; its body does not carry the above.`);
+      }
+      return { status: 'pr', prUrl: existing.url, branch, reused: true, report, inspection, otherWaves };
     }
 
     const bodyFile = join(tmp, '.studio-sync-pr-body.md');
-    writeFileSync(bodyFile, buildPrBody(report, { date, intro }), 'utf8');
+    writeFileSync(bodyFile, buildPrBody(report, { date, intro, otherWaves }), 'utf8');
     const prUrl = createPr(
       repo,
       { base: defaultBranch, head: branch, title: title ?? commitTitle(date), bodyFile },
       token,
     );
-    return { status: 'pr', prUrl, branch, report, inspection };
+    return { status: 'pr', prUrl, branch, report, inspection, otherWaves };
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -95,7 +112,7 @@ export function syncMemberRepo({ repo, member, writes, token, date, force, backb
 }
 
 /** Render a PR body summarizing added/updated assets and drift warnings. */
-export function buildPrBody(report, { date, intro } = {}) {
+export function buildPrBody(report, { date, intro, otherWaves } = {}) {
   const lines = [];
   lines.push(`## Studio canon sync — ${date}`);
   lines.push('');
@@ -253,6 +270,45 @@ export function buildPrBody(report, { date, intro } = {}) {
         `- \`${item.targetPath}\`${item.tracked ? '' : ' — no lock entry; verify against history before deleting'}`,
       );
     }
+  }
+
+  if (otherWaves?.length) {
+    lines.push('');
+    lines.push(`### ⚠️ An older sync wave is still open (${otherWaves.length})`);
+    lines.push('');
+    lines.push(
+      'This repo has an open sync PR from an earlier wave. **Merge order now decides whether canon ' +
+        'moves forward or backward.** Landing this PR first is right, but the older branch still ' +
+        'carries a generated commit describing canon as it stood days ago; rebasing it onto the new ' +
+        'default replays those files over these. Where the two waves touched the same paths that ' +
+        'conflicts loudly, which is the good case — where they did not, it applies clean and green ' +
+        'and silently rolls canon back on whatever the older wave happened to cover.',
+    );
+    lines.push('');
+    for (const wave of otherWaves) {
+      const label = wave.authored.length
+        ? `**mixed** — ${wave.authored.length} of ${wave.total} commit(s) not authored by the engine`
+        : `**pure canon** — all ${wave.total} commit(s) authored by the engine`;
+      lines.push(`- ${wave.url} (\`${wave.branch}\`) — ${label}`);
+      for (const headline of wave.authored) lines.push(`  - \`${headline}\``);
+    }
+    lines.push('');
+    // The engine reports the discriminator and stops. Which branch to reduce, and to what, depends
+    // on what this wave already covers — a judgement the run cannot make and should not pre-empt.
+    lines.push(
+      '**Mixed or pure is the fact that selects what to do, which is why it is the one thing ' +
+        'reported here.** A *pure* older branch can simply be closed: the next run re-emits every ' +
+        'file it held, at no cost. A *mixed* one must not be rebased and merged — reduce it to its ' +
+        'member-authored commits, which are the only irreplaceable part, by cherry-picking them onto ' +
+        'the default branch after this PR lands and dropping the stale sync commit entirely.',
+    );
+    lines.push('');
+    lines.push(
+      '> Decide the reduction **before** merging, not as a pre-merge check. What the older branch ' +
+        'should be reduced *to* depends on what this wave already covers, so a check run at merge ' +
+        'time can only confirm a decision already made. See "A stale sync commit merged after a ' +
+        'newer one reverts canon" in `docs/sync.md`.',
+    );
   }
 
   lines.push('');
