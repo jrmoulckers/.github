@@ -41,11 +41,12 @@ const BUCKET = {
  * @param {string} memberRoot  checkout directory (may be missing targets)
  * @param {TargetSpec[]} writes
  * @param {object} lock  as returned by readLock
- * @param {{ force?: boolean, write?: boolean }} opts
+ * @param {{ force?: boolean, forcePaths?: string[], write?: boolean }} opts
  * @returns {{ report, lock }}
  */
 export function apply(memberRoot, writes, lock, opts = {}) {
-  const { force = false, write = false } = opts;
+  const { force = false, forcePaths = [], write = false } = opts;
+  const forceable = new Set(forcePaths);
   const reconciled = reconcileLockKeys(memberRoot, writes, lock.entries);
   const entries = reconciled.entries;
   const report = {
@@ -65,7 +66,7 @@ export function apply(memberRoot, writes, lock, opts = {}) {
     const res =
       spec.type === 'managed'
         ? planManaged(memberRoot, spec, entries, force)
-        : planFile(memberRoot, spec, entries, force);
+        : planFile(memberRoot, spec, entries, force, forceable);
     const item = { targetPath: spec.targetPath, kind: spec.kind, name: spec.name };
     if (res.outranks?.length) report.outranked.push({ ...item, rules: res.outranks });
 
@@ -211,7 +212,7 @@ function walkFiles(memberRoot, base) {
   return found;
 }
 
-function planFile(memberRoot, spec, entries, force) {
+function planFile(memberRoot, spec, entries, force, forceable = new Set()) {
   const abs = join(memberRoot, ...spec.targetPath.split('/'));
   const rendered = spec.content;
   const renderedHash = hashText(rendered);
@@ -228,6 +229,16 @@ function planFile(memberRoot, spec, entries, force) {
       isSupersededEngineOutput(lockEntry, currentHash, spec)
     ) {
       return { action: 'update', newContent: rendered, newEntry };
+    }
+    // `--force` is scoped by member, but the request it answers is almost always about one file:
+    // the operator asks to force "a known file" and the flag overrides every drifted target in
+    // that repo. For a target the engine has *never* delivered canon to, the on-disk bytes are
+    // member-authored and canon holds no copy, so forcing is an unrecoverable delete of content
+    // nobody chose to discard. Those must be named path-by-path; a member-wide `--force` refuses
+    // them and says so. A target with a lock entry has received canon before and is recoverable,
+    // so member-wide force still applies there.
+    if (force && !lockEntry && !forceable.has(spec.targetPath)) {
+      return { action: 'drift', note: 'force refused — never received canon; name this path in --force-paths to overwrite it' };
     }
     return force
       ? { action: 'forced', newContent: rendered, newEntry }

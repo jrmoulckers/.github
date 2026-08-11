@@ -13,7 +13,7 @@ import { formatCallerPermissionWarnings } from './caller-permissions.mjs';
 
 /**
  * @param {Array<{resolved, targets}>} plans
- * @param {{ token: string, date: string, force?: boolean, backbone: string }} ctx
+ * @param {{ token: string, date: string, force?: boolean, forcePaths?: string[], backbone: string }} ctx
  * @param {Function} [syncOne] injection seam for tests
  * @returns {{ outcomes: Array<{repo: string, status: string, detail?: string}>,
  *             failures: Array<{repo: string, message: string}> }}
@@ -35,6 +35,7 @@ export function syncMembers(plans, ctx, syncOne = syncMemberRepo) {
         token: ctx.token,
         date: ctx.date,
         force: ctx.force,
+        forcePaths: ctx.forcePaths,
         backbone: ctx.backbone,
       });
       if (result.status === 'pr') {

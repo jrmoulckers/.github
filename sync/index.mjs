@@ -57,7 +57,7 @@ const REPO_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const out = (s = '') => process.stdout.write(`${s}\n`);
 
 function parseArgs(argv) {
-  const opts = { dryRun: false, check: false, force: false, members: [], workDir: null, studioDir: null, date: null, help: false, allowUnverifiedWorkDir: false };
+  const opts = { dryRun: false, check: false, force: false, forcePaths: [], members: [], workDir: null, studioDir: null, date: null, help: false, allowUnverifiedWorkDir: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const [key, inlineVal] = arg.startsWith('--') ? splitFlag(arg) : [arg, undefined];
@@ -66,6 +66,7 @@ function parseArgs(argv) {
       case '--dry-run': opts.dryRun = true; break;
       case '--check': opts.check = true; break;
       case '--force': opts.force = true; break;
+      case '--force-paths': opts.forcePaths = String(take()).split(',').map((s) => s.trim()).filter(Boolean); break;
       case '--members': opts.members = String(take()).split(',').map((s) => s.trim()).filter(Boolean); break;
       case '--work-dir': opts.workDir = take(); break;
       case '--allow-unverified-work-dir': opts.allowUnverifiedWorkDir = true; break;
@@ -86,6 +87,14 @@ function parseArgs(argv) {
         'member-authored drift, so the affected repositories must be named explicitly ' +
         '(e.g. --force --members finance).',
     );
+  }
+  // `--members` scopes the run; it does not scope the override. The request `--force` answers is
+  // almost always about one file, so a member-wide flag granting a repo-wide override is the
+  // remaining gap: the operator authorizes what they were asked for and the engine applies it to
+  // every drifted target in that repo. Targets that never received canon are refused unless named
+  // here, because for those the member's bytes are the only copy in existence.
+  if (opts.forcePaths.length && !opts.force) {
+    throw new Error('--force-paths requires --force; on its own it authorizes nothing.');
   }
   return opts;
 }
@@ -211,7 +220,7 @@ function runWorkDir(plans, opts, manifest, date) {
   });
   reportWorkflowObservations(resolved.repo, facts);
   const lock = readLock(opts.workDir, manifest.backbone);
-  const { report } = apply(opts.workDir, targets.writes, lock, { force: opts.force, write });
+  const { report } = apply(opts.workDir, targets.writes, lock, { force: opts.force, forcePaths: opts.forcePaths, write });
   log.step(`${resolved.repo} → ${opts.workDir}${write ? '' : '  (dry-run: no writes)'}`);
   printReport(report);
   publishRunSummary(
@@ -290,6 +299,7 @@ function runSync(plans, opts, manifest, token, date) {
     token,
     date,
     force: opts.force,
+    forcePaths: opts.forcePaths,
     backbone: manifest.backbone,
   });
   if (!opts.members.length) {
@@ -475,6 +485,11 @@ Usage: node sync/index.mjs [options]
   --members <a,b>      Restrict to these member repos ("owner/name" or bare "name").
   --check              Exit non-zero if any member is out of date or has drift (CI gate).
   --force              Overwrite locally-modified (drift) targets instead of skipping.
+                       Requires --members. Targets that never received canon are refused;
+                       name them in --force-paths to overwrite them.
+  --force-paths <p,..> Target paths that --force may overwrite even though canon has never
+                       been delivered to them. Their current bytes are member-authored and
+                       exist nowhere else, so each must be named.
                        Requires --members. Run-wide within those members: rewrites every
                        drifted file in each one. Not a per-file fix.
   --work-dir <path>    Apply/inspect against a local checkout (one --members); no clone/push/PR.
