@@ -1378,6 +1378,23 @@ Delete the words and the search returns nothing, which reads as *this was never 
 *this was retracted* — and the person running that search is usually the person who acted on the
 claim, so the reader who most needs the correction is the one a clean deletion serves worst.
 
+**A correction reaches the prose and stops at its summaries.** A section here argued that public
+repositories were immune to an account-wide block, then falsified it by measurement two paragraphs
+later and rewrote the argument — while a parenthetical shorthand below still read
+`(immune, useless as evidence)`, carrying the discarded rationale verbatim and attached to the very
+repository whose refusal had disproved it. A summary is *derived* from its source, which is exactly
+why it reads as unable to disagree with it; once written it is an independent artifact that does not
+update when the source does. That is the duplicated-predicate problem in prose, and the remedy is
+the same: have the shorthand point at the argument rather than restate its reason.
+
+**Expect the reason, not the verdict, to be the part left stranded.** Corrections most often replace
+a *mechanism* while the conclusion survives — here *useless as evidence* remained true and only
+*immune* was falsified — so the two readings continue to agree wherever the conclusion is what
+appears, and diverge only where the reason was compressed in. Reason-carrying shorthand is both the
+likeliest place to strand a retracted claim and the least-reviewed surface in the document, because
+it is what gets skimmed rather than read. After correcting an argument, search for every restatement
+of the *reason* you withdrew, not of the finding you kept.
+
 **Naming a revision does not certify the figures beside it.** A reader binds every number in a
 message to the SHA that message names, so a coordinate measured at one revision and published
 alongside another is trusted *because* the revision was cited. Naming the tip reads as rigour and

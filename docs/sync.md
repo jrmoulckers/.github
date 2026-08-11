@@ -875,6 +875,20 @@ with the least evidence for it. Confirm against a *private* member: a live run, 
 history. The block's signature is unmistakable when you look at the right repo — jobs with
 `steps: 0`, downstream jobs `skipped`, and an annotation naming payments or the spending limit.
 
+**Generalizing the shape, because it will recur wherever this document corrects itself:** prose and
+the summaries of that prose are two surfaces, and a correction reaches the one it is written in. A
+summary is derived from its source, which is precisely why it reads as incapable of disagreeing with
+it — and why nobody re-checks it. Once written it is an independent artifact that does not update
+when the source does, which is the duplicated-predicate problem transposed into prose, with the same
+remedy: point the shorthand at the argument instead of restating its reason.
+
+The stranded part is characteristically the **reason**, not the verdict. A correction usually
+replaces a mechanism while the conclusion stands — *useless as evidence* survived, *immune* did not
+— so the old and new readings keep agreeing wherever only the conclusion appears, and diverge solely
+where the reason was compressed in. That is why the failure is quiet, and it is worse than quiet:
+the summary is the skimmed surface, so the discarded rationale is the version most readers actually
+take away.
+
 ### A failed lookup must not be spelled like an empty result
 
 `foreignCommits` reported reviewer commits preserved on a reused sync branch. Its `--unshallow` fetch
