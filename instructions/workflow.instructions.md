@@ -934,6 +934,51 @@ So: **before you quote it, re-read it; before you assert someone else's revision
 and date it — *"studio reported `6f98f5b` at 08:25Z"* is durable and checkable; *"studio is at
 `6f98f5b`"* decays silently, and the reader cannot tell which one you meant.
 
+### A measurement someone reports is a moment, not a standing claim
+
+The rule above governs what *you* assert. Its mirror governs what you receive: when a report from
+another repo does not match what you observe, the mismatch does not tell you which of you is wrong.
+It has two explanations that look identical — **their instrument is broken**, or **the world moved
+after their instrument ran** — and nothing in the result itself distinguishes them.
+
+The instance: a member reported the contents of an engine constant. The backbone looked, found no
+such constant, and concluded the member's comparator was silently passing over a missing value. In
+fact the comparator raised a fatal error on exactly that case, and the constant had existed when they
+measured — their run predated its removal by about ninety-five minutes. **The report was correct when
+made and had since been superseded, which is not the same as having been wrong.**
+
+Default to the instrument being broken and you impugn both the tool and the reporter, and you invite
+a repair to something that was working. The discriminator costs one lookup: **compare the timestamp
+of the measurement against the merge time of the change that would explain the difference.**
+
+```
+git log -S'<the thing they named>' --format='%h %ad %s' --date=iso-strict -- <file>
+```
+
+If the change lands after their run, the disagreement is fully explained and there is nothing to fix.
+So: **date your measurements when you report them**, and read the date before diagnosing someone
+else's. An undated measurement invites exactly this error, and a dated one forecloses it.
+
+### Conform against a population that outlives the implementation
+
+When you check that your copy of a rule still matches canon's, choose what to key the check on. Two
+shapes look equivalent and are not:
+
+- keyed to an **internal constant** — asks *do you still spell it this way*. Breaks on any refactor
+  that preserves behaviour, and reports a difference that is not a defect.
+- keyed to **inputs and answers** — asks *what do you answer for this path*. Survives refactors,
+  because it names only what both sides already name.
+
+Prefer the second. Paths, filenames, and public inputs are the durable unit: they are the vocabulary
+canon and members share, and they remain meaningful after the implementation behind them is
+rewritten. A member that replaced a constant-comparison with *import the engine's real function, feed
+it my actual locked paths, diff the answers* found a genuine classification divergence on the first
+run — one the constant-comparison could not have detected at all, because the constant it watched had
+been deleted by the very change that introduced the divergence.
+
+Note that the durable-population check is also the one that keeps working while the thing it inspects
+is being redesigned, which is when you most need it and least expect to have it.
+
 ### Reporting a defect in canon from a repo that holds a synced copy
 
 You hold a copy of these instructions at `.github/instructions/`, and it is **generated, not
