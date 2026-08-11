@@ -1565,6 +1565,31 @@ renumbers everything after it while every existing citation keeps pointing at a 
 content — the rule's name, its opening words, or a quoted line — and let position be a convenience
 rather than the identifier.
 
+**Line numbers are the purest form of this and were not covered by the rule that named ordinals.**
+The rule above was written keyed to a *form* — "assertion 3", "the second table" — and a file
+coordinate does not look like an ordinal, so it read as exempt. It is not: `docs/sync.md:521-533` is
+position and nothing else. This was demonstrated at cost. A member was instructed to cite
+`docs/sync.md` L521-533 for the Prettier traps; by the time they went to use it the traps had moved
+to L532-547 and L521-533 had become unrelated text about vendor trees, displaced by edits landed
+the same night by the author of the instruction. The citation did not survive the session in which
+it was issued. **Key the rule to the property — a reference resolved by position — not to the
+vocabulary of ordinals.**
+
+**A citation also only discharges the obligation if the artifact is reachable by the audience.** This
+document is backbone-internal: `docs/sync.md` is not a canon kind, appears in no member's lockfile,
+and is distributed to nobody. Telling a member to "see `docs/sync.md`" names an artifact they cannot
+open, which is worse than restating the reasoning, because it reads like a resolvable pointer and
+fails only at the moment someone tries. The rule about naming an artifact the reporter can check
+assumed a shared filesystem; across a repository boundary that assumption has to be tested rather
+than inherited.
+
+So for anything crossing into a member: **keep the reasoning inline, and cite this document by
+section name rather than by line range.** A name survives edits above it and degrades to a search
+rather than to silence. The inline copy is not duplication under the delete-duplicates rule, because
+the alternative is not a single source of truth — it is a dangling pointer. If the duplication is
+genuinely unacceptable, the fix is upstream: promote the section to a distributed instructions file,
+and only then may the member delete its copy and cite it.
+
 ### What belongs in the member's own region
 
 Everything above concerns the *managed* region. The region **outside** the markers is the part
