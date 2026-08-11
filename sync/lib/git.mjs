@@ -153,6 +153,35 @@ export function foreignCommits(dest, branch, defaultBranch = 'main') {
   }
 }
 
+/**
+ * Read one file from the current tip of a remote branch.
+ *
+ * Fetches first, so the answer reflects the remote *now* rather than the snapshot this clone was
+ * taken from — the whole point at the call site, which is checking whether the default branch moved
+ * under a run in flight.
+ *
+ * Three states, not two. `unavailable` means the fetch failed and nothing is known; `ok` with a
+ * null content means the branch is readable and the file genuinely is not on it, which is ordinary
+ * for a member's first sync. Collapsing those would let a network failure read as "this member has
+ * no lockfile", and the caller would then treat every entry as new.
+ *
+ * @returns {{ status: 'ok'|'unavailable', content: string|null }}
+ */
+export function readFileAtRemoteBranch(dest, branch, path) {
+  try {
+    // `+` forces the remote-tracking ref, so a non-fast-forward on the default branch surfaces as
+    // updated bytes rather than a fetch failure that would be reported as `unavailable`.
+    git(['fetch', '--depth', '1', 'origin', `+${branch}:refs/remotes/origin/${branch}`], dest);
+  } catch {
+    return { status: 'unavailable', content: null };
+  }
+  try {
+    return { status: 'ok', content: git(['show', `refs/remotes/origin/${branch}:${path}`], dest) };
+  } catch {
+    return { status: 'ok', content: null };
+  }
+}
+
 /** Stage everything and commit. Returns false when there is nothing to commit. */
 export function commitAll(dest, message) {
   git(['add', '-A'], dest);

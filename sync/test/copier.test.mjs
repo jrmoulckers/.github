@@ -792,3 +792,33 @@ test('--force still overwrites a target that has received canon before', () => {
     assert.equal(readFileSync(join(root, ...v2.targetPath.split('/')), 'utf8'), CONTENT_V2);
   });
 });
+// --- which lock keys a run claims authorship of ---
+//
+// Consumed by the pre-commit fold that reconciles against the member's default branch. A key named
+// here is excluded from that fold, so over-reporting silently re-opens the lost-update race (#418)
+// for the paths named, while under-reporting lets a concurrent run overwrite bytes this run just
+// placed. Both are invisible in a single run's output.
+
+test('touchedKeys names an added target and excludes a withheld one', () => {
+  withTmp((root) => {
+    const added = spec();
+    const drifted = { ...spec(), targetPath: '.github/agents/other.agent.md' };
+    seed(root, drifted.targetPath, 'member wrote this');
+
+    const lock = { entries: { [drifted.targetPath]: { sourceSha256: 'x', targetSha256: 'y', syncedAt: '2026-08-07T00:00:00.000Z' } } };
+    const { report, touchedKeys } = apply(root, [added, drifted], lock, { write: true });
+
+    assert.equal(report.added.length, 1);
+    assert.equal(report.drift.length, 1);
+    assert.ok(touchedKeys.has(added.targetPath), 'a target this run wrote must be claimed');
+
+    // The load-bearing half. `apply` leaves a drifted target's entry untouched, which is exactly
+    // the entry an overlapping run can have regressed — and the finance instance was precisely a
+    // drifted token file. Claiming it here would exclude it from the fold and make the fix inert
+    // on the only case that motivated it.
+    assert.ok(
+      !touchedKeys.has(drifted.targetPath),
+      'a withheld target must stay foldable — it is the class the fold exists to correct',
+    );
+  });
+});

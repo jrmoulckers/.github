@@ -108,7 +108,29 @@ export function apply(memberRoot, writes, lock, opts = {}) {
 
   if (write && report.changed) writeLock(memberRoot, newLock);
 
-  return { report, lock: newLock };
+  return { report, lock: newLock, touchedKeys: authoredKeys(report) };
+}
+
+/**
+ * Lock keys this run deliberately authored or removed.
+ *
+ * Consumed by the pre-commit refresh, which folds back entries the default branch moved on while
+ * this run was in flight. Everything named here is excluded from that fold: the run either just
+ * wrote those bytes or just retired those keys, so its own answer is the one that describes its
+ * branch. Drift is deliberately absent — a withheld target's entry is left untouched by `apply`,
+ * which makes it exactly the class the fold has to be able to correct.
+ */
+function authoredKeys(report) {
+  const keys = new Set();
+  for (const bucket of [report.added, report.updated, report.forced, report.adopted]) {
+    for (const item of bucket) keys.add(item.targetPath);
+  }
+  for (const item of report.rekeyed) {
+    keys.add(item.targetPath);
+    keys.add(item.from);
+  }
+  for (const item of report.pruned) keys.add(item.targetPath);
+  return keys;
 }
 
 /**
