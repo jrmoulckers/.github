@@ -294,6 +294,17 @@ would report it as drift forever.
   familiarity, not gaps in knowledge. Where a rule can be made mechanical — a test, a required
   command, a check that fails loudly — that is worth more than another paragraph here.
 
+  **The wrong unit is often the cheap one.** A recurring reason the wrong unit gets chosen is that it
+  is the only one available without leaving what you already have open. Comparing two sync branches
+  against each other needs no external lookup; comparing one against its canonical source needs an API
+  call to another repository. Reading a file's content is local; asking `git check-attr` what that
+  content *means* is a second command. In both cases the answer that was reached for first was the
+  answer that cost least, and in both cases it was keyed to the wrong unit. That predicts *when* these
+  failures happen — under time pressure, mid-triage, in the sessions moving fastest — and it suggests
+  the most effective repair is rarely another rule. Making the correct unit as cheap to obtain as the
+  incorrect one removes the pressure that produces the error, where restating the rule only asks
+  people to resist it.
+
   **A broken check fails clean.** Sharper than the above, and the reason this consequence keeps
   earning entries. A fleet sweep for attribute damage was written, run, and returned no findings. It
   was inoperative: shell-quoting defects meant one revision of it compared CR-terminated paths that

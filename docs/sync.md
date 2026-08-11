@@ -701,6 +701,25 @@ The reference therefore depends on who owns the content, and the two cases inver
   **member's default branch**. Canon never had it and never will re-emit it, so the branch may be the
   only copy.
 
+**Apply that per hunk, not per branch.** A sync PR is routinely *mixed*: generated files the next sync
+will re-emit, sitting beside member-authored edits — a `.prettierignore` entry, a local trim — that
+nothing will ever regenerate. Judging such a branch as a unit gives the wrong answer whichever way you
+round it. "It's behind canon, discard it" loses the member's work; "it has unique content, preserve it
+whole" carries stale generated files forward and re-applies whatever the engine did that day. The
+useful question is never *is this branch superseded* but *which parts of it are*, and the answer is
+usually "the generated ones, entirely, and the authored ones, not at all". This is the managed-region
+split one level up: the same mixture of owners that makes a single file need markers makes a whole
+branch need per-hunk judgement.
+
+**Make the correct reference the cheap one.** The reason the sibling-branch comparison keeps getting
+made is not that anyone believes it is right — it is that both branches are local refs, so it needs no
+external lookup, while canon HEAD needs an API call against another repository. The wrong reference is
+simply the reachable one. That is a bad property for a check that gates data loss, because it means the
+operator most likely to get it wrong is the one working fastest, and speed is exactly the condition
+under which these branches get triaged. Where a rule's correct form costs more than its incorrect
+form, expect the incorrect form under load, and treat closing that gap as part of the fix rather than
+as convenience.
+
 **A sync branch is a rendering of the engine, not only of canon, and so it has a shelf life.** The
 branch holds whatever the engine did at generation time, and merging an old one re-applies behaviour
 that has since been fixed. Before merging, check the branch's creation time against the last change
