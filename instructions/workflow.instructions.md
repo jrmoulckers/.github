@@ -108,6 +108,50 @@ Note also that prose beside code is not a weaker specification than the code. A 
 correct rule above a line that implements a different one makes the divergence *harder* to see, not
 easier: a reader checking the code against its own comment finds them agreeing.
 
+### A probe must be shown able to return the other answer
+
+Mutation-testing guards the case where a test **passes** vacuously. The opposite failure is more
+dangerous and has no equivalent habit: while you are *hunting* a bug, your prior is that it exists,
+so a probe that fails for an unrelated reason **corroborates**. It produces exactly the observation
+you set out to find, and there is nothing about a confirmed expectation that prompts a second look.
+
+The instance: a scratch repository built to reproduce a suspected defect showed `git log main..branch`
+exiting 128 — apparently the defect. It was the fixture. `git init --bare` without `-b main` left an
+unborn HEAD, so the clone never created a local `main`. **A fixture that fails for its own reasons is
+indistinguishable from the bug you went looking for**, and unlike a vacuous test it does not merely
+fail to inform, it actively misleads.
+
+So before you believe a negative result, make the probe produce a **positive** one. A round-trip
+comparison that returns `identical` is worth nothing until you have fed it known-bad input and seen
+it say `different`. A reproduction that shows a failure is worth nothing until the same fixture, with
+only the suspected cause removed, shows success. The point is not to test twice; it is that a
+one-sided instrument cannot distinguish *the property is absent* from *I cannot detect the property*.
+
+This applies to any measurement reported as a zero: no matches, no drift, no candidates, no
+regressions. State what you did to show the instrument fires.
+
+### A clean audit is not evidence when the property is not local
+
+Reading every site of a pattern and finding nothing wrong is evidence only if the defect would be
+**visible at the site you read**. Some are not, and for those a careful audit returns clean and means
+nothing.
+
+`catch { return []; }` is unremarkable where it appears — ordinary defensiveness, nothing to object
+to. It becomes a defect only in relation to its **caller**: a consumer that branches on
+`if (result.length)` reads an empty array from a failed network call as a confident *there are none*.
+The failure is erased at a distance, in a different file, and no amount of attention to the `catch`
+itself surfaces it.
+
+Two consequences. First, when the property you are checking is a **relation between a producer and
+its consumers**, an audit is the wrong instrument and the answer it gives is not reassuring —
+write a structural test that asserts the shape, so the check runs on code nobody is currently
+reading. Second, do not treat a prior clean audit as settling the question later; record what
+property it actually tested.
+
+And note the strongest instance of it: a defect of this class was introduced by the very change that
+*reported* the class, in code whose own description warned about the shape. Holding the pattern in
+mind while writing is not protection, which is the whole argument for the test.
+
 ## Calling reusable workflows
 
 Studio product repos call the backbone's reusable workflows at a reviewed immutable commit SHA:
