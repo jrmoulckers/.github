@@ -717,6 +717,21 @@ only the first yielded a comparison that still could not support the claim. **On
 not a controlled comparison**, and noticing the first is precisely what retires the search for the
 second.
 
+**The predicate's blind spot is `startup_failure`, and it is fleet-wide.** Every `startup_failure`
+run in this fleet — twelve, across `.github`, `docket`, and `finance` — reports `jobs=0`, because the
+conclusion names a run that failed before any job was created. `steps == 0 && conclusion == 'failure'`
+iterates jobs, so on those runs it iterates nothing and returns no hits. That is not a judgement
+about the run; it is the predicate having nothing to read, reported in the same shape as a clean
+answer. When auditing refusals, treat run-level conclusions as a separate pass over
+`workflow_runs[].conclusion`, and never cite a `startup_failure` run as a control that the job-level
+predicate survived.
+
+The corollary for controls: the ordinary-failure census cited here cannot falsify the predicate,
+since an ordinary failing job has steps and the two populations do not overlap. It is still worth
+keeping, re-scoped — across the last hundred runs of both public members, 143 jobs had zero steps,
+135 `skipped` and 8 `failure`, which is what shows each conjunct excludes a population the other
+admits. A control retired for being unfalsifiable should be re-aimed before it is deleted.
+
 ### An unreproducible finding resolves to a timestamp before it resolves to an author
 
 A reported defect that is not there when you look has two explanations, and only one of them gets
