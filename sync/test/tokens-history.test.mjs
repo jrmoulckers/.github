@@ -93,6 +93,28 @@ test('token targets carry a non-empty historical set rendered with the token not
   });
 });
 
+test('the rendered-only set carries renderings and excludes raw blobs', () => {
+  withRepos(({ studio }) => {
+    const [spec] = enumerateTokenTargets(PLAN, studio).filter((s) => s.targetPath === TARGET);
+
+    // This set is what authorizes recovery on a *recorded* target, so an empty one would silently
+    // restore the permanent-freeze behaviour with nothing failing.
+    assert.ok(spec.historicalRenderedSha256.length > 0, 'rendered evidence must not be empty');
+    assert.ok(
+      spec.historicalRenderedSha256.includes(hashText(inject(TARGET, V1, { note: NOTE }))),
+      'prior blob rendered with the token note',
+    );
+
+    // The separation is the whole safety argument: raw bytes on a recorded target mean a stripped
+    // header, which stays drift. If a raw blob leaked into this set that distinction would be gone.
+    assert.ok(!spec.historicalRenderedSha256.includes(hashText(V1)), 'no raw blobs');
+    assert.ok(!spec.historicalRenderedSha256.includes(hashText(spec.content)), 'not current canon');
+    for (const hash of spec.historicalRenderedSha256) {
+      assert.ok(spec.historicalCanonSha256.includes(hash), 'rendered set is a subset of historical');
+    }
+  });
+});
+
 test('a vendored file frozen on an older release is updated, not reported as drift forever', () => {
   withRepos(({ studio, member }) => {
     // Exactly finance's tokens.css: an unrecorded vendored file whose bytes are the engine's own

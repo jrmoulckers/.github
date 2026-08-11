@@ -347,16 +347,68 @@ test('a one-byte mutation of proven historical output remains genuine drift', ()
   });
 });
 
-test('historical evidence never overrides drift on a recorded target', () => {
+test('raw canon on a recorded target is a stripped header, and stays drift', () => {
   withTmp((root) => {
     const previousRendered = inject('agency.toml', '# previous canon\n');
     const s = {
       ...rawSpec(),
       historicalCanonSha256: [hashText(previousRendered)],
+      historicalRenderedSha256: [hashText(previousRendered)],
     };
     seed(root, s.targetPath, s.content);
     const adopted = apply(root, [s], readLock(root, BACKBONE), { write: true }).report;
     assert.equal(adopted.adopted.length, 1, 'precondition: current rendering is recorded');
+
+    // Raw canon is reachable by editing — delete the header and you have it. On a recorded target
+    // that is a deliberate local act and must keep its drift signal, which is why the rendered set
+    // is kept separate from the raw one rather than the gate simply being dropped.
+    seed(root, s.targetPath, RAW);
+    const { report } = apply(root, [s], readLock(root, BACKBONE), { write: true });
+
+    assert.equal(report.drift.length, 1);
+    assert.equal(report.updated.length, 0);
+    assert.equal(readFileSync(join(root, s.targetPath), 'utf8'), RAW, 'left untouched');
+  });
+});
+
+test('a superseded rendering on a recorded target is recovered, not refused', () => {
+  withTmp((root) => {
+    const previousRendered = inject('agency.toml', '# previous canon\n');
+    const s = {
+      ...rawSpec(),
+      historicalRenderedSha256: [hashText(previousRendered)],
+    };
+    seed(root, s.targetPath, s.content);
+    const adopted = apply(root, [s], readLock(root, BACKBONE), { write: true }).report;
+    assert.equal(adopted.adopted.length, 1, 'precondition: recorded in the lockfile');
+
+    // The finance shape: the lock entry says one thing, the file is a *past engine rendering* of
+    // canon. Editing cannot produce those bytes — header, note and body all match a published
+    // revision — so the difference is a bad lock entry, not member work.
+    seed(root, s.targetPath, previousRendered);
+    const { report } = apply(root, [s], readLock(root, BACKBONE), { write: true });
+
+    assert.deepEqual(report.updated.map((item) => item.targetPath), [s.targetPath]);
+    assert.equal(report.drift.length, 0, 'a regressed lock entry must not freeze the path');
+    assert.equal(readFileSync(join(root, s.targetPath), 'utf8'), s.content);
+
+    const second = apply(root, [s], readLock(root, BACKBONE), { write: true }).report;
+    assert.equal(second.changed, false, 'and the run converges rather than rewriting every time');
+  });
+});
+
+test('recovery on a recorded target needs rendered evidence, not merely historical', () => {
+  withTmp((root) => {
+    const previousRendered = inject('agency.toml', '# previous canon\n');
+    // historicalCanonSha256 alone must not authorize it: that set also contains raw blobs, and
+    // widening the recorded case to it would re-admit the stripped-header edit above.
+    const s = {
+      ...rawSpec(),
+      historicalCanonSha256: [hashText(previousRendered)],
+      historicalRenderedSha256: [],
+    };
+    seed(root, s.targetPath, s.content);
+    apply(root, [s], readLock(root, BACKBONE), { write: true });
 
     seed(root, s.targetPath, previousRendered);
     const { report } = apply(root, [s], readLock(root, BACKBONE), { write: true });
@@ -364,6 +416,24 @@ test('historical evidence never overrides drift on a recorded target', () => {
     assert.equal(report.drift.length, 1);
     assert.equal(report.updated.length, 0);
     assert.equal(readFileSync(join(root, s.targetPath), 'utf8'), previousRendered);
+  });
+});
+
+test('member-authored bytes are never recovered, recorded or not', () => {
+  withTmp((root) => {
+    const previousRendered = inject('agency.toml', '# previous canon\n');
+    const s = {
+      ...rawSpec(),
+      historicalRenderedSha256: [hashText(previousRendered)],
+    };
+    seed(root, s.targetPath, s.content);
+    apply(root, [s], readLock(root, BACKBONE), { write: true });
+
+    seed(root, s.targetPath, previousRendered.replace('previous', 'previous!'));
+    const { report } = apply(root, [s], readLock(root, BACKBONE), { write: true });
+
+    assert.equal(report.drift.length, 1, 'one byte off proven output is still member work');
+    assert.equal(report.updated.length, 0);
   });
 });
 

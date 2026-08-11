@@ -924,6 +924,36 @@ This is what unfreezes a member stuck on an old release: a vendored file whose b
 previously committed rendering is provably stale engine output, so it is updated rather than skipped.
 Bytes matching no committed version remain drift, untouched.
 
+### A regressed lock entry must not freeze a path forever
+
+Recovery originally applied only to targets with **no** lock entry, inherited from the
+stripped-header case where the restriction is right: raw canon bytes in a *recorded* file mean
+someone deleted the provenance header, which is a deliberate local act.
+
+That reasoning does not carry to the rendered form, and the gap is not theoretical. `finance` held
+`vendor/@jrm/tokens/css/default/tokens.css` at bytes byte-identical to the rendering of canon
+`37b5f2b0`, while its lock entry had reverted to the hash *and* timestamp of a revision two versions
+older — one run recorded the newer write, an overlapping run built its lock from a snapshot taken
+before that merge and overwrote it. From then on `isLocallyModified` compared the file against a
+stale `targetSha256` and attributed the difference to the member, and **no later run could clear
+it**, because each repeated the same comparison against the same bad entry. It took a hand-edit to
+the lockfile to release, which is not a repair anyone finds twice.
+
+So the evidence is split in two, and only one half authorizes recovery on a recorded target:
+
+| set | contains | recovers when |
+| --- | --- | --- |
+| `historicalCanonSha256` | raw blobs **and** renderings | no lock entry |
+| `historicalRenderedSha256` | renderings only | lock entry present |
+
+A past rendering cannot be produced by editing — it carries the header, the note text and the exact
+bytes of a published revision — so adopting it discards no member work by construction. A raw-blob
+match on a recorded target stays drift, which is why the sets are kept apart rather than the gate
+simply being dropped. Note the case the gate appeared to protect is unreachable anyway: reverting a
+sync commit reverts its lock entry in the same commit, leaving file and lock consistent.
+
+This fixes the *consequence*, not the race that regresses the entry in the first place.
+
 `--force` is not the tool for that. It is one flag for the whole invocation — `index.mjs` parses it
 once and threads it into every named member, and `apply()` then applies it to every spec in each —
 so it rewrites **every** drifted file in **every member the run touches**. Using it to clear one
@@ -1103,8 +1133,8 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown; drift warnings name every exact skipped path. Also that the run records what *survived* — every success branch, including the common no-changes one — so a partial failure and a total one no longer render the same; that every mode publishes a summary, so a scoped dry run cannot present as a fleet delivery; and that the summary is actually written to `GITHUB_STEP_SUMMARY` rather than merely computed. |
 | `test/rekey.test.mjs` | Lock reconciliation when a target base moves: a relocated tree ends with every planned file tracked and no entry pointing at a nonexistent path, and converges as `updated` instead of freezing as drift; a baseline moves only onto a file it provably describes, and an unproven file is left unrecorded so historical recovery stays available to it; the moved baseline still catches a genuine hand-edit; a stale entry is pruned only when its file is gone, while an unplanned entry whose file remains keeps its baseline; an ambiguous relocation is left alone; a root-level managed target is never rekeyed; a steady-state re-run rekeys and prunes nothing and still produces no diff. |
 | `test/revisions-behind.test.mjs` | The staleness magnitude: revisions are ordered newest-first and a revert does not count twice; a withheld file reports how many versions it has missed; a file customised on top of *current* canon is not withheld and stays at zero forever; a baseline matching no published version reports `null` rather than 0, because unanswerable must not read as up to date; the warning line carries the count and pluralizes. |
-| `test/tokens-history.test.mjs` | Historical-canon evidence for vendored `@jrm/tokens`: the set is non-empty and rendered with the *package's* provenance note (not the backbone default) and excludes current canon; a vendored file frozen on an older release converges as `updated` instead of drifting forever; a member-authored file is still refused; and history read from a shallow token checkout raises rather than degrading to an empty set. |
-| `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; raw-canon stamping; exact historical-output recovery; empty-evidence and one-byte-mutation refusal; recorded targets never use first-sync recovery. |
+| `test/tokens-history.test.mjs` | Historical-canon evidence for vendored `@jrm/tokens`: the set is non-empty and rendered with the *package's* provenance note (not the backbone default) and excludes current canon; the rendered-only set is non-empty, holds no raw blobs, and is a subset of the historical set; a vendored file frozen on an older release converges as `updated` instead of drifting forever; a member-authored file is still refused; and history read from a shallow token checkout raises rather than degrading to an empty set. |
+| `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; raw-canon stamping; exact historical-output recovery; empty-evidence and one-byte-mutation refusal; a recorded target is recovered from a *superseded rendering* but never from raw canon (a stripped header stays a local edit), never on historical-but-not-rendered evidence, and never from member-authored bytes. |
 | `test/history.test.mjs` | Full-history enforcement and committed-blob enumeration; end-to-end target enumeration recovers a member holding a prior engine rendering. |
 | `test/manifest.test.mjs` | The real `studio.config.json` validates; all nine consumers and their explicit modes are registered; disabled infrastructure members produce no writes; local-agent metadata remains compatible; application defaults, Docket's completed mode transition, and mode-specific fact schema are enforced; `canon` matches disk; native kinds are never written. |
 | `test/instruction-integrity.test.mjs` | Canonical instruction filename/roster parity, deterministic `applyTo` scopes, source/materialized ownership, precedence, curated member compatibility, infrastructure routing, local-agent collision safety, and immutable reusable-workflow examples. |

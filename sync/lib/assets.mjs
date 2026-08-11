@@ -155,13 +155,22 @@ function attachCanonHistory(writes, sourceRoot) {
   for (const spec of files) {
     const currentRenderedHash = hashText(spec.content);
     const historical = new Set();
+    const rendered = new Set();
     for (const raw of versions.get(spec.sourcePath) ?? []) {
       historical.add(hashText(raw));
-      historical.add(hashText(inject(spec.targetPath, raw, { note: spec.provenanceNote })));
+      const renderedHash = hashText(inject(spec.targetPath, raw, { note: spec.provenanceNote }));
+      historical.add(renderedHash);
+      rendered.add(renderedHash);
     }
-    historical.delete(spec.sourceSha256);
-    historical.delete(currentRenderedHash);
+    for (const set of [historical, rendered]) {
+      set.delete(spec.sourceSha256);
+      set.delete(currentRenderedHash);
+    }
     spec.historicalCanonSha256 = [...historical].sort();
+    // Renderings only, kept apart from the raw blobs because the two authorize different things:
+    // raw bytes in a *recorded* file mean a stripped header (a local act), a past rendering cannot
+    // be produced by editing at all. See isSupersededEngineOutput in copier.mjs.
+    spec.historicalRenderedSha256 = [...rendered].sort();
     // Lazy: the count is only ever read for a drifted file, and walking every path's history
     // eagerly more than doubled a real run. Non-enumerable so spreading a spec doesn't force it.
     Object.defineProperty(spec, 'canonRevisionSha256', {
