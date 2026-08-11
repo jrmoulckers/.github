@@ -25,6 +25,14 @@
 // This module never touches files. Entries are moved and dropped; nothing outside the plan is
 // deleted from disk. An abandoned file left behind at an old base is a separate decision for a
 // human, and pruning its lock entry is deliberately conditioned on the file already being gone.
+//
+// The invariant behind that asymmetry, stated so it survives future edits: **reporting may look
+// at the disk; deciding may not.** Prune reports that a record describes nothing, so consulting
+// the filesystem is exactly right. Rekey decides where a baseline belongs, and its evidence is
+// the lock entry plus the plan — both of which survive a member deleting the abandoned tree.
+// Gating rekey on the old file's presence would therefore strand every entry whose base moved
+// after a cleanup, permanently, because a rekey is the only thing that carries a baseline across
+// a base move. See the cleanup-order test in `../test/rekey.test.mjs`.
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
