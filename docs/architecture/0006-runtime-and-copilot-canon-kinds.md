@@ -320,6 +320,17 @@ would report it as drift forever.
   when its bugs are silent than when they are noisy, which is worth weighing when choosing how a
   check reports.
 
+  **Harmless is not the same as fixed, when a coincidence is doing the work.** The fleet sweep found
+  one member whose managed region is permanently mis-placed and whose effective attributes are
+  nonetheless unchanged — because the single member rule it overrides is byte-identical to canon, so
+  it is overridden to itself. Both facts are true, and only the first one is durable. The property
+  that makes it safe belongs to the member's *content*, which a human will edit without ever being
+  told it is load-bearing; the defect belongs to the file's *structure*, which no later sync repairs.
+  A carve-out added above that region is void from the moment it is written, with no failing check.
+  So a defect held harmless by a coincidence should be recorded as open and fixed on its own terms,
+  not closed on the strength of a green measurement — otherwise the audit that proves it safe today is
+  the same audit that will keep proving it safe right up until someone edits the coincidence away.
+
   **Status of this consequence: promising, not established.** Every instance was found by one
   rollout, and the diagnostic above has so far only been validated by the people who wrote it.
   Recorded because the reasoning is cheap to apply and the failure it prevents is expensive — not
