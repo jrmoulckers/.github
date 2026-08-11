@@ -245,3 +245,32 @@ test('the per-file CLI line carries the magnitude, not just the date', () => {
     'the CLI drift line must render the count, or the signal never reaches a reader',
   );
 });
+
+// `formatBehind` folds 0 in with null, which reads like a 0-vs-null bug and is not one. The
+// defence that looks sufficient — a withheld item can never be at index 0, since `withheld` and
+// `revisionsBehind` both key off `sourceSha256` — is false: `spec.sourceSha256` hashes the canon
+// WORKING TREE while the revision list walks COMMITTED history. A dirty checkout, which is what
+// --dry-run and --studio-dir read, separates them. So the combination is reachable, and tightening
+// the guard to `=== null` would print "0 canon revisions behind" at a member missing nothing.
+test('a withheld file at current committed canon reports zero, and zero stays silent', () => {
+  const TIP = V2;
+  withStudio([V1, TIP], ({ studio, member }) => {
+    // Uncommitted edit on top of the committed tip: canon's working tree no longer matches HEAD.
+    writeFile(studio, SOURCE, ':root { --a: 2-uncommitted }\n');
+    writeFile(member, TARGET, 'member hand-edited this\n');
+
+    const { report } = apply(member, enumerateTokenTargets(PLAN, studio), {
+      backbone: 'b',
+      entries: { [TARGET]: lockEntryFor(TIP) },
+    });
+
+    const [item] = report.drift;
+    assert.equal(item.withheld, true, 'the uncommitted edit differs from the baseline');
+    assert.equal(item.revisionsBehind, 0, 'index 0: the member holds the newest PUBLISHED version');
+    assert.equal(
+      formatBehind(item.revisionsBehind),
+      '',
+      'zero must stay silent here; the member is behind no published revision',
+    );
+  });
+});
