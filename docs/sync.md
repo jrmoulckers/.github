@@ -2258,6 +2258,25 @@ identically zero. Which is the same trap recorded above under agreement deservin
 one level down: the five-row agreement between those two tables is not five confirmations, it is one
 convention applied five times.
 
+**A stable residual establishes the convention and certifies nothing about the corpus — which this
+episode also demonstrates, against itself.** Re-measuring the five revisions to check the offset
+reproduced four of them exactly and returned 887 against the other session's 2421 on the fifth. That
+row was labelled `main`. Three documents were being called that in one exchange: their `main` was
+`48f45f4`, the tip when they measured; mine resolved to `0cc1b44`, a **stale local branch** from the
+previous evening that no fetch had touched; the actual `origin/main` was `355cac4` at 2802. The
+residual was exactly 1 in all three. So the quantity the argument leans on held perfectly while the
+two parties were measuring different files, and would have held at any revision either picked — a
+quantity invariant across inputs cannot discriminate between inputs. Agreement on the residual is
+therefore consistent with disagreement about the document, and the convention question and the
+revision question have to be settled separately.
+
+**A branch name in a column of SHAs is not a coordinate.** It reads as one, sitting among immutable
+values in the same column, and it is a query evaluated at read time against whatever ref namespace
+the reader holds. The failure is silent in the worst way available: a stale *local* ref resolves
+without a fetch, without a warning, and without anything marking the row as incomparable to the four
+above it. This is the named-tip rule one level down — there the name was correct and the figures
+beside it were not; here the name never denoted a revision at all.
+
 None of this disturbs the heading resolution itself, which reproduced independently and is what the
 argument actually rests on.
 

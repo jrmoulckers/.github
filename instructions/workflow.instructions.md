@@ -173,6 +173,29 @@ variants* — its strongest possible negative result. The remedy is to make the 
 locatable **by construction**: inject a known sentinel and assert the probe finds it before believing
 any run in which it does not.
 
+**The same requirement applies to agreement between two instruments, and is easier to miss there.**
+Two measurements matching is evidence only if they *could* have differed. Two sessions measuring one
+file across five revisions produced totals differing by exactly one at every revision — `LF`-count
+against `split('\n')` on a file ending in a newline. Both conventions are defensible and neither was
+stated. A constant residual is the signature of a **convention**, not of two readings: the test is
+not whether the numbers differ but whether the difference depends on the input. Five matching rows
+under one convention are one confirmation, not five.
+
+**But a stable residual certifies only the convention, and nothing about the corpus.** In the same
+exchange the residual held at exactly 1 in all three documents involved — including a stale one
+neither party intended to measure. A quantity invariant across inputs cannot discriminate between
+inputs, so agreement on the residual is fully consistent with the two parties reading different
+files. Report the convention *and* the revision; the residual settles the first and is blind to the
+second.
+
+**And never write an unresolvable citation, even as an example.** There is no markup for
+use-versus-mention, so a document exhibiting a broken locator to illustrate the defect is
+indistinguishable from a document containing one — to a checker and to a skimming reader alike. This
+generalizes past citations: **any document that carries a counter-example in the same notation as
+the real thing has made itself uncheckable.** It bites hardest where the temptation is strongest, in
+the docstring of the very guard that detects the pattern, since a verbatim bad example there poisons
+every later search of the tree. Name the broken form in prose instead.
+
 ### An unreproducible finding resolves to a timestamp before an author
 
 When a reported defect is not there when you look, the reading that gets reached for is that the
@@ -1305,6 +1328,15 @@ supplies the false confidence. Measure at the tip you name, or attach a revision
 individually — and when reporting that something is absent, say which population you searched, since
 *not in the revisions I checked* and *not in any revision* are written identically and differ by
 everything.
+
+**And a branch name is not a revision at all.** A row labelled `main` in a column of SHAs reads as
+one more coordinate; it is a query evaluated against whatever ref namespace the reader happens to
+hold. Two sessions comparing a five-revision table agreed exactly on the four rows named by SHA and
+came out at 887 against 2421 on the row named `main` — one reading a stale *local* branch from the
+previous evening, one reading the tip at their measurement time, neither reading the tip that
+existed when the comparison was made. A stale local ref resolves **silently**: no fetch, no warning,
+nothing to distinguish it from a current one. So resolve any moving name to a SHA and publish the
+SHA, and treat a mixed table of names and SHAs as a table whose rows are not comparable.
 
 ### A correct verdict does not make the remedy correct
 
