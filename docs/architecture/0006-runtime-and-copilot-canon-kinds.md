@@ -336,6 +336,28 @@ would report it as drift forever.
   the population form of the entry above about mutation proving non-vacuity and not fidelity, and it
   arrived the same way: on the author of the safeguard, in the blind spot the safeguard defines.
 
+  The asymmetry underneath it is worth stating on its own, because it names the wrong fix.
+  **Recognising a stamp proves a file is canon; failing to recognise one proves nothing.** Such a
+  classifier is sound as a *predicate* and unsound as an *enumerator*, and the defect is entirely in
+  using it as the second — a `false` from a predicate is indistinguishable from a correct negative,
+  which is why the shortfall is silent. The authoring repository's own guard scanned a fixed window
+  of leading lines for the stamp, and agent and skill files open with YAML frontmatter that pushes it
+  past the boundary, so an entire directory — 22 of 59 locked paths — was invisible while the count
+  stayed comfortably non-zero. Widening the window is the tempting repair and the wrong one: it
+  trades one arbitrary boundary for another and leaves the category error in place. Note also that
+  the window contradicted documented behaviour rather than merely under-reaching it, since canon
+  already specifies the stamp is rendered *after* any frontmatter.
+
+  **Externality is not what makes the reconciling enumeration trustworthy** — a second heuristic in
+  another file is external and useless. The lock qualifies because it is not produced by the same
+  assumptions as the thing being checked: the classifier and the canon files share an author, a
+  convention, and a failure mode, while the lock is written by a different part of the engine for a
+  different purpose. That is the structural form of the entry recorded elsewhere here about two
+  sessions running the same command failing to cross-check each other. The corollary is that the new
+  authority inherits the vacuity obligation: hard-fail on a lock that is missing, unparseable or
+  empty rather than degrading to the heuristic, and let the classifier remain as a source that can
+  only *add*, so a locally seeded region the lock does not yet list is still caught.
+
   It is also invisible where such a guard is most likely to be written. The repository that authored
   this one has no vendored tree at all, being the source of those assets, so the guard is correct
   there and silently incomplete the moment it is copied to a consumer. **A check inherits the
