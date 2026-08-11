@@ -736,6 +736,40 @@ examined. Two rules follow, and both are cheap:
   branch against every open branch, with `git check-attr` on the paths a member protects, answers the
   question the snapshot cannot.
 
+### Sweeping the fleet for attribute damage
+
+The historical version of that question — *did any member already lose a rule when it adopted canon?* —
+is answerable in one pass, and worth re-running whenever the merge behaviour of a managed target
+changes. For each member, find the commit that introduced the region, then compare git's own
+resolution across it:
+
+```sh
+git clone --filter=blob:none --no-checkout https://github.com/<owner>/<repo>.git
+sha=$(git log --format=%H -S'studio:base:start' -- .gitattributes | tail -1)
+files=$(git ls-tree -r --name-only "$sha")
+git check-attr --source="$sha^" text eol -- $files >before.txt
+git check-attr --source="$sha"  text eol -- $files >after.txt
+diff before.txt after.txt
+```
+
+Three traps, all of which make the sweep report *clean*:
+
+- **Do not feed paths through `--stdin` from a shell that terminates lines with CRLF.** A path ending
+  in CR matches no pattern, so every entry resolves to `unspecified` and the diff is empty. Pass the
+  paths as arguments, in batches if the list is long.
+- **Do not route the command through `cmd.exe`.** The caret in `<sha>^` is cmd's escape character, so
+  the parent ref silently fails to resolve and both sides come back empty.
+- **Filter `unspecified` before diffing.** A member that had no `.gitattributes` at all reports every
+  path as changed, which is a first-time adoption rather than a regression. Only transitions between
+  two *specified* values are interesting.
+
+Exposure requires the member to have had rules already, since the failure is canon's `*` overriding
+something that existed. At the time of writing, of six members with a region on their default branch,
+three had prior rules and only one — finance — was ever damaged; it is repaired. The other three
+adopted normalization for the first time and had nothing to lose. A member whose region is appended
+but who has no rule for the wildcard to override is unaffected, which is the common case and the
+reason the defect survived a full wave unnoticed.
+
 **Audit that exposure with git's resolver, not with the region's position.** The obvious check —
 "the managed region should be the first non-empty line" — is itself keyed to the wrong unit, and it
 was written and run against the whole fleet before the mistake showed. It returned two hits, and
