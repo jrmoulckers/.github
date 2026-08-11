@@ -1,0 +1,21 @@
+# =============================================================================
+# Caller Permission Lint Harness
+#
+# Dogfoods the canonical lint from a separate workflow file on every pull request.
+# The local reusable-workflow call resolves from the same commit as this caller,
+# exercising the exact implementation under review.
+# =============================================================================
+name: Caller permissions
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+permissions: {}
+
+jobs:
+  lint:
+    name: Caller permission lint
+    permissions:
+      contents: read
+    uses: ./.github/workflows/reusable-caller-permissions.yml

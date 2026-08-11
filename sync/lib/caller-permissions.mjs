@@ -56,7 +56,16 @@ export function inspectCallerPermissionSource(path, text, backbone) {
   const findings = [];
   const unknown = [];
   const jobsIndex = lines.findIndex((line) => stripYamlComment(line) === 'jobs:');
-  if (jobsIndex === -1) return { findings, unknown };
+  if (jobsIndex === -1) {
+    for (const target of findPackageWorkflowTargets(lines, backbone)) {
+      unknown.push({
+        path,
+        line: target.line,
+        message: `could not resolve the jobs mapping for ${target.workflow}`,
+      });
+    }
+    return { findings, unknown };
+  }
   const jobsBoundary = lines.findIndex(
     (line, index) =>
       index > jobsIndex &&
@@ -68,20 +77,38 @@ export function inspectCallerPermissionSource(path, text, backbone) {
 
   const workflowPermission = parseWorkflowPermission(lines, jobsIndex, jobsEnd);
   const anchors = collectWorkflowUseAnchors(rawLines, backbone);
-  const starts = [];
+  const jobCandidates = [];
   for (let index = jobsIndex + 1; index < jobsEnd; index += 1) {
-    const match = stripYamlComment(lines[index]).match(/^ {2}([A-Za-z][A-Za-z0-9_-]*):\s*$/);
-    if (match) starts.push({ index, name: match[1] });
+    const match = stripYamlComment(lines[index]).match(
+      /^( +)(?:"([A-Za-z_][A-Za-z0-9_-]*)"|'([A-Za-z_][A-Za-z0-9_-]*)'|([A-Za-z_][A-Za-z0-9_-]*)):\s*$/,
+    );
+    if (match) {
+      jobCandidates.push({
+        index,
+        indentation: match[1].length,
+        name: match[2] ?? match[3] ?? match[4],
+      });
+    }
   }
+  const jobIndentation = Math.min(...jobCandidates.map((job) => job.indentation));
+  const starts = jobCandidates.filter((job) => job.indentation === jobIndentation);
 
   const parsedCallLines = new Set();
   for (const [position, start] of starts.entries()) {
     const end = starts[position + 1]?.index ?? jobsEnd;
-    const use = parseJobUse(rawLines, start.index + 1, end, backbone, anchors);
+    const propertyIndentation = directChildIndentation(lines, start.index + 1, end, start.indentation);
+    const use = parseJobUse(
+      rawLines,
+      start.index + 1,
+      end,
+      propertyIndentation,
+      backbone,
+      anchors,
+    );
     if (!use || !PACKAGES_WORKFLOWS.has(use.workflow)) continue;
     parsedCallLines.add(use.targetLine);
 
-    const jobPermission = parsePermission(lines, 4, start.index + 1, end);
+    const jobPermission = parsePermission(lines, propertyIndentation, start.index + 1, end);
     const effective = jobPermission.state === 'absent' ? workflowPermission : jobPermission;
     const source =
       jobPermission.state === 'absent'
@@ -94,6 +121,7 @@ export function inspectCallerPermissionSource(path, text, backbone) {
       path,
       line: use.line,
       job: start.name,
+      affectedJobs: starts.map((job) => job.name),
       workflow: use.workflow,
       state,
       source,
@@ -108,7 +136,7 @@ export function inspectCallerPermissionSource(path, text, backbone) {
     'i',
   );
   for (let index = jobsIndex + 1; index < jobsEnd; index += 1) {
-    const match = stripYamlComment(rawLines[index]).match(anyTarget);
+    const match = stripYamlComment(lines[index]).match(anyTarget);
     if (
       match &&
       PACKAGES_WORKFLOWS.has(match[1]) &&
@@ -198,7 +226,103 @@ export function formatCallerPermissionWarnings(repo, observation) {
   return messages;
 }
 
-function parseJobUse(lines, start, end, backbone, anchors) {
+export function callerPermissionLintReport(result) {
+  const unsafe = result.findings.filter((finding) => finding.state === 'unsafe');
+  const unresolved = [
+    ...result.findings
+      .filter((finding) => finding.state === 'unknown')
+      .map((finding) => ({
+        path: finding.path,
+        line: finding.line,
+        message:
+          `job ${finding.job} calls ${finding.workflow}, but its effective permissions are unknown — ` +
+          finding.detail,
+      })),
+    ...result.unknown,
+  ];
+  const annotations = [
+    ...unsafe.map((finding) => ({
+      level: 'error',
+      path: finding.path,
+      line: finding.line,
+      title: `Unsafe permission ceiling in job ${finding.job}`,
+      message: unsafeFindingMessage(finding),
+    })),
+    ...unresolved.map((finding) => ({
+      level: 'error',
+      path: finding.path,
+      line: finding.line,
+      title: 'Caller permissions could not be verified',
+      message: finding.message,
+    })),
+  ];
+  const lines = ['### Caller permission lint', ''];
+
+  if (!unsafe.length && !unresolved.length) {
+    lines.push(
+      'All direct calls to canonical package-reading workflows have compatible caller permissions.',
+      '',
+      '**This passing check is the positive evidence for this commit.** A previously green run does ' +
+        'not prove that a future reusable-workflow re-pin has a compatible permission ceiling.',
+    );
+  } else {
+    lines.push(
+      `${unsafe.length} unsafe caller job(s); ${unresolved.length} caller permission shape(s) could not be verified.`,
+      '',
+    );
+    if (unsafe.length) {
+      lines.push(
+        '| Workflow file | Caller job | Canonical workflow | Blast radius |',
+        '| --- | --- | --- | --- |',
+      );
+      for (const finding of unsafe) {
+        const collateral = finding.affectedJobs.filter((job) => job !== finding.job);
+        lines.push(
+          `| \`${finding.path}\` | \`${finding.job}\` | \`${finding.workflow}\` | ` +
+            `${finding.affectedJobs.length} total job(s); ` +
+            (collateral.length
+              ? `${collateral.length} other job(s) also die: ${collateral.map((job) => `\`${job}\``).join(', ')}`
+              : 'no other jobs') +
+            ' |',
+        );
+      }
+      lines.push('');
+    }
+    if (unresolved.length) {
+      lines.push('#### Could not verify', '');
+      for (const finding of unresolved) {
+        lines.push(`- \`${finding.path}:${finding.line}\` — ${finding.message}`);
+      }
+      lines.push('');
+    }
+    lines.push(
+      'GitHub rejects the affected workflow file before creating any job, check run, or readable ' +
+        'log. This lint runs from a separate workflow file so it can report the failure.',
+    );
+  }
+
+  return {
+    ok: annotations.length === 0,
+    unsafe,
+    unresolved,
+    annotations,
+    summary: `${lines.join('\n')}\n`,
+  };
+}
+
+function unsafeFindingMessage(finding) {
+  const collateral = finding.affectedJobs.filter((job) => job !== finding.job);
+  const blastRadius = collateral.length
+    ? `${collateral.length} other job(s) in ${finding.path} also never start: ${collateral.join(', ')}`
+    : `this is the only job in ${finding.path}`;
+  return (
+    `job ${finding.job} calls ${finding.workflow}, but its explicit ${finding.source} permission ` +
+    `ceiling does not grant packages: read; ${blastRadius}`
+  );
+}
+
+function parseJobUse(lines, start, end, indentation, backbone, anchors) {
+  if (indentation === null) return null;
   const escapedBackbone = escapeRegExp(backbone);
   const target = new RegExp(
     `^["']?${escapedBackbone}/\\.github/workflows/([^/@\\s"']+)\\.ya?ml@[^\\s"']+["']?$`,
@@ -206,12 +330,14 @@ function parseJobUse(lines, start, end, backbone, anchors) {
   );
   for (let index = start; index < end; index += 1) {
     const source = stripYamlComment(lines[index]);
-    const match = source.match(/^ {4}["']?uses["']?\s*:\s*(.+?)\s*$/);
+    const match = source.match(
+      new RegExp(`^ {${indentation}}["']?uses["']?\\s*:\\s*(.+?)\\s*$`),
+    );
     if (!match) continue;
     let value = match[1].trim();
     let targetLine = index + 1;
     if (/^[>|][-+0-9]*$/.test(value)) {
-      const continuation = scalarContinuation(lines, index, end, 4);
+      const continuation = scalarContinuation(lines, index, end, indentation);
       value = continuation.value;
       targetLine = continuation.line;
     }
@@ -243,6 +369,23 @@ function collectWorkflowUseAnchors(lines, backbone) {
   return anchors;
 }
 
+function findPackageWorkflowTargets(lines, backbone) {
+  const escapedBackbone = escapeRegExp(backbone);
+  const target = new RegExp(
+    `(?:^|[,{])\\s*["']?uses["']?\\s*:\\s*.*?` +
+      `${escapedBackbone}/\\.github/workflows/([^/@\\s"'#},]+)\\.ya?ml@[^\\s"'#},]+`,
+    'i',
+  );
+  const matches = [];
+  for (const [index, line] of lines.entries()) {
+    const match = stripYamlComment(line).match(target);
+    if (match && PACKAGES_WORKFLOWS.has(match[1])) {
+      matches.push({ line: index + 1, workflow: match[1] });
+    }
+  }
+  return matches;
+}
+
 function parseWorkflowPermission(lines, jobsIndex, jobsEnd) {
   const beforeJobs = parsePermission(lines, 0, 0, jobsIndex);
   if (beforeJobs.state !== 'absent') return beforeJobs;
@@ -250,6 +393,7 @@ function parseWorkflowPermission(lines, jobsIndex, jobsEnd) {
 }
 
 function parsePermission(lines, indentation, start, end) {
+  if (indentation === null) return { state: 'absent', detail: '' };
   for (let index = start; index < end; index += 1) {
     const source = stripYamlComment(lines[index]);
     const match = source.match(
@@ -261,15 +405,17 @@ function parsePermission(lines, indentation, start, end) {
 
     const values = new Map();
     let sawChild = false;
+    let mappingIndentation = null;
     for (let cursor = index + 1; cursor < end; cursor += 1) {
       const child = stripYamlComment(lines[cursor]);
       if (!child.trim()) continue;
       const childIndentation = child.match(/^ */)[0].length;
       if (childIndentation <= indentation) break;
+      mappingIndentation ??= childIndentation;
       const item = child.match(
-        new RegExp(`^ {${indentation + 2}}["']?([A-Za-z-]+)["']?\\s*:\\s*([^\\s#]+)\\s*$`),
+        new RegExp(`^ {${mappingIndentation}}["']?([A-Za-z-]+)["']?\\s*:\\s*([^\\s#]+)\\s*$`),
       );
-      if (!item) {
+      if (!item || childIndentation !== mappingIndentation) {
         return { state: 'unknown', detail: 'unsupported permissions mapping' };
       }
       sawChild = true;
@@ -279,6 +425,19 @@ function parsePermission(lines, indentation, start, end) {
     return permissionMapState(values);
   }
   return { state: 'absent', detail: '' };
+}
+
+function directChildIndentation(lines, start, end, parentIndentation) {
+  let indentation = null;
+  for (let index = start; index < end; index += 1) {
+    const line = stripYamlComment(lines[index]);
+    if (!line.trim()) continue;
+    const candidate = line.match(/^ */)[0].length;
+    if (candidate > parentIndentation && (indentation === null || candidate < indentation)) {
+      indentation = candidate;
+    }
+  }
+  return indentation;
 }
 
 function parseInlinePermission(value) {

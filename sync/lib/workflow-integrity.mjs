@@ -13,6 +13,8 @@ const PERMISSION_CEILINGS = new Map([
     ['ci-gate', new Map()],
   ])],
   ['studio-sync.yml', new Map([['sync', new Map([['contents', 'read']])]])],
+  ['caller-permissions-harness.yml', new Map([['lint', new Map([['contents', 'read']])]])],
+  ['reusable-caller-permissions.yml', new Map([['lint', new Map([['contents', 'read']])]])],
   ['reusable-change-detection.yml', new Map([['detect', new Map([['contents', 'read']])]])],
   ['reusable-ci-lint.yml', new Map([
     ['lint', new Map([['contents', 'read'], ['packages', 'read']])],
@@ -108,6 +110,11 @@ export function validateWorkflowIntegrity(repoRoot, manifest) {
   validatePagesAuthority(sources.get('reusable-deploy-pages.yml'), errors);
   validateSecurityContract(sources.get('reusable-security-ci.yml'), errors);
   validateChangeDetectionContract(sources.get('reusable-change-detection.yml'), errors);
+  validateCallerPermissionLintContract(
+    sources.get('reusable-caller-permissions.yml'),
+    sources.get('caller-permissions-harness.yml'),
+    errors,
+  );
   validateNativeSmokeContract(sources.get('reusable-native-smoke-test.yml'), errors);
 
   if (errors.length) {
@@ -392,6 +399,44 @@ function validateChangeDetectionContract(text = '', errors) {
       'reusable-change-detection.yml: unclassified changed files must be reported as an output, in the step summary, and as a warning',
     );
   }
+}
+
+export function validateCallerPermissionLintContract(reusableText = '', harnessText = '', errors = []) {
+  const requirements = [
+    ['derive the caller file from github.workflow_ref', /CALLER_WORKFLOW_REF:\s*\$\{\{\s*github\.workflow_ref\s*\}\}/],
+    ['bind the local harness to github.workflow_sha', /CALLER_WORKFLOW_SHA:\s*\$\{\{\s*github\.workflow_sha\s*\}\}/],
+    [
+      'inspect the pull-request head commit',
+      /ref:\s*\$\{\{\s*github\.event\.pull_request\.head\.sha\s*\|\|\s*github\.sha\s*\}\}/,
+    ],
+    [
+      'require a full-SHA pin in remote callers',
+      /reusable-caller-permissions\\\.yml@\(\[0-9a-f\]\{40\}\)/,
+    ],
+    ['checkout the canonical backbone repository', /repository:\s*jrmoulckers\/\.github/],
+    ['checkout the scanner at the recovered SHA', /ref:\s*\$\{\{\s*steps\.backbone\.outputs\.sha\s*\}\}/],
+    [
+      'execute the scanner against the caller checkout',
+      /run:\s*node backbone\/sync\/check-caller-permissions\.mjs caller/,
+    ],
+  ];
+
+  for (const [description, pattern] of requirements) {
+    if (!pattern.test(reusableText)) {
+      errors.push(`reusable-caller-permissions.yml: must ${description}`);
+    }
+  }
+
+  if (!/^\s{2}pull_request:\s*$/m.test(harnessText)) {
+    errors.push('caller-permissions-harness.yml: must run for every pull request');
+  }
+  if (/^\s{4}(?:paths|paths-ignore):/m.test(harnessText)) {
+    errors.push('caller-permissions-harness.yml: pull_request trigger must not use path filters');
+  }
+  if (!/uses:\s*\.\/\.github\/workflows\/reusable-caller-permissions\.yml/.test(harnessText)) {
+    errors.push('caller-permissions-harness.yml: must call the local reusable lint workflow');
+  }
+  return errors;
 }
 
 export function validateNativeSmokeContract(text = '', errors = []) {

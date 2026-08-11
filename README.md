@@ -93,6 +93,7 @@ directions and ownership boundaries.
 
   | Workflow | Purpose |
   | --- | --- |
+  | `reusable-caller-permissions.yml` | pre-merge caller permission-ceiling lint with whole-file blast radius |
   | `reusable-ci-lint.yml` | ESLint/Prettier + semantic PR title |
   | `reusable-ci-web.yml` | install → typecheck → test → build |
   | `reusable-change-detection.yml` | immutable base/head diff with validated literal path groups |
