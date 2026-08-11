@@ -652,6 +652,17 @@ number, and a session on the other side read a non-zero count as confirmation th
 risk. Read the `files` list and diff the paths that matter; the count only tells you whether you are
 allowed to skip that step.
 
+**The two ways of misreading that count do not cost the same, and "keep it open" is not the safe
+default it looks like.** Treating a non-zero count as proof of risk is the conservative error: it
+costs one diff and preserves something that turns out to be disposable. Treating it as grounds to
+keep a branch alive fails in the other direction — toward *retaining* stale content — and that is
+only safe if retained branches are never merged. They are. A branch left open because nobody could
+prove it was empty accumulates a plausible case for merging simply by continuing to exist, and by
+then it is old enough to re-apply engine behaviour that has since been fixed. That is the shelf-life
+hazard reached by a different road, and it is how one member came to lose every carve-out in its
+`.gitattributes`. So the bias belongs on the work, not on the outcome: a non-zero count **obliges**
+a diff, while `ahead: 0` **permits** skipping one. Neither licenses leaving the question unanswered.
+
 **A diff answers "what does this branch change", never "what does the base contain".** The compare
 above is the right call for supersession, but its output invites a specific misreading, because a
 three-dot diff describes only the delta. `.gitattributes | 7 +` is consistent with creating a
