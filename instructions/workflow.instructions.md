@@ -177,7 +177,16 @@ Rules:
 The permissions trap above is not the only way a run dies in seconds with an empty log. On a
 **private** repository, exhausting the Actions spending limit refuses the run before any job
 starts, with `recent account payments have failed or your spending limit needs to be increased`.
-Actions is free on public repositories for every runner type, so this cannot happen there.
+Standard runners are free on public repositories, so this cannot happen there — but
+**GitHub-hosted larger runners are billed on public repositories too**, so a repo being public
+only rules the cause out while it sticks to standard runners.
+
+**In a fleet, check repository visibility first — it is free and it is a control, not a hint.**
+If the failing repos are all private while public ones stay green, the cause is account-scoped
+billing. The reasoning is not the correlation; it is that neither a sync-distributed defect nor a
+bad caller `permissions:` block cares whether a repository is public, so **the public repos
+staying green falsifies every repository-side hypothesis at once.** A live incident split the
+twelve studio repos exactly along that line, six green and six failing.
 
 Discriminate before investigating, because the two look nearly identical and only one of them is
 a defect in this repository:
@@ -185,10 +194,11 @@ a defect in this repository:
 | | Caller permissions | Spending limit |
 | --- | --- | --- |
 | What failed | Only the job that `uses:` the callee | **Every** job in the run, including untouched ones |
+| Scope | One repository | The **account** — every private repo at once |
 | Triggered by | Adding or narrowing a `permissions:` block | Adding an expensive runner, or simply reaching the monthly cap |
 | Fixed in | The workflow file | Billing settings — nothing in the repository is wrong |
 
-**Check the run summary first: if jobs you did not touch failed alongside the one you did, stop
+**Check the run summary next: if jobs you did not touch failed alongside the one you did, stop
 reading YAML and check billing.** A green history proves nothing here, because the cap is reached
 by cumulative spend rather than by anything in the diff.
 
@@ -198,13 +208,30 @@ both.** When the observation cannot decide, read the annotation, which survives 
 does not:
 
 ```bash
+# From a run
 gh run view <run-id> --json jobs --jq '.jobs[].databaseId'
-gh api repos/OWNER/REPO/check-runs/<check-run-id>/annotations
+gh api repos/OWNER/REPO/check-runs/<check-run-id>/annotations --jq '.[].message'
+
+# From a pull request, which is usually where you are looking
+gh api repos/OWNER/REPO/commits/$(gh api repos/OWNER/REPO/pulls/<n> --jq .head.sha)/check-runs \
+  --jq '.check_runs[] | select(.conclusion=="failure") | .id'
 ```
 
 The billing refusal carries its `recent account payments have failed…` message there. A permissions
-failure does not. (Reported by `jrmoulckers/studio` from the live incident; the endpoint itself is
-verified, returning `[]` for a healthy run.)
+failure does not. (The endpoint returns `[]` for a healthy run.)
+
+**Expect to misread this one, and know why.** An account-scoped fault strikes many repositories
+within minutes of each other, taking unrelated pull requests down with the sync engine's. That
+pattern reads as *"everything is broken"* and invites blaming whatever most recently touched
+everything — which, in a repo family with a sync engine, is always the sync engine. It is the
+standing suspect for precisely the failure class it cannot cause. Timeline evidence is real here
+and still points the wrong way: *simultaneous, across repos, including unrelated work* fits **one
+account-level event** far better than several independent regressions.
+
+**This is a class, not one vendor's quota.** Any account-scoped limit can surface as a per-PR
+check failure — Vercel's `Deployment rate limited — retry in 24 hours` hit a member in the same
+window, from a different system with the same shape. When a check fails and no diff explains it,
+ask whether the limit being hit belongs to the account rather than to the repository.
 
 Non-Linux runners carry a minute multiplier — macOS bills at 10x and Windows at 2x — so adding a
 single macOS job can exhaust a budget that Linux jobs had comfortably fit inside. Budget for the
