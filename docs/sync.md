@@ -14,7 +14,7 @@ assets propagate very differently:
 | --- | --- | --- |
 | **Native** | Community-health files, reusable workflows | GitHub inherits default health files from this `.github` repo automatically; reusable workflows are called directly with `uses: jrmoulckers/.github/.github/workflows/reusable-*.yml@<reviewed-commit-sha>`. **No sync needed — and a member must not keep its own copy** (see below). |
 | **Canonical source** | `agents/`, `skills/`, `prompts/`, `instructions/`, `AGENTS.md`, `agency.toml`, `copilot-instructions.md`, `.gitattributes` | Copilot does **not** auto-inherit these across repos. The sync tool materializes them as `.github/agents/`, `.github/skills/`, `.github/prompts/`, `.github/instructions/`, `.github/copilot-instructions.md`, and selected root files. Consumer copies are generated and read-only — **except the managed-region files (`AGENTS.md`, `.github/copilot-instructions.md` and `.gitattributes`; `sync/lib/copier.mjs` is authoritative), which are read-only *between* the `studio:base` markers and member-owned outside them.** |
-| **External vendored** | `@jrm/tokens` built outputs (CSS custom properties, Tailwind preset, typed JS) | Live in a *different* private backbone repo (`jrmoulckers/studio`), registry-free. The same engine copies studio's committed `dist/` tree into opted-in members under `vendor/@jrm/tokens/`. See [Vendored tokens](#vendored-tokens-jrmtokens). |
+| **External vendored** | `@jrm/tokens` built outputs (CSS custom properties, Tailwind preset, typed JS) | Live in a *different* backbone repo (`jrmoulckers/studio`), registry-free. The same engine copies studio's committed `dist/` tree into opted-in members under `vendor/@jrm/tokens/`. See [Vendored tokens](#vendored-tokens-jrmtokens). |
 
 ## Flow (scheduled PR)
 
@@ -645,6 +645,30 @@ Members with generated or vendored output should run it in CI rather than re-der
 classifier; the mechanism is git's, not the repository's, so the check does not need to be.
 
 ### While a sync PR is blocked, check its position rather than its contents
+
+**A green check on a public repository is not evidence that a billing block has lifted.** Billing is
+enforced at the *account*, but exposure to it is determined by *repository visibility*: public repos
+get free Actions minutes and are never subject to the block, so their runs stay green throughout an
+outage. Reading one repo's green as an account-wide all-clear picks a unit — the account — that
+contains the real one, and it fails in the reassuring direction: a passing check is the most
+convincing artifact in the system, and here it is an artifact of the observed repo being immune
+rather than of the constraint lifting. The observation is accurate; it just answers a different
+question, which is the same shape as measuring the present to settle a claim about the past.
+
+This fleet is split, so the mistake is always available:
+
+```sh
+gh api repos/jrmoulckers/<name> --jq .private   # false -> its green proves nothing about billing
+```
+
+Public (immune, useless as evidence): `.github`, `studio`, `finance`, `score-king`.
+Private (exposed): `homelab`, `libro`, `docket`, `windows`.
+
+Note that **canon itself is public**, so this repository's own unbroken green CI carries no
+information about the account either — the party most likely to declare the all-clear is the one
+with the least evidence for it. Confirm against a *private* member: a live run, not a sibling's
+history. The block's signature is unmistakable when you look at the right repo — jobs with
+`steps: 0`, downstream jobs `skipped`, and an annotation naming payments or the spending limit.
 
 A PR that cannot merge — billing, a missing secret, an unavailable reviewer — invites repeated
 re-verification, and that is nearly the wrong activity. **Validity** (do the contents still hold)
@@ -1380,7 +1404,7 @@ findable error; a paraphrase and a silent over-delete both fail by becoming unfi
 
 ## Vendored tokens (`@jrm/tokens`)
 
-The design-token package `@jrm/tokens` lives in the **other**, private backbone repo
+The design-token package `@jrm/tokens` lives in the **other** backbone repo
 `jrmoulckers/studio`, not here. Studio's token build (`packages/tokens/build/`) is gitignored,
 and — by studio-owner decision — nothing is ever published to a package registry and there is no
 GitHub org. So `@jrm/tokens` reaches product repos the **same way the AI layer does**: carried by
@@ -1522,7 +1546,7 @@ Access Token stored as the **`STUDIO_SYNC_TOKEN`** secret.
 | Pull requests | Read and write | same set |
 
 Contents write covers branch pushes; Pull requests write covers opening and reusing sync PRs.
-`jrmoulckers/studio` is one of the members and the private token source, so its read needed for
+`jrmoulckers/studio` is one of the members and the token source, so its read needed for
 vendoring is already included in the member Contents grant. Nothing else is exercised.
 
 **Grant the list, never a count.** A repo added to `members` does not add itself to the PAT, and the
