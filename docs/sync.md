@@ -868,6 +868,21 @@ adopted normalization for the first time and had nothing to lose. A member whose
 but who has no rule for the wildcard to override is unaffected, which is the common case and the
 reason the defect survived a full wave unnoticed.
 
+**Establish that the check can return a positive before believing that it returned none.** All three
+traps above were found only because finance at `a450c472` was a known-positive whose known damage
+failed to appear; without that fixture the sweep would have certified the fleet twice while inert.
+The fixture has to be shaped like the defect being hunted, not merely be some case that fails — a
+harness that reports empty because it is broken is indistinguishable from one that reports empty
+because nothing is wrong, and a wrongly-shaped fixture certifies the wrong path.
+
+Where a check is code rather than a command, the general form is cheaper and stronger than keeping a
+fixture: introduce the regression deliberately, confirm the check fails, then revert. Doing this to
+`sync/lib/rekey.mjs` — adding an `existsSync` guard to the rekey loop, which is what a future reader
+would plausibly propose as a safety improvement — is what established that the order-independence
+test in `sync/test/rekey.test.mjs` was load-bearing rather than incidentally green. Prefer it for
+anything guarding a silent, unrecoverable failure, since those are exactly the checks whose passing
+is never questioned.
+
 **Audit that exposure with git's resolver, not with the region's position.** The obvious check —
 "the managed region should be the first non-empty line" — is itself keyed to the wrong unit, and it
 was written and run against the whole fleet before the mistake showed. It returned two hits, and
