@@ -672,6 +672,23 @@ onto the reader for holding the artifact canon published to them. The report is 
 artifact in their hands. When distribution is blocked, expect the same correct report repeatedly, and
 fix the distribution rather than the reporter.
 
+**A merged sync PR does not make you current — it makes you current as of the moment it was
+generated.** Its files are pinned at its head commit, so every canon change since is still missing
+after it lands. libro's blocked `#37` was generated at `04:27:21Z`; the authorship and peer-gate rules
+merged at `11:21:19Z`, and its `AGENTS.md` blob contains neither. Merging it would have closed the PR
+and left that gap intact.
+
+That is worth stating because the merge is the point where the gap stops being visible. While the PR
+is open it is a tracked reminder that you are behind; afterwards there is nothing to look at, and a
+green merged sync PR reads to everyone downstream as *this member is current*. So after merging a wave
+that sat blocked, either request a regeneration or record the remaining distance somewhere that
+outlives the PR. **Measure it rather than estimating it** — count the canon commits touching managed
+sources since the branch head; that number is the gap you still have.
+
+And when checking whether a rule reached you, **search the exact phrase, not its topic**. The token
+`peer` occurs four times in libro's copy while the peer-gate rule is entirely absent; a keyword search
+would have reported it present.
+
 ### A correct verdict does not make the remedy correct
 
 A guard that fails closed on the right input can still do harm, because the *diagnostic* is a

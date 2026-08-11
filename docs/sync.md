@@ -1242,6 +1242,27 @@ branch holds whatever the engine did at generation time, and merging an old one 
 that has since been fixed. Before merging, check the branch's creation time against the last change
 under `sync/lib/`; if the engine moved in between, regenerate rather than merge.
 
+**That check covers only one of the branch's two inputs.** A rendering is a function of the engine
+*and* of canon's content, and the engine check passes cleanly while the payload is months old. libro's
+blocked `#37` was generated at `2026-08-11T04:27:21Z`; **75** canon PRs merged after that head commit,
+including the authorship and peer-gate rules at `11:21:19Z`, and its `AGENTS.md` blob contains neither
+phrase. Nothing about the branch is defective — it is a faithful rendering of a canon that has moved.
+So compare the branch head against the last change to the **managed sources**, not only to `sync/lib/`,
+and expect the two answers to differ.
+
+**A sync PR makes a member current as of its generation, not as of its merge**, which inverts the
+intuition that a long-delayed merge delivers more. The shortfall grows with precisely the interval
+that makes the PR feel overdue, and it is measurable rather than merely suspected — count the canon
+commits touching managed sources since the branch head, and that is the gap you will still have
+afterwards.
+
+**The gap is most dangerous immediately after the merge succeeds.** While blocked, the PR is a visible,
+tracked, repeatedly-discussed reminder that the member is behind. Merging removes the reminder without
+closing the gap: the residual staleness becomes unobservable at the exact moment its tracking artifact
+disappears, and a green merged sync PR reads downstream as *this member is current*. **Draining a
+queue is not the same as reaching the head of it** — after merging a delayed wave, either regenerate
+immediately or record the remaining distance somewhere that outlives the PR.
+
 **Run that check unconditionally, because nothing in the artifact will prompt you to.** A generated
 file carries no evidence of its own staleness. Its bytes are self-evidencing: a wrongly-ordered
 `.gitattributes` really is wrongly ordered, the reading is correct, and the artifact points nowhere
