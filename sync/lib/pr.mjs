@@ -8,10 +8,11 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readLock } from './lock.mjs';
-import { apply } from './copier.mjs';
+import { apply, formatBehind } from './copier.mjs';
 import { cloneShallow, prepareSyncBranch, commitAll, push, createPr, findOpenPr, findOtherOpenSyncPrs, CO_AUTHOR } from './git.mjs';
 import { log } from './log.mjs';
 import { assertMemberFacts } from './member-facts.mjs';
+
 
 export function branchName(date) {
   return `studio-sync/${date}`;
@@ -214,7 +215,9 @@ export function buildPrBody(report, { date, intro, waveLookup } = {}) {
       const since = item.lastWrittenAt
         ? `last received canon ${item.lastWrittenAt}`
         : 'never received canon';
-      lines.push(`- \`${item.targetPath}\` — ⚠️ **withholding an update** (${since})`);
+      lines.push(
+        `- \`${item.targetPath}\` — ⚠️ **withholding an update** (${since}${formatBehind(item.revisionsBehind)})`,
+      );
     }
 
     const withheld = report.drift.filter((item) => item.withheld);

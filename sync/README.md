@@ -807,6 +807,33 @@ the engine cannot know, since a member may edit a file long after the write that
 an upper bound on the refusal's age and an exact measure of the baseline's — and the baseline's age
 is what the harm is made of.
 
+**A date says a file is behind; it does not say how far.** `withheld` is a boolean, so a member
+frozen five releases back and one that missed yesterday's publish read identically — and a gate
+that is permanently red carries no information, because a reader who cannot rank the entries
+stops ranking them at all. So each withheld item also carries **`revisionsBehind`**: the number of
+distinct versions canon has published since the one the member last received.
+
+It is derived, not stored. `canonRevisions()` walks the source repo's history for that path —
+the same committed history the recovery evidence already uses — and the member's `sourceSha256`
+is located in it; the index *is* the count, since index 0 is current canon. Distinct *content*
+is the unit, so a revert that republishes earlier bytes does not inflate it.
+
+Three values, three meanings, and the difference between the last two matters:
+
+| `revisionsBehind` | Meaning |
+| --- | --- |
+| `0` | not behind at all — a deliberate customisation on top of current canon. Never rendered; zero is silence |
+| `n > 0` | the member is `n` published versions behind, and the number grows only when canon moves |
+| `null` | **unanswerable** — no baseline, or a baseline whose content appears nowhere in the source's history. Rendered as nothing rather than as `0`, because "we cannot tell" must never read as "up to date" |
+
+The count is computed **lazily, per drifted path**. Walking every target's history eagerly more
+than doubled the wall time of a real run; a drift list is normally two or three entries, so the
+work is proportional to the problem rather than to the fleet.
+
+`jrmoulckers/finance` is the worked example again: its `vendor/@jrm/tokens/css/default/tokens.css`
+reports `12 canon revisions behind`, which is the difference between a line a reader skims and a
+line that says how much has accumulated.
+
 A formatter is the most likely way to arrive here without meaning to: `.github/copilot-instructions.md`
 is Markdown, is a managed-region target, and is shipped to every member. A member running Prettier
 over it rewrites the region, the engine correctly refuses, and that member stops receiving the file
@@ -1059,6 +1086,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/basemerge.test.mjs` | Managed-block detection: markers quoted in prose, shown in a fenced example, or indented as a code block do not form a block; real blocks are still replaced; a canon change after adoption updates in place without duplicating markers; genuine edits are still drift. |
 | `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown; drift warnings name every exact skipped path. Also that the run records what *survived* — every success branch, including the common no-changes one — so a partial failure and a total one no longer render the same, and that the summary is actually published to `GITHUB_STEP_SUMMARY` rather than merely computed. |
 | `test/rekey.test.mjs` | Lock reconciliation when a target base moves: a relocated tree ends with every planned file tracked and no entry pointing at a nonexistent path, and converges as `updated` instead of freezing as drift; a baseline moves only onto a file it provably describes, and an unproven file is left unrecorded so historical recovery stays available to it; the moved baseline still catches a genuine hand-edit; a stale entry is pruned only when its file is gone, while an unplanned entry whose file remains keeps its baseline; an ambiguous relocation is left alone; a root-level managed target is never rekeyed; a steady-state re-run rekeys and prunes nothing and still produces no diff. |
+| `test/revisions-behind.test.mjs` | The staleness magnitude: revisions are ordered newest-first and a revert does not count twice; a withheld file reports how many versions it has missed; a file customised on top of *current* canon is not withheld and stays at zero forever; a baseline matching no published version reports `null` rather than 0, because unanswerable must not read as up to date; the warning line carries the count and pluralizes. |
 | `test/tokens-history.test.mjs` | Historical-canon evidence for vendored `@jrm/tokens`: the set is non-empty and rendered with the *package's* provenance note (not the backbone default) and excludes current canon; a vendored file frozen on an older release converges as `updated` instead of drifting forever; a member-authored file is still refused; and history read from a shallow token checkout raises rather than degrading to an empty set. |
 | `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; raw-canon stamping; exact historical-output recovery; empty-evidence and one-byte-mutation refusal; recorded targets never use first-sync recovery. |
 | `test/history.test.mjs` | Full-history enforcement and committed-blob enumeration; end-to-end target enumeration recovers a member holding a prior engine rendering. |
