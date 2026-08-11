@@ -418,6 +418,17 @@ would report it as drift forever.
   there and silently incomplete the moment it is copied to a consumer. **A check inherits the
   population of the repository it was written in, and says nothing about that.**
 
+  **And that population can be set by a manifest in a different repository.** The case above is
+  population-by-contents, which at least a reader of the repo could notice. The sharper form is
+  population-by-*configuration*: `homelab` opts out of the `base` kind in canon's
+  `studio.config.json`, so `AGENTS.md` — a managed-region target here — is never written there, and
+  that member's marker-dispatch code has never executed against it. Its guard is green and carries
+  no information about that path. What distinguishes this from the vendored-tree case is where the
+  boundary is drawn: flipping one field **in this repository** activates an untested path over
+  there, with no change to the member's own code, tests or contents, and no signal to the member
+  that its coverage just moved. A consumer therefore cannot enumerate its own uncovered surface from
+  inside itself, and an opt-in edit here is a coverage change there.
+
   The control against this is itself subject to it. Canon recorded the known-bad fixture — run the
   check against an inverted ignore list, confirm it reports differently — as something an author does
   once. A control performed once certifies the check as it was on that day, and every later edit to
@@ -622,6 +633,21 @@ would report it as drift forever.
   reader's mind and in nothing else, and permanently uninvestigated because nothing ever conflicts.
   The removal test above catches both, which is the reason to apply it by habit rather than on
   suspicion — suspicion only ever arrives in the lucky case.
+
+  **Hardest of the three: a premise that argued for the option you rejected can never be
+  disconfirmed by the outcome.** Both cases above concern claims on the executed path, which at
+  least stay exposed to contradiction. A claim supporting a path *not* taken describes a
+  counterfactual, so nothing that happens afterwards touches it — it does not merely fail to object,
+  it is structurally incapable of objecting. A member argued against a cherry-pick route on the
+  false premise that a file did not exist on the default branch. The other route was chosen for
+  independent reasons, the work proceeded correctly, and the premise survived intact; it would have
+  been actively harmful in the world where the rejected route was the right one, which is exactly
+  the world it would next be consulted in. **So audit the reasons you did not need.** Load-bearing
+  claims are tested by reality for free, because someone acts on them and the world answers, whereas
+  a claim that supported a rejected option is tested by nothing, persists unexamined, and arrives at
+  the next decision with its credibility undiminished. Most errors in this rollout were
+  self-correcting for precisely that reason — acting on them collided with something — while this
+  one needed a human to go and read the log on purpose.
 
   **A systematically biased instrument still answers difference questions correctly.** This is the
   practical way out, and it is why disagreements over constants are usually not worth resolving.
