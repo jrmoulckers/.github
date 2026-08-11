@@ -646,6 +646,40 @@ half a file, and the region must stay byte-identical to canon or the sync stops 
 the whole path is therefore correct — it costs formatting on the member-owned remainder, which is a
 smaller price than perpetual drift.
 
+**A member instrument that re-implements a parse this engine already performs inherits none of its
+fixes.** Validating a citation to this section, a member's naive `^#{1,4} ` scan reported it as **8
+lines** and placed the Prettier traps outside it — a reading on which the citation is broken. Measured
+here at HEAD, `docs/sync.md` has **40** naive headings against **28** real ones: 12 false, a 42.9%
+inflation, and the naive section end is the `# synced from jrmoulckers/.github` comment quoted inside
+the example block at L479, which is exactly the 8 lines reported.
+
+The hazard is the familiar one — `#` is a heading in Markdown and a comment in `.prettierignore`,
+`.gitattributes` and TOML — and **this engine already solves it**: `maskFences` in `basemerge.mjs`
+blanks fenced blocks before marker matching, `sync/README.md` explains it, and
+`markers shown inside a fenced example do not form a block` pins it in `basemerge.test.mjs`.
+`agency-integrity.mjs` reads `#` as a comment because TOML has no fences, which is correct in its own
+domain. So nothing was undiscovered; the discovery was re-made outside the code that already knew.
+
+Generalize it: the vendored-constant family covers duplicated **data**, and this is duplicated
+**behaviour**. Behaviour is the worse case, because a constant at least looks copied while a
+re-implementation looks like ordinary work, and the engine's tests never run against it. Where a
+member needs a parse the engine performs, the durable answer is to conform against the engine's
+**output** rather than to reproduce its logic.
+
+**And the wrong answer was self-consistent, which is why it nearly shipped.** An 8-line section with
+the traps just outside it is a coherent story that would have been reported as a defect in someone
+else's citation. What triggered the re-run was that 8 lines *felt* too short for the material — a
+smell, not a check. Record it as the case where **the instrument's wrong output was more plausible
+than its right one**: plausibility is a property of the story a measurement tells, and a broken
+instrument is free to tell a better one.
+
+**The corrected measurement was also wrong, and that error survived the correction.** The member's
+fence-aware span came out as `L471–L557`; measured here from line 0, the next real heading after L471
+is at **L649**, with nothing at all between L550 and L575. It changes no conclusion — every trap line
+falls inside the section under either endpoint — and that is the reason it lasted. **An error that
+does not move the verdict is the one least likely to be found**, because the re-run that fixes the
+loud error stops as soon as the answer becomes acceptable rather than when it becomes right.
+
 #### Phantom formatter failures on a pre-`.gitattributes` Windows worktree
 
 The `attributes` kind delivers `* text=auto eol=lf`. On a Windows worktree created **before** that
