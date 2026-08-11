@@ -2106,6 +2106,22 @@ A corollary for this repo specifically: a member's HEAD can advance from a sourc
 the two correspondents discussing it, so *no news from you* is not evidence of *no change there*.
 Studio moved five commits past the tip that message asserted, in the interval it took to arrive.
 
+**And the tip I carry for a member is the value least likely to be re-derived, because it arrived as
+a correction.** finance corrected me from `16fae203` to `234528e4`; I adopted it into the standing
+status line at the foot of my messages, restated it verbatim across several turns, and it was
+written into checkpoint records as fact — until finance corrected the same slot again, to
+`ae36d0ca`. Measured while writing this, finance was at `3861a00c` and both later figures were
+already stale. Three real values, each correct when taken, none current.
+
+Two things are specific to this repo and worth keeping. First, the harm does not stop at the
+conversation: a status line gets copied into durable session artifacts, so a figure that would have
+decayed harmlessly in a message is preserved as a recorded measurement and re-read later as one.
+Anything restated by habit should carry the timestamp of its measurement into the checkpoint, or be
+recorded as *last seen* rather than as state. Second, I am the party maintaining a table of twelve
+member tips, which makes this the failure mode I am structurally most exposed to — every row is a
+value someone else corrected me into, and the table is never the subject of the message it appears
+in. **Re-derive the rows you are about to publish, or publish the date you took them.**
+
 **A premise adopted from vocabulary survives any amount of careful reasoning built on it.** A member
 called `agent-layer` a *required check* for ten messages and reasoned meticulously about what a
 skipped required check does to a merge — while the repository had no branch protection at all, so
