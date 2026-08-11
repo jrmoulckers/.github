@@ -589,6 +589,25 @@ single macOS job can exhaust a budget that Linux jobs had comfortably fit inside
 multiplier when you add one, and prefer `ubuntu-latest` unless the job genuinely requires the
 platform (Swift and Xcode toolchains do; Node builds do not).
 
+**The multiplier is paid by the caller and chosen by the callee.** Calling a reusable workflow adds
+no `runs-on` you can see, so a member inherits a billing profile selected in another repository.
+Across canon exactly one workflow carries a billed tier — `reusable-native-smoke-test`, whose `ios`
+job is `macos-15` and whose `windows` job is `windows-latest`; every other canon workflow is
+`ubuntu-latest` throughout. Four lines of `uses:` is therefore the most expensive edit available,
+and nothing at the call site says so.
+
+This is the **same shape as the caller-permissions trap** above: the caller cannot see the callee's
+requirements, and the failure surfaces somewhere that does not name the cause. The two differ only in
+latency and legibility — permissions fails immediately as an unreadable `startup_failure`, where
+runner cost fails weeks later as a spending-limit refusal, attributed to whatever happened to run
+most recently. Per the rule above, that is the scheduled sync.
+
+**A `runs-on` census undercounts precisely the members most exposed to this**, because a repo that
+only calls reusable workflows declares none of its own. `jrmoulckers/libro` is the case: its single
+`ci.yml` has **zero** `runs-on` lines and **five** `uses: jrmoulckers/.github/…` lines. Its runners
+are entirely inherited. So count the callee's runners for every `uses:`, and read a zero from
+`grep runs-on` as *not measured* rather than *none*.
+
 ### Taking only part of `reusable-ci-lint`
 
 `reusable-ci-lint` carries three independent checks — lint, format-check, and Conventional-Commits
