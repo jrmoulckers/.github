@@ -60,12 +60,26 @@ export const MARKERS = {
 const HASH_MARKER_TARGETS = new Set(['.gitattributes']);
 
 /**
- * Pick the marker syntax for a target path. Defaults to HTML so every existing managed
- * Markdown target keeps the exact markers already committed in member repos.
+ * Pick the marker syntax for a target path. The path is required: a defaulted path resolves to
+ * HTML, which is correct for every caller except the one that matters and fails silently there.
  */
-export function markersFor(targetPath = '') {
-  const base = String(targetPath).split(/[\\/]/).pop() ?? '';
+export function markersFor(targetPath) {
+  if (typeof targetPath !== 'string' || targetPath === '') {
+    throw new TypeError('markersFor(targetPath) requires a non-empty target path');
+  }
+  const base = targetPath.split(/[\\/]/).pop() ?? '';
   return HASH_MARKER_TARGETS.has(base) ? MARKERS.hash : MARKERS.html;
+}
+
+/**
+ * Marker sets are passed explicitly rather than defaulted. A default that suits most targets and
+ * is wrong for one hands the wrong caller an empty region instead of an error.
+ */
+function requireMarkers(markers, fnName) {
+  if (!markers || typeof markers.start !== 'string' || typeof markers.end !== 'string') {
+    throw new TypeError(`${fnName} requires an explicit marker set, e.g. markersFor(targetPath)`);
+  }
+  return markers;
 }
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -94,8 +108,8 @@ function maskFences(text) {
  * Locate the managed region in already-LF-normalized text.
  * @returns {{ start: number, end: number, inner: string } | null}
  */
-function findBlock(lfText, markers = MARKERS.html) {
-  const match = blockRe(markers).exec(maskFences(lfText));
+function findBlock(lfText, markers) {
+  const match = blockRe(requireMarkers(markers, 'findBlock(text, markers)')).exec(maskFences(lfText));
   if (!match) return null;
   const [innerStart, innerEnd] = match.indices[1];
   return {
@@ -115,8 +129,8 @@ export function canonicalizeInner(inner) {
  * managed region yet. The returned value is canonicalized to match what `buildFile`
  * would have written, so it can be hashed/compared directly.
  */
-export function extractBlock(fileContent, markers = MARKERS.html) {
-  const found = findBlock(toLF(fileContent), markers);
+export function extractBlock(fileContent, markers) {
+  const found = findBlock(toLF(fileContent), requireMarkers(markers, 'extractBlock(content, markers)'));
   return found ? canonicalizeInner(found.inner) : null;
 }
 
@@ -143,7 +157,8 @@ function renderBlock(inner, markers) {
  * jrmoulckers/.github#125 append the region instead of prepending it, so merging one is not merely
  * stale — it is unrecoverable without a human edit. Regenerate such a branch rather than merging it.
  */
-export function buildFile(existingContent, inner, markers = MARKERS.html) {
+export function buildFile(existingContent, inner, markers) {
+  requireMarkers(markers, 'buildFile(existing, inner, markers)');
   const block = renderBlock(inner, markers);
   const existing = toLF(existingContent ?? '');
 

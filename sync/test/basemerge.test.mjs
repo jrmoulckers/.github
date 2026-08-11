@@ -56,10 +56,10 @@ function withTmp(fn) {
 
 test('a real managed block is still found and replaced', () => {
   const file = `# Product\n\nlocal text\n\n${START_MARKER}\nold canon\n${END_MARKER}\n`;
-  assert.equal(extractBlock(file), 'old canon');
+  assert.equal(extractBlock(file, MARKERS.html), 'old canon');
 
-  const rebuilt = buildFile(file, 'new canon');
-  assert.equal(extractBlock(rebuilt), 'new canon');
+  const rebuilt = buildFile(file, 'new canon', MARKERS.html);
+  assert.equal(extractBlock(rebuilt, MARKERS.html), 'new canon');
   assert.ok(rebuilt.includes('local text'), 'product-local text survives');
   assert.equal(rebuilt.match(/studio:base:start/g).length, 1, 'no duplicate block');
 });
@@ -72,10 +72,10 @@ test('markers quoted inline in prose do not form a block', () => {
     '',
   ].join('\n');
 
-  assert.equal(extractBlock(file), null, 'inline mentions must not open a managed region');
+  assert.equal(extractBlock(file, MARKERS.html), null, 'inline mentions must not open a managed region');
 
-  const built = buildFile(file, CANON);
-  assert.equal(canonicalizeInner(extractBlock(built)), canonicalizeInner(CANON));
+  const built = buildFile(file, CANON, MARKERS.html);
+  assert.equal(canonicalizeInner(extractBlock(built, MARKERS.html)), canonicalizeInner(CANON));
   assert.ok(built.includes('do not edit inside.'), 'the prose is preserved');
 });
 
@@ -95,10 +95,10 @@ test('markers shown inside a fenced example do not form a block', () => {
     '',
   ].join('\n');
 
-  assert.equal(extractBlock(file), null, 'a documentation example must not open a region');
+  assert.equal(extractBlock(file, MARKERS.html), null, 'a documentation example must not open a region');
 
-  const built = buildFile(file, CANON);
-  assert.equal(canonicalizeInner(extractBlock(built)), canonicalizeInner(CANON));
+  const built = buildFile(file, CANON, MARKERS.html);
+  assert.equal(canonicalizeInner(extractBlock(built, MARKERS.html)), canonicalizeInner(CANON));
   assert.ok(built.includes('```markdown'), 'the example fence is untouched');
   assert.ok(built.includes('Everything outside is ours.'));
 });
@@ -119,10 +119,10 @@ test('markers in a 4-space indented code block do not form a block', () => {
     '',
   ].join('\n');
 
-  assert.equal(extractBlock(file), null, 'an indented example must not open a region');
+  assert.equal(extractBlock(file, MARKERS.html), null, 'an indented example must not open a region');
 
-  const built = buildFile(file, CANON);
-  assert.equal(canonicalizeInner(extractBlock(built)), canonicalizeInner(CANON));
+  const built = buildFile(file, CANON, MARKERS.html);
+  assert.equal(canonicalizeInner(extractBlock(built, MARKERS.html)), canonicalizeInner(CANON));
   assert.ok(built.includes(`    ${START_MARKER}`), 'the indented example is untouched');
   assert.equal(
     built.match(/^<!-- studio:base:start -->$/gm).length,
@@ -161,7 +161,7 @@ test('after adoption, a canon change updates the managed block in place', () => 
   withTmp((root) => {
     const local = '# libro\n\nProduct-local rules we must never lose.\n';
     // Genuine adoption: the file already carries the exact canonical block, but no lock entry.
-    writeFileSync(join(root, 'AGENTS.md'), buildFile(local, CANON), 'utf8');
+    writeFileSync(join(root, 'AGENTS.md'), buildFile(local, CANON, MARKERS.html), 'utf8');
 
     const first = apply(root, [agentsSpec()], { entries: {} }, { write: true });
     assert.equal(first.report.adopted.length, 1, 'baselined on the first run, no content change');
@@ -177,7 +177,7 @@ test('after adoption, a canon change updates the managed block in place', () => 
     );
 
     const written = readFileSync(join(root, 'AGENTS.md'), 'utf8');
-    assert.equal(canonicalizeInner(extractBlock(written)), canonicalizeInner(NEXT));
+    assert.equal(canonicalizeInner(extractBlock(written, MARKERS.html)), canonicalizeInner(NEXT));
     assert.ok(written.includes('Product-local rules we must never lose.'));
     assert.equal(written.match(/^<!-- studio:base:start -->$/gm).length, 1, 'still one start marker');
     assert.equal(written.match(/^<!-- studio:base:end -->$/gm).length, 1, 'still one end marker');
