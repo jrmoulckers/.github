@@ -38,7 +38,7 @@ import { loadManifest } from './lib/manifest.mjs';
 import { resolveAll } from './lib/resolve.mjs';
 import { enumerateTargets, enumerateTokenTargets } from './lib/assets.mjs';
 import { readLock } from './lib/lock.mjs';
-import { apply } from './lib/copier.mjs';
+import { apply, formatBehind } from './lib/copier.mjs';
 import { cloneShallow } from './lib/git.mjs';
 import { assertMemberCheckout, assertMemberIdentity } from './lib/workdir.mjs';
 import { resolveStudioRoot } from './lib/studio.mjs';
@@ -407,7 +407,8 @@ function printReport(report) {
     log.warn(`    ⚠️ locally modified (skipped): ${report.drift.length}`);
     for (const item of report.drift) {
       const behind = item.withheld
-        ? ` — WITHHOLDING an update (last received canon ${item.lastWrittenAt ?? 'never'})`
+        ? ` — WITHHOLDING an update (last received canon ${item.lastWrittenAt ?? 'never'}` +
+          `${formatBehind(item.revisionsBehind)})`
         : '';
       log.warn(`        ${item.targetPath}${behind}${item.note ? ` — ${item.note}` : ''}`);
     }

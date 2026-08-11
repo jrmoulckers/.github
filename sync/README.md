@@ -840,7 +840,22 @@ Three values, three meanings, and the difference between the last two matters:
 | --- | --- |
 | `0` | not behind at all — a deliberate customisation on top of current canon. Never rendered; zero is silence |
 | `n > 0` | the member is `n` published versions behind, and the number grows only when canon moves |
-| `null` | **unanswerable** — no baseline, or a baseline whose content appears nowhere in the source's history. Rendered as nothing rather than as `0`, because "we cannot tell" must never read as "up to date" |
+| `null` | **unanswerable** — a baseline whose content appears nowhere in the source's history. Rendered as nothing rather than as `0`, because "we cannot tell" must never read as "up to date" |
+
+**A target with no baseline at all is not unanswerable — it is maximally behind.** The member has
+received zero of the `n` versions canon published, so the answer is `n`. It uses the same scale as
+the recorded case rather than a parallel one: a member holding the *oldest* version sits at index
+`n - 1`, so holding none of them is exactly one further.
+
+That case had been folded into `null`, and it was silent for the files least able to recover. An
+unrecorded target cannot self-heal — both recovery paths require a hash match and neither mints a
+baseline for content matching nothing — so every file that *could* converge carried a growing
+number while the permanently stuck ones printed nothing. The live instance is `jrmoulckers/finance`,
+whose two withheld skills files report `last received canon never` and had no magnitude at all.
+
+The one case that stays `null` here is an **empty** history: zero published versions cannot support
+a claim in either direction, and `0` is already spoken for by the benign customised-on-current-canon
+state.
 
 The count is computed **lazily, per drifted path**. Walking every target's history eagerly more
 than doubled the wall time of a real run; a drift list is normally two or three entries, so the
@@ -1132,7 +1147,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/basemerge.test.mjs` | Managed-block detection: markers quoted in prose, shown in a fenced example, or indented as a code block do not form a block; real blocks are still replaced; a canon change after adoption updates in place without duplicating markers; genuine edits are still drift. |
 | `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown; drift warnings name every exact skipped path. Also that the run records what *survived* — every success branch, including the common no-changes one — so a partial failure and a total one no longer render the same; that every mode publishes a summary, so a scoped dry run cannot present as a fleet delivery; and that the summary is actually written to `GITHUB_STEP_SUMMARY` rather than merely computed. |
 | `test/rekey.test.mjs` | Lock reconciliation when a target base moves: a relocated tree ends with every planned file tracked and no entry pointing at a nonexistent path, and converges as `updated` instead of freezing as drift; a baseline moves only onto a file it provably describes, and an unproven file is left unrecorded so historical recovery stays available to it; the moved baseline still catches a genuine hand-edit; a stale entry is pruned only when its file is gone, while an unplanned entry whose file remains keeps its baseline; an ambiguous relocation is left alone; a root-level managed target is never rekeyed; a steady-state re-run rekeys and prunes nothing and still produces no diff. |
-| `test/revisions-behind.test.mjs` | The staleness magnitude: revisions are ordered newest-first and a revert does not count twice; a withheld file reports how many versions it has missed; a file customised on top of *current* canon is not withheld and stays at zero forever; a baseline matching no published version reports `null` rather than 0, because unanswerable must not read as up to date; the warning line carries the count and pluralizes. |
+| `test/revisions-behind.test.mjs` | The staleness magnitude: revisions are ordered newest-first and a revert does not count twice; a withheld file reports how many versions it has missed; a file customised on top of *current* canon is not withheld and stays at zero forever; a baseline matching no published version reports `null` rather than 0, because unanswerable must not read as up to date; a target with no baseline at all is answerable and maximal — behind every published version, on the same scale as the recorded case, one past the oldest — while an empty history stays `null` rather than collapsing to 0; the aggregate warning and the per-file CLI line both carry the count, and it pluralizes. |
 | `test/tokens-history.test.mjs` | Historical-canon evidence for vendored `@jrm/tokens`: the set is non-empty and rendered with the *package's* provenance note (not the backbone default) and excludes current canon; the rendered-only set is non-empty, holds no raw blobs, and is a subset of the historical set; a vendored file frozen on an older release converges as `updated` instead of drifting forever; a member-authored file is still refused; and history read from a shallow token checkout raises rather than degrading to an empty set. |
 | `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; raw-canon stamping; exact historical-output recovery; empty-evidence and one-byte-mutation refusal; a recorded target is recovered from a *superseded rendering* but never from raw canon (a stripped header stays a local edit), never on historical-but-not-rendered evidence, and never from member-authored bytes. |
 | `test/history.test.mjs` | Full-history enforcement and committed-blob enumeration; end-to-end target enumeration recovers a member holding a prior engine rendering. |

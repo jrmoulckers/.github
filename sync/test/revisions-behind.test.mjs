@@ -7,7 +7,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -137,6 +137,7 @@ test('a baseline matching no published version is unanswerable, not up to date',
   });
 });
 
+
 test('the warning line carries the count, and pluralizes', () => {
   const line = formatDriftWarning('jrmoulckers/finance', [
     { targetPath: 'a.css', withheld: true, lastWrittenAt: '2026-07-13T00:00:00.000Z', revisionsBehind: 4 },
@@ -148,4 +149,99 @@ test('the warning line carries the count, and pluralizes', () => {
   assert.match(line, /b\.css last synced never, 1 canon revision behind/);
   assert.ok(!line.includes('c.css last synced'), 'a merely-customised file is not listed as behind');
   assert.match(line, /2 of 3 withholding a canon update/);
+});
+
+// An unrecorded target is the class that can never self-heal: both recovery paths in copier.mjs
+// require a hash match, and neither mints a baseline for content matching nothing. Reporting it as
+// unanswerable left the permanently-stuck files as the only ones with no number at all.
+test('a target the member never received is behind every published version', () => {
+  withStudio([V1, V2, V4], ({ studio, member }) => {
+    writeFile(member, TARGET, 'member wrote this\n');
+
+    const { report } = apply(member, enumerateTokenTargets(PLAN, studio), {
+      backbone: 'b',
+      entries: {},
+    });
+
+    const [item] = report.drift;
+    assert.equal(item.withheld, true);
+    assert.equal(item.revisionsBehind, 3, 'three distinct versions published, none received');
+    assert.equal(formatBehind(item.revisionsBehind), ', 3 canon revisions behind');
+  });
+});
+
+// The scale has to be the same one the recorded case uses, or the two numbers cannot be compared in
+// a log that prints them side by side. A member holding the OLDEST version is `length - 1` behind,
+// so holding none of them is exactly one further.
+test('never-received sits one past the oldest recorded version, on the same scale', () => {
+  withStudio([V1, V2, V4], ({ studio, member }) => {
+    writeFile(member, TARGET, 'member wrote this\n');
+    const specs = enumerateTokenTargets(PLAN, studio);
+
+    const oldest = apply(member, specs, { backbone: 'b', entries: { [TARGET]: lockEntryFor(V1) } });
+    const none = apply(member, specs, { backbone: 'b', entries: {} });
+
+    assert.equal(oldest.report.drift[0].revisionsBehind, 2, 'oldest published version');
+    assert.equal(none.report.drift[0].revisionsBehind, 3, 'one past it, not a separate scale');
+  });
+});
+
+// The two silent cases had been collapsed into one `null`. They have different truth conditions:
+// a baseline matching nothing is genuinely unknowable, while no baseline at all is knowable and
+// maximal. Asserting both in one scenario is what stops a fix to either from erasing the other.
+test('no baseline is answerable, but a baseline matching nothing stays unanswerable', () => {
+  withStudio([V1, V4], ({ studio, member }) => {
+    writeFile(member, TARGET, 'member wrote this\n');
+    const specs = enumerateTokenTargets(PLAN, studio);
+
+    const unrecorded = apply(member, specs, { backbone: 'b', entries: {} });
+    const unknown = apply(member, specs, {
+      backbone: 'b',
+      entries: { [TARGET]: lockEntryFor('content that was never published\n') },
+    });
+
+    assert.equal(unrecorded.report.drift[0].revisionsBehind, 2, 'received none of two');
+    assert.equal(unknown.report.drift[0].revisionsBehind, null, 'still unanswerable');
+  });
+});
+
+// The degenerate case a careless guard gets wrong. With no history, `length` is 0 — and 0 already
+// means "customised on current canon", the benign state that renders as silence. Returning it here
+// would assert currency for a file nothing can measure, which is the exact failure the null/zero
+// split exists to prevent.
+test('an empty history is unanswerable, and must not collapse to zero', () => {
+  withStudio([V1], ({ studio, member }) => {
+    // Published on disk but never committed, so the path has no history to count.
+    writeFile(studio, `${PLAN.sourceBase}/css/default/fresh.css`, ':root { --new: 1 }\n');
+    writeFile(member, 'vendor/@jrm/tokens/css/default/fresh.css', 'member wrote this\n');
+
+    const { report } = apply(member, enumerateTokenTargets(PLAN, studio), {
+      backbone: 'b',
+      entries: {},
+    });
+
+    const fresh = report.drift.find((d) => d.targetPath.endsWith('fresh.css'));
+    assert.ok(fresh, 'the uncommitted path is still planned and still drifts');
+    assert.equal(fresh.revisionsBehind, null, 'no history means unknown, never 0');
+    assert.equal(formatBehind(fresh.revisionsBehind), '');
+  });
+});
+// The per-file CLI line is a SECOND renderer, written inline in index.mjs, and it printed
+// "last received canon never" with no magnitude while the aggregate warning and the PR body both
+// carried one. A signal that exists in the data and not on the surface people read is inert, so
+// the summary is asserted against the same formatter rather than a hand-built string.
+test('the per-file CLI line carries the magnitude, not just the date', () => {
+  const item = { targetPath: 'a.css', withheld: true, lastWrittenAt: null, revisionsBehind: 3 };
+  const rendered =
+    ` — WITHHOLDING an update (last received canon ${item.lastWrittenAt ?? 'never'}` +
+    `${formatBehind(item.revisionsBehind)})`;
+
+  assert.equal(rendered, ' — WITHHOLDING an update (last received canon never, 3 canon revisions behind)');
+
+  const source = readFileSync(new URL('../index.mjs', import.meta.url), 'utf8');
+  assert.match(
+    source,
+    /WITHHOLDING an update \(last received canon \$\{item\.lastWrittenAt \?\? 'never'\}`\s*\+\s*`\$\{formatBehind\(item\.revisionsBehind\)\}\)/,
+    'the CLI drift line must render the count, or the signal never reaches a reader',
+  );
 });
