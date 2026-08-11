@@ -451,30 +451,68 @@ test('every tracked file is committed as LF, so eol=lf actually reaches all of t
   // `i/crlf` index entry is not reachable under this repo's settings. The stronger form is kept
   // because it states the property directly ("is it LF") instead of by exclusion, and because the
   // exemption below keeps it correct if the repo ever gains a real binary. Its extra coverage is
-  // theoretical, not demonstrated — see the lone-CR test for what is actually pinned.
+  // theoretical, not demonstrated — see the lone-CR test for what is actually pinned.  // #268: kept honest about what it does NOT prove. The assertion no longer relies on this repo
+  // tracking zero binaries — an asset added tomorrow is exempted by its NUL bytes, with no rule
+  // to write and no invariant to rewrite.
   const rows = execFileSync('git', ['ls-files', '--eol'], { cwd: REPO_ROOT, encoding: 'utf8' })
     .split('\n')
     .filter(Boolean);
   assert.ok(rows.length > 0, 'the repo must have tracked files for this to mean anything');
 
-  // A binary file is legitimately not LF, so ask git whether it is *declared* binary rather than
-  // guessing from the path. Pattern-matching the exemption is the error ADR-0011 and #202 exist to
-  // avoid: only git resolves attributes. There are no such files today, and this is written so
-  // that adding a logo does not require rewriting the invariant.
+  // #268: the exemption is NUL presence, not `git check-attr`. Asking git whether a file is
+  // *declared* binary feels like the ADR-0011 move ("only git resolves attributes"), but it is the
+  // right instinct on the wrong predicate: under canon's `* text=auto`, an undeclared asset
+  // resolves to `text: auto` — the SAME answer a doubled-CR text file gets — so `check-attr`
+  // cannot separate the two cases at all. Classification here is empirical, not declared:
+  // a genuine binary is `-text` BECAUSE it contains NUL; corruption is `-text` despite containing
+  // none. Pinned by the test below, which asserts the two are indistinguishable by `check-attr`.
+  //
+  // The previous form also failed on any legitimate undeclared asset. Studio ran the documented
+  // audit against jrm-recipes and got 60 such rows — 34 png, 21 webp, 4 woff2, 1 ico — every one
+  // with NUL > 0.
   const notLf = rows.filter((row) => !/^i\/lf/.test(row)).map((row) => row.split('\t')[1]);
-  const undeclared = notLf.filter((path) => {
-    const resolved = execFileSync('git', ['check-attr', 'text', '--', path], {
+  const corrupt = notLf.filter((path) => {
+    const blob = execFileSync('git', ['show', `:${path}`], {
       cwd: REPO_ROOT,
-      encoding: 'utf8',
+      encoding: 'buffer',
+      maxBuffer: 64 * 1024 * 1024,
     });
-    return !/text: unset/.test(resolved);
+    return !blob.includes(0);
   });
 
   assert.deepEqual(
-    undeclared,
+    corrupt,
     [],
     'these are text files git did not store as LF, so canon eol=lf is not reaching them',
   );
+});
+
+test('check-attr cannot tell a real asset from a corrupted text file — only NUL can', () => {
+  // #268 pins the exemption above against regressing to the declared-binary form, which reads as
+  // more principled and answers a question whose answer does not vary between the two cases.
+  withTmp((root) => {
+    const git = (args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
+    git(['init', '-q', '.']);
+    writeFileSync(join(root, '.gitattributes'), '* text=auto eol=lf\n', 'utf8');
+    // A real asset, undeclared — exactly how jrm-recipes tracks its images (it has no
+    // .gitattributes at all, and canon's `*` rule would not exempt them if it did).
+    writeFileSync(join(root, 'a.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52]));
+    writeFileSync(join(root, 'b.md'), 'x\r\r\n'.repeat(40), 'utf8');
+    git(['add', '-A']);
+
+    const rows = git(['ls-files', '--eol']);
+    assert.match(rows, /i\/-text.*a\.png/, 'both are classified binary');
+    assert.match(rows, /i\/-text.*b\.md/);
+
+    const attrs = git(['check-attr', 'text', '--', 'a.png', 'b.md']);
+    assert.match(attrs, /a\.png: text: auto/, 'canon resolves an undeclared asset to auto, not unset');
+    assert.match(attrs, /b\.md: text: auto/, 'and gives corruption the identical answer');
+
+    const nul = (p) =>
+      execFileSync('git', ['show', `:${p}`], { cwd: root, encoding: 'buffer' }).includes(0);
+    assert.equal(nul('a.png'), true, 'the asset is binary because it contains NUL');
+    assert.equal(nul('b.md'), false, 'the corrupted file contains none — this is the discriminator');
+  });
 });
 
 test('a doubled CR terminator is what makes git call a text file binary', () => {

@@ -602,14 +602,28 @@ All thirteen of this repo's community-health files were in exactly that state: c
 was inert for the files GitHub serves org-wide.
 
 ```bash
-# any file listed here is classified binary, so eol=lf does not apply to it
-git ls-files --eol | grep 'i/-text'
+# `i/-text` alone is NOT the signal — every tracked image, font and icon is legitimately
+# classified binary. The discriminator is the conjunction: classified binary AND no NUL byte.
+git ls-files --eol | grep 'i/-text' | awk '{print $4}' | while read -r f; do
+  git show ":$f" | grep -qU $'\0' || echo "CORRUPT: $f"
+done
 
 # repair: strip the stray CRs and commit. renormalize alone will not do it.
 ```
 
+Running the bare `grep 'i/-text'` against `jrmoulckers/jrm-recipes` returns **60 rows and not one
+real defect** — 34 `.png`, 21 `.webp`, 4 `.woff2`, 1 `.ico`, every one with `nul > 0`. A genuine
+asset is `-text` *because* it contains NUL; this corruption is `-text` despite containing none.
+Canon's own case measured `CR=299, LF=171, NUL=0`.
+
+`git check-attr` cannot substitute for the NUL test, and it is worth knowing why, because it looks
+like the more principled choice. Under canon's `* text=auto`, an undeclared asset resolves to
+`text: auto` — **the same answer a doubled-CR text file gets.** Only an explicit member `binary`
+rule yields `unset`. `check-attr` reports policy; only the bytes report what the file is.
+
 Telling the two apart: if `git diff` is clean and the formatter fails, it is the stale worktree
-above. If `git ls-files --eol` reports `i/-text`, it is this — and the fix must be committed.
+above. If a tracked file is `i/-text` **with no NUL byte**, it is this — and the fix must be
+committed.
 
 `sync/test/gitattributes.test.mjs` asserts no tracked file here is classified `-text` and pins the
 doubled-CR mechanism behind that assertion. Run the check above **before** concluding that
