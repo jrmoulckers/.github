@@ -88,7 +88,7 @@ export function apply(memberRoot, writes, lock, opts = {}) {
         }
         break;
       default: // drift — leave the lock entry untouched so the reviewer can reconcile.
-        report.drift.push(res.note ? { ...item, note: res.note } : item);
+        report.drift.push({ ...item, ...withholdingState(entries[spec.targetPath], spec), ...(res.note ? { note: res.note } : {}) });
     }
   }
 
@@ -401,6 +401,46 @@ function isUnstampedCanon(lockEntry, currentHash, spec) {
  */
 function isHistoricalCanonOutput(lockEntry, currentHash, spec) {
   return !lockEntry && (spec.historicalCanonSha256 ?? []).includes(currentHash);
+}
+
+/**
+ * Whether a refusal is *costing* the member anything, and since when.
+ *
+ * Refusing to overwrite a locally-modified file is correct and must stay correct. But a correct
+ * refusal that repeats indefinitely is, in the output, indistinguishable from a member who
+ * customised a file on purpose — and one of those is a member silently frozen out of canon. That
+ * is not hypothetical: `jrmoulckers/finance` held a vendored `tokens.css` of 20,889 characters
+ * against canon's 45,465, refused correctly on every run since its baseline, while the warning
+ * went into a log nobody read.
+ *
+ * The distinction needs no new state, no counter and no threshold, because the lockfile already
+ * records both halves. `sourceSha256` is the canon the member last received; compare it with the
+ * canon this run resolved:
+ *
+ * - **canon has not moved** — the member edited a file that is otherwise current. They are missing
+ *   nothing. This is the deliberate-customisation case, and it is benign.
+ * - **canon has moved** — the member is behind and the refusal is what keeps them there. Every
+ *   further run widens the gap. This is the case that needs to be loud.
+ *
+ * A counter of consecutive skips was the obvious alternative and measures the wrong thing: it
+ * counts how often the engine ran, not whether anything is being withheld. A file customised on
+ * purpose accrues exactly the same count as a frozen one.
+ *
+ * `lastWrittenAt` is the entry's `syncedAt`, left untouched by drift precisely so it keeps
+ * meaning "when this path last successfully received canon". Note what it is not: the moment drift
+ * *began*, which the engine cannot know — a member may have edited the file long after that write.
+ * It is an upper bound on the refusal's age and an exact measure of the baseline's, and the
+ * baseline's age is the quantity the harm is made of.
+ *
+ * An unrecorded target has no baseline to compare, and it differs from canon or it would not be
+ * here — so the member has never received this path and is withheld by definition.
+ */
+function withholdingState(lockEntry, spec) {
+  if (!lockEntry) return { withheld: true, lastWrittenAt: null };
+  return {
+    withheld: lockEntry.sourceSha256 !== spec.sourceSha256,
+    lastWrittenAt: lockEntry.syncedAt ?? null,
+  };
 }
 
 function entry(sourceSha256, targetSha256) {

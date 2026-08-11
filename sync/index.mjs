@@ -322,9 +322,22 @@ function printReport(report) {
   line('relocated in lockfile', report.rekeyed);
   line('stale lock entries removed', report.pruned);
   if (report.drift.length) {
+    const withheld = report.drift.filter((item) => item.withheld);
     log.warn(`    ⚠️ locally modified (skipped): ${report.drift.length}`);
     for (const item of report.drift) {
-      log.warn(`        ${item.targetPath}${item.note ? ` — ${item.note}` : ''}`);
+      const behind = item.withheld
+        ? ` — WITHHOLDING an update (last received canon ${item.lastWrittenAt ?? 'never'})`
+        : '';
+      log.warn(`        ${item.targetPath}${behind}${item.note ? ` — ${item.note}` : ''}`);
+    }
+    // Refusing is correct; repeating a correct refusal forever is what goes unnoticed. Separating
+    // "customised on purpose" from "frozen out of canon" is the whole point of the line below —
+    // without it both read as the same steady-state warning.
+    if (withheld.length) {
+      log.warn(
+        `    ⚠️ ${withheld.length} of those ${report.drift.length} are behind canon, not merely ` +
+          'customised — the skip is what keeps them stale.',
+      );
     }
     // A skipped AGENTS.md means the member did not receive the base guide at all, which
     // is easy to miss among a successful run's other counts.

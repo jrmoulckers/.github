@@ -6,6 +6,7 @@ import { mkdtempSync, rmSync, writeFileSync, existsSync, readFileSync, mkdirSync
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { apply } from '../lib/copier.mjs';
+import { formatDriftWarning } from '../lib/runner.mjs';
 import { readLock, hashText, LOCK_FILENAME } from '../lib/lock.mjs';
 import { inject } from '../lib/provenance.mjs';
 
@@ -564,5 +565,95 @@ test('the current target base is never swept, so member-owned files under it are
       [`${OLD}/css/tokens.css`],
       'only the abandoned base is swept',
     );
+  });
+});
+// ---------------------------------------------------------------------------
+// A correct refusal that never stops is indistinguishable, in the output, from a deliberate
+// customisation. See withholdingState() in lib/copier.mjs.
+// ---------------------------------------------------------------------------
+
+test('a refusal is marked withheld only when canon has moved since the member baseline', () => {
+  withTmp((root) => {
+    const v1 = spec();
+    apply(root, [v1], readLock(root, BACKBONE), { write: true });
+    seed(root, v1.targetPath, '# canon\n\nlocal edit\n');
+
+    const { report } = apply(root, [v1], readLock(root, BACKBONE), { write: true });
+    assert.equal(report.drift.length, 1, 'precondition: the edit is refused');
+    assert.equal(
+      report.drift[0].withheld,
+      false,
+      'canon is unchanged, so the member is missing nothing - customisation, not staleness',
+    );
+    assert.ok(report.drift[0].lastWrittenAt, 'the baseline date is still reported');
+  });
+});
+
+test('the same refusal becomes withheld the moment canon moves', () => {
+  withTmp((root) => {
+    const v1 = spec();
+    apply(root, [v1], readLock(root, BACKBONE), { write: true });
+    seed(root, v1.targetPath, '# canon\n\nlocal edit\n');
+
+    const { report } = apply(root, [spec(CONTENT_V2)], readLock(root, BACKBONE), { write: true });
+    assert.equal(report.drift.length, 1);
+    assert.equal(report.drift[0].withheld, true);
+    assert.ok(report.drift[0].lastWrittenAt, 'names when canon was last received');
+  });
+});
+
+test('an unrecorded conflicting target is withheld with no baseline date', () => {
+  withTmp((root) => {
+    seed(root, spec().targetPath, '# not canon, never recorded\n');
+    const { report } = apply(root, [spec()], readLock(root, BACKBONE), { write: true });
+    assert.equal(report.drift.length, 1);
+    assert.equal(report.drift[0].withheld, true, 'never received canon at all');
+    assert.equal(report.drift[0].lastWrittenAt, null);
+  });
+});
+
+test("finance's measured state is reported as withheld, not as customisation", () => {
+  // Reconstructed from jrmoulckers/finance rather than imagined, per #216/#225: its vendored
+  // vendor/@jrm/tokens/css/default/tokens.css held 20,889 characters against canon's 45,465, with
+  // a lock baseline sourceSha256 of 343e10b1... while studio's canon had already moved to
+  // f7e03275... The engine refused correctly on every run and the file stopped advancing.
+  withTmp((root) => {
+    const targetPath = 'vendor/@jrm/tokens/css/default/tokens.css';
+    const baselined = {
+      ...spec(':root{--a:1}\n'),
+      kind: 'tokens',
+      name: 'tokens.css',
+      targetPath,
+    };
+
+    apply(root, [baselined], readLock(root, BACKBONE), { write: true });
+    seed(root, targetPath, ':root{--a:1;--local:9}\n');
+
+    const newCanon = ':root{--a:1;--b:2}\n';
+    const advanced = { ...baselined, sourceSha256: hashText(newCanon), content: newCanon };
+    const { report } = apply(root, [advanced], readLock(root, BACKBONE), { write: true });
+
+    assert.equal(report.drift.length, 1);
+    assert.equal(report.drift[0].targetPath, targetPath);
+    assert.equal(report.drift[0].withheld, true);
+
+    const warning = formatDriftWarning('jrmoulckers/finance', report.drift);
+    assert.match(warning, /withholding a canon update/);
+    assert.match(warning, /1 of 1/);
+  });
+});
+
+test('the warning says nothing about withholding when nothing is withheld', () => {
+  // The escalation must be absent in the benign case or it is noise, and noise is what put the
+  // original warning into a log nobody read.
+  withTmp((root) => {
+    const v1 = spec();
+    apply(root, [v1], readLock(root, BACKBONE), { write: true });
+    seed(root, v1.targetPath, '# canon\n\nlocal edit\n');
+    const { report } = apply(root, [v1], readLock(root, BACKBONE), { write: true });
+
+    const warning = formatDriftWarning('o/a', report.drift);
+    assert.match(warning, /locally-modified file\(s\) left untouched/);
+    assert.doesNotMatch(warning, /withholding/);
   });
 });
