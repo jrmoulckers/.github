@@ -358,6 +358,14 @@ would report it as drift forever.
   empty rather than degrading to the heuristic, and let the classifier remain as a source that can
   only *add*, so a locally seeded region the lock does not yet list is still caught.
 
+  **The population under test is a thing to assert, not a thing to discover.** This entry, the empty
+  loop that reports `pass` while asserting `skipped: 0`, and a CI job whose path filter matched
+  nothing are one failure at three layers — in each, a component answered a question about *what to
+  examine* and the answer went unchecked because a shortfall is indistinguishable from a correct
+  negative. A discovery filter matching nothing and a fixture file that is absent are the same event
+  in different clothes. Wherever a check derives its own subject matter, that derivation needs an
+  assertion of its own, and it will not be supplied by the check passing.
+
   It is also invisible where such a guard is most likely to be written. The repository that authored
   this one has no vendored tree at all, being the source of those assets, so the guard is correct
   there and silently incomplete the moment it is copied to a consumer. **A check inherits the

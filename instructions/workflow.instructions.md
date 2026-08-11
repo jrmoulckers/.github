@@ -36,8 +36,8 @@ self-merge and operational authority; this instruction never expands either.
 | Clean tree | `git status` | No uncommitted changes. |
 | Pushed | `git log origin/<branch>..HEAD` | Empty. |
 | PR exists | `gh pr view <branch> --json number` | Returns a PR number. |
-| CI green | `gh pr checks <number>` | No failing or pending required checks. |
-| Mergeable | `gh pr view <number> --json mergeable,mergeStateStatus` | `MERGEABLE`, not dirty/behind. |
+| CI green | `gh pr checks <number>` | Every required check reports `success` or `neutral`. Absence of red is **not** the criterion: a `skipping` check is neither failing nor pending, so a job that was never scheduled passes a not-red test. |
+| Mergeable | `gh pr view <number> --json mergeable,mergeStateStatus` | `MERGEABLE`, not dirty/behind. Note this is a reading and not a gate — `UNSTABLE` does not distinguish a check that failed from one that never started. |
 | Issue linked | PR body | `Closes #N` for each resolved issue. |
 | Landed | `gh pr view <number> --json state` | `MERGED`, or a documented human-gated blocker. |
 
@@ -479,10 +479,21 @@ gh pr view <number> --json mergeable,mergeStateStatus,headRefName
 
 | State | Action |
 | --- | --- |
-| `MERGEABLE` + `CLEAN`/`UNSTABLE` | Continue monitoring CI. |
+| `MERGEABLE` + `CLEAN`/`UNSTABLE` | Continue monitoring CI. `UNSTABLE` never means mergeable-with-caveats: resolve it against the checks. |
 | `MERGEABLE` + `BEHIND` | Rebase on the default branch and re-push. |
 | `CONFLICTING` or `DIRTY` | Run the auto-resolve cycle. |
 | `UNKNOWN` | Wait briefly and re-poll. |
+
+**A `skipped` check has two causes and only one is a problem, so resolve it rather than accepting or
+rejecting it.** A conditional job — `if: needs.changes.outputs.agent == 'true'` — reports `skipping`
+both when its path filter legitimately matched nothing and when the upstream job it depends on never
+ran at all. Demanding `success` unconditionally deadlocks the first case; accepting `skipping`
+admits the second, which is how an unscheduled run passes for green.
+
+Assert instead that the job reached a terminal state **consistent with its own precondition**:
+compute the precondition independently — replay the path filter against the PR's real diff rather
+than reading the regex — and require `success` only where it holds. Do not ask *did it run*; ask
+*should it have run, and did it*.
 
 Auto-resolve only mechanical conflicts you understand: whitespace, import order, regenerated files, changelog ordering, or lockfiles recreated by the repo's package manager. Escalate semantic conflicts such as same-function edits, schema changes, security-sensitive logic, or incompatible refactors.
 
