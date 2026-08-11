@@ -678,6 +678,20 @@ So "it rebased cleanly, no conflicts" is not evidence that member work survived;
 of the exact circumstance in which the loss goes unnoticed. Rebasing is still the right default. It
 just cannot be the last step.
 
+**The loud case is not the safe complement of it.** The table's "usually touch different parts" is a
+frequency claim, not a guarantee, and when it fails the conflict hunks land *inside* the `studio:base`
+markers. Git then presents backbone-owned lines in a conflict block and asks for a resolution — so the
+ordinary, correct-looking action at that prompt is to hand-edit canon. The drift constraint is
+therefore reachable through routine git, not only through deliberate editing of a managed region:
+nothing about the prompt distinguishes the lines you may resolve freely from the lines you may only
+copy. `homelab` reached it on an everyday `git merge` of two sync PRs.
+
+Treat a conflict whose hunks fall inside the markers as a **region-wise copy, not a merge**: take the
+incoming side verbatim inside the markers, keep the default branch outside them, and take the newer
+lockfile whole. Never resolve line-by-line inside a managed region, however small the hunk looks — a
+hand-resolved region is drift by construction, and it will be reported against the member rather than
+against the resolution that produced it.
+
 **`actor.login` names the account, not the actor.** Every agent working this fleet authenticates as
 the repository owner, so a timeline event, a comment author, and a merge are all attributed to the
 same login whoever or whatever performed them. The field cannot answer "did a human do this" and does
