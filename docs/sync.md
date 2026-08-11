@@ -776,6 +776,21 @@ several sessions write to the same repositories, "I checked" ages as fast as "I 
 verified fact quoted from earlier in an exchange as expired, and re-query the cheap things — PR
 state, branch tip, default-branch content — at the moment of use.
 
+**A placement fix does not repair anyone already mis-placed, so the fleet needs both a fix and a
+report.** Because `buildFile` chooses placement only on the no-markers path, the prepend fix reaches
+members adopting a managed region for the first time and no one else. A member that already merged a
+bottom-placed region stays that way permanently: every later sync rewrites canon's block in the wrong
+position, below the carve-outs it silently overrides, and reports nothing. The fix and the damage
+therefore cover disjoint populations, with the damaged one on the side the fix never touches.
+
+This is why the precedence reporter exists alongside it. Detection is by *precedence*, not position —
+a comment above the region carries none, and a rule byte-identical to canon overrides nothing — so
+the report fires on members the fix cannot help without firing on the two harmless shapes. Treat the
+pair as the unit: a fix that changes future behaviour, and a report that surfaces the existing state
+it cannot change. The correct repair on a flagged member is constrained too — move the *member's*
+rules below the region, never the region itself, since editing a managed region is drift and is
+discarded on the next sync.
+
 That is worth a real check rather than a habit, because the engine's non-relocation guarantee turns
 one class of staleness into permanent damage. A managed region is replaced *where it already is*, so
 a region merged into the wrong position is never repaired by a later sync. A branch generated before

@@ -359,6 +359,20 @@ would report it as drift forever.
   demonstration available: the message proposing this rule cited a branch tip that was seven commits
   stale by the time it was sent, while making the point correctly.
 
+  **A fix on a conditional path cannot reach the population that motivated it.** The prepend fix
+  corrects placement only where no managed region exists yet, because replacement is deliberately
+  in-place. So it makes every *future* adoption permanently correct and does nothing whatsoever for
+  the members whose bad placement prompted it — those two populations are disjoint, and the second is
+  the one that was actually damaged. The property is easy to miss because the fix is genuinely
+  correct, its tests genuinely pass, and the bug genuinely stops occurring; what does not happen is
+  any repair. Worse, the already-affected are then invisible, since every later sync rewrites their
+  region in the wrong place without complaint.
+
+  So a fix landing on one branch of a conditional owes a second question — *which branch are the
+  already-affected on?* — and where the answer is "the other one", the fix is only half the work: the
+  remainder is a detection-and-report mechanism aimed squarely at the population the fix cannot
+  reach. Shipping the fix alone converts a loud bug into a silent state.
+
   **Status of this consequence: promising, not established.** Every instance was found by one
   rollout, and the diagnostic above has so far only been validated by the people who wrote it.
   Recorded because the reasoning is cheap to apply and the failure it prevents is expensive — not
