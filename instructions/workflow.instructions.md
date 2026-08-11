@@ -36,7 +36,7 @@ self-merge and operational authority; this instruction never expands either.
 | Clean tree | `git status` | No uncommitted changes. |
 | Pushed | `git log origin/<branch>..HEAD` | Empty. |
 | PR exists | `gh pr view <branch> --json number` | Returns a PR number. |
-| CI green | `gh pr checks <number>` | Every required check reports `success` or `neutral`. Absence of red is **not** the criterion: a `skipping` check is neither failing nor pending, so a job that was never scheduled passes a not-red test. |
+| CI green | `gh pr checks <number>` | Every required check reports `success`, or reaches a no-assertion state (`skipped`, `neutral`) **consistent with an independently computed precondition**. Absence of red is **not** the criterion: a `skipping` check is neither failing nor pending, so a job that was never scheduled passes a not-red test. Never allowlist a no-assertion state beside `success` — see the resolution rule below. |
 | Mergeable | `gh pr view <number> --json mergeable,mergeStateStatus` | `MERGEABLE`, not dirty/behind. Note this is a reading and not a gate — `UNSTABLE` does not distinguish a check that failed from one that never started. |
 | Issue linked | PR body | `Closes #N` for each resolved issue. |
 | Landed | `gh pr view <number> --json state` | `MERGED`, or a documented human-gated blocker. |
@@ -518,6 +518,30 @@ Assert instead that the job reached a terminal state **consistent with its own p
 compute the precondition independently — replay the path filter against the PR's real diff rather
 than reading the regex — and require `success` only where it holds. Do not ask *did it run*; ask
 *should it have run, and did it*.
+
+**`neutral` is the same state under a different name, and the fix that closed `skipping` admitted it
+in the same sentence.** The repair enumerated the conclusions it had decided were acceptable —
+`success` or `neutral` — while reasoning only about `skipping`; `neutral` came along as "not a
+failure." But `neutral` means *completed without asserting a judgment*, which is the property that
+made `skipping` dangerous. GitHub's own branch protection treats it as passing, so it clears a gate
+having checked nothing. Actions jobs effectively never emit it, which is why it survives review on a
+member repo; **third-party check runs emit it routinely** — a coverage reporter with no baseline, a
+linter that owns no changed files — and a fleet-wide instruction governs those by construction.
+
+The remedy is not a narrower enum, which would deadlock the checks that legitimately have nothing to
+assert. It is to stop treating the conclusion as a verdict and route **both** no-assertion states
+through the precondition test above. `skipped` and `neutral` are one bucket with one handler, and
+neither is a green value. Enumerating outcomes is what failed here; asserting the property is what
+survives a state the author has not met yet.
+
+**A dead permissive arm is not harmless the way a dead guard is inert.** No `neutral` exists anywhere
+in this fleet — six repositories scanned, zero instances — and canon elsewhere declines to build a
+guard that has nothing to catch. That rule does not transfer, because **adding a check and removing
+an exemption have opposite risk profiles when neither has a live instance.** An inert guard does
+nothing until someone gives it work; an unexercised exemption does nothing until the first case
+arrives, and then it fires *permissively*, silently, on the reading that looks green. Absence of an
+instance is a reason not to add machinery and never a reason to keep an allowlist entry: the missing
+instance is precisely what stops anyone noticing the entry was wrong.
 
 Auto-resolve only mechanical conflicts you understand: whitespace, import order, regenerated files, changelog ordering, or lockfiles recreated by the repo's package manager. Escalate semantic conflicts such as same-function edits, schema changes, security-sensitive logic, or incompatible refactors.
 
