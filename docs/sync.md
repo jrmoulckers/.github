@@ -843,14 +843,53 @@ own most recent run is evidence about that repository**:
 gh api "repos/jrmoulckers/<name>/actions/runs?per_page=1" --jq '.workflow_runs[].conclusion'
 ```
 
-Public (immune, useless as evidence): `.github`, `studio`, `finance`, `score-king`.
-Private (exposed): `homelab`, `libro`, `docket`, `windows`.
+Visibility is not a property to memorize here, and the enumeration this section used to carry was
+wrong in both directions at once. It labelled the public repos **`(immune, useless as evidence)`** —
+preserving, in the shorthand, the very rationale the paragraphs above falsify, and attaching it to
+`studio`, the repository whose refusal did the falsifying. The two claims are not equivalent:
+*useless as evidence* is true of every repository other than the one you are asking about, and that
+is the point; *immune* is the discarded mechanism. It also listed 8 of 12, omitting `jrm-recipes`
+and `engineering` as public and `cartridge` and `product` as private — both of the missing private
+repos being blocked at the time the list was read, so the omission dropped live instances of the
+condition this section teaches you to find.
+
+The list is not corrected here, because correcting it re-arms the same decay with a fresh timer.
+Visibility is one call, so derive it:
+
+```sh
+gh repo view "jrmoulckers/<name>" --json visibility --jq .visibility
+```
 
 Note that **canon itself is public**, so this repository's own unbroken green CI carries no
 information about the account either — the party most likely to declare the all-clear is the one
 with the least evidence for it. Confirm against a *private* member: a live run, not a sibling's
 history. The block's signature is unmistakable when you look at the right repo — jobs with
 `steps: 0`, downstream jobs `skipped`, and an annotation naming payments or the spending limit.
+
+### A fleet-wide outage makes genuine regressions unreadable while it holds
+
+The block does not merely stop work; it destroys the signal that would tell you whether anything
+else is wrong. Measured on `2026-08-11`, every private member was refused and every public one was
+green — 10 of 10 readable, `windows` unreadable behind an unrelated PAT 403:
+
+```
+libro     failure   8 jobs   steps=[0 × 8]
+cartridge failure  12 jobs   steps=[0 × 12]
+docket    failure   9 jobs   steps=[0 × 9]
+product   failure   1 job    steps=[0]
+homelab   failure   5 jobs   steps=[0 × 5]
+```
+
+35 failed jobs and not one executed step. A real regression landing in any of those repos during the
+outage is **indistinguishable from the outage** at the level anyone actually reads — a red check on a
+private member — and will be scrolled past for the same reason the outage is.
+
+The trap is in how it ends. **The window does not close when the block lifts; it closes when someone
+re-reads the checks afterwards, and nothing prompts that**, because the repos go green on their own
+and a green check invites no investigation. So the all-clear is self-serving in the same direction as
+everything else in this section: the recovery erases the evidence that a regression was ever
+concealed. After an account-wide refusal lifts, re-read the members' checks deliberately rather than
+treating the return to green as the answer.
 
 That signature needs its predicate stated, because part of it is satisfied unconditionally. studio's
 refused run censused as `total=9, steps0=9, failure=8, skipped=1, annotated=8`, and the two counts
