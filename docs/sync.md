@@ -739,7 +739,7 @@ one:
 grep -c '^<!-- studio:base:start -->$' <file>      # AGENTS.md, copilot-instructions.md
 grep -c '^# studio:base:start$'        .gitattributes
 
-# 2. the managed region is byte-identical to its OWN pre-rebase value  (not to canon)
+# 2. the managed region is byte-identical to ONE of the two input regions, verbatim
 # 3. member content OUTSIDE the markers is byte-identical to the default branch
 ```
 
@@ -747,18 +747,42 @@ Hard-fail if the region extracts empty rather than hashing it: *found the marker
 region* are different successes, and the SHA-256 of the empty string is a plausible-looking value
 rather than an obvious error.
 
+**Assertion 2 asserts provenance, not equality with any reference, and that is what makes it
+durable.** Both candidate references are wrong on a legitimate outcome, in opposite directions:
+
+| Reference | Fails on |
+| --- | --- |
+| Live canon HEAD | A branch generated from older canon — correct, merely stale, and canon advances daily |
+| The branch's own pre-rebase region | A rebase that legitimately updates canon: per the conflict rule above, a region-wise resolution takes the incoming region **verbatim**, so the region is supposed to change |
+
+Asserting instead that the result equals *one of the two inputs, byte for byte* needs no external
+reference, cannot go stale, and does not care which direction canon moved. Both inputs are already
+in hand — `git show :2:<file>` and `:3:<file>` during a conflict, or the two merge parents after the
+fact. It also catches the failure that motivates the check in the first place: a **blend** — a
+half-applied hunk or a hand-reconciled region — equals neither input, which no equality-to-a-reference
+test detects directly. Empty extraction is then the degenerate case of matching neither, so this
+composes with the hard-fail above rather than duplicating it.
+
+`finance` is the worked example in both directions: its region measured 4033 chars at two correct
+merges and 5346 at a third, so an equality-to-canon assertion fails on the first two and an
+equality-to-pre-rebase assertion fails on the third. The provenance form passes all three.
+
 Two of the three are about content the merge should not have touched at all, which is the point: the
 failure is invisible in the region under review and only shows in the parts nobody is looking at.
 `jrmoulckers/finance` ran this after both of its rebases and reported a clean result — zero
 conflicts *and* a verified-intact trim, which are two independent facts rather than one.
 
-**Capture the pre-rebase hashes before rebasing; canon HEAD is the wrong reference here.** The
-invariant being asserted is *the rebase changed nothing*, so its reference is the branch's own prior
-state. Checking the region against canon HEAD instead answers a different question — *is this branch
-stale?* — whose answer on any older sync branch is a harmless yes, since canon advances daily. A
-rebase-integrity check pointed at canon flags every slightly-stale branch as corrupt, and the obvious
-remedy is hand-porting canon into the region, which is drift and is discarded on the next sync. Both
-questions are legitimate and they are not the same question; only one of them is about staleness.
+**Capture the pre-rebase hashes before rebasing — as one of the two inputs, not as the reference.**
+The still-useful part of the older advice is that canon HEAD answers a different question: *is this
+branch stale?*, whose answer on any older sync branch is a harmless yes. A rebase-integrity check
+pointed at canon flags every slightly-stale branch as corrupt, and the obvious remedy is hand-porting
+canon into the region — which is drift, and is discarded on the next sync. Both questions are
+legitimate and they are not the same question; only one of them is about staleness.
+
+What changed is the conclusion drawn from that. The pre-rebase region is not the *reference*, because
+"the rebase changed nothing" is false whenever the rebase legitimately adopts newer canon. It is one
+of the two admissible answers, and canon HEAD's region is usually the other. Capture it beforehand
+because after a rebase it is expensive to recover, not because equality with it is the property.
 
 **Extract the region defensively, because a broken extraction produces a plausible hash.** Canon
 stores these bodies **unwrapped** — the source files carry no markers, and the engine injects them
