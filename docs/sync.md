@@ -607,6 +607,15 @@ the comment body, a trailer, or the action's own description. A useful habit is 
 or merging anything states what it did and why in a comment first, which is what made the misread
 recoverable here: the close was one second after a comment no drive-by would have written.
 
+**A second session confirming your number is not a second measurement.** Several sessions work these
+repositories at once and cross-check each other constantly, which is valuable for judgement and
+nearly worthless as verification when both run the same command. A line count taken by splitting on
+newlines is wrong by one on every newline-terminated file and wrong identically for everyone who
+takes it that way. Before treating agreement as evidence, ask what result would have made the two
+disagree — if there isn't one, the second run confirmed the convention, not the fact. Where it
+matters, use instruments that fail differently: a byte-level count against a parsed one, a local
+working copy against the API, the engine's own output against a hand-built expectation.
+
 Assert the invariant instead, on the merge result, after **every** rebase rather than only the final
 one:
 
