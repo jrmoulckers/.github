@@ -57,6 +57,34 @@ skipped on the next sync, and silently strands the repository on a stale copy. C
 source in `jrmoulckers/.github` and let it sync. Genuinely repository-specific behaviour belongs in
 the local `AGENTS.md`, a locally authored agent, or a scoped instructions file.
 
+## Checking a managed region
+
+Generated files carry `synced from jrmoulckers/.github — canonical source; do not edit here`
+between markers. Everything **outside** those markers is yours: the engine splices its region in
+and preserves the rest, so local content there is expected, not drift.
+
+Ask the engine rather than comparing by hand — it is the same code that performs the write:
+
+```bash
+node sync/index.mjs --dry-run --members <member-name> --work-dir /path/to/your/checkout
+```
+
+Run it from a backbone checkout with full history: it refuses on a shallow clone rather than
+comparing against truncated canon.
+
+**Read the answer as repo-wide, because that is what it is.** The report is a count across every
+target in your repo — `unchanged: 58`, `updated: 1`, `→ changes pending` — and there is no per-file
+or verbose flag. All-unchanged means every one of your files already matches canon, and is a
+complete answer. A non-zero `updated` means a re-sync brings them into line with no hand editing,
+but it does **not** tell you which target moved, so it cannot confirm or clear the specific region
+you came to check. Treat it as a repo-level verdict and re-run it after the sync lands.
+
+**Do not diff the whole file.** `AGENTS.md`, `.github/copilot-instructions.md` and `.gitattributes`
+are spliced rather than copied, so a whole-file comparison against canon reports drift on every
+*correctly* synced repo — it is measuring your own local content. Compare the region between the
+markers, or use the command above. If the region really is stale or damaged, the fix is a backbone
+change or a re-sync, never a hand edit: the next run overwrites it.
+
 ## Working conventions
 
 - **Issue first, PR always.** Read-only research needs no issue; the requirement starts before your
