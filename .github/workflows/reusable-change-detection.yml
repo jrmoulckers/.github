@@ -36,6 +36,12 @@ on:
       changed-files-json:
         description: Sorted JSON array of changed file paths.
         value: ${{ jobs.detect.outputs.changed-files-json }}
+      unclassified-files-json:
+        description: >-
+          Sorted JSON array of changed files that matched no path group. Non-empty means the
+          caller's groups do not cover part of the change set, so any job gated on
+          changed-groups-json skipped those files without saying so.
+        value: ${{ jobs.detect.outputs.unclassified-files-json }}
       base-sha:
         description: Validated base commit SHA used for comparison.
         value: ${{ jobs.detect.outputs.base-sha }}
@@ -56,6 +62,7 @@ jobs:
       any-changed: ${{ steps.detect.outputs.any-changed }}
       changed-groups-json: ${{ steps.detect.outputs.changed-groups-json }}
       changed-files-json: ${{ steps.detect.outputs.changed-files-json }}
+      unclassified-files-json: ${{ steps.detect.outputs.unclassified-files-json }}
       base-sha: ${{ steps.detect.outputs.base-sha }}
       head-sha: ${{ steps.detect.outputs.head-sha }}
 
@@ -149,9 +156,27 @@ jobs:
           const changedGroups = entries
             .filter(([, prefixes]) => files.some((file) => prefixes.some((prefix) => matches(file, prefix))))
             .map(([name]) => name);
+
+          // A file matching no group is dropped from every group, and that is the whole point of
+          // grouping — but until it is reported it is indistinguishable from a file correctly
+          // judged irrelevant. Both look like "your group did not change". That gap skipped every
+          // build job on a 13-file deletion under a vendored tree: safe as it happened, and by
+          // reasoning that lived in the author's head rather than in any check.
+          //
+          // Reported, not enforced. Unclassified paths are legitimate and routine — docs, editor
+          // config, anything outside the caller's declared groups — so a failure here would fire
+          // constantly, be switched off, and protect nothing. A warning that names the paths is
+          // the strongest form that survives contact with the common case.
+          const unclassified = files.filter(
+            (file) => !entries.some(([, prefixes]) => prefixes.some((prefix) => matches(file, prefix))),
+          );
           const filesJson = JSON.stringify(files);
           const groupsJson = JSON.stringify(changedGroups);
+          const unclassifiedJson = JSON.stringify(unclassified);
           if (filesJson.length > 500000) throw new Error('changed-files-json exceeds 500000 characters');
+          if (unclassifiedJson.length > 500000) {
+            throw new Error('unclassified-files-json exceeds 500000 characters');
+          }
 
           appendFileSync(
             process.env.GITHUB_OUTPUT,
@@ -159,13 +184,33 @@ jobs:
               `any-changed=${files.length > 0}`,
               `changed-groups-json=${groupsJson}`,
               `changed-files-json=${filesJson}`,
+              `unclassified-files-json=${unclassifiedJson}`,
               `base-sha=${base}`,
               `head-sha=${head}`,
               '',
             ].join('\n'),
           );
-          appendFileSync(
-            process.env.GITHUB_STEP_SUMMARY,
-            `### Change detection\n\n${files.length} changed file(s); groups: ${groupsJson}\n`,
-          );
+          const summary = [
+            '### Change detection',
+            '',
+            `${files.length} changed file(s); groups: ${groupsJson}`,
+          ];
+          if (unclassified.length > 0) {
+            const shown = unclassified.slice(0, 50);
+            summary.push(
+              '',
+              `⚠️ ${unclassified.length} changed file(s) matched no path group, so no group-gated job ran for them:`,
+              '',
+              ...shown.map((file) => `- \`${file}\``),
+              ...(unclassified.length > shown.length
+                ? [`- …and ${unclassified.length - shown.length} more`]
+                : []),
+            );
+            process.stdout.write(
+              `::warning::${unclassified.length} changed file(s) matched no path group; ` +
+                'jobs gated on changed-groups-json did not run for them. ' +
+                `First: ${shown.slice(0, 5).join(', ')}\n`,
+            );
+          }
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary.join('\n')}\n`);
           NODE

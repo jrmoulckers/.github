@@ -191,6 +191,19 @@ jobs:
     uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@<reviewed-commit-sha>
 ```
 
+Your groups will not cover everything, and that is expected — the example above classifies
+`apps/web/` and `packages/ui/` and says nothing about docs, tooling, or vendored trees. What
+deserves care is that a file matching **no** group looks identical, from `changed-groups-json`, to
+one correctly judged irrelevant: in both cases the group is simply absent and the gated job
+skips. That is fine for a README and load-bearing for anything a build resolves at build time — a
+deleted vendored asset or generated file can break a build while matching no source prefix.
+
+The workflow therefore reports what it could not classify, through an `unclassified-files-json`
+output, a step-summary section and a run warning. Nothing fails on it, because unclassified paths
+are routine and a check that fired on all of them would be switched off within a week. Read it
+when a change skipped jobs you expected to run, and widen a group if the residue contains
+something your build actually consumes.
+
 Event filtering is still appropriate for workflows that do not supply required checks. For a
 required check, however, no workflow run is categorically different from an intentionally skipped
 job: only the latter reports a terminal result. Keep the required job's name stable so the ruleset
