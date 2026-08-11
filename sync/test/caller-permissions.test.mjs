@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
+  callerPermissionLintReport,
   formatCallerPermissionWarnings,
   inspectCallerPermissionSource,
   inspectCallerPermissionSources,
@@ -10,6 +16,7 @@ import { reusableWorkflowsDeclaringPermission } from '../lib/workflow-integrity.
 
 const BACKBONE = 'jrmoulckers/.github';
 const SHA = '0123456789abcdef0123456789abcdef01234567';
+const REPO_ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 
 function workflow({ workflowPermission, jobPermission, target = 'reusable-ci-web' } = {}) {
   const top = workflowPermission ? `permissions:\n${workflowPermission}\n\n` : '';
@@ -45,6 +52,7 @@ test('explicit workflow permission ceilings without packages read are unsafe', (
       path: '.github/workflows/ci.yml',
       line: 6,
       job: 'web',
+      affectedJobs: ['web'],
       workflow: 'reusable-ci-web',
       state: 'unsafe',
       source: 'workflow',
@@ -117,6 +125,26 @@ permissions:
   );
   assert.equal(result.findings[0].state, 'safe');
   assert.equal(result.findings[0].source, 'workflow');
+});
+
+test('valid nonstandard YAML indentation preserves caller and permission resolution', () => {
+  const result = inspectCallerPermissionSource(
+    'wide-indent.yml',
+    `jobs:
+    web:
+        permissions:
+            contents: read
+            packages: read
+        uses: ${BACKBONE}/.github/workflows/reusable-ci-web.yml@${SHA}
+`,
+    BACKBONE,
+  );
+
+  assert.deepEqual(
+    result.findings.map(({ job, state, affectedJobs }) => ({ job, state, affectedJobs })),
+    [{ job: 'web', state: 'safe', affectedJobs: ['web'] }],
+  );
+  assert.deepEqual(result.unknown, []);
 });
 
 test('workflow-call aliases retain their caller job and permission ceiling', () => {
@@ -297,3 +325,149 @@ test('workflow-looking text in shell does not produce a caller warning', () => {
   );
   assert.deepEqual(result, { findings: [], unknown: [] });
 });
+
+test('lint report names the unsafe job and every collateral job in its file', () => {
+  const result = inspectCallerPermissionSource(
+    '.github/workflows/ci.yml',
+    `permissions:
+  contents: read
+jobs:
+  _lint:
+    runs-on: ubuntu-latest
+  web:
+    uses: ${BACKBONE}/.github/workflows/reusable-ci-web.yml@${SHA}
+  "deploy":
+    runs-on: ubuntu-latest
+`,
+    BACKBONE,
+  );
+  const report = callerPermissionLintReport(result);
+
+  assert.equal(report.ok, false);
+  assert.equal(report.annotations.length, 1);
+  assert.match(report.annotations[0].title, /job web/);
+  assert.match(report.annotations[0].message, /_lint, deploy/);
+  assert.match(report.summary, /\| `\.github\/workflows\/ci\.yml` \| `web` \|/);
+  assert.match(report.summary, /3 total job\(s\); 2 other job\(s\) also die: `_lint`, `deploy`/);
+});
+
+test('an unresolved local permission shape fails instead of certifying a clean lint', () => {
+  const result = inspectCallerPermissionSource(
+    '.github/workflows/ci.yml',
+    `permissions: \${{ fromJSON(inputs.permissions) }}\n${workflow()}`,
+    BACKBONE,
+  );
+  const report = callerPermissionLintReport(result);
+
+  assert.equal(report.ok, false);
+  assert.equal(report.unsafe.length, 0);
+  assert.equal(report.unresolved.length, 1);
+  assert.match(report.summary, /Could not verify/);
+});
+
+test('an unsupported jobs mapping with a package workflow call is unresolved, not clean', () => {
+  const result = inspectCallerPermissionSource(
+    '.github/workflows/ci.yml',
+    `jobs: { web: { uses: ${BACKBONE}/.github/workflows/reusable-ci-web.yml@${SHA} } }\n`,
+    BACKBONE,
+  );
+  const report = callerPermissionLintReport(result);
+
+  assert.equal(report.ok, false);
+  assert.equal(report.unresolved.length, 1);
+  assert.match(report.unresolved[0].message, /could not resolve the jobs mapping/);
+});
+
+test('a passing lint states the bounded positive evidence it supplies', () => {
+  const result = inspectCallerPermissionSource(
+    '.github/workflows/ci.yml',
+    workflow({ workflowPermission: '  contents: read\n  packages: read' }),
+    BACKBONE,
+  );
+  const report = callerPermissionLintReport(result);
+
+  assert.equal(report.ok, true);
+  assert.deepEqual(report.annotations, []);
+  assert.match(report.summary, /passing check is the positive evidence for this commit/);
+  assert.match(report.summary, /future reusable-workflow re-pin/);
+});
+
+test('the workflow resolver recovers the exact remote pin and rejects a mutable call', (context) => {
+  const immutable = runWorkflowResolver(
+    `jobs:
+  lint:
+    uses: ${BACKBONE}/.github/workflows/reusable-caller-permissions.yml@${SHA}
+`,
+    context,
+  );
+  assert.equal(immutable.status, 0, immutable.stderr);
+  assert.equal(immutable.sha, SHA);
+
+  const mutable = runWorkflowResolver(
+    `# uses: ${BACKBONE}/.github/workflows/reusable-caller-permissions.yml@${SHA}
+jobs:
+  lint:
+    uses: ${BACKBONE}/.github/workflows/reusable-caller-permissions.yml@main
+`,
+    context,
+  );
+  assert.notEqual(mutable.status, 0);
+  assert.match(mutable.stderr, /must contain one immutable caller-permission workflow ref/);
+});
+
+test('the workflow resolver binds the local backbone harness to the caller commit', (context) => {
+  const result = runWorkflowResolver(
+    `jobs:
+  lint:
+    uses: ./.github/workflows/reusable-caller-permissions.yml
+`,
+    context,
+    {
+      repository: BACKBONE,
+      workflowSha: SHA,
+    },
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.sha, SHA);
+});
+
+function runWorkflowResolver(source, context, options = {}) {
+  const root = mkdtempSync(join(tmpdir(), 'caller-permission-ref-'));
+  context.after(() => rmSync(root, { recursive: true, force: true }));
+  const workflowPath = '.github/workflows/caller-permissions.yml';
+  const output = join(root, 'output.txt');
+  mkdirSync(join(root, 'caller', '.github', 'workflows'), { recursive: true });
+  writeFileSync(join(root, 'caller', ...workflowPath.split('/')), source);
+
+  const run = spawnSync(process.execPath, ['-'], {
+    cwd: root,
+    input: resolverScript(),
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      CALLER_REPOSITORY: options.repository ?? 'jrmoulckers/example',
+      CALLER_WORKFLOW_REF: `${options.repository ?? 'jrmoulckers/example'}/${workflowPath}@refs/heads/topic`,
+      CALLER_WORKFLOW_SHA: options.workflowSha ?? 'fedcba9876543210fedcba9876543210fedcba98',
+      GITHUB_OUTPUT: output,
+    },
+  });
+  const sha =
+    run.status === 0
+      ? readFileSync(output, 'utf8').match(/^sha=([0-9a-f]{40})$/m)?.[1]
+      : undefined;
+  return { ...run, sha };
+}
+
+function resolverScript() {
+  const workflow = readFileSync(
+    join(REPO_ROOT, '.github', 'workflows', 'reusable-caller-permissions.yml'),
+    'utf8',
+  ).replace(/\r\n?/g, '\n');
+  const match = workflow.match(/node <<'NODE'\n([\s\S]*?)\n {10}NODE/);
+  assert.ok(match, 'resolver script must remain extractable from the canonical workflow');
+  return match[1]
+    .split('\n')
+    .map((line) => (line.startsWith('          ') ? line.slice(10) : line))
+    .join('\n');
+}

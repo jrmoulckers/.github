@@ -312,6 +312,7 @@ Grant every scope the callee declares:
 
 | Reusable workflow | Scopes the caller must grant |
 | --- | --- |
+| `reusable-caller-permissions` | `contents: read` |
 | `reusable-ci-lint` | `contents: read`, **`packages: read`**, **and `pull-requests: read`** (Semantic PR Title job) |
 | `reusable-ci-web` | `contents: read`, `packages: read` |
 | `reusable-perf-budget` | `contents: read`, `packages: read` |
@@ -346,6 +347,34 @@ Rules:
 - Caller workflows own CI concurrency. Put the concurrency group on the caller workflow so matrix or
   multi-package reusable jobs do not cancel sibling calls. Canonical Pages deployment is the
   exception: it serializes repository deployments with `cancel-in-progress: false`.
+
+Because GitHub rejects an insufficient caller ceiling before creating any job, no step in the
+affected workflow file can explain the failure. Put the canonical lint in a **separate** file so
+that its run still starts:
+
+```yaml
+# .github/workflows/caller-permissions.yml
+name: Caller permissions
+
+on:
+  pull_request:
+
+permissions: {}
+
+jobs:
+  lint:
+    name: Caller permission lint
+    permissions:
+      contents: read
+    uses: jrmoulckers/.github/.github/workflows/reusable-caller-permissions.yml@<reviewed-commit-sha>
+```
+
+Do not path-filter this workflow, and make its stable check name required. A failure names the
+caller workflow file and job whose ceiling is insufficient, then lists every other job in that
+file that GitHub would suppress as collateral blast radius. An unsupported local YAML shape also
+fails rather than being certified safe. A passing lint is the only positive evidence available for
+the inspected commit: existing green history does not prove that a future reusable-workflow re-pin
+has compatible permission ceilings.
 
 ### A no-log failure is not always a permissions problem
 

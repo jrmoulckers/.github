@@ -1,0 +1,138 @@
+# =============================================================================
+# Reusable - Caller Permission Lint
+# =============================================================================
+#
+# Prevents the opaque startup_failure produced when a caller's explicit
+# `permissions:` ceiling omits `packages: read` but a called workflow requests it.
+# GitHub rejects that whole caller workflow file before creating any job or log.
+#
+# Call this from its own workflow file, trigger that file for every pull request,
+# and make its check required. Do not add `paths` or `paths-ignore`:
+#
+#   name: Caller permissions
+#   on:
+#     pull_request:
+#
+#   permissions: {}
+#
+#   jobs:
+#     caller-permissions:
+#       name: Caller permission lint
+#       permissions:
+#         contents: read
+#       uses: jrmoulckers/.github/.github/workflows/reusable-caller-permissions.yml@<reviewed-commit-sha>
+#
+# The job reads that exact caller file to recover `<reviewed-commit-sha>`, then
+# checks out the scanner from the same immutable backbone revision. A green run is
+# positive evidence for the current commit; old green runs say nothing about a
+# future reusable-workflow re-pin.
+# =============================================================================
+name: Reusable - Caller Permission Lint
+
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  lint:
+    name: Inspect caller permission ceilings
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout caller commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: caller
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24'
+
+      - name: Resolve the pinned backbone revision
+        id: backbone
+        env:
+          CALLER_REPOSITORY: ${{ github.repository }}
+          CALLER_WORKFLOW_REF: ${{ github.workflow_ref }}
+          CALLER_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const { appendFileSync, readFileSync } = require('node:fs');
+          const { join } = require('node:path');
+
+          const repository = process.env.CALLER_REPOSITORY;
+          const workflowRef = process.env.CALLER_WORKFLOW_REF;
+          const workflowSha = process.env.CALLER_WORKFLOW_SHA;
+          const prefix = `${repository}/`;
+          const separator = workflowRef.lastIndexOf('@');
+          if (!workflowRef.startsWith(prefix) || separator <= prefix.length) {
+            throw new Error('github.workflow_ref does not identify a workflow in the caller repository');
+          }
+
+          const workflowPath = workflowRef.slice(prefix.length, separator);
+          if (!/^\.github\/workflows\/[A-Za-z0-9._-]+\.ya?ml$/.test(workflowPath)) {
+            throw new Error(`caller workflow path is unsafe or unsupported: ${workflowPath}`);
+          }
+          const text = readFileSync(join('caller', ...workflowPath.split('/')), 'utf8');
+          const lines = text.split(/\r?\n/).map(stripComment);
+          const remoteCall =
+            /^\s{4}["']?uses["']?\s*:\s*["']?jrmoulckers\/\.github\/\.github\/workflows\/reusable-caller-permissions\.yml@([0-9a-f]{40})["']?\s*$/i;
+          const localCall =
+            /^\s{4}["']?uses["']?\s*:\s*["']?\.\/\.github\/workflows\/reusable-caller-permissions\.yml["']?\s*$/i;
+          const refs = new Set(lines.map((line) => line.match(remoteCall)?.[1]).filter(Boolean));
+          const local = lines.some((line) => localCall.test(line));
+
+          let sha;
+          if (local) {
+            if (repository !== 'jrmoulckers/.github' || !/^[0-9a-f]{40}$/.test(workflowSha)) {
+              throw new Error('a local caller-permission workflow call is valid only in the backbone');
+            }
+            if (refs.size) throw new Error('caller workflow mixes local and remote caller-permission calls');
+            sha = workflowSha;
+          } else {
+            if (refs.size !== 1) {
+              throw new Error(
+                `caller workflow must contain one immutable caller-permission workflow ref; found ${refs.size}`,
+              );
+            }
+            [sha] = refs;
+          }
+
+          appendFileSync(process.env.GITHUB_OUTPUT, `sha=${sha}\n`);
+
+          function stripComment(line) {
+            let single = false;
+            let double = false;
+            for (let index = 0; index < line.length; index += 1) {
+              const character = line[index];
+              if (character === "'" && !double) {
+                if (single && line[index + 1] === "'") index += 1;
+                else single = !single;
+              } else if (character === '"' && !single && line[index - 1] !== '\\') {
+                double = !double;
+              } else if (character === '#' && !single && !double) {
+                return line.slice(0, index).trimEnd();
+              }
+            }
+            return line.trimEnd();
+          }
+          NODE
+
+      - name: Checkout the pinned scanner
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: jrmoulckers/.github
+          ref: ${{ steps.backbone.outputs.sha }}
+          path: backbone
+          sparse-checkout: sync
+          persist-credentials: false
+
+      - name: Check caller permissions
+        run: node backbone/sync/check-caller-permissions.mjs caller

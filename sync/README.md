@@ -293,6 +293,21 @@ silently certified as safe. The scanner evaluates direct calls to canonical work
 yet compose permission ceilings through a member-authored reusable workflow that calls canon
 indirectly. `--work-dir` remains offline and inspects only that working tree.
 
+For a pre-merge local gate, callers can put
+`reusable-caller-permissions.yml` in a separate, always-triggered workflow file. The reusable lint
+checks out the exact caller commit, derives the calling file from `github.workflow_ref`, recovers
+the full backbone SHA pinned in that file, and checks out the scanner at that same revision. The
+backbone's local harness instead binds to `github.workflow_sha`, because a local reusable call is
+resolved from the caller commit. This prevents a mutable scanner from silently certifying an older
+or different permission contract.
+
+The local lint is stricter than fleet observation: an unsafe ceiling and an unsupported local YAML
+shape both fail. Diagnostics name the workflow file and caller job and list every sibling job in
+that file that GitHub's whole-run startup rejection would also suppress. The step summary records
+the same blast radius. Put the lint in its own workflow file so a defective application workflow
+cannot prevent the diagnostic run from being created. A passing run is positive evidence only for
+the inspected commit; rerun it whenever a reusable workflow is re-pinned.
+
 ## What gets synced
 
 Resolution follows each member's `optIn` in the manifest:
@@ -1140,8 +1155,8 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/instruction-integrity.test.mjs` | Canonical instruction filename/roster parity, deterministic `applyTo` scopes, source/materialized ownership, precedence, curated member compatibility, infrastructure routing, local-agent collision safety, and immutable reusable-workflow examples. |
 | `test/agency-integrity.test.mjs` | Exact reviewed MCP package versions and tools, safe default server profile, pinned optional Playwright/memory profiles, and rejection of mutable specs, the nonexistent Playwright package, and wildcard grants. |
 | `test/member-facts.test.mjs` | Synthetic checkout derivation for each mode, independently optional infrastructure facts, pre-bootstrap transitions, root package managers, supported framework signatures, ambiguous/missing evidence, SHA-pinned backbone workflow calls (including aliases, flow mappings, quoted keys, and block scalars), shell-scalar exclusion, and field-specific diagnostics. No member facts or network access are pinned. |
-| `test/caller-permissions.test.mjs` | Direct reusable-workflow caller ceilings on default branches and open pull-request heads: package-reading workflows are derived from canonical permission declarations; workflow/job override order, inherited defaults, aliases, key order, and flow permissions are resolved; unsupported YAML and inaccessible or moving refs remain non-fatal unknown observations; one unreadable file cannot erase sibling findings. |
-| `test/workflow-integrity.test.mjs` | Canon/file parity, practical zero-dependency YAML surface checks, full-SHA action refs and version comments, permissions ceilings, timeouts, concurrency ownership, checkout credentials, shell interpolation, artifact contracts, Pages authority split, digest-pinned security scanning, change detection, and private-by-default Lighthouse behavior. |
+| `test/caller-permissions.test.mjs` | Direct reusable-workflow caller ceilings on default branches, open pull-request heads, and the strict local lint: package-reading workflows are derived from canonical permission declarations; workflow/job override order, inherited defaults, aliases, key order, flow permissions, arbitrary valid indentation, immutable remote scanner pins, and local same-commit binding are resolved; local failures name the file/job and every sibling job in the blast radius; unsupported local YAML fails while inaccessible or moving upstream refs remain non-fatal unknown observations; one unreadable file cannot erase sibling findings. |
+| `test/workflow-integrity.test.mjs` | Canon/file parity, practical zero-dependency YAML surface checks, full-SHA action refs and version comments, permissions ceilings, timeouts, concurrency ownership, checkout credentials, shell interpolation, artifact contracts, Pages authority split, digest-pinned security scanning, change detection, caller-lint immutable resolution/separate-file harness, and private-by-default Lighthouse behavior. |
 | `test/provenance.test.mjs` | Every real write equals `inject(targetPath, canon)` and never canon verbatim — so the documented hand-audit baseline stays correct; and that check is line-ending agnostic on the member side. |
 | `test/prbody.test.mjs` | An adoption-only run's PR body says its entire diff is the lockfile, and does not claim that when the run also wrote files (including via `--force`). The drift note states that `--force` is run-wide, offers the by-hand remedy first, and neither appears when the run has no drift. |
 | `test/workdir.test.mjs` | `--work-dir` guards: a parent directory, a missing path and a file are all rejected; a git worktree (whose `.git` is a file) is accepted; identity resolves to `match` / `mismatch` / `unverifiable` across URL spellings and case, both failing verdicts abort, the refusal names the self-certifying lockfile, and `--allow-unverified-work-dir` overrides them without ever marking a matching checkout as overridden. |

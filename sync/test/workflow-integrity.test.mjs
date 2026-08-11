@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   inspectWorkflowSource,
+  validateCallerPermissionLintContract,
   validateNativeSmokeContract,
   validateWorkflowIntegrity,
 } from '../lib/workflow-integrity.mjs';
@@ -16,6 +17,7 @@ test('canonical workflow roster and integrity contracts pass', () => {
   const manifest = loadManifest(REPO_ROOT);
   const result = validateWorkflowIntegrity(REPO_ROOT, manifest);
   assert.deepEqual(result.reusableFiles, [
+    'reusable-caller-permissions.yml',
     'reusable-change-detection.yml',
     'reusable-ci-lint.yml',
     'reusable-ci-web.yml',
@@ -26,6 +28,43 @@ test('canonical workflow roster and integrity contracts pass', () => {
     'reusable-security-ci.yml',
     'reusable-smoke-test.yml',
   ]);
+});
+
+const callerPermissionLintSources = () => ({
+  reusable: readFileSync(
+    join(REPO_ROOT, '.github', 'workflows', 'reusable-caller-permissions.yml'),
+    'utf8',
+  ).replace(/\r\n?/g, '\n'),
+  harness: readFileSync(
+    join(REPO_ROOT, '.github', 'workflows', 'caller-permissions-harness.yml'),
+    'utf8',
+  ).replace(/\r\n?/g, '\n'),
+});
+
+test('caller permission lint contract passes on canon and is not vacuous', () => {
+  const { reusable, harness } = callerPermissionLintSources();
+  assert.deepEqual(validateCallerPermissionLintContract(reusable, harness), []);
+  assert.ok(
+    validateCallerPermissionLintContract('', '').length > 0,
+    'empty workflows cannot satisfy the contract',
+  );
+});
+
+test('caller permission lint rejects a mutable scanner checkout', () => {
+  const { reusable, harness } = callerPermissionLintSources();
+  const mutated = reusable.replace(
+    'ref: ${{ steps.backbone.outputs.sha }}',
+    'ref: main',
+  );
+  const errors = validateCallerPermissionLintContract(mutated, harness);
+  assert.ok(errors.some((error) => error.includes('recovered SHA')));
+});
+
+test('caller permission lint harness rejects pull-request path filters', () => {
+  const { reusable, harness } = callerPermissionLintSources();
+  const mutated = harness.replace('  pull_request:', '  pull_request:\n    paths:\n      - ".github/**"');
+  const errors = validateCallerPermissionLintContract(reusable, mutated);
+  assert.ok(errors.some((error) => error.includes('must not use path filters')));
 });
 
 test('workflow source inspection rejects mutable refs, unsafe triggers, shell interpolation, and missing bounds', () => {
