@@ -13,6 +13,7 @@ import {
   validateRatificationSemanticBase,
   selectBaselineCommit,
   verifyLegacySources,
+  gitBlobSha,
 } from '../validate.mjs';
 
 const REPO_ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
@@ -599,6 +600,38 @@ test('bootstrap legacy pins cannot change with the manifest alone', () => {
 });
 
 test('live legacy resolution checks blob identity and exact section headings', () => {
+  const pinned = '### 1. First\n\n#### 1.1 Nested\n';
+  const blob = (text) => gitBlobSha(Buffer.from(text, 'utf8'));
+  const served = (text) => ({
+    sha: blob(text),
+    content: Buffer.from(text, 'utf8').toString('base64'),
+  });
+  const manifest = {
+    legacySources: {
+      'example.md': {
+        repository: 'owner/repo',
+        ref: '1'.repeat(40),
+        path: 'principles/example.md',
+        blobSha: blob(pinned),
+        sections: ['1', '1.1'],
+      },
+    },
+  };
+
+  assert.deepEqual(verifyLegacySources(manifest, () => served(pinned)), []);
+  assert.match(
+    verifyLegacySources(manifest, () => served('### 1. First\n')).join('\n'),
+    /blob mismatch.*no section 1\.1/s,
+  );
+  assert.match(
+    verifyLegacySources(manifest, () => {
+      throw new Error('source unavailable');
+    }).join('\n'),
+    /cannot resolve pinned legacy source \(source unavailable\)/,
+  );
+});
+
+test('a decode that does not hash to the returned blob is reported instead of scanned', () => {
   const manifest = {
     legacySources: {
       'example.md': {
@@ -610,25 +643,56 @@ test('live legacy resolution checks blob identity and exact section headings', (
       },
     },
   };
-  const content = Buffer.from('### 1. First\n\n#### 1.1 Nested\n').toString('base64');
+
+  // Bytes that do not correspond to the sha served alongside them: a truncated or corrupted
+  // transfer. Both other checks compare values the source reported against values we pinned, so
+  // neither can see this.
+  const errors = verifyLegacySources(manifest, () => ({
+    sha: '2'.repeat(40),
+    content: Buffer.from('### 1. First\n\n#### 1.1 Nested\n', 'utf8').toString('base64'),
+  }));
+
+  assert.match(errors.join('\n'), /decoded content does not hash to the returned blob/);
+  // Section checks are skipped, so a damaged payload cannot masquerade as missing headings.
+  assert.ok(!errors.join('\n').includes('no section'));
+});
+
+test('wrapped multibyte payloads decode whole-buffer, not line by line', () => {
+  // `gh api` wraps base64 at 60 chars. Each line is a complete base64 block, which is what makes
+  // per-line decoding look safe -- but 60 base64 chars carry 45 bytes, and a multibyte character
+  // straddling a 45-byte boundary is destroyed in both halves. Every file the sync engine writes
+  // carries U+2014 in its provenance header, so this is the common case, not an exotic one.
+  const text = `${'├─ (main)/\n'}${'a'.repeat(30)}\n— em dash — and “quotes” —\n${'ω'.repeat(40)}\n`;
+  const raw = Buffer.from(text, 'utf8');
+  const wrapped = (raw.toString('base64').match(/.{1,60}/g) ?? []).join('\n');
+
+  const manifest = {
+    legacySources: {
+      'example.md': {
+        repository: 'owner/repo',
+        ref: '1'.repeat(40),
+        path: 'principles/example.md',
+        blobSha: gitBlobSha(raw),
+        sections: [],
+      },
+    },
+  };
 
   assert.deepEqual(
-    verifyLegacySources(manifest, () => ({ sha: '2'.repeat(40), content })),
+    verifyLegacySources(manifest, () => ({ sha: gitBlobSha(raw), content: wrapped })),
     [],
   );
-  assert.match(
-    verifyLegacySources(manifest, () => ({
-      sha: '3'.repeat(40),
-      content: Buffer.from('### 1. First\n').toString('base64'),
-    })).join('\n'),
-    /blob mismatch.*no section 1\.1/s,
-  );
-  assert.match(
-    verifyLegacySources(manifest, () => {
-      throw new Error('source unavailable');
-    }).join('\n'),
-    /cannot resolve pinned legacy source \(source unavailable\)/,
-  );
+
+  // The fixture has to be capable of showing the damage, or passing above would mean nothing: an
+  // ASCII-only payload round-trips through per-line decoding perfectly, which is how the method
+  // gets certified as lossless. Confirm this payload does not.
+  const perLine = wrapped
+    .split('\n')
+    .map((line) => Buffer.from(line, 'base64').toString('utf8'))
+    .join('');
+  assert.notEqual(perLine, text, 'fixture must be able to expose a per-line decode');
+  assert.notEqual(gitBlobSha(Buffer.from(perLine, 'utf8')), gitBlobSha(raw));
+  assert.ok(perLine.includes('\uFFFD'));
 });
 
 function corpusReader(manifest, overrides = {}) {

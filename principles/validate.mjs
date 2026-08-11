@@ -621,6 +621,19 @@ export function validateLegacyEvolution(current, baseline) {
   return errors;
 }
 
+/**
+ * Git's object name for a blob: sha1 over the header plus the raw bytes. Verified against real
+ * `gh api` responses -- this reproduces the `sha` GitHub reports for a contents fetch exactly.
+ *
+ * @param {Buffer} bytes
+ * @returns {string}
+ */
+export function gitBlobSha(bytes) {
+  return createHash('sha1')
+    .update(Buffer.concat([Buffer.from(`blob ${bytes.length}\0`), bytes]))
+    .digest('hex');
+}
+
 export function verifyLegacySources(manifest, loadSource) {
   const errors = [];
 
@@ -639,7 +652,30 @@ export function verifyLegacySources(manifest, loadSource) {
       );
     }
 
-    const text = Buffer.from(resolved.content.replace(/\s/g, ''), 'base64').toString('utf8');
+    // Decode the whole payload at once. `gh api` hard-wraps base64 at 60 characters and 60 % 4 == 0,
+    // so each line is a complete base64 block -- which is exactly why decoding line by line looks
+    // safe. It is not: 60 base64 chars carry 45 bytes, and 45 aligns to nothing in UTF-8, so any
+    // multibyte character straddling a 45-byte boundary is destroyed in both halves. The property
+    // that makes per-line decoding survive is ASCII-only *content*, not anything about the method,
+    // which is why a probe run against an ASCII file reports it as lossless. Stripping all
+    // whitespace first and decoding once is what makes this correct.
+    const bytes = Buffer.from(resolved.content.replace(/\s/g, ''), 'base64');
+
+    // Hash what we actually decoded. Both checks above compare a value GitHub reported against a
+    // value we pinned; neither is derived from these bytes, so a corrupt or truncated decode would
+    // pass them and then be scanned for headings. A hash over corrupted text is stable and
+    // reproducible, so the wrong answer would look like a settled one. Skip the section checks when
+    // this fails -- headings scanned out of damaged text produce misleading "no section" errors that
+    // bury the real cause.
+    const decodedSha = gitBlobSha(bytes);
+    if (decodedSha !== resolved.sha) {
+      errors.push(
+        `${file}: decoded content does not hash to the returned blob ${resolved.sha} (got ${decodedSha}); the transfer was corrupted or truncated`,
+      );
+      continue;
+    }
+
+    const text = bytes.toString('utf8');
     const headings = new Set(
       [...text.matchAll(/^#{3,4} (\d+(?:\.\d+)?)(?:\.)? /gm)].map((match) => match[1]),
     );
