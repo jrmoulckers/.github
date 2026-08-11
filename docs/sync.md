@@ -548,6 +548,16 @@ which stamp a file carries.
   repository root stops slash-containing patterns such as `.github/agents/` matching, while bare
   patterns such as `AGENTS.md` and `vendor/` keep matching at any depth. The mixed result reads as
   partial coverage rather than as a broken harness; one member measured 57 false gaps this way.
+- **A nullish default erases the distinction it is standing in for.** `lock.entries ?? {}` is the
+  same defect as `inferredParser: null` one layer up, and it is worse for being an idiom: a member's
+  guard hard-failed correctly on both a missing `entries` key and a genuinely empty one, but reported
+  *"lists no entries"* for each — a schema change and an empty lock, needing opposite fixes, arriving
+  as one message. The default converts **absent** into **empty** at the moment of reading, which
+  destroys the evidence before any check can consult it, so no amount of care downstream can recover
+  the distinction. The remedy is not to abandon the idiom but to **decide presence once, at the
+  boundary, and default freely afterwards**: this engine validates that `members` must be an array in
+  `sync/lib/manifest.mjs` before any of its `?? []` sites run, which is why the same idiom is safe
+  there. A default is safe exactly when something upstream has already refused the absent case.
 
 Note that these exclusions are **whole-file even for managed-region targets**. `AGENTS.md` and
 `.github/copilot-instructions.md` are only partly canonical, but a formatter cannot be pointed at
@@ -1608,6 +1618,29 @@ phrase can, because the reader sees the text fail to match and recovers with `gi
 with a question. That is the rule about naming an artifact that can come back negative, applied to
 the **address** rather than to the evidence — and it is why a quoted phrase beats a line cite for
 the same reason `sync/test/rekey.test.mjs:199` beat citing a pull request number.
+
+**What makes a line number uniquely bad is that the act which invalidates it is correct, unrelated,
+and elsewhere.** A renamed function breaks its references visibly; a moved file breaks a link; a
+changed API breaks a build. Editing a document *above* a cited range breaks every citation into it
+and produces no diff at the citation site, no conflict, no failing check, and no notification to
+anyone holding the reference. Nothing anywhere is wrong. Measured across this document's own history,
+by resolving the target heading by content at each revision:
+
+| revision | `### Two Prettier API traps` |
+| --- | --- |
+| `86cd28d` | L521 |
+| `5afec6e` | L521 |
+| `e1c12c7` | **L530** |
+
+The nine-line shift was caused by inserting new guidance at L433-441 — a correct edit, in a different
+section, by the same author who had just issued `L521-533` as a citation. So the reference went stale
+between being written and being used, with no act of carelessness anywhere in the sequence. **A
+locator whose validity depends on every future edit made above it is not a locator.**
+
+Note also which numbers agreed. Two sessions measuring this file reported different totals — 1349
+against 1622 lines — while both resolved the heading to exactly L521, L521, L530. The load-bearing
+measurement agreed and the incidental constant did not, which is the corroboration signature: two
+instruments, not one reading copied.
 
 **A citation also only discharges the obligation if the artifact is reachable by the audience.** This
 document is backbone-internal: `docs/sync.md` is not a canon kind, appears in no member's lockfile,
