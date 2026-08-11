@@ -1828,17 +1828,16 @@ quoting real prose from this file as proof, and concluded that pinning fixes pro
 correctness and that the table should collapse to content alone. Measured at that commit
 (`b52e4a00`, blob `4ec5029d`), the file is **1684 lines**, the cited range held exactly the passage
 claimed for it, and the prose they quoted as the occupant of that range sits at **L302**. The
-relocated passage they offered instead was at **L2032 — past the end of the file.** No short-SHA
-collision existed and the reporter's repository does not track the file, so the disagreement was not
-staleness in either direction: two readers were describing **different artifacts**.
+relocated passage they offered instead was at **L2032 — past the end of the file.**
 
-The reporter later found the mechanism and retracted, and it refines this entry rather than undoing
-it. They were not holding a different document — they were holding *this* document through a decoder
-that destroyed it. `gh api --jq .content` returns base64 as roughly 2630 sixty-character lines, and
-their shell decoded each **separately** and rejoined with newlines, so every 60 bytes became its own
-line and the file inflated 2.56×. That factor is visible in both discrepancies: their `L2032` is
-`794 × 2.56`, and the prose they quoted for `L785` sits at `L302 ≈ 785 ÷ 2.6`. Nothing was random;
-the coordinates were consistently *scaled*.
+**They were not holding a different artifact.** That was the reading recorded here first, and it was
+wrong: the reporter found the mechanism and retracted, and blob comparison has since confirmed it
+outright — both sides hold `4ec5029d` at that revision, byte for byte. They were holding *this*
+document through a decoder that destroyed it. `gh api --jq .content` returns base64 as roughly 2630
+sixty-character lines, and their shell decoded each **separately** and rejoined with newlines, so
+every 60 bytes became its own line and the file inflated 2.56×. That factor is visible in both
+discrepancies: their `L2032` is `794 × 2.56`, and the prose they quoted for `L785` sits at
+`L302 ≈ 785 ÷ 2.6`. Nothing was random; the coordinates were consistently *scaled*.
 
 **That is a stronger case for keeping both rows than the one originally recorded here.** The
 corruption preserved every word and destroyed every line boundary — so it was invisible to content
@@ -1865,23 +1864,73 @@ caught by a coordinate, and the audit confirming it ran on a counter that was qu
 same direction.
 
 Every instrument they trusted agreed with them. The quoted phrase resolved, the SHA was pinned and
-exact, and the neighbourhood was on-topic. **The only signal that anything was wrong was the
-coordinate that refused to resolve** — a line beyond EOF returns nothing, which is the one locator
-failure that cannot near-miss. That is the case recorded above as *safer than a stale line number*,
-arriving as the actual detector rather than as a curiosity.
+exact, and the neighbourhood was on-topic. The coordinate was the only thing that dissented — it was
+past EOF, and a line beyond the end of a file returns nothing rather than near-missing.
 
-So the correction is not to demote content but to stop ranking these as a hierarchy: **content and
-coordinates detect different faults and neither subsumes the other.** Content catches landing in the
-wrong *place*; a coordinate catches holding the wrong *document*. Collapsing the table to its
-self-verifying row would have deleted the only instrument that caught this, which is the general
-hazard — **a detector that returns a confusing negative has not failed, and removing it on that
-evidence removes the finding along with the confusion.** When a locator class appears to fail, first
-ask whether it failed *as an instrument*.
+**That was recorded here as the coordinate working as a detector. It is withdrawn: it fired by
+arithmetic accident.** The reporter's objection is right and the numbers settle it. Detection required
+the scaled coordinate to clear the end of the file — `L × 2.56 > 1684`, so `L > 658`. The cited
+passage sat at **L794**, clearing the threshold by 136 lines. Had the cited passage been anywhere in
+the **first 39% of the document**, the same corruption by the same factor would have produced a
+coordinate landing comfortably *inside* the file, on plausible neighbouring prose, and dissented
+about nothing.
+
+So the detection was conditional on the product of three quantities none of which the reader
+controls: the inflation factor, the position of the cited passage, and the length of the file.
+**A detector whose sensitivity depends on where in the document you happened to be pointing is not a
+detector**, and generalising from the case where it fired means reading a 61% coin as an instrument.
+The narrower, defensible statement is the one recorded earlier and unaffected: past-the-end is a
+*relation* between a coordinate and the reader's copy, not a property of the coordinate — which is
+precisely why it cannot be relied on, since the relation is destroyed by the same corruption that
+would need to announce it.
+
+What survives is the conclusion, not this argument for it: **content and coordinates detect different
+faults and neither subsumes the other.** Content catches landing in the wrong *place*; a coordinate
+catches holding the wrong *document*. That still holds, and the bound on content stands independently
+— content resolution verifies that *a* document contains the phrase, never that it is the document
+under discussion. It simply was not demonstrated by this episode, because both readers were holding
+the same document all along.
+
+Note also the general hazard the withdrawal does *not* license: **a detector that returns a confusing
+negative has not failed, and removing it on that evidence removes the finding along with the
+confusion.** When a locator class appears to fail, first ask whether it failed *as an instrument*.
+That rule survives; what it does not license is the converse, which is what was recorded here — **a
+detector that fires once is not thereby shown to be sensitive.** A single success is compatible with
+any sensitivity above zero, and the case for an instrument has to come from the conditions under
+which it would have stayed silent.
 
 The remedy the episode argues for is the row most likely to be dropped as redundant: a **blob hash**
 denotes the bytes themselves, with no namespace, no revision, and no position, so two readers holding
 different artifacts discover it in one comparison instead of four exchanges. Pair it with a quoted
 phrase and the two failure modes are covered; either alone leaves one open.
+
+This one is not an inference — it is what closed the dispute. The reporter and this repository
+compared `4ec5029d…` at the pinned revision and it matched byte for byte, which ended a four-message
+argument in a single exchange and established the fact every other instrument had failed to settle.
+Note the asymmetry that makes the row worth keeping even so: the two sides' hashes for `main`
+*differed*, correctly, because canon had advanced in between. **A hash mismatch is not evidence of a
+different artifact; it is evidence of different bytes**, which is a stronger and narrower thing, and
+it is the only reading that survives a repository that commits daily.
+
+#### A recorded rule is not an applied rule
+
+The failure above was found by applying a rule this document already contained. One entry earlier it
+records: after withdrawing a claim, search for the passages offered as proof of it, because an
+amendment goes to the argument while the evidence sits in a separate paragraph that never names the
+claim. That is exactly what happened here, in this section, by the same author, within the same day —
+the retraction was incorporated into the paragraph that stated the artifact-mismatch conclusion, and
+the paragraph that used it as a worked detector was left standing.
+
+Worse, the two sat in a readable order that concealed it: a conclusion asserted, then reversed three
+paragraphs later, then relied upon again nine paragraphs after that. A reader who stops early gets the
+withdrawn claim, a reader who reads on gets the correction, and a reader who reaches the end gets the
+withdrawn claim again as a general principle. Each paragraph is locally coherent.
+
+So **write the withdrawal at the point of the claim, not after it.** A correction placed downstream of
+what it corrects depends on the reader continuing, and every use of the claim upstream or downstream
+of that point remains live. And treat "I have recorded this rule" as no evidence at all that the
+corpus complies with it — the recording is one edit, compliance is a property of every passage, and
+the gap between them is where a rule that everyone agrees with keeps producing defects.
 
 **The same check applies before an artifact is read at all, and it is cheaper than either.** A member
 fetched `sync/lib/basemerge.mjs` through the contents API, decoded the base64 and wrote it out with
@@ -1912,7 +1961,7 @@ genuinely canon's. Only a revision identifier distinguishes a stale artifact fro
 | Fault | Detected by |
 | --- | --- |
 | corrupted or truncated bytes | size, hash |
-| wrong artifact entirely | hash, coordinate that fails to resolve |
+| wrong artifact entirely | hash — a coordinate only when the corruption happens to push it past EOF |
 | wrong location within the right artifact | quoted content |
 | **right artifact, wrong revision** | **SHA or blob hash — nothing else** |
 
