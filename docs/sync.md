@@ -583,12 +583,22 @@ overlapping PR merges after it was opened.
 **Establish supersession from content, never from chronology.** When two sync PRs are open, "the
 later one merged, so the earlier is redundant" is a claim about *ordering*; redundancy is a fact
 about *content*. Diff the branch against the post-merge default branch before closing anything —
-`gh api repos/<owner>/<repo>/compare/main...<branch>` costs one call and settles it. Two duplicate
+`gh api repos/<owner>/<repo>/compare/main...<branch>` costs one call. Two duplicate
 waves are rarely a superset of each other in either direction: each carries whatever canon existed
 when it was generated plus whatever member-side fixes were pushed to it. A closed PR whose branch
 was force-pushed **cannot be reopened**, so the recovery is a fresh PR from the same branch — which
 is only possible because the branch still exists. Preserve the branch and escalate rather than
 discarding work you believe is redundant.
+
+**`ahead_by` counts commits, not content, so the compare is asymmetric evidence.** `ahead: 0` is a
+sound close signal. Non-zero is a signal to *look*, not proof that unique content exists: a branch
+cut from an older base is ahead by its own commits even when everything they contain has since
+reached the default branch by another route, so `ahead: N` with an empty effective diff is an
+ordinary outcome rather than an edge case. Both halves of that asymmetry were hit during the first
+fleet rollout — one PR sat at `ahead: 1` while its content had already landed under a different ADR
+number, and a session on the other side read a non-zero count as confirmation that content was at
+risk. Read the `files` list and diff the paths that matter; the count only tells you whether you are
+allowed to skip that step.
 
 **A diff answers "what does this branch change", never "what does the base contain".** The compare
 above is the right call for supersession, but its output invites a specific misreading, because a
