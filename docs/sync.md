@@ -1012,13 +1012,36 @@ another repository's history is keyed to something outside its own suite. Vendor
 the commit as where they came from. This applies to any citation that reads as helpfully concrete
 while being a dependency in disguise.
 
+**Break the invocation before either.** A fixture and a mutation both prove the harness can produce
+*a* positive; neither proves the command actually ran against the input you believe it did. Two of
+the three sweep defects above were invocation-level — one compared CR-terminated paths that match
+no pattern, the other never resolved the parent ref — and a fixture catches neither, because a
+fixture that is never reached is indistinguishable from one that reports clean. So the cheapest
+check is to corrupt the invocation deliberately: point it at a nonexistent ref, feed it a path that
+cannot match, and confirm it complains rather than returning empty. A sweep that stays green when
+given garbage is not measuring.
+
+The three controls are ordered, not alternatives:
+
+| | Control | Use when |
+| --- | --- | --- |
+| 1 | Break the invocation | Always, first — it is the only one that tests whether the check ran |
+| 2 | Mutate the code under test | The check is code and there is a live path to break |
+| 3 | Vendor a known-bad fixture | The check is a command or sweep with no code to mutate |
+
 Where a check is code rather than a command, the general form is cheaper and stronger than keeping a
 fixture: introduce the regression deliberately, confirm the check fails, then revert. Doing this to
 `sync/lib/rekey.mjs` — adding an `existsSync` guard to the rekey loop, which is what a future reader
 would plausibly propose as a safety improvement — is what established that the order-independence
-test in `sync/test/rekey.test.mjs` was load-bearing rather than incidentally green. Prefer it for
-anything guarding a silent, unrecoverable failure, since those are exactly the checks whose passing
-is never questioned.
+test in `sync/test/rekey.test.mjs` was load-bearing rather than incidentally green.
+
+**Mutate rather than curate where you have the choice.** A fixture is a second artifact that can
+drift from the thing it certifies and has to be maintained; a mutation exercises the live path and
+leaves nothing behind. Reserve the vendored fixture for checks with no code to break.
+
+The reason any of this is worth the trouble: **a check guarding a loud failure is exercised by the
+failure itself, while a check guarding a silent one is only ever seen passing, so its green is never
+questioned.** Silent, unrecoverable failures are exactly where an inert check survives longest.
 
 **Mutation proves a test is non-vacuous; it cannot prove the test is faithful.** A passing mutation
 shows the code does what the *test* says, and says nothing about whether the test describes the state
