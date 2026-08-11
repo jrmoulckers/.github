@@ -1339,7 +1339,21 @@ answering a
 report is to cite the artifact rather than explain it; the rule for *specifying* a check is the same
 one and it is stronger, because a re-derived predicate does not merely fail to convince — it ships,
 and it ships fleet-wide with the engine's accumulated corrections stripped out. Point at the exported
-function. **And the marker syntax varies by target, so a check keyed to one syntax is keyed to the
+function.
+
+**The reading side of the same rule: a comment is not evidence of behavior, because it cannot come
+back negative.** A docstring asserts what a function does with no mechanism to disagree with the
+code beside it, so it can drift indefinitely and be contradicted by nothing — an instrument that
+cannot return a different answer is not measuring, applied to prose. A member reported that
+ambiguous relocations were "reported, not guessed at" and sourced it from the docstring rather than
+from the function, with the module open at the time; the comment was stale, and the claim inherited
+its staleness. Note the two faults are separable and only one of them is about this comment: the
+inaccuracy made the claim wrong, and consulting prose for behavior made it *unverified*, which
+remains true on every occasion the comment happens to be right. Prose about behavior is a
+hypothesis; the function and its tests are the evidence. This applies with full force to the present
+document, which is prose about an engine it does not execute.
+
+**And the marker syntax varies by target, so a check keyed to one syntax is keyed to the
 wrong unit.** `.gitattributes` delimits its region with `# studio:base:*` because an `<!-- … -->`
 line there would be read as a pattern; `AGENTS.md` and `.github/copilot-instructions.md` use the
 HTML form. A checker that hardcoded the HTML pair found no region in `.gitattributes`, fell back to
@@ -1493,6 +1507,17 @@ authoritative than a missing one would. This repository sits between eight membe
 number it forwards crosses a boundary — one such relay reached a member session tonight and resolved
 there to an unrelated issue. Paths, SHAs and blob hashes are namespace-free and need no
 qualification; issue, PR and discussion numbers always do.
+
+**The same defect has a positional form: a reference that is unique only by *position* is resolved
+against the reader's copy of the ordering.** An ordinal — "assertion 3", "the second table", "step
+4" — behaves exactly like a bare issue number: it does not error, it resolves, and it resolves to
+whatever occupies that slot for the reader. It happened in this thread. A member raised "assertion
+3" meaning the region-provenance rule; in this document provenance is **assertion 2**, and assertion
+3 is the outside-the-markers check, so the reference silently designated an unrelated item on
+arrival. Ordinals are also less stable than issue numbers, since any edit that inserts an item
+renumbers everything after it while every existing citation keeps pointing at a slot. Cite the
+content — the rule's name, its opening words, or a quoted line — and let position be a convenience
+rather than the identifier.
 
 ### What belongs in the member's own region
 
