@@ -320,6 +320,21 @@ would report it as drift forever.
   when its bugs are silent than when they are noisy, which is worth weighing when choosing how a
   check reports.
 
+  **Where a guarantee lives matters more than how well it is worded: prefer making the artifact
+  refuse over warning the reader.** A member observed that documentation defeats itself when the
+  actionable artifact and the warning are separated, because readers execute recipes and skim prose,
+  and proposed co-locating them. That is right and it is the weaker remedy. `AGENTS.md` ships a
+  `--work-dir` recipe to every consumer and carries **none** of that flag's three guards — they are
+  documented only in `docs/sync.md` and `sync/README.md`, neither of which is distributed — and the
+  recipe is nonetheless safe, because the engine refuses: not a git checkout, origin not provably the
+  member, more than one member selected (`sync/lib/workdir.mjs`, `sync/index.mjs`, covered by
+  `sync/test/workdir.test.mjs` and `sync/test/cli-workdir.test.mjs`). The trap that actually bit in
+  the field — a run against an unrelated local repo rewriting its `AGENTS.md` from 3 lines to 145 —
+  was closed by making the recipe unable to walk into it, not by moving its warning nearer. Distance
+  between warning and recipe is a real defect, but it is a defect of the fallback; reach for it only
+  where the artifact cannot refuse, as with a rule like *do not diff the whole file*, which no
+  program is in a position to enforce.
+
   **A guard that proves it found something has bounded nothing about what it missed.** The strongest
   version of the fixture rule seen in this fleet is a canon-ownership check that refuses to report
   success when it classifies zero files, on the stated grounds that a guard silently matching nothing

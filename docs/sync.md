@@ -1036,6 +1036,23 @@ document; a list is simply the plural case. Re-run `git log`, `gh pr list`, or t
 the moment you act on it, and treat any list carried across a message boundary as a description of a
 repository that no longer exists.
 
+**The trigger is not only elapsed time — a change of question defeats this rule with no time at
+all.** Every control above is keyed to decay, which implies a fact that was true when collected and
+stopped being true. The other case is a fact that never stopped being true and was simply not
+consulted, because it was gathered while answering something else. `homelab` asserted that
+`.github/copilot-instructions.md` did not exist on `master`; it had existed since `64485f3` and
+still did, and the disconfirming evidence was already in their own output — a merge simulation they
+had run minutes earlier printed exactly two `create mode` lines, and that path was not one of them.
+Re-running the query later would have returned what it would have returned earlier, so no freshness
+discipline would have helped. **Re-derive a claim in the frame of the claim, not merely at the
+moment of it:** evidence collected to answer *does this merge cleanly* has not been read for *does
+this file exist*, even though it contains the answer.
+
+Its tell is worth carrying because it is invisible from inside: **the confidence of a claim tracks
+how recently you looked at anything, not whether you looked at this.** The same message was strong
+on a simulation just run and equally strong on a cherry-pick never checked, and nothing in the tone
+separated them.
+
 **Enumerate the member's other PRs before deciding the reduction, not before merging it.** The
 enumeration is usually filed as a pre-merge safety check, which puts it one step too late: what the
 older branch should be reduced *to* depends on what the newer wave already covers, so running the
