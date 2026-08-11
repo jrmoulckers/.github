@@ -152,6 +152,32 @@ And note the strongest instance of it: a defect of this class was introduced by 
 *reported* the class, in code whose own description warned about the shape. Holding the pattern in
 mind while writing is not protection, which is the whole argument for the test.
 
+### A reported near miss certifies the reasoning around it
+
+Writing up a mistake you caught reads as an audit and functions as a **certificate**. What was
+actually examined is only the part that failed loudly; everything adjacent inherits an unearned
+presumption of having been checked — by the reader, and worse, by the author.
+
+The instance: a member searched one file for a symbol, didn't find it, saw an import, and concluded
+it had been refactored. The conclusion was right and the story was invented — the symbol had never
+lived in that file. The invention survived because it was **load-bearing for nothing**; an
+independent check settled the real question, so nothing downstream ever pressed on it. The member
+then reported the episode as a near miss and a lesson about false negatives, and that framing implied
+the surrounding reasoning had been inspected. It had not.
+
+Distinguish this from two neighbours. It is not an audit that returns clean on a non-local property —
+no audit occurred. It is not a safeguard that held by coincidence — that is about a near miss being
+evidence of a live hazard. This is about the **reporting** of a near miss suppressing inspection of
+everything it sits in.
+
+The sharp form: **the reasoning most in need of checking is what you reached for immediately after
+noticing you were wrong.** Recovery reasoning gets written under the impression that the mistake has
+already been paid for, and a visible self-correction is exactly the artifact that makes everyone stop
+looking.
+
+The remedy is cheap and belongs in the write-up itself: **state what you did not re-examine.** A
+self-correction that names its own boundary stops functioning as a certificate.
+
 ## Calling reusable workflows
 
 Studio product repos call the backbone's reusable workflows at a reviewed immutable commit SHA:
