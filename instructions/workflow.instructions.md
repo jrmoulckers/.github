@@ -318,6 +318,27 @@ of them the refusal. That establishes something the census was never cited for �
 conjunct of the predicate is decorative, each excluding a population the other admits. Ask what a
 control *can* decide before discarding it, and re-scope the claim rather than withdrawing it.
 
+**The same defect relocates from the control to the subject, where it is much harder to see.** A
+check inherits its population from the repository it runs in, so a guard wired into CI, running on
+every push and passing, can be scoring against an empty set — nothing about it looks untested. A
+member's binary-classification guard passed for exactly this reason: its predicate can only fire on
+a file classified binary and the repository tracks none. An untested control at least invites the
+question *did you test it*; an untested **population** answers that question affirmatively and
+truthfully while meaning nothing. Have a check report the size of what it examined, so a green over
+zero items is distinguishable from a green over some, and supply by fixture the inputs the
+repository does not contain.
+
+**An exemption list that stays empty is evidence the question was empirical all along.** That same
+guard exempted through a deliberately-empty allowlist, annotated as a decision rather than a
+default — which reads as discipline and was in fact disuse, since nothing was ever exempted because
+no case ever required a human to decide. **A decision point that never has to decide is a
+computation waiting to be written.** This bounds rather than repeals the rule above: *allowlist by
+explicit declaration, never by inference* governs which kind of list to keep once a list is
+warranted, and this governs whether one is. Compute what the artifact can answer and declare only
+what it cannot — in that instance, *is this binary* is answerable from a NUL byte, while *does a
+provenance comment survive in this file format* is a convention and must be declared. Where a list
+is standing in for both, it will be empty, and its emptiness is the symptom.
+
 **When you retire a control that could not fire, show that its replacement can.** The fixture named
 as the real test here was a run-level `startup_failure`; every such run in this fleet — twelve, across
 three repositories — has **zero jobs**, because the conclusion names a run that failed before any job
