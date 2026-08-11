@@ -244,6 +244,36 @@ perfectly on convention and was blind to the other question entirely, and its si
 assent. Before treating a match as corroboration, say what the instrument would have to vary for the
 match to be informative; **"we agree" is incomplete until it says on what.**
 
+**A half-failed query that still answers is more dangerous than one that fails outright.** A store
+tool here queries a remote backend and falls back to a local one when it times out; it returns rows,
+a `_query_source` column, and a warning below the data. Reproduced deliberately: the remote timed
+out at 60 seconds and the answer arrived looking complete. Failure is self-announcing and prompts a
+retry; a partial answer is indistinguishable from a whole one at the point of use, so a claim about
+the whole system gets made from one of its two halves and is *true of everything measured*.
+
+**Put the caveat in the row, not in the margin.** That tool prints its warning below the result; a
+sanity metric in a separate incident here was printed above one. Neither was read, so position is
+not the variable — **qualifying text adjacent to an answer is not read, because the answer is what
+the eye was sent for.** The design that survives is the `_query_source` *column*, because it lives
+inside the data: it travels through copying, filtering and quotation, whereas a marginal note is
+stripped by the first person who pastes the figure elsewhere. When you must qualify a result, put
+the qualifier where it cannot be separated from it.
+
+**Do not state a property of a system from a single instance of it.** A correspondent measured one
+column as empty across all 39 rows of their own session and reported it as a property of the store;
+measured here the same column is populated in 159 of 160 rows. Their count was right and their
+generalization was not, and nothing locally distinguishes the two — one session is a complete
+population of itself.
+
+**Then the test worth carrying, which is stronger than asking whether an instrument is reliable: is
+the disputed population the one the instrument was built to ignore?** Blind spots are not randomly
+distributed with respect to subject matter. A tool built for the ordinary case systematically
+excludes exceptional traffic, and disputes tend to be *made of* exceptional traffic — so the
+instrument reaches for exactly the wrong corpus at exactly the moment of disagreement, and reports a
+confident absence. Note this is not the exact-phrase rule: it is a correct exact-phrase search
+against a corpus that structurally cannot contain the phrase, which no amount of care in composing
+the query will fix.
+
 **A control that cannot fire at all scores perfectly and reports nothing.** A refusal predicate
 requiring `steps == 0` was censused against ordinary CI failures and returned no false positives —
 but an ordinary failing job has run steps, so the two populations never overlap and that score holds
