@@ -124,7 +124,9 @@ the acknowledgement they got was overwritten by someone else's continued asking.
   than restating the reasoning; the identifier is checkable and the reasoning is not.
 - **Re-run measurements rather than re-quoting them.** A sync verdict describes one commit of a
   repository that moves hourly. Name the SHA you measured at, and re-measure before acting on any
-  verdict older than a few hours — including your own.
+  verdict older than a few hours — including your own. This cures staleness only: repeated readings
+  that all sit downstream of the change you are crediting agree with each other and establish
+  nothing. See *Repeating a measurement is not a control* in `workflow.instructions.md`.
 
 ## Stop and ask
 

@@ -238,6 +238,20 @@ inattention that made the first one vacuous is what selects the second. Note als
 means: a failure occurring before any job exists is invisible to every job-level predicate, and is
 reported as the absence of the condition rather than as an inability to look.
 
+**Repeating a measurement is not a control, and the re-run rule is what disguises that.** Every
+entry above describes a control that exists and is broken. This is the case where none exists and
+repetition stands in for one. A session established that an engine change had reclaimed a drifting
+member file by measuring at three separate HEADs and reporting their agreement — and all three were
+descendants of the member's own hand-repair of that same file. The instrument was real, the readings
+were careful, and they agreed; the agreement carried nothing, because the treatment was in every
+sample. Re-running defends against **decay**, a figure that was correct when taken and has gone
+stale. It is blind to **confounding**, a shared cause present in all samples. Both are cured by the
+words *measure again*, which is why the two collapse together in practice and why the rule requiring
+re-measurement is most likely to be invoked exactly where it does not apply. Agreement across
+repetitions measures the instrument's stability, not the hypothesis. Before citing repeated
+agreement, name the one sample that lacks the thing being credited; where no such sample exists,
+report that the comparison was unavailable rather than reporting the agreement.
+
 **Beware disjointness asserted by construction when the construction is your own definition.** The
 claim that ordinary failures *cannot* trip a zero-step test defines the control population by the
 very field the predicate reads. Ordinary failure is a class of causes, not a step count, so whether
