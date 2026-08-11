@@ -41,6 +41,15 @@ self-merge and operational authority; this instruction never expands either.
 | Issue linked | PR body | `Closes #N` for each resolved issue. |
 | Landed | `gh pr view <number> --json state` | `MERGED`, or a documented human-gated blocker. |
 
+**A `CLEAN` reading is a timestamp, not a property of the merge that followed.** With auto-merge
+disabled you find the merge window by polling, so the sequence is *read, then submit*, and the state
+can change in between — during one exchange the backbone moved five times in twenty minutes. What
+the outcome establishes is only that the merge was clean **at submit**, which is the unit that
+counts; it does not retroactively confirm the reading. Keep the two claims separate when reporting:
+*I observed `CLEAN` and then merged successfully* is supported, *the merge was clean because I
+verified it* is not, and the distinction matters the moment a merge fails after a `CLEAN` read —
+that is the expected behaviour of a stale reading, not evidence of a broken instrument.
+
 ## Worktrees
 
 Prefer app-native isolated project sessions/worktrees rather than extra clones. Never invent or
@@ -345,6 +354,36 @@ equivalent automation to propose SHA update PRs, then review the exact upstream 
 notes. Never resolve a mutable reference during a run.
 
 ### Keep required checks terminal
+
+**First establish that the repository has required checks at all — most of this fleet does not.**
+Measured across the fleet, the protection endpoint returns three different answers, and the two that
+mean *nothing is enforced* are not the same finding:
+
+```sh
+gh api "repos/OWNER/REPO/branches/BRANCH/protection"
+# 200 -> protected; read .required_status_checks.contexts
+# 404 "Branch not protected"            -> protectable, nobody has configured it (a choice)
+# 403 "Upgrade to GitHub Pro ..."       -> not protectable on this plan (not a choice)
+```
+
+At the time of writing only the backbone returned 200. A public member returned **404** and two
+private members returned **403** — so the discriminator is *not* visibility, which is the tempting
+generalization and a wrong one: public-and-unprotected is a real state. Distinguishing 403 from 404
+matters because the remedies are unrelated. 404 is fixed by configuring the branch; 403 is fixed
+only by changing plan or visibility, and until then no amount of workflow correctness makes a check
+enforceable.
+
+**The consequence inverts this section's failure mode.** Where checks are required, a path-filtered
+trigger hangs the pull request forever — loud, and self-limiting because nobody can merge past it.
+Where nothing is required, the identical misconfiguration produces a check that is simply never
+created, and the pull request stays perfectly mergeable. Same defect, opposite symptom, and the
+silent one ships. So on an unprotected repository the merge gate is **discipline, not a platform
+guarantee**: nothing but the person merging stands between an unrun check and the default branch.
+Say which of the two you are relying on when you report a PR as gated.
+
+The rest of this section assumes required checks are in force. Where they are not, follow it anyway
+— the misconfiguration it prevents is invisible rather than absent, and the repository may become
+protected later, at which point every latent instance surfaces at once.
 
 Never put `paths` or `paths-ignore` on the `pull_request` trigger of a workflow that supplies a
 required check. When the filter does not match, GitHub does not start the workflow or create its

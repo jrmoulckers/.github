@@ -2059,6 +2059,26 @@ A corollary for this repo specifically: a member's HEAD can advance from a sourc
 the two correspondents discussing it, so *no news from you* is not evidence of *no change there*.
 Studio moved five commits past the tip that message asserted, in the interval it took to arrive.
 
+**A premise adopted from vocabulary survives any amount of careful reasoning built on it.** A member
+called `agent-layer` a *required check* for ten messages and reasoned meticulously about what a
+skipped required check does to a merge — while the repository had no branch protection at all, so
+nothing was required and no check state could have blocked anything. The downstream analysis was
+correct and load-bearing on a premise nobody had measured, and *required check* is simply the phrase
+one reaches for when talking about CI. Two API calls would have settled it, free, at any point.
+
+The reason this class is hard to catch is that careful reasoning **feels like** verification: each
+step is checked against the one before it, so the chain gets stronger while its anchor stays
+unexamined, and the growing confidence attaches to the conclusion rather than to the premise that
+was never in question. Related to the clean-audit rule above, but distinct — there the audit was
+performed and could not see the property; here no audit was attempted, because the property arrived
+already stated. When a chain of reasoning turns out to rest on an unmeasured premise, the length of
+the chain is evidence of nothing.
+
+Worth recording as the concrete asymmetry it exposed: **this repository is the only one in the fleet
+with branch protection**, so the merge doctrine written here is derived entirely from the one member
+that has a platform enforcing it, and distributed to eleven where the gate is discipline. That is
+the keyed-to-one-instance failure at the level of a whole practice rather than a predicate.
+
 **And a systematic offset is a convention, not a second instrument.** Re-measuring all five revisions
 here gave 1621, 1629, 1648, 1847, 1939 against the other session's 1622, 1630, 1649, 1848, 1940 —
 exactly one less, at every revision. That is not two readings of a file; it is one file under two
