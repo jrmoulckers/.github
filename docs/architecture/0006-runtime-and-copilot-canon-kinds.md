@@ -556,6 +556,17 @@ would report it as drift forever.
   and not *what exists* — the rule was applied to branches and not carried to checks, which is the
   familiar shape rather than a lapse.
 
+  One consequence of that retirement was not noticed at the time and is worth stating plainly,
+  because it is the reason this entry is not yet closed. The surviving reporter detects the
+  sound-but-undamaged case **by value** — someone runs it and reads the output. So the fleet's only
+  structural instrument is a person choosing to look, which is the precise condition that let the
+  last structural instance stay invisible in the first place. Recording a gap as known does not give
+  it an owner, and a gap that is known and unowned decays to unknown: the knowledge lives in whoever
+  remembers, and the next reader inherits a clean audit with nothing in it that says the audit does
+  not cover this. That failure is the same one as the coincidence above, moved up a level — the
+  coincidence is not maintained by anyone, and neither is the awareness of it. An unowned finding
+  should therefore be written where the check runs, not only where the reasoning was recorded.
+
   **Absence of acknowledgement is a proxy for non-delivery, and the two diverge exactly when the
   answer was cheap to give and hard to verify.** A report answered in prose leaves its sender unable
   to separate *not received*, *received and disputed*, and *received and already fixed* — three
