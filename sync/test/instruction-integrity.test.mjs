@@ -55,8 +55,23 @@ test('workflow and documentation surfaces use immutable reusable workflow exampl
   }
 });
 
-test('all declared local agents remain disjoint from selected canon', () => {
-  const manifest = loadManifest(REPO_ROOT);
+test('workflow guidance separates the two causes of a no-log run failure', () => {
+  const text = readFileSync(
+    join(REPO_ROOT, 'instructions', 'workflow.instructions.md'),
+    'utf8',
+  ).replace(/\r\n?/g, '\n');
+
+  // The permissions trap alone is a trap: it trains the reader to search the workflow
+  // file for a defect that, in the billing case, is not in the repository at all.
+  assert.match(text, /startup_failure/);
+  assert.match(text, /spending limit/i);
+
+  // The discriminator is the load-bearing part. Documenting both causes without a way
+  // to tell them apart leaves the reader exactly where they started.
+  assert.match(text, /jobs you did not touch failed[\s\S]{0,200}check billing/i);
+});
+
+test('all declared local agents remain disjoint from selected canon', () => {  const manifest = loadManifest(REPO_ROOT);
   for (const member of manifest.members) {
     const selected =
       member.optIn.agents === '*' ? manifest.canon.agents : Array.isArray(member.optIn.agents) ? member.optIn.agents : [];
