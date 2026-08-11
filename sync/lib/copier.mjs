@@ -224,7 +224,8 @@ function planFile(memberRoot, spec, entries, force) {
   if (isLocallyModified(lockEntry, currentHash, renderedHash)) {
     if (
       isUnstampedCanon(lockEntry, currentHash, spec) ||
-      isHistoricalCanonOutput(lockEntry, currentHash, spec)
+      isHistoricalCanonOutput(lockEntry, currentHash, spec) ||
+      isSupersededEngineOutput(lockEntry, currentHash, spec)
     ) {
       return { action: 'update', newContent: rendered, newEntry };
     }
@@ -403,6 +404,37 @@ function isUnstampedCanon(lockEntry, currentHash, spec) {
  */
 function isHistoricalCanonOutput(lockEntry, currentHash, spec) {
   return !lockEntry && (spec.historicalCanonSha256 ?? []).includes(currentHash);
+}
+
+/**
+ * A **recorded** target whose bytes are a superseded engine *rendering* of canon.
+ *
+ * This is the recovery path for a lockfile that has gone backwards. The lock is the engine's record
+ * of what it wrote; when an entry regresses, `isLocallyModified` compares the file against a stale
+ * `targetSha256`, attributes the difference to the member, and refuses. The refusal is correct given
+ * the lock and wrong given reality, and it is *permanent* — every later run repeats the same
+ * comparison against the same bad entry, so no run can ever clear it.
+ *
+ * Not hypothetical: `jrmoulckers/finance` held `vendor/@jrm/tokens/css/default/tokens.css` at bytes
+ * byte-identical to the rendering of canon `37b5f2b0`, while its entry had reverted to the hash and
+ * timestamp of a revision two versions older (their #4027 recorded it, an overlapping run in #4062
+ * overwrote it — see the race in the companion issue). It stayed frozen until a human hand-edited
+ * the lockfile. A repair that requires noticing a wrong hash in a generated file will not be found
+ * a second time.
+ *
+ * **Why a rendering is safe evidence where raw canon is not.** `isUnstampedCanon` restricts itself
+ * to unrecorded targets because bytes equal to *raw* canon in a recorded file mean someone stripped
+ * the provenance header — a deliberate local act. Reproducing a past *rendering* is not something
+ * editing produces: it carries the header, the note text and the exact bytes of a published
+ * revision, and `dist/` history is what proves which one. Only a hash derived from canon authorizes
+ * the overwrite, so this discards no member work by construction.
+ *
+ * Note also that the case the `!lockEntry` gate appears to protect is already unreachable: a member
+ * reverting a sync commit reverts the lock entry in the same commit, leaving the two consistent and
+ * the path an ordinary update. This adds no exposure that reverting did not already have.
+ */
+function isSupersededEngineOutput(lockEntry, currentHash, spec) {
+  return Boolean(lockEntry) && (spec.historicalRenderedSha256 ?? []).includes(currentHash);
 }
 
 /**
