@@ -132,6 +132,14 @@ each opted-in member's root through the **managed-region merge** rather than a w
   next checkout or `git add --renormalize`; members with existing CRLF *committed* may need one
   renormalization commit, which is a member-side operation and deliberately not something the sync
   engine performs.
+- **Renormalization has a blind spot that this ADR originally overlooked.** A file carrying doubled
+  `\r\r\n` terminators has more CRs than CRLF pairs, which trips git's non-NUL binary heuristic; the
+  file is classified `-text`, `eol=lf` does not apply to it, and `git add --renormalize` skips it.
+  The corruption therefore blocks its own repair and is invisible in a rendered diff. This was not
+  hypothetical: all thirteen of the backbone's own community-health files were in that state, so
+  canon's LF rule was inert for exactly the files GitHub serves org-wide. `git ls-files --eol | grep
+  'i/-text'` detects it; stripping the stray CRs is the only fix. `sync/test/gitattributes.test.mjs`
+  now asserts no tracked file here is classified `-text`, and pins the mechanism behind it.
 - The managed-merge machinery is no longer Markdown-only. Any future canon file that supports `#`
   comments can be distributed the same way at no additional cost.
 - A member that genuinely must not normalize can set `optIn.attributes: false` and keep its own file

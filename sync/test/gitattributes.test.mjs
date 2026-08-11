@@ -342,3 +342,43 @@ test('binary rules survive the merge, so assets are never handed to git text det
     assert.match(after, /a\.yml: text: set/, 'and explicit text rules keep their explicit form');
   });
 });
+test('no tracked file is classified binary, so eol=lf actually reaches every file', () => {
+  // A stray CR is not cosmetic. Git's binary heuristic is not only about NUL bytes: a file whose
+  // CR count exceeds its CRLF pairs is classified `-text`, and a `-text` file is exempt from the
+  // very `eol=lf` normalization this kind exists to apply. All thirteen of this repo's
+  // community-health files carried doubled `\r\r\n` terminators and were classified binary, so
+  // canon's own rule was inert for exactly the files GitHub serves org-wide.
+  //
+  // The failure is self-shielding, which is why it survived: `git add --renormalize .` — the
+  // standard remedy — skips binary files, so the corruption blocks its own repair. Asserted
+  // through `git ls-files --eol` because the claim is about git's classification of the committed
+  // blob, not about bytes we happen to see in a working tree.
+  const rows = execFileSync('git', ['ls-files', '--eol'], { cwd: REPO_ROOT, encoding: 'utf8' })
+    .split('\n')
+    .filter(Boolean);
+  assert.ok(rows.length > 0, 'the repo must have tracked files for this to mean anything');
+
+  const binary = rows.filter((row) => /^i\/-text/.test(row)).map((row) => row.split('\t')[1]);
+  assert.deepEqual(
+    binary,
+    [],
+    'these are text files git treats as binary, so eol=lf does not apply to them',
+  );
+});
+
+test('a doubled CR terminator is what makes git call a text file binary', () => {
+  // Pins the mechanism behind the test above, so a future reader does not have to take the
+  // NUL-free binary classification on faith.
+  withTmp((root) => {
+    const git = (args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
+    git(['init', '-q', '.']);
+    writeFileSync(join(root, '.gitattributes'), '* text=auto eol=lf\n', 'utf8');
+    writeFileSync(join(root, 'clean.md'), 'a\nb\n', 'utf8');
+    writeFileSync(join(root, 'doubled.md'), 'a\r\r\nb\r\r\n', 'utf8');
+    git(['add', '-A']);
+
+    const rows = git(['ls-files', '--eol']);
+    assert.match(rows, /i\/lf\s+w\/lf\s+.*clean\.md/, 'a clean file normalizes to LF');
+    assert.match(rows, /i\/-text\s+w\/-text\s+.*doubled\.md/, 'a doubled CR reads as binary');
+  });
+});
