@@ -440,7 +440,19 @@ behaviour right up until a fifth branch quietly gives JSON a leading comment.
 
 This generalizes past this one table. When guidance restates backbone logic, **name the
 authoritative file by path** so the reader can check rather than infer. A summary that reads as
-complete is exactly the summary whose completeness the recipient cannot verify.
+complete is exactly the summary whose completeness the recipient cannot verify. Note that the
+duplication is the deeper problem: prose restating a machine-readable table has no mechanism to
+notice when the source grows an entry, so it is the wrong-unit pattern one level up — the table
+varies over "whatever `provenance.mjs` currently defines," and prose cannot be keyed to that.
+Marking the restatement illustrative and pointing at the source is the only stable fix.
+
+**The rule has a boundary: it holds while reading the authority is cheap.** It works here because
+the engine is small, local, and readable, so checking costs a minute. Where an authority is large,
+remote, or itself derived, "go read it" stops being cheap and an abbreviated summary becomes the
+rational choice — at which point the obligation shifts to marking the summary as lossy and pinning
+what it was derived from (a version, a commit, a date), so a reader knows what they are trusting and
+when it went stale. Apply the rule where the check is affordable; do not apply it where the cost of
+checking exceeds the silent-failure risk it prevents.
 
 The fallback is HTML, which makes an unclassified *source* extension a silent hazard: the file is
 still written, still hashed, and still drift-free, but it carries `<!-- … -->` and no longer
