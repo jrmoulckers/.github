@@ -44,6 +44,11 @@ on:
         required: false
         type: boolean
         default: false
+      force:
+        description: 'Overwrite drifted targets in the named members. Requires a members filter.'
+        required: false
+        type: boolean
+        default: false
 
 permissions: {}
 
@@ -81,14 +86,22 @@ jobs:
             exit 1
           fi
 
+      - name: Preflight — a forced run must name its members
+        if: ${{ inputs.force == true && inputs.members == '' }}
+        run: |
+          echo "::error::force requires a members filter. A forced run overrides drift protection, which is what keeps the engine from overwriting member-authored content; an unscoped one would do that across the whole fleet. Re-dispatch with members set. The engine enforces this too — this check only fails before a runner does the work."
+          exit 1
+
       - name: Run studio sync
         env:
           STUDIO_SYNC_TOKEN: ${{ secrets.STUDIO_SYNC_TOKEN }}
           DRY_RUN: ${{ inputs.dry_run }}
           MEMBERS: ${{ inputs.members }}
+          FORCE: ${{ inputs.force }}
         run: |
           args=()
           if [ "$DRY_RUN" = "true" ]; then args+=("--dry-run"); fi
           if [ -n "$MEMBERS" ]; then args+=("--members" "$MEMBERS"); fi
+          if [ "$FORCE" = "true" ]; then args+=("--force"); fi
           echo "Running: node sync/index.mjs ${args[*]}"
           node sync/index.mjs "${args[@]}"

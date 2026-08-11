@@ -310,8 +310,9 @@ for the check that settles it.
 
 **Reconcile unproven drift in the member repo:** refresh the file to match what the engine would
 write or delete it (the engine will add it). **Do not reach for `--force`** — `--force` overwrites
-every drifted file in **every member the run touches**, so using it to fix one stale copy would also
-silently discard genuine member-authored edits in other repos. It is a deliberate reviewer action
+every drifted file in **every member the run names**, so using it to fix one stale copy would also
+silently discard genuine member-authored edits elsewhere in those repos. It requires `--members` for
+that reason, which bounds the damage without making it safe. It is a deliberate reviewer action
 for a known-good state, not a first-run tool. Drift warnings name each exact skipped path.
 
 ## CLI usage
@@ -325,10 +326,10 @@ node sync/index.mjs --members jrmoulckers/jrm-recipes # real sync of one member 
 node sync/index.mjs --check                           # CI gate: non-zero if any member is stale
 ```
 
-Flags: `--dry-run`, `--members <a,b>`, `--check`, `--force` (overwrite drift), `--work-dir
-<path>` (apply against a local checkout; no clone/push/PR), `--allow-unverified-work-dir`,
-`--studio-dir <path>` (local `jrmoulckers/studio` checkout to vendor `@jrm/tokens` from, instead
-of cloning), `--date <YYYY-MM-DD>`.
+Flags: `--dry-run`, `--members <a,b>`, `--check`, `--force` (overwrite drift; requires
+`--members`), `--work-dir <path>` (apply against a local checkout; no clone/push/PR),
+`--allow-unverified-work-dir`, `--studio-dir <path>` (local `jrmoulckers/studio` checkout to
+vendor `@jrm/tokens` from, instead of cloning), `--date <YYYY-MM-DD>`.
 
 Five flag behaviors that are easy to trip over:
 
