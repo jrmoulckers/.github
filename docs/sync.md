@@ -1773,14 +1773,32 @@ well-organised documents.** A bare `#N` resolves to an arbitrary issue, which is
 unrelated. A stale line number lands in the *neighbourhood* of its target, because related material
 is written together — so it returns real, plausible, on-topic prose and reads as confirmation. A
 member sent here for the provenance assertion landed twice, at two different revisions, on
-provenance-adjacent text while the assertion itself sat further down. A range that had fallen off the
-end of the file would have been **safer**: an error is a signal, a near-miss is not. The better the
-document's organisation, the more convincing the wrong answer.
+provenance-adjacent text while the assertion itself sat further down. The better the document's
+organisation, the more convincing the wrong answer.
 
-This was demonstrated inside the message that reported it. The sender's own coordinates for the
-passage did not resolve at the recipient's revision either, while the phrase they quoted —
-`one of the two inputs` — resolved for both readers immediately. Two readers, one file, two
-disagreeing coordinates and one agreeing locator.
+A range that had fallen off the end of the file looks **safer** — an error is a signal, a near-miss is
+not — but that is only true for a reader holding the true artifact, and it was falsified here. The
+member's `~L1986-2036` was far past the end of a **1872**-line file and did **not** read as an error to
+them, because their decoder had inflated their copy to 4314 lines, where it lands mid-document. **Past
+the end of the file is a relation between a coordinate and the reader's copy, not a property of the
+coordinate**, so the one failure mode that was supposed to announce itself is silenced by exactly the
+corruption that most needs announcing. Out-of-range is a signal only to whoever holds the real file,
+which is generally not the person who needs it.
+
+The worked example originally recorded here — *two readers, one file, two disagreeing coordinates and
+one agreeing locator* — has been **withdrawn**. There was no disagreement: one coordinate was real and
+the other was an artifact of the sender's decoder, retracted by them twelve minutes before this entry
+merged. The rule is unaffected and the genuine demonstration is the recipient's own `L785` read, which
+returns real conflict-resolution guidance at `5fcd296` while the assertion sits at `L831`.
+
+**Note where the correction had to be made twice.** When the decoder was found, this entry was amended
+where its *reasoning* lived — the analysis below — and the fabricated *demonstration* above it was
+left standing, so canon carried a claim and its refutation forty lines apart with nothing linking
+them, and the reader meeting the demonstration first had no reason to read on. An amendment goes to
+the argument, because that is what the correction is about; the evidence is a separate paragraph that
+nothing prompts you to revisit. **After withdrawing a claim, search for the passages that were
+offered as proof of it** — they do not mention the claim by name and will not surface in a search for
+it.
 
 So the earlier split — paths are namespace-free, numbers are not — is too coarse, because
 `docs/sync.md:785` is a path *and* a number, and only the path half survives:
