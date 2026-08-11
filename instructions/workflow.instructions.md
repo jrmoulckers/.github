@@ -104,6 +104,23 @@ because everything downstream was written against the guard's meaning. Prefer de
 predicate — one shared constant used by both — over correcting it, since a corrected third expression
 of the rule has to be re-checked against the guard exactly as carefully as the bug did.
 
+**That safe direction holds only while nothing acts on the miss.** It is stated for a guard, whose
+`false` declines to proceed. A **locator** is different: returning "not found" hands control to
+whatever handles the miss, and if that path performs the action anyway, a stricter predicate is not
+conservative — it selects a different code path with its own behaviour. The frontmatter case above is
+exactly this. The obvious strict fix, `line === '---'`, is narrower than a guard that tolerates a
+trailing space, so the loop finds nothing, falls through, and the fallback writes the stamp **before
+line 1**, destroying the frontmatter on a file the loose original handled correctly. So **check what
+the miss path does before treating "stricter" as the safe direction**, and expect fail-closed
+intuition to mislead you precisely where the fallback still writes.
+
+**Being right about the defect gives no protection against committing it.** The rejected fix above
+was proposed by someone who had quoted the guard's own regex in the message proposing it, and who had
+correctly diagnosed the bug as *the rule is written twice*. The fix wrote it a third time. That is
+not insufficient care; the reasoning that identifies a duplicated predicate is the reasoning that
+produces one, so the diagnosis actively supplies the defect. Treat your own correct diagnosis as a
+risk factor for the next edit rather than as evidence you are now clear of it.
+
 Note also that prose beside code is not a weaker specification than the code. A comment stating the
 correct rule above a line that implements a different one makes the divergence *harder* to see, not
 easier: a reader checking the code against its own comment finds them agreeing.
@@ -146,6 +163,15 @@ harmless because it fails closed, but it directs work at code that is not broken
 "fix" for a phantom timezone bug is the coercion that introduces a real one. **A wrong verdict costs
 whatever the correction costs**, in either direction, so exercise a validating check against a case it
 must accept before trusting its rejections.
+
+**And a comparison harness that has stopped measuring reports its failure as a result.** Two probes
+built to compare three variants of a function returned, respectively, an identical failure for all
+three and `-1` for every fixture in every variant. Both tables were well-formed, and both were empty.
+The trap is specific to comparison: **uniformity is the finding such a harness exists to detect**, so
+a harness that measures nothing produces output shaped exactly like *no difference between the
+variants* — its strongest possible negative result. The remedy is to make the thing you are locating
+locatable **by construction**: inject a known sentinel and assert the probe finds it before believing
+any run in which it does not.
 
 ### An unreproducible finding resolves to a timestamp before an author
 

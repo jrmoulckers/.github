@@ -2416,6 +2416,20 @@ fails closed and shows up as an unhandled case. One that is *looser* runs on inp
 admitted reasoning about, and there is nothing downstream to catch it, because everything downstream
 was written against the guard's meaning.
 
+**That is stated for a guard, and it is false for a locator — as the paragraph below this one
+demonstrates without saying so.** A guard returning `false` declines to proceed, so stricter really
+does fail closed. A locator returning "not found" hands control to whatever handles the miss, and
+here the miss path *writes*: the strict re-derivation destroys the frontmatter outright on a file the
+loose original handled correctly. So a stricter predicate is not conservative in general — it selects
+a different code path, and whether that is safer is decided by what the miss path does, never by
+which predicate is narrower. A member measured this by mutation and named the discriminator:
+**fail-closed intuition is correct for verdicts and wrong for locators.**
+
+Recording it as a defect in this document rather than a refinement, because both claims were written
+here in one pass, twelve lines apart, and each reads as obviously true on its own. **A contradiction
+between two paragraphs is invisible to the check that each paragraph is correct**, which is the only
+check prose normally gets.
+
 **The comment stated the correct predicate the code ignored.** The line above the loop read "find the
 next line that is exactly `---`" while the code called `.trim()`. Prose adjacent to code is not a
 weaker specification than the code; here it was the *accurate* one, and its accuracy is what made the
