@@ -373,6 +373,21 @@ would report it as drift forever.
   remainder is a detection-and-report mechanism aimed squarely at the population the fix cannot
   reach. Shipping the fix alone converts a loud bug into a silent state.
 
+  **A document can carry both a warning and the artifact that defeats it.** The formatter-exclusion
+  section named the hazard correctly — introducing a canon kind that lands in a formatted path is a
+  cross-repo event — and then handed members a fixed list of paths to copy. The list is keyed to the
+  kinds that existed when it was written, so the very event the warning describes is the event that
+  makes the list wrong, and a member copying it would be following the section while defeating its
+  purpose. The prose and the example disagreed about the unit: the prose was keyed to the set of
+  emitted paths, the example to a snapshot of it.
+
+  This is worth separating from ordinary staleness because nothing was out of date when written and
+  no later edit introduced an error. A reader checking the section against reality at any single
+  moment finds it consistent. The defect is that one half is a rule and the other is an instance, and
+  instances are copied more readily than rules — so the failure is *caused* by the document being
+  used as intended. Where a rule is keyed to something machine-readable, state the key and let the
+  example be visibly an example.
+
   **Status of this consequence: promising, not established.** Every instance was found by one
   rollout, and the diagnostic above has so far only been validated by the people who wrote it.
   Recorded because the reasoning is cheap to apply and the failure it prevents is expensive — not
