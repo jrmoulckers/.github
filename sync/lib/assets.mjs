@@ -23,8 +23,10 @@ const FILE_SUFFIX = {
 
 /**
  * @returns {{ writes: TargetSpec[], native: Array<{kind, names}> }}
- * TargetSpec = { kind, name, sourcePath, targetPath, sourceSha256, content, type }
+ * TargetSpec = { kind, name, sourcePath, targetPath, targetBase, sourceSha256, content, type }
  *   type: 'file' | 'managed'
+ *   targetBase: the group's target root, carried so the lock reconciler can recover the
+ *   plan-relative path and follow entries when a member's base moves (see rekey.mjs).
  */
 export function enumerateTargets(resolved, backboneRoot) {
   const writes = [];
@@ -64,12 +66,13 @@ function enumerateLiteralKind(group, backboneRoot) {
     const sourcePath = posixJoin(group.sourceBase, fileName);
     const targetPath = posixJoin(group.targetBase, fileName);
     const raw = readSource(backboneRoot, sourcePath);
-    if (!managed) return fileSpec(group.kind, fileName, sourcePath, targetPath, raw);
+    if (!managed) return fileSpec(group.kind, fileName, sourcePath, targetPath, raw, group.targetBase);
     return {
       kind: group.kind,
       name: fileName,
       sourcePath,
       targetPath,
+      targetBase: group.targetBase,
       sourceSha256: hashText(raw),
       content: inject(targetPath, raw),
       type: 'managed',
@@ -83,7 +86,14 @@ function enumerateFileKind(group, backboneRoot) {
     const fileName = `${name}${suffix}`;
     const sourcePath = posixJoin(group.sourceBase, fileName);
     const targetPath = posixJoin(group.targetBase, fileName);
-    return fileSpec(group.kind, name, sourcePath, targetPath, readSource(backboneRoot, sourcePath));
+    return fileSpec(
+      group.kind,
+      name,
+      sourcePath,
+      targetPath,
+      readSource(backboneRoot, sourcePath),
+      group.targetBase,
+    );
   });
 }
 
@@ -96,19 +106,27 @@ function enumerateDirKind(group, backboneRoot) {
       const sourcePath = posixJoin(dirRel, rel);
       const targetPath = posixJoin(group.targetBase, name, rel);
       out.push(
-        fileSpec(group.kind, `${name}/${rel}`, sourcePath, targetPath, readSource(backboneRoot, sourcePath)),
+        fileSpec(
+          group.kind,
+          `${name}/${rel}`,
+          sourcePath,
+          targetPath,
+          readSource(backboneRoot, sourcePath),
+          group.targetBase,
+        ),
       );
     }
   }
   return out;
 }
 
-function fileSpec(kind, name, sourcePath, targetPath, raw) {
+function fileSpec(kind, name, sourcePath, targetPath, raw, targetBase) {
   return {
     kind,
     name,
     sourcePath,
     targetPath,
+    targetBase,
     sourceSha256: hashText(raw),
     content: inject(targetPath, raw),
     type: 'file',
@@ -167,6 +185,7 @@ export function enumerateTokenTargets(plan, studioRoot) {
       name: rel,
       sourcePath,
       targetPath,
+      targetBase: plan.targetBase,
       sourceSha256: hashText(raw),
       content: inject(targetPath, raw, { note }),
       type: 'file',

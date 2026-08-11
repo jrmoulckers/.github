@@ -201,6 +201,8 @@ function runCheck(plans, opts, manifest, token) {
         report.added.length ? `${report.added.length} to add` : null,
         report.updated.length ? `${report.updated.length} to update` : null,
         report.adopted.length ? `${report.adopted.length} to baseline` : null,
+        report.rekeyed?.length ? `${report.rekeyed.length} to relocate in lockfile` : null,
+        report.pruned?.length ? `${report.pruned.length} stale lock entries to remove` : null,
         report.drift.length ? `${report.drift.length} drifted` : null,
       ].filter(Boolean);
       log[stale ? 'warn' : 'ok'](`${resolved.repo}: ${stale ? bits.join(', ') : 'up to date'}`);
@@ -317,6 +319,8 @@ function printReport(report) {
   line('unchanged', report.unchanged);
   line('force-updated', report.forced);
   line('baselined (lock only)', report.adopted);
+  line('relocated in lockfile', report.rekeyed);
+  line('stale lock entries removed', report.pruned);
   if (report.drift.length) {
     log.warn(`    ⚠️ locally modified (skipped): ${report.drift.length}`);
     for (const item of report.drift) {

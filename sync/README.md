@@ -673,6 +673,46 @@ The backbone checkout must contain full Git history (`fetch-depth: 0` in Actions
 closed on a shallow checkout rather than pretending an incomplete evidence set is authoritative.
 Drift warnings name every skipped target so reconciliation does not require lockfile archaeology.
 
+### The lockfile follows the plan when a target base moves
+
+Lock keys are `targetPath`s, which are only stable while a member's target base is. When a base
+moves — a member gains a `tokens.targetPath` override, or `targetPaths` is repointed — the entries
+the engine wrote under the old base stay behind, and the files at the new base have no baseline at
+all.
+
+That is not cosmetic. An unrecorded target whose bytes differ from canon is treated as a conflict,
+so **every relocated file is classified as drift and skipped**. Nothing ever writes it, so it never
+converges: each run reports it, `--check` fails on it forever, and the vendored content stays frozen
+at whatever the old base last received. Losing the key loses the engine's own record that it wrote
+the file.
+
+So on every run, before planning, `lib/rekey.mjs` reconciles the lockfile against the resolved plan:
+
+- **rekey** — a planned target with no entry adopts the entry orphaned at the same *plan-relative*
+  path under an abandoned base. Reported as `relocated in lockfile`.
+- **prune** — an orphaned entry whose path no longer exists in the member is dropped. Reported as
+  `stale lock entries removed`.
+
+Both count as changes, so the reconciled lockfile is persisted; a run that only reconciles produces
+a PR whose entire diff is `.studio-sync.lock.json`.
+
+Rekeying is deliberately conservative. It requires a **bijective** match — the orphan must
+correspond to exactly one planned target and that target to exactly one orphan — so an ambiguous
+case (two abandoned bases holding the same relative path) is left alone rather than guessed at. A
+wrong baseline would suppress a real drift signal, which is worse than the stale key it replaces.
+Root-level managed targets such as `AGENTS.md` carry no relocatable base and are never rekeyed.
+
+Rekeying moves the *recorded baseline*, it does not invent one: a file that was genuinely
+hand-edited after the engine wrote it still fails the comparison and is still reported as drift.
+And this touches the lockfile only — no file outside the current plan is ever deleted. Pruning an
+entry is conditioned on its file already being gone.
+
+`jrmoulckers/finance` is the worked example. Its vendored `@jrm/tokens` tree was hand-moved from
+`apps/web/vendor/@jrm/tokens` to the repo root and the manifest was repointed to match. The lockfile
+kept all 16 pre-existing entries under the abandoned base while the 5 files that were new in that
+run were recorded at the root — 16 entries pointing at nothing, 16 real files tracking nothing, and
+all 16 frozen as drift.
+
 `--force` is not the tool for that. It is one flag for the whole invocation — `index.mjs` parses it
 once and threads it into every member, and `apply()` then applies it to every spec in each — so it
 rewrites **every** drifted file in **every member the run touches**. Using it to clear one stale
@@ -840,6 +880,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | `test/branch-reuse.test.mjs` | Sync-branch lifecycle: active reviewer work survives; squash-merged and closed branches are bypassed; clean reruns and first runs start from default; a diverged active remote is rejected instead of force-pushed. |
 | `test/basemerge.test.mjs` | Managed-block detection: markers quoted in prose, shown in a fenced example, or indented as a code block do not form a block; real blocks are still replaced; a canon change after adoption updates in place without duplicating markers; genuine edits are still drift. |
 | `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown; drift warnings name every exact skipped path. |
+| `test/rekey.test.mjs` | Lock reconciliation when a target base moves: a relocated tree ends with every planned file tracked and no entry pointing at a nonexistent path, and converges as `updated` instead of freezing as drift; the moved baseline still catches a genuine hand-edit; a stale entry is pruned only when its file is gone, while an unplanned entry whose file remains keeps its baseline; an ambiguous relocation is left alone; a root-level managed target is never rekeyed; a steady-state re-run rekeys and prunes nothing and still produces no diff. |
 | `test/copier.test.mjs` | add / unchanged / drift / `--force` / adoption and the lockfile write rule; raw-canon stamping; exact historical-output recovery; empty-evidence and one-byte-mutation refusal; recorded targets never use first-sync recovery. |
 | `test/history.test.mjs` | Full-history enforcement and committed-blob enumeration; end-to-end target enumeration recovers a member holding a prior engine rendering. |
 | `test/manifest.test.mjs` | The real `studio.config.json` validates; all nine consumers and their explicit modes are registered; disabled infrastructure members produce no writes; local-agent metadata remains compatible; application defaults, Docket's completed mode transition, and mode-specific fact schema are enforced; `canon` matches disk; native kinds are never written. |
