@@ -320,6 +320,27 @@ would report it as drift forever.
   when its bugs are silent than when they are noisy, which is worth weighing when choosing how a
   check reports.
 
+  **A guard that proves it found something has bounded nothing about what it missed.** The strongest
+  version of the fixture rule seen in this fleet is a canon-ownership check that refuses to report
+  success when it classifies zero files, on the stated grounds that a guard silently matching nothing
+  reads exactly like a passing one. Correct, and it does not fire on the defect it most needs to
+  catch: the guard identifies canon by a hardcoded provenance stamp, the engine emits a *second*
+  stamp for vendored assets which it builds from the plan rather than from a constant, and so an
+  entire tree — the largest canon-owned surface in a consuming member, and the one with a recorded
+  drift incident behind it — is never enumerated. The count is comfortably non-zero throughout.
+
+  Non-vacuity and coverage are different properties, and only the first is self-checkable. A check
+  can confirm it is alive using nothing but itself; it cannot confirm it looked everywhere without an
+  independent statement of what everywhere is. So the control is not a better self-check but an
+  external enumeration to reconcile against — here a lock file the engine already maintains. This is
+  the population form of the entry above about mutation proving non-vacuity and not fidelity, and it
+  arrived the same way: on the author of the safeguard, in the blind spot the safeguard defines.
+
+  It is also invisible where such a guard is most likely to be written. The repository that authored
+  this one has no vendored tree at all, being the source of those assets, so the guard is correct
+  there and silently incomplete the moment it is copied to a consumer. **A check inherits the
+  population of the repository it was written in, and says nothing about that.**
+
   **Harmless is not the same as fixed, when a coincidence is doing the work.** The fleet sweep found
   one member whose managed region is permanently mis-placed and whose effective attributes are
   nonetheless unchanged — because the single member rule it overrides is byte-identical to canon, so
