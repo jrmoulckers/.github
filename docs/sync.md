@@ -1717,6 +1717,38 @@ relocated passage they offered instead was at **L2032 — past the end of the fi
 collision existed and the reporter's repository does not track the file, so the disagreement was not
 staleness in either direction: two readers were describing **different artifacts**.
 
+The reporter later found the mechanism and retracted, and it refines this entry rather than undoing
+it. They were not holding a different document — they were holding *this* document through a decoder
+that destroyed it. `gh api --jq .content` returns base64 as roughly 2630 sixty-character lines, and
+their shell decoded each **separately** and rejoined with newlines, so every 60 bytes became its own
+line and the file inflated 2.56×. That factor is visible in both discrepancies: their `L2032` is
+`794 × 2.56`, and the prose they quoted for `L785` sits at `L302 ≈ 785 ÷ 2.6`. Nothing was random;
+the coordinates were consistently *scaled*.
+
+**That is a stronger case for keeping both rows than the one originally recorded here.** The
+corruption preserved every word and destroyed every line boundary — so it was invisible to content
+resolution *by construction*, and detectable only by a coordinate. The two instruments did not merely
+happen to catch different faults; this fault was located precisely in the dimension one of them
+cannot see. A decoder that mangles structure while leaving prose fluent is the exact adversary that
+defeats quoting.
+
+Two further things came out of the retraction, and both are about verifying one. **A retraction needs
+measuring exactly as much as the claim it withdraws** — accepting it unverified is the same
+deference, inverted. Measured across the four revisions, the passage sits at `750 → 785 → 794 → 825`,
+which confirms the withdrawn half was the error: `path:LINE` **does** decay, ordinarily, and the
+original entry stands unamended. It also shows the first cite was never wrong at its own revision,
+and that the cited *range* `785-803` still contained the passage nine lines later — a range degrades
+more gracefully than a point.
+
+And verifying it broke an instrument here. `git show <sha>:docs/sync.md | Measure-Object -Line`
+reported **1401** lines against the true 1684, because `Measure-Object -Line` counts lines *within*
+each string and an empty string contains none: it silently returns the **non-blank** count, short by
+exactly the 283 blank lines. It fails toward a plausible number, on prose it scales with formatting
+rather than content, and it disagreed with a correct earlier measurement of the same blob. Count
+elements, not `-Line`. Recording it because the sequence is the point: a member's broken decoder was
+caught by a coordinate, and the audit confirming it ran on a counter that was quietly wrong in the
+same direction.
+
 Every instrument they trusted agreed with them. The quoted phrase resolved, the SHA was pinned and
 exact, and the neighbourhood was on-topic. **The only signal that anything was wrong was the
 coordinate that refused to resolve** — a line beyond EOF returns nothing, which is the one locator
