@@ -12,6 +12,11 @@
 // its baseline hash is recorded so a later upstream change updates it rather than tripping
 // drift. Adoption counts as a change (the lock must persist), but is content-neutral.
 //
+// Before any of that, the lock is reconciled against the plan (see rekey.mjs): entries left
+// under an abandoned target base follow their file to the current base, and entries pointing
+// at paths that no longer exist are dropped. Without that step a base move strands the
+// baseline, and every relocated file is misread as member-authored drift and skipped forever.
+//
 // Drift is decided from the lockfile: if the target's current hash differs from the
 // `targetSha256` we last wrote, a human edited it. A pre-existing file with no lock entry
 // that differs from canon is treated the same way (a conflict), so we never clobber
@@ -23,6 +28,7 @@
 import { existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { hashText, writeLock } from './lock.mjs';
+import { reconcileLockKeys } from './rekey.mjs';
 import { extractBlock, buildFile, canonicalizeInner, markersFor } from './basemerge.mjs';
 
 const BUCKET = {
@@ -40,8 +46,18 @@ const BUCKET = {
  */
 export function apply(memberRoot, writes, lock, opts = {}) {
   const { force = false, write = false } = opts;
-  const entries = { ...lock.entries };
-  const report = { added: [], updated: [], unchanged: [], drift: [], forced: [], adopted: [] };
+  const reconciled = reconcileLockKeys(memberRoot, writes, lock.entries);
+  const entries = reconciled.entries;
+  const report = {
+    added: [],
+    updated: [],
+    unchanged: [],
+    drift: [],
+    forced: [],
+    adopted: [],
+    rekeyed: reconciled.rekeyed,
+    pruned: reconciled.pruned,
+  };
 
   for (const spec of writes) {
     const res =
@@ -75,7 +91,13 @@ export function apply(memberRoot, writes, lock, opts = {}) {
   }
 
   report.changed =
-    report.added.length + report.updated.length + report.forced.length + report.adopted.length > 0;
+    report.added.length +
+      report.updated.length +
+      report.forced.length +
+      report.adopted.length +
+      report.rekeyed.length +
+      report.pruned.length >
+    0;
   report.hasDrift = report.drift.length > 0;
   const newLock = { ...lock, entries };
 

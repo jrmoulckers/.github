@@ -104,16 +104,17 @@ export function buildPrBody(report, { date, intro } = {}) {
       'Synced from [`jrmoulckers/.github`](https://github.com/jrmoulckers/.github) by the studio sync tool.',
   );
 
-  // A run can be entirely adoption: every target already exists and is byte-identical to what
-  // the engine would write, so the only file in the diff is the lockfile. Say so before listing
+  // A run can be lockfile-only: adoption, a relocated base, or stale-entry pruning all leave
+  // file contents untouched, so the only file in the diff is the lockfile. Say so before listing
   // the paths, or a reviewer reads "Baselined (68)" over a one-file diff and hunts for 67 more.
   const wroteFiles =
     report.added.length + report.updated.length + (report.forced?.length ?? 0) > 0;
-  if (!wroteFiles && report.adopted?.length) {
+  const lockOnly =
+    (report.adopted?.length ?? 0) + (report.rekeyed?.length ?? 0) + (report.pruned?.length ?? 0);
+  if (!wroteFiles && lockOnly) {
     lines.push('');
     lines.push(
-      '**No file contents changed.** Every target below already existed and matched canon ' +
-        'byte-for-byte, so this run only recorded them in `.studio-sync.lock.json` — the entire ' +
+      '**No file contents changed.** This run only updated `.studio-sync.lock.json` — the entire ' +
         'diff of this PR is that one file.',
     );
   }
@@ -128,6 +129,27 @@ export function buildPrBody(report, { date, intro } = {}) {
       report.adopted,
       'These files already existed and are byte-identical to canon. Nothing was written to them; ' +
         'they are now tracked in `.studio-sync.lock.json` so later canon changes reach them.',
+    );
+  }
+
+  if (report.rekeyed?.length) {
+    section(
+      lines,
+      `Relocated in lockfile (${report.rekeyed.length})`,
+      report.rekeyed,
+      'These files moved to a new target base. Their existing `.studio-sync.lock.json` entries ' +
+        'were left behind at the old path, so the engine no longer recognized its own writes and ' +
+        'would have reported each file as a local modification on every run. The entries now ' +
+        'point at the current paths. No file contents were changed by this step.',
+    );
+  }
+  if (report.pruned?.length) {
+    section(
+      lines,
+      `Stale lockfile entries removed (${report.pruned.length})`,
+      report.pruned,
+      'These `.studio-sync.lock.json` entries referenced paths that no longer exist in this ' +
+        'repository. Only the entries were removed — no files were deleted.',
     );
   }
 
