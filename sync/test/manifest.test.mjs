@@ -509,7 +509,13 @@ test('game-library is recorded as a deliberate exclusion, not a member', () => {
 });
 
 test('every excluded entry carries a reason', () => {
-  for (const entry of manifest.excluded ?? []) {
+  // `?? []` makes a missing `excluded` key pass rather than fail; that is the same
+  // state a manifest regression produces.
+  assert.ok(
+    Array.isArray(manifest.excluded) && manifest.excluded.length > 0,
+    'no excluded entries — this check would assert nothing',
+  );
+  for (const entry of manifest.excluded) {
     assert.match(entry.repo, /^[^/]+\/[^/]+$/);
     assert.ok(
       typeof entry.reason === 'string' && entry.reason.trim(),

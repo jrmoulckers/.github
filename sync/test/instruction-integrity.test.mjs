@@ -42,9 +42,14 @@ test('workflow and documentation surfaces use immutable reusable workflow exampl
       relativePath,
     );
   }
-  for (const fileName of readdirSync(join(REPO_ROOT, '.github', 'workflows')).filter((name) =>
+  // A discovered population is silent when discovery returns nothing, and an empty loop
+  // reports `pass`, not `skipped` — so it is indistinguishable from a real assertion.
+  // Pin the population before iterating it.
+  const reusable = readdirSync(join(REPO_ROOT, '.github', 'workflows')).filter((name) =>
     /^reusable-.*\.yml$/.test(name),
-  )) {
+  );
+  assert.ok(reusable.length > 0, 'no reusable workflows discovered — this check would assert nothing');
+  for (const fileName of reusable) {
     const relativePath = `.github/workflows/${fileName}`;
     const text = readFileSync(join(REPO_ROOT, '.github', 'workflows', fileName), 'utf8');
     assert.doesNotMatch(
@@ -78,6 +83,12 @@ test('workflow guidance separates the two causes of a no-log run failure', () =>
 });
 
 test('all declared local agents remain disjoint from selected canon', () => {  const manifest = loadManifest(REPO_ROOT);
+  // Without this the check passes when no member declares a local agent, which is also
+  // what a manifest regression that drops `localAgents` looks like.
+  assert.ok(
+    manifest.members.some((member) => (member.localAgents ?? []).length > 0),
+    'no member declares a local agent — this check would assert nothing',
+  );
   for (const member of manifest.members) {
     const selected =
       member.optIn.agents === '*' ? manifest.canon.agents : Array.isArray(member.optIn.agents) ? member.optIn.agents : [];
