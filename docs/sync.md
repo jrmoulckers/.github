@@ -1245,21 +1245,49 @@ nothing. Where a genuine precondition exists, key the skip to the thing that *de
 file is owed — the lockfile entry — and fail when the entry exists but the file does not, rather
 than keying it to the file's own presence.
 
-**Count marker *delimiters*, never marker names, and prescribe the engine's predicate rather than
-describing it.** `basemerge.mjs` matches `^<!-- studio:base:start -->[ \t]*$` against text whose
-fenced blocks have been masked, and both hardenings are there because the region's own body
+**Count marker *delimiters*, never marker names — but the anchoring is the load-bearing half, and
+the comment syntax must be left open.** `basemerge.mjs` matches a full line, trimmed, against text
+whose fenced blocks have been masked, and both hardenings are there because the region's own body
 documents the convention it implements. Canon's `copilot-instructions.md` mentions
 `` `studio:base:start` `` in prose at line 44, so the bare name occurs **twice** in an emitted file
 while the delimiter occurs once — a check counting the name reports two marker pairs on every member
 in the fleet. The failure direction is the damaging one: "two pairs" reads as exactly the corruption
 such a check exists to catch, and the obvious remedy is to delete one, which means editing canon's
-own prose out of the managed region. Note also that *found the markers* and *found the region* are
-different successes, so a reader should hard-fail on inverted or missing markers rather than
-returning an empty region.
+own prose out of the managed region.
+
+**Do not hardcode `<!-- … -->`.** The marker syntax varies with the target — see the treatment
+below — and a predicate fixed to the HTML form returns **zero** regions on a hash-marker file such as
+`.gitattributes`, so the file becomes invisible. That is the empty-population failure again, reached
+this time by way of the fix for the name-matching bug. **Anchoring is the load-bearing half and the
+delimiter is not**: a full-line match is what excludes prose, since a sentence mentioning the marker
+is never a line consisting solely of it, while pinning the comment characters does no work and only
+narrows the population. A member told to "match the delimiter" without being told to leave the syntax
+open has been handed the next bug.
+
+Note that the exported reader defaults to the HTML pair — `extractBlock(content)` with one argument
+silently assumes Markdown — so calling the shared function is not by itself sufficient. Call it as
+`extractBlock(content, markersFor(targetPath))`, the form `sync/README.md` prescribes for member-side
+checks.
+
+**The two failures look alike and carry opposite risk, so size the response to the direction rather
+than to the shape.** A predicate that under-matches fails **silently and unsafely**: canon goes
+unexamined and is severed from sync with nothing printed. A predicate that over-matches — classifying
+a member's own file as canon because it *documents* the convention — fails **loudly and safely**: a
+red build on a file the member owns, self-announcing and cheap. Same predicate, same file, and only
+the first is an emergency.
+
+Note also that *found the markers* and *found the region* are different successes, so a reader should
+hard-fail on inverted or missing markers rather than returning an empty region.
 
 The general point outlives the specific bug. This defect was not in the engine, which has been right
-about it for as long as the prose has existed; it was in a check specified to a member **in prose**,
-which silently re-derived a weaker predicate and dropped both hardenings. The rule for answering a
+about it for as long as the prose has existed; it was in a check that silently re-derived a weaker
+predicate and dropped both hardenings. It was first found in a specification written **in prose**,
+and the tempting reading is that prose is the problem — but the member that diagnosed it then shipped
+the same weak predicate **in code**, hours later, in the very script written to fix the neighbouring
+bug: a bare-name substring test that classified any member file *documenting* the convention as
+canon. So the rule is not about prose. Any re-expression of a predicate, in any medium, by anyone who
+has just read the correct one, is where the accumulated corrections get dropped. The rule for
+answering a
 report is to cite the artifact rather than explain it; the rule for *specifying* a check is the same
 one and it is stronger, because a re-derived predicate does not merely fail to convince — it ships,
 and it ships fleet-wide with the engine's accumulated corrections stripped out. Point at the exported
