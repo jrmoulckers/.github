@@ -237,6 +237,19 @@ would report it as drift forever.
   silently fix one. Every invariant that protects against unasked-for change should be read twice —
   once for what it prevents, once for what it therefore cannot undo.
 
+  **A fix for a wrong-unit bug is itself liable to be keyed to the wrong unit.** The clearest
+  instance closed the loop inside a single exchange. A member's asset checker missed an appended
+  managed region because it validated the block's content — hash and markers — and said nothing
+  about precedence; the natural repair, proposed by that session and independently implemented here,
+  was to assert that the region sits first in the file. Run across the fleet it produced two hits and
+  both were false positives: in one member everything above the region was comments, which have no
+  precedence, and in another the single rule above it was byte-identical to canon. Position was a
+  proxy for precedence exactly as content had been, so the repair reproduced the original defect one
+  step over. The lesson is not that the check was sloppy — it is that when a defect turns out to be a
+  proxy standing in for a property, the replacement proxy deserves more suspicion than a first
+  attempt would, not less. Where an authority can answer the question directly, ask it: `git
+  check-attr` settles precedence in the terms the damage occurs in.
+
   **Status of this consequence: promising, not established.** Every instance was found by one
   rollout, and the diagnostic above has so far only been validated by the people who wrote it.
   Recorded because the reasoning is cheap to apply and the failure it prevents is expensive — not
