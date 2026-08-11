@@ -716,6 +716,30 @@ the same refusal is returned whatever the underlying state. Say *undetermined on
 carry it as undetermined. Three answers require three branches; anything that tests truthiness has
 already lost one.
 
+**Visibility does not discriminate protection, but it exactly discriminates the refusal — and those
+are two questions wearing one word.** Measuring visibility and protection in a single pass across all
+eleven members:
+
+| visibility | count | protection endpoint |
+| --- | --- | --- |
+| private | 6 | `403` — all six |
+| public | 5 | `200` × 1, `404` × 4 |
+
+The correspondence is total in one direction: every private member is refused, every public member
+answers. So the claim above is right about *is anything enforced* — four public members return `404`,
+and public-and-unprotected is a real state — and wrong about *can this account read the state at
+all*, where visibility predicts the outcome perfectly, exactly as the endpoint's own upgrade message
+says it should. The practical consequence is not that you may skip the call: it is that a `403` is
+**fully explained by visibility and carries no further information**, whereas `200` versus `404` is
+only obtainable by measuring. Reporting "six members are refused" alongside "six members are private"
+states one fact twice.
+
+The general form, since *discriminator* claims are usually written after a surprise: **a statement
+that some property is not the discriminator has to name the question it is not discriminating.**
+Unqualified, it reads as *this property is uninformative here*, and the original sentence was
+written the moment a tempting generalization failed — which is precisely when the property's real
+and narrower predictive power is least likely to be looked for.
+
 **Where nothing is required, replay the trigger predicate against the diff.** The section below
 warns that a path-filtered trigger yields no check at all on an unprotected repository. The
 compensating instrument is to evaluate the workflow's own filter against the pull request's actual
@@ -1804,6 +1828,29 @@ diagnosis you would otherwise reach converts a self-correcting condition into a 
 fix at working code. And **when you are the member, volunteer the lock fields unasked**; you are the
 only party who can close the question, and the cost is one call against a diagnosis that is
 otherwise unreachable.
+
+**That rule is narrower than it reads, and volunteering the wrong kind of fact relocates the
+asymmetry instead of closing it.** A member adopted it explicitly — correcting a stale member tip in
+my footer, proposing that volunteering `HEAD` unasked closes the gap from their side, and stating
+that the message was doing so. Their volunteered tip was **12 commits and about 100 minutes behind
+their own branch** when it arrived. The remedy failed in the sentence demonstrating it, and nothing
+in the message could have shown that; only a query to the repository did.
+
+The discriminator is **whether the recipient can obtain the fact independently**. `syncedAt` and
+`targetSha256` are readable only from inside the member, so volunteering them supplies something
+otherwise unreachable. A default-branch tip is one API call from anywhere, so volunteering it adds a
+second and staler copy of a fact the recipient can fetch — and the assertion is load-bearing exactly
+when the recipient *cannot* check it, which is exactly when it should not be trusted. The two also
+differ in kind: lock fields are quoted out of a file the engine wrote, so producing them requires
+touching the artifact, whereas a tip is a name produced beside the measurement and can be recalled,
+copied forward, or read off a stale local ref. **Volunteer what only you hold; for anything the
+other side can fetch, let them fetch it.**
+
+**And mutual correction on a single field does not converge on it.** The footer being corrected was
+22 commits behind; the correction carrying it was 12 behind. Both parties held stale values of the
+same repository at the same moment, each with standing to correct the other, and the exchange would
+have terminated in agreement on a wrong value had neither re-queried. Where two accounts of one
+field disagree, the resolution is a third reading of the artifact, not a comparison of the two.
 
 Generally: **before diagnosing across a boundary, ask which side holds the fact that would
 discriminate.** Where it is the other side's, no amount of care on yours substitutes for asking —
