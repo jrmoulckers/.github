@@ -425,6 +425,23 @@ plain Markdown), a leading `#` line for `.toml`/`.yml`/`.gitattributes`, a `/* �
 `.css`/`.js`/`.ts`/`.kt`/`.swift`, and nothing at all for `.json`/`.map`, where any comment would
 corrupt the file.
 
+**That sentence is illustrative, not exhaustive — `sync/lib/provenance.mjs` is the authority.** It
+carries cases the prose elides, including basename matches for extensionless dotfiles and the full
+set of script and native extensions. Anyone writing a member-side check must mirror that file by
+reading it, never by transcribing this paragraph.
+
+The reason is the failure direction. An incomplete marker table fails **silently in the safe
+direction**: an unlisted target simply never matches, so a correctly stamped file reports as
+missing its marker — indistinguishable from real drift. An abbreviated table therefore cannot
+announce that it is abbreviated; it surfaces later as an unexplained red check. `.gitignore` is the
+sharp case, because there the wrong syntax *changes behaviour* rather than failing. Assert the
+absent cases too — `.json` and `.map` are the ones people skip, and "no marker" stops looking like
+behaviour right up until a fifth branch quietly gives JSON a leading comment.
+
+This generalizes past this one table. When guidance restates backbone logic, **name the
+authoritative file by path** so the reader can check rather than infer. A summary that reads as
+complete is exactly the summary whose completeness the recipient cannot verify.
+
 The fallback is HTML, which makes an unclassified *source* extension a silent hazard: the file is
 still written, still hashed, and still drift-free, but it carries `<!-- … -->` and no longer
 compiles — a failure that surfaces only in the member's build. Classify new source extensions in
