@@ -2037,6 +2037,28 @@ that* — the most confident possible answer, produced by not having looked. Sea
 the recipient session's `user_message`, and confirm the query can find a message known to have been
 sent before trusting it to say one wasn't.
 
+**A second agent in the same repository is invisible in the artifact, and I attributed its work to a
+correspondent.** Reading three studio commits that implemented a correspondent's analysis and cited
+an issue of mine, I credited that correspondent. They had not written any of them: a different
+session was operating in studio, and neither of us had modelled it. The inference — *this content
+matches what they proposed, therefore they produced it* — is the same move as asserting a HEAD from
+memory, raised one level: it attributes the **cause** of a state rather than the state, and content
+is a much more persuasive fingerprint than a remembered SHA, which is what makes it worse.
+
+The correction is not *attribute more carefully*, because the discriminating evidence does not
+exist. Both sessions commit as the same git identity and push under the same account, so
+`commit.author.name` reads `Jeffrey Moulckers` for every commit either produces, and no field in the
+artifact separates them. The correspondent knew the work was not theirs only because they knew what
+they had done — a private record, unavailable to me and unavailable to any future reader of the
+repository. **Where the artifact cannot carry the distinction, the available options are to ask or
+to not claim; there is no third one reachable by looking harder.** This is the same shape as the
+blind authorship query above, and the more general lesson: check whether the fact you are asserting
+is recoverable from the evidence at all before deciding which evidence to consult.
+
+A corollary for this repo specifically: a member's HEAD can advance from a source that is neither of
+the two correspondents discussing it, so *no news from you* is not evidence of *no change there*.
+Studio moved five commits past the tip that message asserted, in the interval it took to arrive.
+
 **And a systematic offset is a convention, not a second instrument.** Re-measuring all five revisions
 here gave 1621, 1629, 1648, 1847, 1939 against the other session's 1622, 1630, 1649, 1848, 1940 —
 exactly one less, at every revision. That is not two readings of a file; it is one file under two

@@ -156,6 +156,21 @@ one result nobody re-checks. Give any filtered measurement a control whose answe
 narrower scope that has to return less — and a filter that cannot express *empty* should refuse
 rather than pass everything.
 
+**A control that fires proves the instrument can move; it does not prove either answer means what
+you read it as.** A correspondent compared a hardcoded classification table against canon's
+classifier and got 7/7 `DISAGREE` with the control firing — apparently a total drift, apparently
+licensed. Both halves were the same artifact: `commentSyntaxFor` returns a **string**, the probe read
+`.family` off it, and every comparison was `undefined`. The control fired because
+`undefined !== 'block'`. Corrected, the answer inverted to 7/7 agreement and zero drift. So the
+habit above is necessary and not sufficient: a control demonstrates the probe *can* return the other
+answer, and a total measurement failure satisfies that demand as readily as a working probe does —
+more readily, because failure makes every comparison unequal at once. **A control discriminates
+between outcomes, not between measuring and not measuring.** Pin the other end too: assert the
+instrument's output has the type and shape you expect before comparing it, and treat *every*
+comparison disagreeing as a symptom of the reader rather than a finding about the read, since a real
+drift is almost never total. Note the direction — this one fired **loudly and wrongly**, and the
+alarm was what made it credible.
+
 **An instrument can also loudly deny a right answer, and that failure is not the safe one.** A check
 written to prove a timestamp parsed as UTC compared an ISO round-trip against a seconds-precision
 input and reported `false` on the millisecond field alone; the parse was correct. A false alarm looks
@@ -565,6 +580,25 @@ predicate is `steps == 0 && conclusion == 'failure'`, which is **8** — exactly
 Sharpening the predicate **collapsed** the disagreement rather than splitting it, and a
 reconciliation that explains why two numbers may both stand should be suspected first of having
 skipped that step: *two correct denominators* is the more flattering finding and the rarer one.
+
+**Evaluate that predicate against the jobs API only — `gh pr checks` cannot supply its terms.** That
+view renders an unfinished job as `pending 0`, where the `0` is its column for *no duration yet*, not
+a step count. A member watching a healthy `native-kotlin` job saw `pending 0` for 22 minutes while it
+was executing 8 successful steps on a named runner, and would have read it as a refusal had they not
+gone to the API. So the two states this section exists to separate — *refused before starting* and
+*running normally* — are rendered identically there, and the collision is in the field the predicate
+keys on. Worse, it is the same command the Definition of Done table names for CI-green, so combining
+the two instructions is the natural reading rather than a careless one.
+
+The general form is the part to carry: **a predicate is not defined until you name the instrument
+that supplies its terms.** A field name is not a field; the same word in two tools can denote
+different quantities, and a predicate written against one and evaluated against the other is
+well-formed, runnable, and wrong. State the API call beside any threshold you publish.
+
+**Do not expect a run's conclusion and its check-runs to agree.** In that same run the workflow
+concluded `success` while the job's check-run stayed `in_progress` and never reconciled — an
+orphaned record, not a transient. Any liveness or completeness test that requires both to settle
+will hang on a run that has genuinely finished.
 
 **State which case a predicate has not been exercised against.** That predicate has been run over
 studio's whole failure history: 8 ordinary failures (lint, build, and so on) yield zero false
@@ -1436,6 +1470,25 @@ which is the behaviour to copy — substituting silently would have left both si
 had been applied that never could have been. Before prescribing across the boundary, name the
 artifact the remedy reads and confirm the recipient has it; when receiving one that is not runnable,
 report the substitution rather than the result.
+
+**A remedy can be correct when written and made wrong by a correct change in another repository.**
+A member's guard carried prose telling a maintainer to keep two hardcoded tables in step, and named
+canon's fallback as HTML. Both were true when written. Canon then unified the write path onto one
+classifier and replaced the fallback with a throw, so at HEAD neither named file holds a table and
+there is no fallback to describe. The verdict the guard computes stayed correct throughout — only
+its instructions rotted, and **following them literally would have reconstructed the duplication the
+unification had just removed.** A stale remedy is worse than a stale fact because it is addressed to
+someone about to act.
+
+Note which defences were available and were not: canon's change was complete within canon, its tests
+pass, and the member's guard still exits correctly, so no run anywhere goes red. Code got a throw for
+exactly this — an unknown type now fails loudly — but **prose has no throw**, and a comment
+describing another repository's internals has no import to break. That is the same cross-repository
+seam recorded above, pointed at documentation, where the compile-time remedy is unavailable by
+construction. So when you unify or remove a mechanism, grep the fleet for prose that *instructs*
+against the old shape, not just for code that calls it — and when a member's comment describes
+canon's internals, prefer a citation to a restatement, since a citation can dangle visibly while a
+restatement decays silently into confident misdirection.
 
 ### A correct verdict does not make the remedy correct
 
