@@ -169,6 +169,18 @@ would report it as drift forever.
   meet. That is the wrong-unit pattern applied to a document's own bookkeeping: the claim varies per
   instance, the count keys on the list length.
 
+  **Enumerations flatten, and that is the more expensive half.** Going stale is the visible cost of a
+  count; the quiet one is that listing things together asserts they behave alike. `.gitattributes`
+  joined `AGENTS.md` and `.github/copilot-instructions.md` as a managed-region target, and the prose
+  said only the *comment syntax* varied between them — true when there were two Markdown targets, and
+  false the moment the third arrived, because placement is cosmetic in Markdown and **semantic** in
+  `.gitattributes`, where the last matching pattern wins. The list grew by one entry that did not
+  obey the shared rule. Nothing about a list signals that, which is why the correction to the count
+  did not surface it: fixing "two" to "three" makes the enumeration accurate and leaves the
+  flattening untouched. When adding an entry to any list of things "handled the same way", state what
+  the shared handling actually is and check the new entry against it — the answer is often that the
+  entries share a *mechanism* rather than a *behaviour*.
+
 - **When uncertain, prefer the error that leaves a trace.** Several rules here resolve the same way
   and are worth stating as one principle. Delete rather than paraphrase, because a bad paraphrase is
   indistinguishable from canon and a deletion is recoverable from canon. Over-keep and declare it
