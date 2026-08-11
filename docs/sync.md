@@ -1022,6 +1022,29 @@ will report false failures — both were live in `jrmoulckers/homelab` on first 
 - **The provenance marker is not always an HTML comment.** It follows the target's own comment
   syntax, per the list above. A checker hardcoding `<!-- … -->` reports `agency.toml` as unstamped.
 
+### Answering a member session's report
+
+A member session cannot see this repository's issues, pull requests or merges. When it reports a
+problem here, the three states it needs to distinguish — not received, received and disputed,
+received and already fixed — are invisible to it by construction. It cannot resolve them by
+checking harder, so resolving them is the answerer's obligation.
+
+**Answer a report by naming an artifact the reporter can check without another round trip.** A
+prose confirmation — *I read the source, the hazard cannot occur* — may be entirely true and is
+still unusable, because it is a second opinion rather than an instrument, and a second opinion
+cannot come back negative. `sync/test/rekey.test.mjs:199`, merged in #220, can: the test may be
+absent, may not assert what the reply claimed, may be skipped. That it can disagree is the whole
+value, and it is the same rule as the known-bad fixture, applied to a sentence instead of a check.
+
+The practical tell is repetition. A report arriving a second time is evidence that the previous
+answer was **unciteable**, not that the reporter is insistent — the cleanup-before-rekey hazard was
+sent three times, having been investigated, disproved and regression-tested after the first. Each
+reply asserted the finding; none named the test. Re-sending was the correct move on the information
+the reporter had.
+
+Citing an artifact also terminates the exchange, which prose cannot do: prose's only confirmation
+channel is another message, and that message is subject to the same defect.
+
 ### What belongs in the member's own region
 
 Everything above concerns the *managed* region. The region **outside** the markers is the part

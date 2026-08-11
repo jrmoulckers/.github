@@ -441,6 +441,21 @@ would report it as drift forever.
   recoverable from the merged result. The test for whether a proxy may be retired is not whether the
   new check is more accurate, but whether any question the proxy answered has no other instrument.
 
+  **Absence of acknowledgement is a proxy for non-delivery, and the two diverge exactly when the
+  answer was cheap to give and hard to verify.** A report answered in prose leaves its sender unable
+  to separate *not received*, *received and disputed*, and *received and already fixed* — three
+  states demanding different responses, collapsed into one by a reply that is a second opinion
+  rather than an instrument. Re-sending is then the rational move, and a report arriving twice is
+  evidence about the answer rather than about the reporter.
+
+  What distinguishes the two is that a citation can come back negative. Naming the test that
+  disproves a reported hazard lets the reporter find it absent, or asserting something else, or
+  skipped; asserting that the hazard was investigated cannot fail. This is the fixture rule applied
+  to a sentence, and it generalizes past sessions to any report whose answer lives somewhere the
+  reporter cannot see — which is the ordinary case across a repository boundary, not an unusual one.
+  Where the correct unit is unreachable in principle to one party, supplying it is the obligation of
+  the party who can reach it, not a diligence failure of the party who cannot.
+
   **Status of this consequence: promising, not established.** Every instance was found by one
   rollout, and the diagnostic above has so far only been validated by the people who wrote it.
   Recorded because the reasoning is cheap to apply and the failure it prevents is expensive — not
