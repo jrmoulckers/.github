@@ -485,6 +485,29 @@ would report it as drift forever.
   evidence, ask what result would have made the two disagree; if no such result exists, the second
   run measured nothing. An instrument that cannot return a different answer is not measuring.
 
+  **A wrong measurement that agrees with a correct decision leaves no symptom.** The failure above
+  is a second instrument that cannot disagree; this is the same defect one step earlier, where a
+  measurement is never checked at all because nothing it produced ever conflicted with the action
+  taken. A branch was reduced on a correct reading of its diff, while a separate measurement of the
+  *checkout* — a file's length against canon's — was cited alongside it as corroboration. That
+  measurement answered a different question and was wrong for the purpose, but it pointed the same
+  way, so it was never falsified and never load-bearing. Decoration that agrees is more durable than
+  decoration that conflicts, because only the conflicting kind gets investigated. When a decision
+  rests on two measurements, establish which one is carrying it; if removing one changes nothing,
+  it is not evidence and should not be reported as though it were.
+
+  **A systematically biased instrument still answers difference questions correctly.** This is the
+  practical way out, and it is why disagreements over constants are usually not worth resolving.
+  Two sessions measured the same managed region at 5346 and 5344 characters, and earlier the same
+  file at 488 and 489 lines and its member content at 268 and 264 — every pair a boundary
+  convention, not a discrepancy about the artifact. Asked *is this region unchanged across the
+  merge*, both conventions return the same answer, because a constant offset cancels in a
+  difference; the independent check here confirmed the region's hash identical on both sides of the
+  merge while the file itself shrank by 183 bytes, which is exactly the delta the other session
+  reported for the member-owned content. So prefer invariants stated as relations over invariants
+  stated as constants: a relation tolerates an instrument whose zero point is wrong, and a constant
+  requires every reader to share a convention that nobody has written down.
+
   **Replacing a coarse unit with a fine one can discard the question the coarse unit answered.**
   The documented repair for a wrong-unit check is to ask the authority directly instead of a proxy,
   and that is right as far as it goes — but the proxy is often coarse rather than simply wrong, and
