@@ -130,6 +130,19 @@ would report it as drift forever.
   duplication problem one level down, which is why the file-type list was reconciled against its
   source rather than re-typed.
 
+  The stopping test matters most when a fix **narrows** a unit. Narrowings must choose where to stop
+  and have no natural floor, so they overshoot or undershoot far more readily than widenings —
+  directory → file was a narrowing, and stopping one level short of `planManagedMd`'s inner-block
+  hash is what produced the next instance. Narrow until the rule's unit matches what the code already
+  keys on, then stop.
+
+- **A rule change must land in the explanatory docs, not only the normative source.** The per-file
+  provenance fix updated `copilot-instructions.md` and left `docs/sync.md` asserting the superseded
+  rule in two places, each individually defensible, which is why neither was flagged. A confident
+  wrong statement is worse than a missing one: nothing signals to the reader that they should go
+  check, so the stale copy is read as authoritative. When changing a rule, grep for every place that
+  restates it and fix them in the same PR.
+
 - **Diagnostic: suspect the unit before the content.** What makes this pattern a debugging trap
   rather than a design nit is that a coarse-unit rule does not error. It quietly matches nothing, or
   matches too much, and the result reads as ordinary drift — a content problem, at the boundary of
