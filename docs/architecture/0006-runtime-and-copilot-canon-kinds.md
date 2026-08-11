@@ -130,6 +130,15 @@ would report it as drift forever.
   duplication problem one level down, which is why the file-type list was reconciled against its
   source rather than re-typed.
 
+  **The test terminates a search; it is not a source of truth.** It is sound only while the tooling's
+  own granularity is correct. Applied to an engine that keys on the wrong unit, it would ratify the
+  bug and lend it the appearance of canonical backing. The practical tell is whether the tooling's
+  unit was **chosen for the property in question** or **fell out of an implementation convenience**:
+  `planManagedMd` hashes the inner block *because* that is the region it owns, which is the property
+  itself, and that is strong evidence. A file boundary that exists because it is what the directory
+  walker happened to yield is weak evidence for anything. When engine and canon disagree, the engine
+  is usually right about granularity — and occasionally it is the engine that must move.
+
   The stopping test matters most when a fix **narrows** a unit. Narrowings must choose where to stop
   and have no natural floor, so they overshoot or undershoot far more readily than widenings —
   directory → file was a narrowing, and stopping one level short of `planManagedMd`'s inner-block

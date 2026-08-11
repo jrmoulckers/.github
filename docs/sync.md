@@ -557,6 +557,16 @@ accepting it reverts whatever landed in the meantime. This is ordinary git stale
 fault: each run clones the then-current default branch, so a PR only goes stale when a different
 overlapping PR merges after it was opened.
 
+**Establish supersession from content, never from chronology.** When two sync PRs are open, "the
+later one merged, so the earlier is redundant" is a claim about *ordering*; redundancy is a fact
+about *content*. Diff the branch against the post-merge default branch before closing anything —
+`gh api repos/<owner>/<repo>/compare/main...<branch>` costs one call and settles it. Two duplicate
+waves are rarely a superset of each other in either direction: each carries whatever canon existed
+when it was generated plus whatever member-side fixes were pushed to it. A closed PR whose branch
+was force-pushed **cannot be reopened**, so the recovery is a fresh PR from the same branch — which
+is only possible because the branch still exists. Preserve the branch and escalate rather than
+discarding work you believe is redundant.
+
 Members that validate their own generated assets must also respect two contract details, or they
 will report false failures — both were live in `jrmoulckers/homelab` on first sync:
 
