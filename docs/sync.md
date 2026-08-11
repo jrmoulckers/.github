@@ -960,6 +960,53 @@ only the first yielded a comparison that still could not support the claim. **On
 not a controlled comparison**, and noticing the first is precisely what retires the search for the
 second.
 
+### An unreproducible finding resolves to a timestamp before it resolves to an author
+
+A reported defect that is not there when you look has two explanations, and only one of them gets
+reached for. **The second is that it was true when reported and repaired in between.** That has now
+happened three times: docket's `.gitattributes` placement (real at `63482c42`, closed by docket PR
+#92), finance's regressed lock entry (real, hand-fixed in finance #4085 roughly half an hour before
+it was re-measured), and canon's own `SECURITY.md` mojibake (real, repaired by `b61db35`).
+
+Preferring the author explanation is the expensive error, because it is **silently self-sealing**. A
+finding retracted as phantom sends its whole class back to looking hypothetical, and nothing
+afterwards prompts a recheck — which is very nearly what happened to the managed-region placement
+bug. So resolve the discrepancy on the time axis first:
+
+```sh
+gh api "repos/OWNER/REPO/commits?path=FILE" --jq '.[] | "\(.sha[0:8]) \(.commit.author.date)"'
+```
+
+Then measure the file at each revision. Thirty seconds, and it converts *who claimed this* into
+*when was it true*.
+
+Two refinements, both from doing exactly that on the `SECURITY.md` case.
+
+**A two-point trace establishes the repair, not the origin.** That file was traced across the commit
+that touched it and the commit that fixed it, which reads as the damage entering at the former.
+Measuring every revision instead:
+
+```
+973a5b9  2026-07-07  bytes=6032  0x3F=9  CR=272  emdash=0   <- scaffold; already damaged
+6eb3d72  2026-08-10  bytes=7645  0x3F=9  CR=299  emdash=3
+b61db35  2026-08-10  bytes=7364  0x3F=0  CR=0    emdash=12
+```
+
+The nine corrupted sites are byte-identical at the **scaffold commit**, a month earlier — the damage
+shipped in the repository's first commit. `6eb3d72` is the maximally plausible culprit: a
+`docs(security)` change that touched the file, grew it by 1,613 bytes, and introduced em-dashes. It
+is innocent; it added three correct em-dashes beside nine it never touched. Note that the repair's
+arithmetic is exact — `3 + 9 = 12` — and an exact reconciliation across two points still says nothing
+about where the nine came from. **Walk to the first revision that carries the property, not to the
+first revision that plausibly explains it.**
+
+**A repair is not a cure, and a hand-repair is the dangerous case.** finance's lock regression was
+fixed by hand, so the symptom vanished while the engine race that produced it stayed live — which is
+why the recovery and the race are filed separately. Resolving to a timestamp therefore does more than
+vindicate the reporter: it separates *repaired* from *cured*. **"I measured and it's fine" is the most
+misleading form of unreproducible**, because a hand-repair erases the evidence while leaving the
+defect able to recur, and the erasure is what makes the next occurrence look like a first one.
+
 A PR that cannot merge — billing, a missing secret, an unavailable reviewer — invites repeated
 re-verification, and that is nearly the wrong activity. **Validity** (do the contents still hold)
 is settled at the first pass and cannot change while nothing is being pushed to the branch.

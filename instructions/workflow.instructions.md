@@ -147,6 +147,31 @@ harmless because it fails closed, but it directs work at code that is not broken
 whatever the correction costs**, in either direction, so exercise a validating check against a case it
 must accept before trusting its rejections.
 
+### An unreproducible finding resolves to a timestamp before an author
+
+When a reported defect is not there when you look, the reading that gets reached for is that the
+reporter erred. **The one that gets skipped is that it was true when reported and repaired in
+between** — which has now happened three times in this fleet. Preferring the author explanation is
+the expensive error, because retracting a finding as phantom sends its whole class back to looking
+hypothetical, and nothing afterwards prompts a recheck.
+
+So resolve the discrepancy on the time axis first: list the file's commits
+(`gh api "repos/OWNER/REPO/commits?path=FILE"`) and measure at each revision. That converts *who
+claimed this* into *when was it true*.
+
+**Walk to the first revision carrying the property, not to the first that plausibly explains it.** A
+two-point trace establishes the repair, never the origin. Canon's own `SECURITY.md` corruption was
+traced across the commit that touched the file and the commit that fixed it, and the repair's
+arithmetic reconciled exactly; the nine corrupted sites were nonetheless byte-identical a month
+earlier in the repository's **first** commit. The commit that looked responsible — it touched the
+file, grew it, and introduced characters of the same class — had not caused it.
+
+**And a repair is not a cure.** Where the fix was made by hand, the symptom disappears while the
+defect that produced it stays live, so file the recovery and the underlying cause separately.
+**"I measured and it's fine" is the most misleading form of unreproducible**, because a hand-repair
+erases the evidence while leaving the defect able to recur, and that erasure is what makes the next
+occurrence look like a first one.
+
 ### A clean audit is not evidence when the property is not local
 
 Reading every site of a pattern and finding nothing wrong is evidence only if the defect would be
