@@ -2424,6 +2424,36 @@ what it never recorded. Neither is sufficient; their union is what closes it.
   unrecorded files that differ from canon are treated the same way, so member-authored files are
   never clobbered. Hashes use LF-normalized content to avoid line-ending churn.
 
+### A revision in the provenance header is inside the target hash
+
+`sourceSha256` is `hashText(raw)` and `content` is `inject(targetPath, raw)`, so **`targetSha256`
+covers the provenance header and `sourceSha256` excludes it**. Putting a revision in that header is
+therefore not a cosmetic change, and it fails in two ways that point in opposite directions.
+
+If the header carries canon **HEAD**, every file's rendering changes whenever HEAD moves. `planFile`
+decides `unchanged` purely on the rendered hash, so every synced file becomes an `update` and lands
+in the PR — a member with 59 locked files whose content is 56/59 current gets all 59 rewritten.
+`sourceSha256` is untouched, so the engine stays correct and nothing errors; only the member-visible
+diff is destroyed. Stamp the **per-file last-modifying commit** instead. The header then changes iff
+the file changes, and it answers *which revision is this artifact* rather than *when did sync run* —
+a question `lock.generatedAt` already answers.
+
+That is necessary and not sufficient. `attachCanonHistory` reconstructs prior engine output by
+injecting **today's** note into historical raw blobs, and those blobs come from `rev-list --objects`,
+which carries no commit identity. A member file stamped when the note held a different revision
+matches nothing, `isHistoricalCanonOutput` returns false, and the target falls through to `drift` —
+**the member is told they modified a file they never touched**. Measured against a real canon file
+with 39 historical versions: a different note value is not recognized, the same note value is
+(control). So any revision-valued note requires reconstruction to pair each historical version with
+its commit — a commit walk, not a blob enumeration — or it swaps loud churn for silent false drift,
+which is worse. `assets.mjs` already states the principle (*"hashing the raw blob alone would produce
+a set that matches nothing and disable recovery with no error"*); it just does not reach the case
+where the note itself is revision-valued.
+
+None of this is load-bearing for detecting staleness. `sourceSha256` is the hash of the canon body,
+so a member can check currency against canon's tree today with no engine change. The header answers
+naming, not detection, and must not be rushed ahead of its prerequisite.
+
 ## Vendored tokens (`@jrm/tokens`)
 
 The design-token package `@jrm/tokens` lives in the **other** backbone repo

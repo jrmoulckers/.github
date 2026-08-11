@@ -32,6 +32,18 @@ import { commentSyntaxFor } from './comment-syntax.mjs';
 //
 // All content is normalized to LF first so the rendered output (and therefore the
 // stored hashes) are deterministic regardless of the checkout's line-endings.
+//
+// The note deliberately carries NO revision. It is inside `targetSha256` (which hashes the
+// injected rendering) while `sourceSha256` hashes raw canon, so a revision here changes every
+// file's rendering whenever that revision moves. Stamping canon HEAD would rewrite every synced
+// file on every run and destroy the reviewability of the sync PR without failing anything.
+//
+// A per-file last-modifying commit avoids that churn, but is still not safe on its own:
+// `attachCanonHistory` reconstructs prior engine output by injecting *this* note into historical
+// raw blobs, and blobs carry no commit identity. Any revision-valued note makes files synced under
+// an older value unrecognizable, and they are then reported as member drift — a file the member
+// never touched. See "A revision in the provenance header is inside the target hash" in
+// docs/sync.md before changing this.
 
 export const PROVENANCE_NOTE =
   'synced from jrmoulckers/.github — canonical source; do not edit here';
