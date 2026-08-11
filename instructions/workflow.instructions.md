@@ -196,6 +196,23 @@ the real thing has made itself uncheckable.** It bites hardest where the temptat
 the docstring of the very guard that detects the pattern, since a verbatim bad example there poisons
 every later search of the tree. Name the broken form in prose instead.
 
+**Finally, a probe can be healthy and still be aimed at the wrong proposition.** Every failure above
+is an instrument that *cannot* return the other answer. This one returns it readily — about a
+neighbouring question. Guidance meant for every member was placed in `AGENTS.md` and verified with a
+sync run against `engineering`, a member whose `optIn.base` is `false`: the text could not have
+arrived there whether the placement was right or wrong. The run was neither broken nor vacuous — a
+bad `--work-dir` would have failed it, and it produced a real correction to the wording it was
+aimed at — so the remedy above was already satisfied. The probe could return the other answer; it
+could not return the other answer **about the claim it was standing behind**, and the placement
+defect survived to be found later, when the same guidance proved to reach 6 of 11 members.
+
+This slips because **"does the command work" and "does this text reach every member" are both
+faithful readings of "does this work"**, and nothing forces the probe and the claim to be the same
+proposition. State the proposition in words *before* choosing the input, then check that the input
+can falsify **that** proposition rather than merely that the run can fail. Where the claim is about
+reach, the witness must be a case that would exhibit the absence: verify a distribution change
+against a member that does *not* already receive the surface you are changing.
+
 ### An unreproducible finding resolves to a timestamp before an author
 
 When a reported defect is not there when you look, the reading that gets reached for is that the
