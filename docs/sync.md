@@ -594,6 +594,19 @@ So "it rebased cleanly, no conflicts" is not evidence that member work survived;
 of the exact circumstance in which the loss goes unnoticed. Rebasing is still the right default. It
 just cannot be the last step.
 
+**`actor.login` names the account, not the actor.** Every agent working this fleet authenticates as
+the repository owner, so a timeline event, a comment author, and a merge are all attributed to the
+same login whoever or whatever performed them. The field cannot answer "did a human do this" and does
+not fail when asked — it returns a confident, correct name that supports whichever inference the
+reader brought. During the rollout this produced a false claim that a member session's own PR closure
+had been performed by the user, from a timeline entry that was entirely accurate.
+
+Where the distinction matters operationally — deciding whether to redo work, whether an instruction
+was already carried out, whether a close was authorized — take it from content rather than identity:
+the comment body, a trailer, or the action's own description. A useful habit is that an agent closing
+or merging anything states what it did and why in a comment first, which is what made the misread
+recoverable here: the close was one second after a comment no drive-by would have written.
+
 Assert the invariant instead, on the merge result, after **every** rebase rather than only the final
 one:
 
@@ -882,6 +895,16 @@ would plausibly propose as a safety improvement — is what established that the
 test in `sync/test/rekey.test.mjs` was load-bearing rather than incidentally green. Prefer it for
 anything guarding a silent, unrecoverable failure, since those are exactly the checks whose passing
 is never questioned.
+
+**Mutation proves a test is non-vacuous; it cannot prove the test is faithful.** A passing mutation
+shows the code does what the *test* says, and says nothing about whether the test describes the state
+a member is actually in. A suite whose fixtures encode a believed shape will confirm that belief
+rigorously — `report.abandoned` shipped with a mutation-proven suite and a false negative on the very
+member its own PR body named, and the miss surfaced only when someone rebuilt that member's real
+state and ran the engine against it. The stronger the mutation table, the less need anyone feels to
+go and look, which makes this the more dangerous half of the practice. So mutation answers "is this
+check load-bearing", and only a reconstruction of the real case answers "is it pointed at the right
+thing" — naming a real member as the motivation is the trigger to go and build it.
 
 **Audit that exposure with git's resolver, not with the region's position.** The obvious check —
 "the managed region should be the first non-empty line" — is itself keyed to the wrong unit, and it

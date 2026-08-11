@@ -388,6 +388,18 @@ would report it as drift forever.
   used as intended. Where a rule is keyed to something machine-readable, state the key and let the
   example be visibly an example.
 
+  **Appending to a tally is itself an unverified classification.** The de-counting rule addresses a
+  count going stale as its list grows. This is the step before: deciding an event belongs in the
+  count at all. A running tally of failures accumulated during the rollout gained an entry that did
+  not belong to it — an action misattributed to a human, counted as a stale read — and the increment
+  was never examined, because the tally's own consistency is what gets checked, not each membership
+  decision. A count that is arithmetically correct can still be wrong about every item in it.
+
+  This makes tallies a poor summary of a pattern precisely when the pattern is being actively found,
+  since each new instance is classified by whoever is most convinced the pattern is real. Prefer
+  naming the shape and citing instances that can be checked individually, and treat any number
+  attached to a pattern as a claim needing the same evidence as the pattern itself.
+
   **Status of this consequence: promising, not established.** Every instance was found by one
   rollout, and the diagnostic above has so far only been validated by the people who wrote it.
   Recorded because the reasoning is cheap to apply and the failure it prevents is expensive — not
