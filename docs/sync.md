@@ -952,6 +952,13 @@ Had the supersession analysis left one sync hunk in place, that hunk would have 
 wave — clean, green, and with no conflict to raise the alarm. A safeguard that holds by coincidence
 of another decision is not a safeguard, and the near miss is the evidence, not the outcome.
 
+**`mergeStateStatus` is a reading, not a state — poll and merge in one loop.** Check-then-merge has
+a window between the two calls, and on an active default branch that window is where the branch goes
+`BEHIND` again. It is the stale-tip rule applied to the one query everybody treats as authoritative:
+a `CLEAN` from thirty seconds ago describes a repository that no longer exists. Four consecutive
+rebase/green/`BEHIND` cycles cost one session roughly 25 minutes. Merge immediately on reading
+`CLEAN` and retry the whole cycle on failure, rather than reading, deciding, and then acting.
+
 **Make the correct reference the cheap one.** The reason the sibling-branch comparison keeps getting
 made is not that anyone believes it is right — it is that both branches are local refs, so it needs no
 external lookup, while canon HEAD needs an API call against another repository. The wrong reference is
@@ -1106,6 +1113,16 @@ test in `sync/test/rekey.test.mjs` was load-bearing rather than incidentally gre
 **Mutate rather than curate where you have the choice.** A fixture is a second artifact that can
 drift from the thing it certifies and has to be maintained; a mutation exercises the live path and
 leaves nothing behind. Reserve the vendored fixture for checks with no code to break.
+
+**Confirm the mutation applied before believing its result — a no-op mutation and a vacuous test
+report the same `pass`.** This is the invocation-level failure of control 1 reappearing inside
+control 2, and it is easy to miss precisely because mutation is the control you reach for once you
+have stopped trusting a green. A mutation run driven from PowerShell reported two fresh assertions
+vacuous; they were not, the harness was. The replacement text was a double-quoted string containing
+backticks — PowerShell's escape character — so the substitution silently matched nothing and the
+suite passed for the reason it always had. The check is one line: after mutating, assert the file
+actually changed on disk, or have the mutation step fail when its match count is zero. A mutation
+that reports "still passing" is only evidence if it reports "and here is the diff I applied."
 
 The reason any of this is worth the trouble: **a check guarding a loud failure is exercised by the
 failure itself, while a check guarding a silent one is only ever seen passing, so its green is never
