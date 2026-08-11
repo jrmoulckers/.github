@@ -1745,6 +1745,36 @@ thoroughly was the one it could not help, because a stale read passes every chec
 fails. **Report the revision you read, not just the text you found**, and the failure becomes visible
 to the reader who can resolve it.
 
+**Sync manufactures the wrong-revision fault deliberately, and gives the reader no way to name it.**
+The entry above treats a stale read as a transport accident. In this fleet it is a design output:
+every member holds a generated copy of canon at a path mirroring canon's own, so at any moment there
+are at least two real artifacts with the same basename and different content, and during a
+distribution outage the gap grows without bound. One member reported the same billing claim across
+four crossings, in good faith each time, and the resolution is not that they were careless:
+
+| artifact | its L181 | real? |
+| --- | --- | --- |
+| canon `HEAD` (`defb562`, blob `7f306e2e`) | *canon claimed otherwise until a member falsified it* | yes |
+| that member's synced `.github/instructions/` copy | *Actions is free on public repositories for every runner type, so this cannot happen there* | yes |
+| canon `9011023^` | the narrowed larger-runner exemption | yes |
+
+Three artifacts, one path, one line number, three incompatible claims — and their `:181` citation is
+**exactly right for the copy in their hands**. So the reply *"that is stale, you read an old
+revision"* is itself the wrong move: it charges the reader with an error for holding the artifact
+this engine published to them.
+
+Two things follow, one of them an engine gap. **A published copy is a claim this engine made, so its
+disagreement with canon is this engine's defect and not the reader's** — and while distribution is
+blocked the same correct report will keep arriving, because nothing else can happen; fix the
+distribution, not the reporter. And the round trip could not self-terminate because **the copy cannot
+name its own origin revision**: `PROVENANCE_NOTE` records the source repository, and
+`.studio-sync.lock.json` records `backbone` and `generatedAt`, but neither carries a canon SHA. The
+reader is asked to report the revision they read while holding an artifact that does not know one.
+Stamping the canon revision into the provenance header closes this, and is deliberately **not** done
+here: that header sits on every synced file in every member, so changing it rewrites all of them and
+invalidates the sync PRs the billing outage is currently holding open. Right change, wrong moment —
+land it in the wave that drains those PRs, not before.
+
 **What makes a line number uniquely bad is that the act which invalidates it is correct, unrelated,
 and elsewhere.** A renamed function breaks its references visibly; a moved file breaks a link; a
 changed API breaks a build. Editing a document *above* a cited range breaks every citation into it

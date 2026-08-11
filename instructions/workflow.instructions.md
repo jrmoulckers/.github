@@ -587,6 +587,51 @@ For parallel sprint work:
 5. Publish a merge order for dependent PRs.
 6. Re-dispatch failed or incomplete agents until every PR is green and mergeable.
 
+### Reporting a defect in canon from a repo that holds a synced copy
+
+You hold a copy of these instructions at `.github/instructions/`, and it is **generated, not
+authored** — it lags canon by design, and during a distribution outage it lags without bound. So
+"I checked the instructions and the claim is still there" is a statement about your copy, and
+canon may have repaired it several revisions ago. This has already produced repeated round trips
+where both parties were reading accurately and disagreeing anyway.
+
+The copy cannot currently tell you which canon it came from: the provenance header names the source
+**repository**, and `.studio-sync.lock.json` records the backbone and a `generatedAt` time, but
+neither records a canon **revision**. That is an engine gap rather than your mistake. Until it is
+closed, do this:
+
+- **Read the canonical file before reporting**, not your synced copy — `gh api
+  repos/jrmoulckers/.github/contents/instructions/workflow.instructions.md` with the raw accept
+  header, or `gh api .../commits/main` for the revision.
+- **Report the revision you read** and the blob hash. If you cannot obtain one, say which artifact
+  you read and that it was a distributed copy; that alone routes the reply correctly.
+- **Quote and cite `generatedAt` from your lock** when reporting drift you believe is real. A
+  timestamp does not identify a revision, but it bounds one, and it makes the lag visible instead of
+  invisible.
+
+The corollary for whoever maintains canon: a member reporting a claim that canon already fixed is
+**not** making an error, and answering "that is stale, you read an old revision" misplaces the fault
+onto the reader for holding the artifact canon published to them. The report is correct about the
+artifact in their hands. When distribution is blocked, expect the same correct report repeatedly, and
+fix the distribution rather than the reporter.
+
+### A correct verdict does not make the remedy correct
+
+A guard that fails closed on the right input can still do harm, because the *diagnostic* is a
+separate claim from the *verdict* and is usually the part that was never exercised. A member's
+text-classification guard correctly flagged a staged PNG as binary and exited 1 — and every sentence
+after the file list was written for a different cause, instructing the reader to rewrite the file
+with LF terminators, which destroys a PNG. The verdict had been tested; the remedy had not.
+
+Two things follow. **A condition with more than one cause needs the diagnostic to route on the
+discriminator, not on the condition** — here, presence of NUL separates ordinary binary from
+CR-corrupted text, and both branches can still exit 1, so nothing about the fail-closed property is
+given up. And **failing closed buys the reader's attention without guaranteeing what you spend it
+on**: the check has just stopped their build, so they have maximal trust and minimal context, which
+makes a wrong remedy behind a correct verdict *more* dangerous than one behind a wrong verdict —
+nothing downstream contradicts it. Test what a check *says* on each cause, not only which way it
+exits.
+
 ## Commit Messages
 
 ```text
