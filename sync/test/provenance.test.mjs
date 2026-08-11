@@ -258,3 +258,32 @@ test('the lock hash is derived from engine output, so it cannot witness an engin
   // If any of the three moves, the reasoning above is stale and the exemptions justified by
   // "the hash still asserts" need re-deriving rather than inheriting.
 });
+
+// A member-side checker that enumerates the files to verify FROM its own lockfile can only detect
+// corruption of what the lock declares, never omission from it: a canon-managed path present in the
+// tree but absent from the lock is never enumerated, so the check reports green on it forever. A
+// `count > 0` guard does not help -- the population is non-empty, just not complete, and no count
+// distinguishes those. Completeness requires enumerating from a source independent of the artifact
+// under test. The engine gets this right by construction, and this pins that it keeps doing so.
+test('the plan is enumerated from canon, so it does not inherit a lockfile omission', () => {
+  const writes = realWrites();
+  assert.ok(writes.length > 0, 'no planned writes discovered — this check would assert nothing');
+
+  // enumerateTargets receives the resolved member and the backbone root. It is never handed the
+  // member's lock, so no omission from a lock can shrink the planned population.
+  const assets = readFileSync(join(ROOT, 'sync', 'lib', 'assets.mjs'), 'utf8');
+  assert.doesNotMatch(
+    assets,
+    /\breadLock\b|\bLOCK_FILENAME\b|\.studio-sync\.lock\.json/,
+    'assets.mjs must not consult the lockfile when building the population to sync',
+  );
+
+  // The lock is a baseline store, consulted per already-enumerated target, never an index of what
+  // to look at. copier.mjs may read entries; it must do so keyed by a planned spec.
+  const copier = readFileSync(join(ROOT, 'sync', 'lib', 'copier.mjs'), 'utf8');
+  assert.match(
+    copier,
+    /entries\[spec\.targetPath\]/,
+    'the lock must be indexed by planned target, not iterated as the population',
+  );
+});

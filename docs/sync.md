@@ -2239,6 +2239,40 @@ predicate and confirm the new test fails, then substitute the *rejected* fix and
 test fails. Two assertions that both pass against the fix prove only that the fix is self-consistent;
 each one earns its place by naming a specific wrong implementation it excludes.
 
+### A validator must not enumerate from the artifact it validates
+
+Canon already requires pinning a discovered population before iterating it, because an empty loop
+reports `pass` rather than `skipped` and is indistinguishable from a real assertion. There is a
+strictly worse version of that failure, and `assert.ok(n > 0)` does not catch it: **a population that
+is non-empty but is derived from the thing under test.**
+
+A member-side checker keyed on its own lockfile is immune to misreading any file's content, and
+guarded against an empty `entries`. It is nonetheless **structurally blind to tree-minus-lock** — a
+canon-managed path present in the working tree but absent from the lock is never enumerated, so the
+check reports green on it forever. No count reveals this, because the population is not empty; it is
+*incomplete*, and completeness is not a property any count has access to. The check answers "is
+everything the lock declares intact" while appearing to answer "is everything canon manages intact".
+
+The distinction to carry: **a count tests non-vacuity, and only an independent enumeration tests
+completeness.** If the list of things to check comes from the same artifact whose integrity is in
+question, the checker can detect corruption of what that artifact declares and never omission from
+it — and omission is the failure mode an attacker or an ordinary mistake produces first, because it
+requires deleting a line rather than forging a hash.
+
+The engine avoids this by construction and the property is now pinned. `enumerateTargets` builds the
+plan from **canon plus the member's manifest opt-in**, and never reads `.studio-sync.lock.json`; the
+lock is a baseline store consulted *per already-enumerated target* (`entries[spec.targetPath]`), not
+an index of what to look at. So a target missing from a member's lock still appears in the plan and
+is adopted or written — which is exactly why first-run adoption works at all. A test asserts both
+halves, and fails if `assets.mjs` acquires any reference to the lock.
+
+Two consequences for anything built beside the engine. **Enumerate from canon's manifest, not from
+the member's lock** — the lock's job is to answer *what did this file look like last time*, and using
+it to answer *which files exist* silently converts an omission into a pass. And note that a stamp and
+a lock fail to cover for each other in precisely this seam: the stamp is unreliable per-file but can
+only ever *add* candidates to an enumeration, while the lock is reliable per-entry but cannot report
+what it never recorded. Neither is sufficient; their union is what closes it.
+
 ## Idempotency & drift
 
 - The tool is **idempotent**: once a member carries a lockfile, re-running with no upstream change

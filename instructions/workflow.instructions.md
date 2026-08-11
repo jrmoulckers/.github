@@ -793,6 +793,29 @@ Both are the same mistake at different levels: reading Markdown as flat text rat
 structure. Whichever form you use, **quote a sentence from the target**, because quoted content
 self-verifies against the reader's copy and a coordinate of either kind does not.
 
+### Never enumerate from the artifact you are validating
+
+Pin a discovered population before iterating it — an empty loop reports `pass`, not `skipped`, so it
+is indistinguishable from a real assertion. But a `count > 0` guard only tests **non-vacuity**, and
+there is a worse failure it cannot see: **a population that is non-empty but derived from the thing
+under test.**
+
+A checker that reads its list of files to verify out of its own lockfile, manifest, or index can
+detect corruption of what that file declares and **never omission from it.** A path present in the
+tree but absent from the index is never enumerated, so the check reports green on it forever — and no
+count reveals that, because the population is not empty, only incomplete. It answers *is everything
+the index declares intact* while appearing to answer *is everything intact*.
+
+**Only an independent enumeration tests completeness.** Build the population from a source that
+cannot be edited by whatever you are checking — for synced canon that is the backbone manifest, not
+the member's lock. The lock's job is to answer *what did this file look like last time*; using it to
+answer *which files exist* silently converts a deletion into a pass, and deletion is the failure an
+ordinary mistake produces first, because it needs one line removed rather than a hash forged.
+
+Note that two partial signals can be complementary here rather than redundant: a marker or stamp is
+unreliable per file but can only ever *add* candidates to an enumeration, while an index is reliable
+per entry but cannot report what it never recorded. Neither closes the seam; their union does.
+
 ### Reporting a defect in canon from a repo that holds a synced copy
 
 You hold a copy of these instructions at `.github/instructions/`, and it is **generated, not
