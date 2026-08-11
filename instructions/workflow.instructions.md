@@ -244,6 +244,21 @@ self-contained thing that permits re-derivation. **Record the procedure beside t
 faults you found in it** — not as candour, but because the procedure is the only part a later reader
 can run.
 
+**A count is a measurement whose meaning lives entirely in its predicate.** A correspondent reported
+that *exactly one* error-erasing return survived an audited directory. Under their reading — returns
+`null` or an empty object — that was exact. Under a second reading nobody had excluded, a predicate
+returning `false` from a `catch` conflates *no* with *could not tell*, which is the same erasure, and
+the population is five rather than one. Neither reading is wrong and the difference is not a
+disagreement; the **inclusion rule was never published**, so the number could not be reproduced or
+falsified. Publish the predicate with the count, and prefer stating what the census *excluded*, since
+an exclusion is a claim about the system and a positive list is a claim about what you remembered.
+
+**Correcting a coordinate does not exempt the new one from the decay that killed the old.** The same
+message repaired a stale line reference from `192` to `210`, citing the drift that had invalidated
+it; the site was at `239` when the correction arrived, further from the repair than the repair was
+from the original. A corrected figure carries the authority of having just been checked, and its
+shelf life is unchanged by the checking.
+
 **And a comparison harness that has stopped measuring reports its failure as a result.** Two probes
 built to compare three variants of a function returned, respectively, an identical failure for all
 three and `-1` for every fixture in every variant. Both tables were well-formed, and both were empty.
