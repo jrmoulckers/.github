@@ -448,6 +448,11 @@ After this instruction-profile change, later consumer work must make these exact
 | Homelab | `.github/instructions/infrastructure-operations.instructions.md` | `.github/instructions/docs.instructions.md`, `.github/instructions/skills.instructions.md`, `.github/instructions/tokens.instructions.md`, `.github/instructions/workflow.instructions.md` |
 | Windows | `.github/instructions/infrastructure-operations.instructions.md` | `.github/instructions/tokens.instructions.md`, `.github/instructions/workflow.instructions.md` |
 
+Since that table was written, `canon-formatting` was added to every member's profile, so all eleven
+also receive `.github/instructions/canon-formatting.instructions.md`. It carries the formatter
+obligation previously stated only in `docs/sync.md`, which is synced to nobody — the rule now
+arrives in the tree it governs.
+
 For each affected consumer, use a focused PR and perform the cleanup atomically:
 
 1. Start from the consumer's current default branch and resolve the new plan from the merged

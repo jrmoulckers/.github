@@ -3,9 +3,10 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const GENERAL_INSTRUCTIONS = ['agents', 'docs', 'skills', 'tokens', 'workflow'];
+const GENERAL_INSTRUCTIONS = ['agents', 'canon-formatting', 'docs', 'skills', 'tokens', 'workflow'];
 const APPLY_TO = new Map([
   ['agents', 'agents/**,.github/agents/**'],
+  ['canon-formatting', '**'],
   ['docs', 'docs/**,*.md,**/README.md'],
   ['infrastructure-operations', '**'],
   ['skills', 'skills/**,.github/skills/**'],
@@ -184,9 +185,9 @@ function validateMemberSelections(manifest, errors) {
     if (APPLICATION_REPOS.has(member.repo) || member.repo === 'jrmoulckers/studio') {
       expected = GENERAL_INSTRUCTIONS;
     } else if (member.repo === 'jrmoulckers/homelab') {
-      expected = ['agents', 'infrastructure-operations'];
+      expected = ['agents', 'canon-formatting', 'infrastructure-operations'];
     } else if (member.repo === 'jrmoulckers/windows') {
-      expected = ['agents', 'docs', 'infrastructure-operations', 'skills'];
+      expected = ['agents', 'canon-formatting', 'docs', 'infrastructure-operations', 'skills'];
     }
     if (expected && !sameArray(selected, expected)) {
       errors.push(
