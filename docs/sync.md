@@ -3008,6 +3008,50 @@ None of this is load-bearing for detecting staleness. `sourceSha256` is the hash
 so a member can check currency against canon's tree today with no engine change. The header answers
 naming, not detection, and must not be rushed ahead of its prerequisite.
 
+### Currency must be measured on what the engine hashes
+
+A member reported its instruction files as *byte-current with canon HEAD except one*, from a
+comparison of file bodies. The lock disagreed: **every** entry's `sourceSha256` differed from
+`hashText` of the corresponding canon source. Both readings were accurate about what they measured,
+and the reconciliation is one line — a change landed that night added a `description:` frontmatter
+field to all seven canonical instruction files. Four members' files differed from canon by exactly
+that line, which a body comparison discards before it compares anything.
+
+**So *byte-current* was not measured on bytes.** It named a normalization it did not state, and the
+normalization removed the only region that had changed. The direction is the harmful one: a
+body-scoped check reports a member *more current than it is*, and it does so precisely for changes
+confined to frontmatter — which is where `applyTo`, `description` and every future routing field
+live. A currency claim must name what it hashed, and the only claim the engine will honour is
+`sourceSha256` against `hashText(source)`, because that is the comparison the copier itself performs.
+
+**The near-miss is the part worth keeping.** The lock-based check here was correct and was
+disbelieved, because it disagreed with a peer's confident figure. Four successive probes went into
+auditing the instrument — line endings, the hash function, the source reader, the spec builder — and
+none into auditing the claim, before checking the file's history settled it in one command. The
+asymmetry was not evidential; a disagreement is symmetric and **a peer's claim is a hypothesis on
+exactly the same footing as one's own measurement**. Deference had selected which side to debug, and
+the cost of that selection is a correct instrument nearly discarded for agreeing with nothing.
+
+Note that the member had opened the same message by observing that *a predicate described in prose is
+not a predicate*, and then published *byte-current* as prose two paragraphs later. Naming a hazard
+does not exempt the naming, which is now the third instance recorded in this document.
+
+### Canon at merge and canon in force are different claims
+
+Delivery is not merge. A rule enters canon when its pull request lands and enters a member when sync
+next runs, and the interval between those events is not zero — measured here at roughly a day, during
+which the member held **23 of 46** headings of the file this correspondence had spent the night
+writing to. Nothing was broken: no drift, the lock intact, the engine correct, sync simply had not
+run. The gap is invisible from both ends, because canon sees its own tree current and the member sees
+its own lock clean, and neither view contains the distance between them.
+
+Two consequences. **A correspondent quoting *this is now canon* has not established *this is now in
+force*** for the party being told, so a rule cited at a member should be cited with its delivery
+state or fetched. And the member supplying the evidence for a rule is routinely the last to receive
+it — the rule derived from a member's own work reaches that member only on the next sync, so
+improvisation there is not negligence but latency, and it should be read as a measurement of the
+pipeline rather than of the member.
+
 ## Vendored tokens (`@jrm/tokens`)
 
 The design-token package `@jrm/tokens` lives in the **other** backbone repo
