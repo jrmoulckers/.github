@@ -66,7 +66,32 @@ gh run list --repo OWNER/REPO --limit 100 \
 The default read fails toward *nothing has changed*, since a successful rerun stays buried under
 older failures. `run_started_at` is also what distinguishes *this attempt is live* from *this is an
 old attempt's creation time* when a run reads as `queued`. The jobs endpoint is unaffected — it
-returns the latest attempt — so only ordering and freshness are at risk, not the per-run reading.
+returns the latest attempt.
+
+**But the claim that only ordering and freshness are at risk is too narrow, and the fields invert
+when the question is *when did this begin*.** For freshness the mutable field is the useful one; for
+onset it is the trap, because `run_started_at` tracks the newest attempt while `created_at` stays
+fixed at the first. Measured against the per-attempt endpoint, top-level `created_at` equalled
+attempt 1's creation on every run checked, and `run_started_at` equalled it on **98 of 98**
+single-attempt runs while differing on **every** multi-attempt run, by between 199 seconds and
+**78,011** — nearly twenty-two hours of displacement on an object whose identity never changed. So
+dating an onset from `run_started_at` reports when the condition was last *re-examined*, not when it
+started, and it always errs late.
+
+Two properties make this worse than an ordinary wrong-field mistake. The agreement is near-total on
+untouched objects, so a sample drawn at random validates the field at 98% and certifies nothing —
+the disagreement lives entirely in the re-run subset. And that subset is **the one investigation
+creates**: re-running a failure is how the failure gets studied, so the field decays precisely on the
+runs under examination, and it decays monotonically toward a later onset. The instrument is displaced
+by the act of reading it. Prefer `created_at` for onset questions, which needs no per-attempt fetch
+to be safe, and reserve `run_started_at` for the freshness question it actually answers.
+
+**Never mix the two fields across the objects being compared.** An adjacency of one second between
+two repositories' onsets, read as a fleet-wide simultaneous transition, turned out to be a
+`created_at` on one side against a `run_started_at` on the other; the true separation was sixteen
+minutes and the true ordering was different. A cross-object comparison must name one field and use it
+on every object, because mixing them manufactures agreement rather than merely adding noise — and a
+striking coincidence is the result most likely to be believed without re-checking.
 
 
 ## Worktrees
@@ -1746,6 +1771,19 @@ accounting exhausts a budget at under one percent of it, so exhaustion is refute
 outright rather than merely unproven — and with it the inference from onset dates clustering near a
 day of the month, which needs exhaustion as its mechanism. Take the second period before generalising
 a metering explanation from one.
+
+**A refused-run episode is bounded by observations, not by dates, and its edges are only as tight as
+the runs on either side.** Classifying a member's complete history — 102 runs, all of them, with the
+tally printed so an empty classification could not pass as a clean result — gave 74 refused against
+28 executed and put the earlier episode's first refusal more than a fortnight before it had been
+reported, making the current outage a second recurrence of a standing condition rather than a novel
+event. That much is measurement. But the episode's *right* edge is not: the last refusal and the next
+execution are **seven days apart with no runs at all in between**, so the recovery happened somewhere
+inside an unobserved week and the episode is a lower bound of twenty days, not a length of twenty
+days. The clean interval that followed is likewise five observed days, not the twelve the calendar
+suggests. **Report an episode as the closed interval you observed plus the open interval you did
+not**, and never let a quiet stretch be read as a measured state — the same error, in the same
+investigation, that had already been withdrawn once for resting on an unobserved gap.
 
 **The visibility split that looked decisive discriminates nothing.** Public repositories do not
 consume the allowance, so a table of private-refused against public-clean is predicted identically by
