@@ -465,6 +465,15 @@ function isHistoricalCanonOutput(lockEntry, currentHash, spec) {
  * Note also that the case the `!lockEntry` gate appears to protect is already unreachable: a member
  * reverting a sync commit reverts the lock entry in the same commit, leaving the two consistent and
  * the path an ordinary update. This adds no exposure that reverting did not already have.
+ *
+ * **The case this cannot reach: a file with exactly one published revision.** `attachCanonHistory`
+ * deletes `sourceSha256` and the current rendering from both sets, which for a single-revision file
+ * removes the only two values it inserted, so `historicalRenderedSha256` is empty and this returns
+ * false. The other two paths require `!lockEntry`, so a *recorded* single-revision target whose lock
+ * entry regresses has no recovery path at all — the exact state a wave-overlap regression (#418)
+ * would produce in a newly-added file. It is self-resolving on the file's second revision, and the
+ * mitigation is a second revision rather than an engine change; recorded so that "regressed entries
+ * self-heal" is not read as unconditional. Pinned in tokens-history.test.mjs.
  */
 function isSupersededEngineOutput(lockEntry, currentHash, spec) {
   return Boolean(lockEntry) && (spec.historicalRenderedSha256 ?? []).includes(currentHash);
