@@ -307,7 +307,7 @@ function runSync(plans, opts, manifest, token, date) {
   if (!opts.members.length) {
     const profileRepo = `${manifest.owner}/${manifest.owner}`;
     try {
-      mirrorProfile({
+      const mirror = mirrorProfile({
         owner: manifest.owner,
         backbone: manifest.backbone,
         backboneRoot: REPO_ROOT,
@@ -315,7 +315,13 @@ function runSync(plans, opts, manifest, token, date) {
         date,
         force: opts.force,
       });
-      outcomes.push({ repo: profileRepo, status: 'mirrored' });
+      // Report what the mirror did, not that it was attempted. It answers `missing` when the repo
+      // is absent and `unknown` when it could not tell, and printing `mirrored` over either told an
+      // operator the profile had been published when nothing was written.
+      outcomes.push({
+        repo: profileRepo,
+        status: mirror.status === 'pr' ? 'mirrored' : mirror.status,
+      });
     } catch (err) {
       failures.push({ repo: profileRepo, message: err.message });
       outcomes.push({ repo: profileRepo, status: 'failed', detail: err.message });
