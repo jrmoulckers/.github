@@ -325,10 +325,28 @@ function parseFrontmatter(relativePath, text, errors) {
 // patched the two phrases their own wrap straddled, and left the other nineteen resting on it.
 // Normalizing here fixes the class, and fixes it for patterns not yet written.
 //
-// Whitespace, specifically. Stripping markup the same way does not transfer: 6 of these 21 pin
+// Whitespace, specifically. Stripping markup the same way does not transfer: 7 of these 30 pin
 // file names and globs where a backtick delimits and an asterisk *is* the glob, so collapsing
 // those characters destroys the assertion instead of normalizing it. Whitespace is never content
 // in a pinned phrase — the two hand-patched patterns already assert that.
+//
+// (That figure read "6 of 21" until #643. Both numbers came from a hand transcription of this
+// list that omitted `infrastructure-operations` entirely, so the denominator was wrong and the
+// pattern it hides — `local agent routing` — went uncounted. Measured since by extracting the
+// patterns from this module rather than retyping them.)
+//
+// And global, not scoped to prose paragraphs. The narrower rule — join blank-line-separated prose
+// and leave any block holding a fence, list marker, table row or heading alone — is the better
+// default in general and is what jrmoulckers/finance runs, correctly, because its scanner matches
+// `<number> <noun>` claims that sit in list items and must not pair a number in one bullet with a
+// noun in the next. This corpus keeps pinned prose *inside* list items, which a prose formatter
+// wraps like anything else, so that rule is unsafe here. Measured over the patterns below, against
+// a corpus reflowed at 44 columns: raw 17 of 30, paragraph-scoped 24 of 30, global 30 of 30. The
+// six it loses are `app-native isolation` and five of the `infrastructure-operations` rules.
+//
+// The guard catches a narrowing — substituting the paragraph-scoped rule fails exactly the
+// hard-wrap test and names those six. This note exists because that failure names the *patterns*
+// and not the cause, and the obvious next move on seeing it is to assume the test is wrong.
 //
 // Callers that depend on line structure must keep using `record.text`: frontmatter parsing, the
 // `../wt-*` negative check, and the `uses:` scans all read fenced or line-anchored syntax that a
