@@ -35,13 +35,23 @@ naming it:
 
 ```
 members                       11
-delivered writes             653
+delivered writes             653   <- enumerable from this repository
 originating in principles/     0
 originating in docs/           0
 source trees actually delivered:
   agents/  skills/  prompts/  instructions/
   AGENTS.md  agency.toml  .gitattributes  copilot-instructions.md
+
+additionally delivered, sourced elsewhere:
+  vendor/@jrm/tokens   4 members, copied from jrmoulckers/studio
 ```
+
+The second block is stated because the first is not the whole delivery. The vendored token
+distribution reaches four members and is enumerated from a `jrmoulckers/studio` checkout rather
+than from this repository, so it is structurally absent from the 653. It cannot carry a principle —
+its bytes are not ours — which is exactly why it is safe to leave out of the tally above and not
+safe to leave out of the description. A reader who takes the 653 for the delivered surface will
+conclude that members receive nothing under `vendor/`, and that is false.
 
 That has a consequence worth stating where the handoff is read rather than leaving it to be
 discovered: **a handoff recorded here is not self-delivering.** Naming Engineering, or a domain
