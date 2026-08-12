@@ -1,5 +1,6 @@
 ---
 applyTo: '**'
+description: 'Infrastructure and operations practice. Use for runners, environments, deployment, secrets handling, spending limits, incident response, and runbooks.'
 ---
 
 # Infrastructure Operations

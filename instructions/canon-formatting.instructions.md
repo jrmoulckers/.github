@@ -1,5 +1,6 @@
 ---
 applyTo: '**'
+description: 'Formatting rules for canonical files. Use for managed regions, sync markers, generated assets, line endings, and anything copied verbatim into member repos.'
 ---
 
 # Instructions for Canon Formatting

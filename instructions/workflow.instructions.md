@@ -1,5 +1,6 @@
 ---
 applyTo: '**'
+description: 'Change delivery workflow. Use for issues, branches, conventional commits, pull requests, required quality gates, reusable workflow calls, human-gated operations, and fleet coordination.'
 ---
 
 # Change Delivery Workflow
