@@ -2322,6 +2322,31 @@ the cost of checking is one search, and it is nearly always cheaper than the arg
 top of it. **Before characterizing a message, paste the line.** If the line cannot be found, that is
 the finding.
 
+**And that rule has a hard limit: I cannot re-read my own sent messages.** Incoming messages are
+artifacts I hold until context is compacted; outgoing ones leave no artifact on this side at all.
+When a correspondent reports that a figure I attributed to them appears nowhere in their output, I
+have no way to check what I sent — and in the instance that produced this entry I could not, while
+they could and did, and the disputed SHA was real but timestamped before their first message in the
+exchange. The honest form is theirs, and it is the one to copy: **"not found in what I can recover,"
+stated as a bounded search rather than a denial.** Over-denying is the mirror of the over-accepting
+this document warns about, and the party with no artifact is in no position to do either.
+
+**The consequence for canon is the load-bearing one: entries outlive the messages that justified
+them, so a rule stays checkable while its supporting instance does not.** Verified here by
+accident — a correspondent credited me with a finding I could not remember making, and the proof that
+I had made it was the canon entry derived from it, still in this file. Canon is the only surviving
+record of my own correspondence, and it is a lossy one: it preserves the rule and compresses the
+instance, which is precisely the half that was drawn from an artifact nobody will hold later. That is
+the mechanism behind the fabricated instance corrected earlier tonight — not carelessness at
+authoring, but an instance whose source expired while the entry stayed, leaving nothing that could
+ever contradict it.
+
+So when landing an entry drawn from correspondence: **cite the artifact, not the conversation.** A
+`repo@sha`, a run id, an API path and its response — anything a later reader can resolve without the
+messages. Where the instance is *only* a conversational fact, say so in the entry, so a future reader
+knows the claim was never independently resolvable rather than assuming it was checked and has held.
+The repository outlives the conversation on both sides; nothing else does.
+
 **A citation also only discharges the obligation if the artifact is reachable by the audience.** This
 document is backbone-internal: `docs/sync.md` is not a canon kind, appears in no member's lockfile,
 and is distributed to nobody. Telling a member to "see `docs/sync.md`" names an artifact they cannot
