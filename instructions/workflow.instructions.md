@@ -1895,6 +1895,19 @@ been deleted by the very change that introduced the divergence.
 Note that the durable-population check is also the one that keeps working while the thing it inspects
 is being redesigned, which is when you most need it and least expect to have it.
 
+**And when you compare two populations, compare membership, not cardinality.** A reach census across
+every opt-in kind reported three partial surfaces at an identical *6 of 11*, which invited treating
+"the six" as one portable group and carrying it between kinds. Two of the three sets were in fact
+identical and the third was a strict superset — six, six, and **seven** — so the shared count was
+false. The cause was in the instrument: the enumerator read every falsy-looking opt-in as opted out,
+but the manifest holds two distinct states, an **empty array** (opted in, nothing selected — the
+engine builds a real group) and a literal **`false`** (no group at all). Collapsing them did not
+merely under-report by one. **It turned seven into six and thereby synthesized an agreement between
+populations that were never the same** — and the agreement is what licensed the wrong transfer,
+because a count that matches reads as a count that was checked. Before reporting a set size, enumerate
+what your predicate does with each value the data actually contains, and prefer to print the members;
+a list disagrees with itself visibly, a total never does.
+
 ### Reporting a defect in canon from a repo that holds a synced copy
 
 You hold a copy of these instructions at `.github/instructions/`, and it is **generated, not
