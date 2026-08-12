@@ -560,6 +560,31 @@ every future edit, not by today's corpus**, and each edit that triggers it also 
 evidence that it triggered, while a fail-loud one can only be reached by content that already
 exists. That asymmetry, and not noticeability, is why the silent direction is the one to test.
 
+**But that enumeration was run inside the one expression and not across the file, and the same
+idiom had a live sibling.** A second matcher — `gh (pr|issue) list`, driving a sweep that asserts
+every canon listing bounds its page size — carried both defects untouched, and mutation-tests at
+`loud = 3, silent = 1`: emphasis lets an unbounded listing escape the sweep entirely, while a
+backtick or a line continuation manufactures a false *unbounded* report against a command that
+bounds itself. A peer reported the mirror case the same hour: an unreferenced **dead** copy of a
+defect they had genuinely fixed, which reads to any grep as a regression that is not there. The two
+polarities fail in opposite directions — **grep over-reports the dead copy and under-reports the
+live sibling** — so neither re-running the tool nor reading its source settles *did I fix it
+everywhere*, because a dead copy has no behaviour to observe and a live sibling has no shared text
+to find. **After fixing an idiom-level defect, search for the idiom rather than the corrected
+string**, since searching for what you just wrote can only return the places you already changed.
+
+**And a summary line written before its data is a claim, not a finding.** The grep that surfaced
+that sibling printed the hit and then an unconditional `(none above = no dead copy)` — composed
+with the expected answer already in it, sitting directly beneath the contradicting row, and read as
+the verdict for the output above it. A label that cannot be false is the same instrument as a guard
+whose reassuring branch is always taken, recorded later in this file; the difference is only that
+this one is written in prose and therefore not thought of as an instrument at all.
+
+One mechanical trap in the same neighbourhood: **`.test()` on a `/g` regex carries `lastIndex`
+between calls**, so used as a `filter` predicate it drops every other match — measured here at
+exactly half — and the eroded check was itself the vacuity guard that exists to stop the sweep
+passing on an empty population. Use a non-global copy, or collect with `matchAll`.
+
 **The remedy is not a cleverer matcher.** Narrowing the pattern toward the strings you happen to have
 written is the detector agreeing with you by construction — the same fault as *disjointness asserted
 by construction when the construction is your own definition*, recorded later in this file, arriving
