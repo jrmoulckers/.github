@@ -1151,6 +1151,15 @@ hours later, `median` moved 14.8 to 18 minutes and `p90` moved 339 to 166 — wh
 **51.4 hours on both sides, to the tenth**. Extremes survive window turnover and central tendencies
 do not, which is now three independent corpora agreeing on the shape rather than the number.
 
+The mechanism, supplied later by the same member: post-onset gaps have a median far above the
+pre-onset one, so each arrival lands *above* the old median and *below* the old p90 — a single
+accretion process raises central tendency while lowering the p90 rank boundary, and leaves `max`
+untouched because the extreme is already in the past and accretion can only append. **So the
+direction a summary moves says nothing about whether the underlying thing grew or shrank**; the
+sign is a property of where new mass falls relative to the quantile you chose. That removes the
+informal check *did it move the way I would expect*, which is the last defence a reader has when
+they cannot recompute.
+
 **An exhaustive scan of one repository is still a sample of the account**, and here the sampling is
 performed by the world rather than by the
 observer, which is worse: you cannot fix it by widening your window, and nothing in the output marks
@@ -1803,6 +1812,29 @@ generalizes past citations: **any document that carries a counter-example in the
 the real thing has made itself uncheckable.** It bites hardest where the temptation is strongest, in
 the docstring of the very guard that detects the pattern, since a verbatim bad example there poisons
 every later search of the tree. Name the broken form in prose instead.
+
+**That rule understates the failure in two ways, both measured.** A member built a detector for a
+text defect, wrote its probe strings into the audit script, and harvested the reference vocabulary
+from the directory holding that script; their threshold for *established word, not a defect* was
+more than two occurrences. Each test run added the defect to the reference corpus, and on the third
+it crossed the threshold and was reclassified as normal. **Contamination is thresholded, not
+additive** — the description above is of noise, a search returning hits that are not defects, but
+what occurs past a frequency cutoff is a state change in which the defect stops being reported at
+all. So the instrument is disabled **in proportion to how often it is tested**, a fourth run would
+have raised its confidence rather than lowered it, and the direction is silent, since *the probe
+found nothing* reads as reassurance. Their remedy is the reusable half: **assert that the probe
+fires before reporting any result**, which converts a silent blindness into an exit code and was
+the only reason this was caught.
+
+**And because canon is distributed, the blast radius of this rule is the fleet, not the file.** All
+nine opted-in members hold this document in their own tree, at revisions spanning 9,814 to 306,824
+bytes, so a literal bad example written here lands in nine trees on the next sync — at different
+times, and un-datable from inside any one member. A downstream detector that excludes its own
+tooling from its own corpus, which is the correct local fix, is not protected against this: the
+arriving poison is neither their tooling nor their file, and it is regenerated on every sync, so it
+cannot be remediated downstream at all. **Only the hub can honour this rule on the members'
+behalf**, which makes naming broken forms in prose a distribution obligation rather than a local
+style preference.
 
 **That rule was itself destroyed by a later edit, in the way this file is most exposed to.** A commit
 adding a new paragraph replaced the *opening line* of the one above — `**And never write an
