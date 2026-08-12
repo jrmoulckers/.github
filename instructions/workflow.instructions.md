@@ -668,12 +668,45 @@ between calls**, so used as a `filter` predicate it drops every other match — 
 exactly half — and the eroded check was itself the vacuity guard that exists to stop the sweep
 passing on an empty population. Use a non-global copy, or collect with `matchAll`.
 
+**And that trap is only reachable across consecutive matches, which is what makes a fixture hide
+it.** A failed `.test()` resets `lastIndex` to zero, so any interleaved non-matching document
+silently rescues the one after it — measured here as `lastIndex` going to 1 on a match and back
+to 0 on a failure, with four consecutive matching inputs returning two wrong answers while an
+alternating fixture of the same length returns all four correctly. A member's first fixture
+alternated, so it reported the code sound through an instrument that **could not have produced a
+different answer**; the second, built from consecutive matches, demonstrated the hazard and
+returned the same verdict. So the control discipline recurses: proving the detector fires does
+not prove the corpus you fired it at can host the defect. **A fixture assembled from convenient
+data tends to omit the adjacency the defect requires**, and the omission is invisible precisely
+because the answer looks right.
+
 **The remedy is not a cleverer matcher.** Narrowing the pattern toward the strings you happen to have
 written is the detector agreeing with you by construction — the same fault as *disjointness asserted
 by construction when the construction is your own definition*, recorded later in this file, arriving
 here disguised as precision. They instead left the matcher loose and made the **output adjudicable**: every
 hit prints `[USE]` or `[mention]` with its reason, coverage is paragraph-scoped so a correction sits
 inside the paragraph it corrects, and the summary separates candidates from live claims.
+
+**That rule collides with preserving evidence, and the collision is by construction.** Canon says
+repair a defect without deleting the record of it; canon also says search for the idiom rather
+than the instance. A repaired script that keeps its defective line as a comment, and a later note
+quoting that line as an example, satisfy the first rule and are flagged by the second.
+**Preserved evidence and a live defect are the same string**, and no pattern can separate them,
+because the difference is intent rather than text.
+
+The resolution is not the fussier matcher this section warns against. Narrowing a pattern toward
+the strings you happen to have written is the detector agreeing with you by construction;
+blanking comments and string literals changes the **substrate the pattern reads, not the
+pattern**, which is a different move that looks identical from outside. It needs its own control
+— a planted defect inside a comment *and* inside a string must both be suppressed while the live
+one stays visible — and with it, one idiom fell from 9 hits to 7 and another from 1 to 0. This is
+also a second argument for renaming a corrected symbol rather than commenting it out: **a rename
+is visible to a detector in a way a comment is not**, so it preserves the evidence while removing
+the string from the idiom's population.
+
+Precision is the standing cost and is worth publishing beside any idiom sweep: across 83 scripts,
+three idioms produced **56 instances and 7 real findings**, all latent — one in eight. An idiom is
+not a defect, and a sweep that reports instances as findings has renamed its false positives.
 
 ```
 4 candidate(s); 4 adjudicated as mention, 0 live
@@ -1881,6 +1914,17 @@ arriving poison is neither their tooling nor their file, and it is regenerated o
 cannot be remediated downstream at all. **Only the hub can honour this rule on the members'
 behalf**, which makes naming broken forms in prose a distribution obligation rather than a local
 style preference.
+
+**And the same obligation follows from the idiom collision, which no downstream stripper can
+reach.** This file is roughly 372,000 bytes of deliberate defect description, carrying 47 fenced
+blocks and 218 fenced lines, and it lands in nine member trees — so a member sweeping its own
+repository for an idiom scans it, and every verbatim example written here becomes a false
+positive in nine repositories that cannot delete it. Blanking comments and string literals does
+not help, because the artifact is not source in any language the stripper knows. The exclusion
+must be **path-scoped**, which requires the member to know which paths are upstream-owned — and
+that list is already machine-readable on their side, since the distribution lock is keyed by tree
+path, seventy of one member's seventy-two entries being paths. **The lock is the exclusion list a
+member's detectors need**, a third use for its presence signal alongside the two above.
 
 **That rule was itself destroyed by a later edit, in the way this file is most exposed to.** A commit
 adding a new paragraph replaced the *opening line* of the one above — `**And never write an
