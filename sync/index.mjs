@@ -17,6 +17,9 @@
 //                        Requires --members: forcing overrides the protection for
 //                        member-authored content, so the affected repos must be named.
 //                        Run-wide within them: applies to every drifted file, not to one file.
+//   --force-paths <p,..> Target paths that --force may overwrite even though canon has never
+//                        been delivered to them. Their current bytes are member-authored and
+//                        exist nowhere else, so each must be named. Requires --members.
 //   --work-dir <path>    Treat <path> as a single member's checkout: apply/inspect locally,
 //                        no clone/push/PR. Requires exactly one --members. Offline testing seam.
 //                        Refuses to run unless the checkout's origin is that member.
