@@ -39,6 +39,28 @@ test('every canonical instruction carries a non-empty description', () => {
   }
 });
 
+test('a description may contain the quote character it is not delimited by', () => {
+  const manifest = loadManifest(REPO_ROOT);
+  const records = validateInstructionIntegrity(REPO_ROOT, manifest);
+
+  // A description is a sentence of English, so an apostrophe is the ordinary case. The first parser
+  // matched both quote characters against one class and rejected a valid double-quoted scalar
+  // containing one. Guard it with real canon rather than a fixture: a regression makes validation
+  // fail on the file itself, and asserting the parsed value here fails even if validation is relaxed
+  // to a warning. The apostrophe below is load-bearing — this test is why it is there.
+  const withApostrophe = records.filter((record) => record.description.includes("'"));
+  assert.ok(
+    withApostrophe.length > 0,
+    'no canonical description exercises the apostrophe path; add one rather than deleting this test',
+  );
+  for (const record of withApostrophe) {
+    assert.ok(
+      record.text.includes(record.description),
+      `${record.name} description was altered in parsing rather than read verbatim`,
+    );
+  }
+});
+
 test('workflow and documentation surfaces use immutable reusable workflow examples', () => {
   for (const relativePath of [
     'README.md',

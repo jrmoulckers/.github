@@ -275,18 +275,28 @@ function validateImmutableWorkflowExamples(repoRoot, errors) {
  * the only thing a session can decide from, so an optional field would fail silently in exactly the
  * case it exists to serve. The quoted-scalar shape keeps the parse anchored, so a description can
  * never be mistaken for a second `applyTo` or smuggle one in.
+ *
+ * Each delimiter is matched against its own character class, not against both. A description is a
+ * sentence of English, so possessives and contractions are the ordinary case rather than the exotic
+ * one; a class excluding both quote characters rejected `"a session's own file"`, which is valid
+ * YAML and the natural way to write it. The single-line restriction is deliberate and stays — it is
+ * what keeps the block unambiguous — but YAML offers folded scalars, `skills/*\/SKILL.md` uses them,
+ * and this parser cites that surface as its precedent, so an author will reach for one. Both limits
+ * are therefore named in the failure rather than left to be inferred from a rejected line that looks
+ * correct.
  */
 function parseFrontmatter(relativePath, text, errors) {
-  const match = text.match(
-    /^---\napplyTo:\s*(['"])([^'"]+)\1\ndescription:\s*(['"])([^'"]+)\3\n---(?:\n|$)/,
-  );
-  if (!match) {
-    errors.push(
-      `${relativePath}: requires frontmatter containing exactly one quoted applyTo value followed by one quoted description`,
-    );
-    return { applyTo: '', description: '' };
-  }
-  return { applyTo: match[2], description: match[4] };
+ const match = text.match(
+   /^---\napplyTo:\s*(?:'([^'\n]+)'|"([^"\n]+)")\ndescription:\s*(?:'([^'\n]+)'|"([^"\n]+)")\n---(?:\n|$)/,
+ );
+ if (!match) {
+   errors.push(
+     `${relativePath}: requires frontmatter of exactly two single-line quoted scalars, applyTo then description ` +
+       `(a value may contain the quote character it is not delimited by; folded and literal block scalars are not accepted)`,
+   );
+   return { applyTo: '', description: '' };
+ }
+ return { applyTo: match[1] ?? match[2], description: match[3] ?? match[4] };
 }
 
 function requirePatterns(record, requirements, errors) {
