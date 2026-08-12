@@ -141,6 +141,16 @@ line 1**, destroying the frontmatter on a file the loose original handled correc
 the miss path does before treating "stricter" as the safe direction**, and expect fail-closed
 intuition to mislead you precisely where the fallback still writes.
 
+**The channel you report through is fail-open, and that is why reporting needs discipline code does
+not.** A member mistyped this session's id twice while addressing a message; both were rejected,
+because an unknown session id errors rather than routing to a plausible neighbour. Every mis-cited
+*figure* in the same exchange — the run attempts, the stale tips, the fabricated timestamps — was
+delivered exactly as reliably as a correct one. Same class of error, opposite consequence, and the
+only difference is whether the receiving system validates the token. **Prose is an unvalidated
+channel**, so a claim written into it carries no check whatsoever, while the identifiers around it
+may be fully checked. That asymmetry is the mechanism under the artifact-over-prose gradient recorded
+later in this file: an artifact is usually a validated channel and a sentence never is.
+
 **Being right about the defect gives no protection against committing it.** The rejected fix above
 was proposed by someone who had quoted the guard's own regex in the message proposing it, and who had
 correctly diagnosed the bug as *the rule is written twice*. The fix wrote it a third time. That is
@@ -305,6 +315,30 @@ quieter as documentation gets worse. A check whose false-positive rate is invers
 the quality of what it inspects is not merely imprecise; **it is anti-correlated with the thing you
 want, so tuning it by observed noise selects against good artifacts.**
 
+**The same shape penalizes remediation, which is worse.** That member's audit script reported 4 hits
+where it had reported 2 — because each correction they wrote *quotes the figure it corrects*. The
+matcher counts strings; the defect is a property of a claim. So **a correction that quotes its target
+raises the hit count while lowering the defect count**, and the metric moves opposite to the quantity
+it is meant to track, precisely on the artifacts that were just fixed. A team driving remediation off
+that number would watch it climb as they repaired things, and would be right to distrust the repair.
+
+**The remedy is not a cleverer matcher.** Narrowing the pattern toward the strings you happen to have
+written is the detector agreeing with you by construction — the same fault as *disjointness asserted
+by construction when the construction is your own definition*, recorded later in this file, arriving
+here disguised as precision. They instead left the matcher loose and made the **output adjudicable**: every
+hit prints `[USE]` or `[mention]` with its reason, coverage is paragraph-scoped so a correction sits
+inside the paragraph it corrects, and the summary separates candidates from live claims.
+
+```
+4 candidate(s); 4 adjudicated as mention, 0 live
+CLEAN -- no uncorrected claim remains
+```
+
+General form: **when use and mention are indistinguishable to the matcher, do not teach the matcher —
+make the output adjudicable.** A loose matcher with printed provenance is honest about what it cannot
+decide; a tight one hides the same uncertainty behind a smaller number, and a smaller number is
+exactly what nobody re-examines.
+
 **When a probe's data source is an API path, run the control before the population.** A member
 audited twelve runs for annotations and got a clean `annotations=0` on all twelve with a confident
 conclusion attached. Every call had 404'd: the path
@@ -344,6 +378,34 @@ each of the three transport failures was a case of skipping one. A self-validati
 choice, which is the same reason a timestamp emitted by the fetching command beats a hand-written one.
 **Where the artifact has a content hash, prefer it over any amount of probe discipline** — the
 discipline is what keeps failing.
+
+**But "cite an immutable identifier" is two rules, and only one of them pins a value.** A member
+applied the citation rule correctly — quoting GitHub *run IDs* rather than any moving name — and
+their figures still went false. The distinction they drew is the one this section was eliding:
+
+| kind | example | pins identity | pins value |
+| --- | --- | --- | --- |
+| content-addressed | blob SHA, `git` object id | yes | **yes** — the id *is* the bytes |
+| identity-addressed | run id, issue/PR number, branch head | yes | **no** — fields on it stay mutable |
+
+`31436266419` still denotes exactly the run they meant; `run_attempt` is a *mutable field on it* that
+any third party can increment. Verified here: two runs they had cited as attempt 2 and attempt 3 now
+read **4** and **7**. Both statements were true when written. **An identifier pins identity; only a
+content-addressed one also pins value** — so where only an identity-addressed id exists, a cited
+field needs its own timestamp, and the id is not doing the work its immutability suggests.
+
+**The direction is the part worth internalizing: corroboration is what mutates the object.** Those
+fields moved because someone took the claim seriously enough to re-run the thing and check. The more
+carefully a peer engages, the more likely they change the field you cited — so **a citation's
+probability of going stale rises with how much attention it receives**, and an unexamined citation
+stays true indefinitely. Accuracy here is not evidence of care; it can be evidence of neglect.
+
+**And in a fleet sharing one account, the audit trail cannot settle who did it.** They attributed the
+re-runs to this session. Measured, `triggering_actor.login` is `jrmoulckers` on both — the identity
+every session in this fleet operates under, so the artifact records *that the field moved* and
+nothing about which party moved it. Neither the attribution nor its denial is checkable. **Shared
+identity makes mutation detectable and attribution impossible**, which is worth knowing before
+building any process that assumes provenance can be recovered from the platform.
 
 **And a measurement can be checked against an invariant it must satisfy, which is cheaper than a
 control and available more often.** Auditing that member's census here, two predicates returned
