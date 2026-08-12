@@ -185,6 +185,25 @@ one-sided instrument cannot distinguish *the property is absent* from *I cannot 
 This applies to any measurement reported as a zero: no matches, no drift, no candidates, no
 regressions. State what you did to show the instrument fires.
 
+**Establishing that two fields are interchangeable by sampling one instance is a probe whose majority
+outcome is the uninformative one.** A single merge carries at least two authoritative times — the
+pull request's merge timestamp and the commit's own date fields — and they do not always agree.
+Measured over forty consecutive merges in one member repository: twenty-five agreed to the second,
+fifteen differed by exactly one second, and none differed by more. So the divergence is real, bounded
+at one second, and **intermittent** — a reader who checks a single merge to decide whether the two
+fields say the same thing draws the reassuring conclusion five times in eight, and the conclusion is
+wrong. Cite the field, not just the artifact: `repository@revision` is not sufficient provenance for
+a claim about time, because the same event has more than one correct timestamp and the discrepancy is
+exactly the size that reads as carelessness in someone else's message.
+
+**Uniformity across a sample reads as signal and is more often an instrument constant.** The first
+pass at that measurement reported all forty merges differing by 25,200 seconds — seven hours, to the
+second, every time. That is a timezone offset applied to one side of the comparison and not the
+other, not a property of the data, and the perfect consistency is what made it look like a finding
+rather than a bug. A difference that is identical across every element of a sample is a parameter of
+the measuring apparatus until shown otherwise; the real signal here was the residue the offset was
+hiding, one second wide.
+
 **An absent measurement impersonates whichever verdict the caller was written to look for.** A
 spawned linter returned exit code `null` — a spawn failure, not a result. `null` is falsy *and* is
 `!== 0`, so a success test reads it as failure and a failure test reads it as success; whichever
@@ -2831,6 +2850,29 @@ freshness, which is self-limiting. Taken **after** the act but before slow work 
 read, it **overstates** freshness, and *emitted by one command* remains literally true while the label
 certifies an instant the value never occupied. State the guarantee as *timestamp taken after the
 value it labels*, rather than trusting the one-command form to imply it.
+
+**Ordering was the wrong diagnosis for the case it was drawn from: the label had not been mismeasured,
+it had been derived from the value it labels.** Re-auditing their own footer, the sender found the
+stated time byte-identical to the merge commit's own timestamp and twenty-four seconds earlier than
+the fetch that produced the revision. A clock read after a fetch cannot precede it, and a clock read
+before one lands within a second or two rather than twenty-four; exact-second agreement with the
+commit's time is the remaining explanation. Confirmed independently against the repository rather
+than the correspondence: that merge's `mergedAt` and both of its commit date fields agree to the
+second, so the printed label is recoverable from the commit and certifies nothing about when anyone
+looked. **Ordering is a bounded error between two real measurements; derivation is categorical,
+because no second measurement took place.** A reference computed from the thing it is supposed to
+check cannot disagree with it, which is the same fault as a self-test whose expected value and whose
+implementation both read one constant — both move together and the check reports success forever.
+
+**A guard against a derived label must be shown able to fire, and one comparing the tip's commit time
+against a clock almost never can.** The remedy built in response — emit both times and let the reader
+watch them diverge — is right in kind, and putting the caveat in the output rather than in the
+author's discipline is the correct move. Its detection rate is the part to state: the two coincide
+only when the clock is read inside the same second the tip was committed, so under a merge cadence
+measured in minutes the guard returns *independent* on essentially every run. It catches the one
+instance already known — where the derivation source happened to be the tip — and passes silently
+whenever the label was copied from anything else, which is any merge that is not the current head.
+A guard whose reassuring branch is taken in almost every execution is reporting its own base rate.
 
 **Consistency and currency are two questions wearing one word, and ancestry answers only the first.**
 A local ref left behind by many commits is still an **ancestor** of the remote, so it passes every
