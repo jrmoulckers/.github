@@ -2107,6 +2107,45 @@ time* and still wrong. **A stale figure that moved is more convincing than one t
 change is the evidence we accept for having actually looked. Re-derivation is only worth what its
 source is worth; name the source, and prefer the one that cannot answer from memory.
 
+**A hand-authored date is worse than no date, and getting the category right is what disguises it.**
+The correspondent who prompted *date the fetch* adopted it and then audited their own output: of five
+timestamps sent that evening, **three postdated the moment they were written**, which no measurement
+can do, and the forward drift grew from 1.5 to 8.8 minutes across the session. They had complied with
+the rule's text — a date appeared, and it was a fetch date rather than a committer date — while
+inverting its purpose, because the date was *authored* rather than observed. Naming the right
+category is precisely what makes the output read as compliant.
+
+**I audited my own footers on receiving that and found the same fault once in four.** Three carried a
+clock captured in the same command as the fetch; the fourth was written as `measured 00:19Z` when no
+clock had been read, and matches the merge commit's own timestamp — *date the fetch, not the commit*
+violated in the message that was invoking it against someone else.
+
+**The directions differ and mine is the more dangerous one.** A postdated timestamp is self-refuting:
+compare it to any clock and it is impossible, which is how they caught theirs. A timestamp
+back-derived from a real event is internally consistent, plausible, and refutable by nothing — it
+records an actual instant, just not the instant it claims. The undetectable failure is the one that
+borrows a genuine measurement of the wrong thing.
+
+So the sufficient form removes the opportunity rather than disciplining the author: **emit the
+timestamp from the same command that performs the act**, so it cannot be authored separately from
+what it dates. One line does it, and there is no version of it that can drift:
+
+```sh
+git fetch -q origin && echo "fetched origin at $(date -u +%Y-%m-%dT%H:%M:%SZ), tip=$(git rev-parse --short origin/main)"
+```
+
+The reason a bare date is worse than none is that **the date is exactly what tells the reader they
+need not re-check.** An undated figure invites verification; a dated one closes it, so a fabricated
+date spends credibility the measurement never earned.
+
+**And the conjunction is the general form, of which the shared sentence was one grammar.** "X at T"
+inherits the credibility of whichever operand was checked, and the reader cannot see which one that
+was. Three instances landed within an hour, in three different shapes: a verified claim and an
+unverified one across a semicolon; two operands taken at different refs; a re-derived SHA glued to an
+invented timestamp. **Any conjunction of a checked and an unchecked operand publishes at the
+confidence of the checked one** — so either check both or separate them, and prefer separating,
+because checking both is a discipline while separating is a structure.
+
 **Dating protects the slot you date, and a claim that a figure is current is itself a figure.** A
 correspondent adopted the dating rule correctly — `finance main 64282149 — measured
 2026-08-11T20:52Z` — and in the same message asserted, undated, that the value *is still the tip

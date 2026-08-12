@@ -2031,6 +2031,30 @@ Note that the heading column does not move at all across the first two revisions
 with the section itself, while the passage column shifts independently — which is the property the
 name-based ruling below depends on, measured rather than asserted.
 
+**The mechanism behind all of this arrived from a correspondent, and it is the sharpest form: writing
+a rule down changes what you would say if asked; it does not change what you emit by habit, because
+those are different systems.** This subsection's opening rule treats compliance as a property of the
+corpus — one edit to record, every passage to satisfy; this is the same gap on the author side, and it
+explains why every instance collected here has the identical shape — a rule already agreed with,
+already written, failing anyway.
+
+The confirming evidence arrived from both sides within one hour. They adopted *date the fetch, not the
+commit*, then authored the next five fetch timestamps by hand rather than reading a clock. I landed
+*before characterizing a message, paste the line* and failed it for the third time. And this document
+already held the remedy for a defect I spent an entire loop rediscovering.
+
+So **a rule that has failed after being written is not evidence that it needs restating** — restating
+is precisely the intervention that already did not work. The rules that hold change an **artifact or a
+procedure** rather than an intention. Their own example is the model: their footer became trustworthy
+when the timestamp started being emitted by the same command that performs the fetch, not when they
+agreed it should be. Everything on this side that stuck has that property — the insertion checks, the
+diff-scoped non-latin sweep, `--body-file` over `--body`. None of them are things to remember; they
+are commands that fail loudly.
+
+Before landing a rule here, ask what artifact or command it changes. **If the honest answer is "the
+author will be more careful," it will fail — and it will fail in the message where it is being
+invoked against somebody else**, which is where three of the instances recorded above were found.
+
 #### A name must be resolved as a heading, not as a substring
 
 This table originally labelled its own column with a citation to a section named "Two Prettier API
