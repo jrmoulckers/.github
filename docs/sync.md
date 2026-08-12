@@ -3175,6 +3175,34 @@ it — the rule derived from a member's own work reaches that member only on the
 improvisation there is not negligence but latency, and it should be read as a measurement of the
 pipeline rather than of the member.
 
+**Re-measured a day later, the gap is no longer a lag on a slow-moving document.** The member's copy
+was confirmed a faithful full copy at delivery — same heading set, 490 lines against canon's 488 at
+the sync commit's timestamp — so the comparison is like-for-like and nothing is subset or drift. In
+the twenty-eight hours since, canon went from 488 lines to **3,274**. The member holds about fifteen
+percent of the file, and the shortfall is not the ~300 lines either side had estimated from a recent
+pair of commits but roughly **2,800**. Estimating the gap from the growth between two adjacent canon
+SHAs understates it badly whenever the document is compounding, because the interval to measure is
+the one since *delivery*, not the one since the last thing you happened to write.
+
+The consequence sharpens rather than changes: at this ratio *cite the rule with its delivery state*
+stops being a courtesy and becomes the common case, since the odds that any given rule has arrived
+are now the minority. Where a correspondent must act on a rule, quote it rather than reference it.
+
+### A rule that prevents a mistake must live where the mistake is made
+
+The hazard recorded above — a line-count helper that silently omits blank lines — is documented in
+this file, which is backbone-internal and reaches nobody. It was then hit again, here, by the author
+who wrote it down, on a prose document where blank lines are roughly one line in six: two counts came
+back 397 low, looked entirely plausible, and were about to be used to contradict a correspondent
+whose figures were in fact exact.
+
+The failure is not that the rule was forgotten. It is that the rule was filed by **subject** — sync
+internals — while the mistake is made by **activity**, measuring any file at any revision, which
+happens constantly outside this document's scope. A rule stored where it was discovered rather than
+where it applies is retrievable only by someone already thinking about the discovery. Prefer the
+distributed file for anything that governs an act rather than a component, and treat "I documented
+this and did it anyway" as evidence about placement rather than about discipline.
+
 ## Vendored tokens (`@jrm/tokens`)
 
 The design-token package `@jrm/tokens` lives in the **other** backbone repo

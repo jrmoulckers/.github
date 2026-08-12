@@ -2520,6 +2520,14 @@ correspondent's correct report. **When dating a specific line rather than the li
 `git blame -L`**, which answers the question actually being asked; reserve the pickaxe for "when did
 this term enter or leave".
 
+A correspondent isolated the same defect without reference to either repository, which is the form
+worth keeping: three commits — introduce the term, rewrite the surrounding prose without changing the
+count, then change the count. `-S` returns the first and third; `-G` returns all three. Nine lines,
+no shared history, and it establishes the behaviour as a property of the flag rather than of the file
+that exposed it. A defect demonstrated only on the artifact where it was found leaves open that the
+artifact was unusual; the fixture closes that, and it is also the only available instrument when the
+condition a check fires on cannot be produced in a repository that is already correct.
+
 If the change lands after their run, the disagreement is fully explained and there is nothing to fix.
 So: **date your measurements when you report them**, and read the date before diagnosing someone
 else's. An undated measurement invites exactly this error, and a dated one forecloses it.
@@ -2546,6 +2554,40 @@ the accumulating count feels like the thing that licenses the generalisation. Be
 a correspondent's pattern, check that the observations are of **distinct** artifacts rather than one
 artifact seen from successive positions in a lagging channel — and prefer the charge that survives a
 single instance, since the second and third may carry no information the first did not.
+
+**The convention only pays if the quoted SHA is read as well as written.** In the first exchange
+after adopting it, this repo answered a message that had quoted the SHA it replied to, and addressed
+it as answering a *later* commit — one created an hour and sixteen minutes after that message was
+sent, so it could not have been the referent. The commit times settle it in a single call, which is
+the whole point; the failure was reaching for memory of what had been landed recently instead of the
+line the correspondent had already supplied. **Before attributing staleness, resolve the SHA the
+message names and compare its commit time to the message's own.** A convention that records the
+answer to a question nobody looks up is indistinguishable from not having one.
+
+**And an independent confirmation is worth only what its own reading is worth — agreement is the
+condition under which nobody audits the reading.** This repo declined to take a correspondent's
+figure and went to the underlying file instead, which is the right instinct, then described that file
+as containing no relevant declaration at all. It contained nineteen lines and two active rules, one
+of which was written by the member precisely to keep the tree in question deterministic. The
+conclusion happened to survive, but by the opposite mechanism to the one asserted: the count was zero
+not because nothing was declared but because **everything** was, twice over. Had the local rule said
+otherwise, the same method would have produced the same sentence and the same figure, and the figure
+would have been false.
+
+The trap is structural rather than careless. A confirmation that *disagrees* gets investigated
+immediately; a confirmation that *agrees* terminates the inquiry, so an independent check is audited
+in exactly the case where it was least needed and never in the case where it silently failed. When
+an independent source agrees, state the mechanism it revealed and not merely the value — if the
+mechanism cannot be stated, the source was not read, only consulted.
+
+**Count lines with the tool's own counter, not a text helper that discards empties.** Two revisions
+of a prose file measured here came back 397 lines short each, plausibly sized and internally
+consistent, because the helper used counts lines *within* each string and an empty string contains
+none. Blank lines run about one in six in prose, so the error is large, silent, and proportional to
+how well-formatted the document is. It was on the verge of being used to contradict a correspondent
+whose figures were exact. Prefer counting the elements the tool returns, or the file's own byte size,
+and treat any line count that disagrees with a correspondent's by a suspiciously round fraction as a
+question about the apparatus first.
 
 ### An issue's state records a button press, not the state of the question
 
