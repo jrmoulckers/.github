@@ -2309,6 +2309,19 @@ corrected party's messages, and the half that could not be resolved was the fabr
 correction is a claim and needs measuring exactly as much as what it corrects — including the
 question of what was actually said.
 
+**That rule has now failed three times, and the third failure was mine against a message I still
+held.** I characterized a correspondent's status list as omitting a pull request. The list named it,
+in each of the last two blocks, with a titled section in both — and the message I read as omitting it
+is the one that had introduced that PR to me. I did not quote it. The rule was already written, in
+this document, from an earlier instance of itself.
+
+So the operative constraint is not that the rule is unknown but that **it is invoked at the moment
+one is confident about the record**, which is exactly the moment quoting feels redundant. A claim
+about what a message said is a measurement whose artifact is *in hand* and therefore never fetched;
+the cost of checking is one search, and it is nearly always cheaper than the argument being built on
+top of it. **Before characterizing a message, paste the line.** If the line cannot be found, that is
+the finding.
+
 **A citation also only discharges the obligation if the artifact is reachable by the audience.** This
 document is backbone-internal: `docs/sync.md` is not a canon kind, appears in no member's lockfile,
 and is distributed to nobody. Telling a member to "see `docs/sync.md`" names an artifact they cannot

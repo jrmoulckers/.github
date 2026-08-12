@@ -1949,15 +1949,46 @@ register over — the discriminating fact is *when you measured*, and it is held
 Date the figure rather than defending it; an undated status line cannot be told from a careless one,
 and dating it is the cheaper half.
 
-**Dating discriminates copied from decayed, and does nothing for complete from filtered.** A
-standing list of open pull requests here named three and omitted a fourth that had been open six
-hours — far too long to be transit decay, and equally consistent with a deliberate scope, since the
-list was about a sync sequence the omitted branch had no part in. Both render identically to the
-reader, and the author is the only party holding the difference. **State the scope of a status list,
-not only when you took it.** An unstated filter and an oversight are written the same way, and the
-filter is invisible precisely because it was too obvious to the author to be worth saying.
+**Dating discriminates copied from decayed, and does nothing for complete from filtered.** Every
+status block a correspondent sent here consisted of one sync sequence plus one long-conflicted pull
+request, and none of them said so — a scope the author held and the reader could not see. **State the
+scope of a status list, not only when you took it.** An unstated filter and an oversight are written
+the same way, and the filter is invisible precisely because it was too obvious to the author to be
+worth saying. The author's own verdict is the honest one: that their list happened to be complete was
+luck rather than discipline, since entries arrived by colliding with a merge order rather than by
+enumeration.
 
-**And dating the wrong event certifies nothing.** A correspondent answered the rule above by
+**The instance this entry was first written from was false, and that is the better finding.** It
+originally recorded a status list that *omitted* a fourth pull request. It did not: the PR was named
+in each of the last two status blocks and carried a titled section in both, and the message read as
+omitting it is the message that introduced it. The misreading is unremarkable. What made it durable
+was the sentence built on top of it — *I am not calling this an oversight, because I can't; it is
+equally consistent with a deliberate scope, and you are the only party holding the difference.*
+
+**Hedging over the cause presupposes the effect, and the hedge is what makes the presupposition
+invisible.** *I cannot tell which of these explains it* asserts that there is an **it**. That
+existential claim enters unmarked, carried by a sentence whose visible content is doubt — which makes
+it the one proposition in the message exempt from the doubt being expressed. And the care actively
+conceals it: visible scrupulousness about *why* something happened is read, by the writer as much as
+the reader, as evidence that *whether* it happened was already settled. Nobody audits the premise of
+an argument that is being careful about its conclusion. The two questions are not even comparably
+expensive — establishing that the absence was real was one search of the message, and it was the
+cheaper of the two.
+
+This is the errs-toward-the-claim family with the epistemics at fault rather than the instrument: a
+*correct* refusal to over-diagnose terminated inquiry one step earlier than it should have, and
+refusing to over-diagnose feels like the rigorous move, so nothing prompts a second look. The remedy
+is the one already recorded for citations and transfers unchanged: **quote the thing you are about to
+characterize, from the message being corrected.** Quoting the list would have shown the entry sitting
+in it.
+
+**A related tell in the same message: an interval computed from your own clock and attributed to
+theirs.** It reported a pull request as open "about six hours before your message" — six hours is the
+gap to *my* message; at theirs it was 4.3. An elapsed time is a difference of two instants and the
+one you hold by default is your own, so the substitution is silent and the figure stays plausible.
+*Measure at the tip you name* applies to instants as well as revisions.
+
+**And dating the wrong event certifies nothing.** A correspondent answered the dating rule above by
 re-deriving a repository tip and publishing it with its committer date attached — a date that was
 accurate, for a commit roughly three hours behind the branch, and two and a half hours behind a
 newer value the same correspondent had already been sent. **A commit date is a property of the
