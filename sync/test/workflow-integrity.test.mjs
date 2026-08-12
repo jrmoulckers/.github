@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -29,6 +30,42 @@ test('canonical workflow roster and integrity contracts pass', () => {
     'reusable-security-ci.yml',
     'reusable-smoke-test.yml',
   ]);
+});
+
+// Every check below this point reads a workflow's contents, which presupposes the workflow is
+// there. Enumerating the real directory rather than a list written here is the whole point of the
+// test: a hand-picked sample of seven files reported 7/7 detected and missed both live gaps,
+// because a list of files to check is written by the same person who forgets to add one.
+test('deleting any canonical workflow is reported and names the file', () => {
+  const manifest = loadManifest(REPO_ROOT);
+  const roster = readdirSync(join(REPO_ROOT, '.github', 'workflows')).filter((name) =>
+    /\.ya?ml$/i.test(name),
+  );
+  assert.ok(roster.length >= 10, 'the roster must be read from disk, not assumed');
+
+  for (const fileName of roster) {
+    const root = mkdtempSync(join(tmpdir(), 'workflow-absence-'));
+    try {
+      cpSync(join(REPO_ROOT, '.github'), join(root, '.github'), { recursive: true });
+      rmSync(join(root, '.github', 'workflows', fileName));
+      let message = null;
+      try {
+        validateWorkflowIntegrity(root, manifest);
+      } catch (error) {
+        message = error.message;
+      }
+      assert.ok(message, `deleting ${fileName} must be reported, not silently tolerated`);
+      // Matched without the extension because the canon.workflows roster names workflows in their
+      // declared form. Requiring the full filename made a correctly-named error read as unnamed.
+      const stem = fileName.replace(/\.ya?ml$/i, '');
+      assert.ok(
+        message.split('\n').some((line) => line.includes(stem)),
+        `deleting ${fileName} must produce an error naming it, not an unrelated failure`,
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
 });
 
 const callerPermissionLintSources = () => ({

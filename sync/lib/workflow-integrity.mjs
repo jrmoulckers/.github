@@ -94,6 +94,18 @@ export function validateWorkflowIntegrity(repoRoot, manifest) {
     }
   }
 
+  // A ceiling entry constrains how a workflow's jobs may behave, which says nothing about whether
+  // the workflow is there at all: the per-job checks below only run over files that exist, so a
+  // deleted workflow simply stops being examined. canon.workflows closes that gap for reusable-*,
+  // and the harnesses and studio-sync.yml fall outside it -- deleting either was silent. Requiring
+  // a file for every ceiling key makes the map an inventory in both directions and covers any
+  // future entry without a second list to keep in step.
+  for (const fileName of PERMISSION_CEILINGS.keys()) {
+    if (!files.includes(fileName)) {
+      errors.push(`.github/workflows/${fileName}: declares a permission ceiling but is not on disk`);
+    }
+  }
+
   const sources = new Map();
   for (const fileName of files) {
     const relativePath = `.github/workflows/${fileName}`;
