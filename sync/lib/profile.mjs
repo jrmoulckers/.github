@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { inject } from './provenance.mjs';
 import { hashText } from './lock.mjs';
-import { repoExists } from './git.mjs';
+import { repoPresence } from './git.mjs';
 import { syncRepo } from './pr.mjs';
 import { log } from './log.mjs';
 
@@ -35,7 +35,7 @@ export function profileTarget(owner, backboneRoot) {
 
 /**
  * Mirror the profile README to the user's profile repo.
- * @returns {{ status: 'missing'|'unchanged'|'pr', repo, prUrl? }}
+ * @returns {{ status: 'missing'|'unknown'|'unchanged'|'pr', repo, prUrl? }}
  */
 export function mirrorProfile({ owner, backbone, backboneRoot, token, date, force }) {
   const { repo, write } = profileTarget(owner, backboneRoot);
@@ -45,12 +45,23 @@ export function mirrorProfile({ owner, backbone, backboneRoot, token, date, forc
     return { status: 'missing', repo };
   }
 
-  if (!repoExists(repo, token)) {
+  const presence = repoPresence(repo, token);
+
+  if (presence.status === 'absent') {
     log.warn(
       `profile repo ${repo} does not exist yet. Create it (a public repo named "${owner}") so the ` +
         'profile README renders on the account page; until then the mirror is skipped.',
     );
     return { status: 'missing', repo };
+  }
+
+  if (presence.status === 'unavailable') {
+    log.warn(
+      `profile repo ${repo} could not be reached, so whether it exists is unknown — do not create ` +
+        'it on the strength of this run. A token without a grant for the repo answers the same way ' +
+        `as a rate limit or a dropped network: ${presence.detail}`,
+    );
+    return { status: 'unknown', repo };
   }
 
   const result = syncRepo({

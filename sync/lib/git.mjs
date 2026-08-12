@@ -378,13 +378,30 @@ export function selectOpenPr(prs, branch) {
   return candidates.length ? { url: candidates[0].url, branch: candidates[0].headRefName } : null;
 }
 
-/** True when the repo exists and is visible to the token. */
-export function repoExists(repo, token) {
+/**
+ * Whether `repo` is there, in the three-state shape this module uses elsewhere.
+ *
+ * `absent` is reserved for GitHub's explicit not-found signal. Every other failure — a token with
+ * no grant for the repo, SAML enforcement, a rate limit, no network — is `unavailable`, meaning
+ * existence is simply not known. Collapsing those is not cosmetic: the only caller answers a false
+ * reading by telling an operator to *create a repository*, which is the wrong instruction and an
+ * unsafe one when the repo already exists and the token merely cannot see it.
+ *
+ * A private repository invisible to the token also answers not-found, by GitHub's design. `absent`
+ * therefore means *not resolvable by this token*, which is the honest claim and the one the caller
+ * needs, the profile repo being public by construction.
+ *
+ * @returns {{ status: 'present'|'absent'|'unavailable', detail?: string }}
+ */
+export function repoPresence(repo, token) {
   try {
     gh(['repo', 'view', repo, '--json', 'name'], token);
-    return true;
-  } catch {
-    return false;
+    return { status: 'present' };
+  } catch (err) {
+    const detail = err.message;
+    return /could not resolve to a repository/i.test(detail)
+      ? { status: 'absent' }
+      : { status: 'unavailable', detail };
   }
 }
 
