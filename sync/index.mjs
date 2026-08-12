@@ -44,7 +44,7 @@ import { apply, formatBehind } from './lib/copier.mjs';
 import { cloneShallow } from './lib/git.mjs';
 import { assertMemberCheckout, assertMemberIdentity } from './lib/workdir.mjs';
 import { resolveStudioRoot } from './lib/studio.mjs';
-import { formatDriftWarning, renderRunSummary, syncMembers } from './lib/runner.mjs';
+import { formatDriftWarning, partitionFailures, renderRunSummary, syncMembers } from './lib/runner.mjs';
 import { mirrorProfile, profileTarget } from './lib/profile.mjs';
 import { log } from './lib/log.mjs';
 import { assertMemberFacts } from './lib/member-facts.mjs';
@@ -332,12 +332,36 @@ function runSync(plans, opts, manifest, token, date) {
   }
   publishRunSummary(outcomes, opts, manifest, 'sync');
   log.info(`${outcomes.filter((o) => o.status !== 'failed').length} of ${outcomes.length} target(s) succeeded.`);
-  if (failures.length) {
-    log.error(`${failures.length} of ${outcomes.length} target(s) failed:`);
-    for (const f of failures) log.error(`    ${f.repo}: ${f.message}`);
-    return 1;
+
+  // A failure the owner has already recorded still prints, still counts, and still names the issue
+  // that closes it — it just stops holding the run's one published bit hostage. See
+  // `partitionFailures` for why the exemption is pinned to a signature and why a recorded failure
+  // that stopped failing is an error rather than a relief.
+  const { expected, unexpected, stale } = partitionFailures(
+    failures,
+    manifest.expectedFailures ?? [],
+    outcomes.map((o) => o.repo),
+  );
+
+  if (expected.length) {
+    log.warn(`${expected.length} of ${outcomes.length} target(s) failed as recorded in \`expectedFailures\`:`);
+    for (const f of expected) log.warn(`    ${f.repo}: ${f.message.split('\n')[0]} — see ${f.issue}`);
+    log.warn('These are accepted faults, not delivery. The member(s) above received nothing.');
   }
-  return 0;
+
+  for (const entry of stale) {
+    log.error(
+      `${entry.repo} is recorded in \`expectedFailures\` but synced successfully — the fault is ` +
+        `fixed (${entry.issue}). Delete the entry; leaving it would absorb the next real failure.`,
+    );
+  }
+
+  if (unexpected.length) {
+    log.error(`${unexpected.length} of ${outcomes.length} target(s) failed:`);
+    for (const f of unexpected) log.error(`    ${f.repo}: ${f.message}`);
+  }
+
+  return unexpected.length || stale.length ? 1 : 0;
 }
 
 /**

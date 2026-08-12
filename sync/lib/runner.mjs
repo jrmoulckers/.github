@@ -76,6 +76,60 @@ export function syncMembers(plans, ctx, syncOne = syncMemberRepo) {
 }
 
 /**
+ * Split a run's failures into the ones an owner has already accepted and the ones that are news.
+ *
+ * A monitor that is red every week detects nothing. `jrmoulckers/windows` has 403'd on clone since
+ * 2026-07-13 because the sync token carries no write access to it; every scheduled run since has
+ * exited 1 while every other member synced normally underneath. The run list cannot tell that state
+ * from a fleet-wide outage, so the one alarm that fires without anyone opening a run has been
+ * uninformative for a month. `renderRunSummary` below already made the red *legible* — but only
+ * after a reader clicks into it, which is not where detection happens.
+ *
+ * The exemption is deliberately narrow in three ways, because a blanket downgrade of a failure
+ * class is a worse defect than the noise it silences:
+ *
+ *   1. It is pinned to a **signature**, not to a repository. If windows starts failing for some
+ *      other reason, that failure is unexpected and the run goes red — the accepted fault is one
+ *      specific fault, not a standing amnesty for one member.
+ *   2. It is **self-liquidating**. An entry whose repository was attempted and did *not* fail is
+ *      itself a blocking finding: the access gap has closed and the record must be deleted. An
+ *      exemption that outlives its defect is how the next real failure gets absorbed silently.
+ *   3. It never suppresses reporting. Expected failures are still named, still counted as failures
+ *      in the summary, and still carry the issue that closes them. Green here means "delivery is
+ *      healthy apart from a fault the owner has already seen and recorded", not "all clear".
+ *
+ * Scoping matters for the staleness check: a member filter or a dry run that never attempted
+ * windows says nothing about whether the gap is closed, so only attempted repositories can make an
+ * entry stale. Concluding "fixed" from a repository nobody contacted is the same absent-versus-
+ * unreadable confusion the engine refuses elsewhere.
+ *
+ * @param {Array<{repo: string, message: string}>} failures
+ * @param {Array<{repo: string, signature: string, issue?: string, reason?: string}>} expectedFailures
+ * @param {string[]} attempted repositories this run actually contacted
+ * @returns {{expected: Array, unexpected: Array, stale: Array}}
+ */
+export function partitionFailures(failures, expectedFailures = [], attempted = []) {
+  const expected = [];
+  const unexpected = [];
+
+  for (const failure of failures) {
+    const match = expectedFailures.find(
+      (entry) => entry.repo === failure.repo && String(failure.message).includes(entry.signature),
+    );
+    if (match) expected.push({ ...failure, issue: match.issue, reason: match.reason });
+    else unexpected.push(failure);
+  }
+
+  const failed = new Set(failures.map((f) => f.repo));
+  const contacted = new Set(attempted);
+  const stale = expectedFailures.filter(
+    (entry) => contacted.has(entry.repo) && !failed.has(entry.repo),
+  );
+
+  return { expected, unexpected, stale };
+}
+
+/**
  * The run summary written to GITHUB_STEP_SUMMARY.
  *
  * A run's published result is one bit wide, and a red bit says only "something went wrong" —

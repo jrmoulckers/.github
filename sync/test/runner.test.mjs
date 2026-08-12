@@ -7,7 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { formatDriftWarning, renderRunSummary, syncMembers } from '../lib/runner.mjs';
+import { formatDriftWarning, partitionFailures, renderRunSummary, syncMembers } from '../lib/runner.mjs';
 
 const plan = (repo) => ({ resolved: { repo }, targets: { writes: [] } });
 const ctx = { token: 'x', date: '2026-08-03', backbone: 'jrmoulckers/.github' };
@@ -237,4 +237,97 @@ test('caller permission findings remain warnings rather than sync failures', () 
     },
   }));
   assert.deepEqual(failures, []);
+});
+
+// An accepted failure must narrow the alarm without blunting it. Each test below is one way the
+// exemption could quietly become a blanket downgrade -- the defect it exists to avoid.
+const WINDOWS = {
+  repo: 'jrmoulckers/windows',
+  signature: 'The requested URL returned error: 403',
+  issue: 'https://github.com/jrmoulckers/.github/issues/739',
+};
+const clone403 = {
+  repo: 'jrmoulckers/windows',
+  message: "`git clone` failed: remote: Write access to repository not granted.\nfatal: unable to access 'https://github.com/jrmoulckers/windows.git/': The requested URL returned error: 403",
+};
+
+test('a recorded failure is accepted, reported, and does not fail the run', () => {
+  const { expected, unexpected, stale } = partitionFailures([clone403], [WINDOWS], [
+    'jrmoulckers/windows',
+    'jrmoulckers/finance',
+  ]);
+
+  assert.equal(unexpected.length, 0);
+  assert.equal(stale.length, 0);
+  assert.equal(expected.length, 1);
+  // It carries its own closing condition, so the accepted failure cannot read as an abandoned one.
+  assert.equal(expected[0].issue, WINDOWS.issue);
+});
+
+test('the exemption is pinned to the fault, not to the repository', () => {
+  const different = {
+    repo: 'jrmoulckers/windows',
+    message: '`git push` failed: fatal: could not read Username: No such device or address',
+  };
+  const { expected, unexpected } = partitionFailures([different], [WINDOWS], [
+    'jrmoulckers/windows',
+  ]);
+
+  // Same repo, different fault. A repo-keyed exemption would swallow this one silently, which is
+  // the whole failure mode: the accepted fault outlives its cause and absorbs the next real one.
+  assert.equal(expected.length, 0);
+  assert.deepEqual(unexpected, [different]);
+});
+
+test('an unrelated member failing is never absorbed by another member exemption', () => {
+  const other = { repo: 'jrmoulckers/finance', message: 'The requested URL returned error: 403' };
+  const { expected, unexpected } = partitionFailures([other], [WINDOWS], [
+    'jrmoulckers/windows',
+    'jrmoulckers/finance',
+  ]);
+
+  // Identical signature, different repository: the pair must match, not either half.
+  assert.equal(expected.length, 0);
+  assert.deepEqual(unexpected, [other]);
+});
+
+test('a recorded failure that stopped failing is itself an error, so the record cannot outlive it', () => {
+  const { expected, unexpected, stale } = partitionFailures([], [WINDOWS], [
+    'jrmoulckers/windows',
+    'jrmoulckers/finance',
+  ]);
+
+  assert.equal(expected.length, 0);
+  assert.equal(unexpected.length, 0);
+  // The green run is the one that must go red: nothing else would ever notice the grant landed.
+  assert.deepEqual(
+    stale.map((s) => s.repo),
+    ['jrmoulckers/windows'],
+  );
+});
+
+test('a repository the run never contacted cannot make its record stale', () => {
+  // A member filter or a dry run says nothing about whether the fault is fixed. Concluding
+  // "recovered" from a repository nobody called is absence read as evidence.
+  const { stale } = partitionFailures([], [WINDOWS], ['jrmoulckers/finance']);
+  assert.deepEqual(stale, []);
+});
+
+test("the manifest's own expectedFailures entries are honoured by the partition", () => {
+  const manifest = JSON.parse(readFileSync(new URL('../../studio.config.json', import.meta.url)));
+  const entries = manifest.expectedFailures ?? [];
+
+  // Without this the test passes vacuously the day the record is deleted -- and deleting it is the
+  // expected outcome, so a vacuous pass here is guaranteed rather than hypothetical.
+  if (!entries.length) return;
+
+  for (const entry of entries) {
+    const { expected } = partitionFailures(
+      [{ repo: entry.repo, message: `boom ${entry.signature} boom` }],
+      entries,
+      [entry.repo],
+    );
+    assert.equal(expected.length, 1, `${entry.repo}: signature does not match its own failure`);
+    assert.ok(entry.issue, `${entry.repo}: no issue recorded`);
+  }
 });

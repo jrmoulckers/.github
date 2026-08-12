@@ -768,3 +768,35 @@ test('no delivered file originates in a backbone-internal tree, as principles/RE
   assert.ok(origins.get('agents') > 0, 'agents/ is delivered; an enumeration missing it is wrong');
   assert.ok(origins.get('skills') > 0, 'skills/ is delivered; an enumeration missing it is wrong');
 });
+
+test('an accepted failure must name a member, a signature, and a route to its fix', () => {
+  const base = () => {
+    const m = structuredClone(manifest);
+    m.expectedFailures = [
+      {
+        repo: m.members[0].repo,
+        signature: 'error: 403',
+        reason: 'why',
+        issue: 'https://example.invalid/1',
+      },
+    ];
+    return m;
+  };
+
+  assert.doesNotThrow(() => validateManifest(base()));
+
+  // A repository-wide exemption absorbs the next unrelated failure at that member.
+  const noSignature = base();
+  delete noSignature.expectedFailures[0].signature;
+  assert.throws(() => validateManifest(noSignature), /signature must be a non-empty string/);
+
+  // An accepted failure with no route to a fix is indistinguishable from an abandoned member.
+  const noIssue = base();
+  delete noIssue.expectedFailures[0].issue;
+  assert.throws(() => validateManifest(noIssue), /must name the issue that closes/);
+
+  // The inverse of `excluded`: a fault can only be accepted where the engine actually calls.
+  const stranger = base();
+  stranger.expectedFailures[0].repo = 'jrmoulckers/not-a-member';
+  assert.throws(() => validateManifest(stranger), /is not in `members`/);
+});
