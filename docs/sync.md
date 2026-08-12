@@ -951,6 +951,9 @@ one:
 
 ```sh
 # 1. exactly one marker pair — a duplicated region is a merge artifact, not canon.
+#    The ENGINE now checks this: a second region is reported as `report.orphaned`, in the run log
+#    and in the PR body (see orphanedRegions). Run the grep as an independent cross-check, not as
+#    the only line of defence — and expect 1.
 #    Match the DELIMITER at column 0, never the bare name. A file that must describe its own
 #    markers necessarily contains strings that satisfy a bare-name matcher.
 #    `.gitattributes` uses the `#` form; the HTML form is not valid there.
@@ -960,6 +963,29 @@ grep -c '^# studio:base:start$'        .gitattributes
 # 2. the managed region is byte-identical to ONE of the two input regions, verbatim
 # 3. member content OUTSIDE the markers is byte-identical to the default branch
 ```
+
+**Expect `1`, and expect a bare-name count to disagree.** Measured on a delivered
+`.github/copilot-instructions.md`:
+
+| matcher | count |
+| --- | --- |
+| `studio:base:start` (bare name — **wrong**) | 2 |
+| `^<!-- studio:base:start -->$` (prescribed) | 1 |
+| engine `orphanedRegions` | `[]` |
+
+The second bare-name hit is **canon's own**, and unlike the `AGENTS.md` case measured below it is
+*not* member-authored: the bullet explaining what the managed region is sits **inside** the managed
+region, so canon supplies it identically to every member receiving this file. The old "2 on every
+member" claim corrected below was false for `AGENTS.md` and is true here. Read that correction as
+narrowing which file it applies to, not as a guarantee that canon never contributes a hit.
+
+These counts are not a snapshot: `test/basemerge.test.mjs` pins them in *canon quotes the marker
+names in prose, and only the delimiter form is counted*, built from the real
+`copilot-instructions.md` and guarding its own premise, so the day canon stops quoting the marker
+the test fails rather than this table quietly going stale.
+
+Two separate member repositories have now reported this count as a defect. The rule above is not
+the remedy — it was already present, in full, both times.
 
 Hard-fail if the region extracts empty rather than hashing it: *found the markers* and *found the
 region* are different successes, and the SHA-256 of the empty string is a plausible-looking value
@@ -981,6 +1007,11 @@ managed region — in libro at line 6, with the region at 419–567 — so it is
 canon claimed it as its own and then generalised a fleet invariant from it. The rule survived
 because it was right for a reason nobody checked; a reader auditing the fleet against the stated
 count would have found ten discrepancies and no defect.
+
+**This table is about `AGENTS.md` only, and the opposite holds for `copilot-instructions.md`.**
+There the mention *is* canon's and *is* inside the region, so the bare-name count really is 2 on
+every member receiving that file. The two facts are easy to collapse into "canon never contributes
+a hit", which is false, and a reader who collapses them reads a correct count as a defect.
 
 **And the harm from matching the bare name is worse than a miscount: it relocates the region.** A
 member's detector took the line-6 mention as the opening delimiter, which put the region's start
