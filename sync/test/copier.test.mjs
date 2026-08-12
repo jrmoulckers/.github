@@ -822,3 +822,69 @@ test('touchedKeys names an added target and excludes a withheld one', () => {
     );
   });
 });
+
+// The lockfile is a full snapshot, not a diff, so it is an overlapping path between any two sync
+// PRs. Merging an older sync PR after a newer one reverts it wholesale while leaving files the
+// newer PR alone touched at their newer content -- current bytes, stale entry, no engine race
+// required. homelab #20 (08-09, 9 files) and #25 (08-11, 6 files) overlap on exactly that shape.
+//
+// This must not be drift, and the reason it is easy to get wrong is that `isLocallyModified`
+// compares against the *recorded* hash and never against the current rendering. Drift then
+// deliberately leaves the entry untouched, so the verdict repeats forever and `--check` fails on a
+// file that is already correct -- the permanent-skip failure `isUnstampedCanon` exists to prevent,
+// reached by a different route and caught by none of the three recovery predicates, which all
+// compare the bytes against *historical* renderings rather than the current one.
+test('a file identical to the current rendering is restamped, not drifted, when the entry is stale', () => {
+  withTmp((root) => {
+    const s = spec();
+    const targetPath = s.targetPath;
+
+    // Exactly what the engine would write right now.
+    seed(root, targetPath, s.content);
+
+    // The entry regressed to an older canon revision.
+    const older = spec('# canon\n\nAn older revision.\n');
+    const lock = {
+      entries: {
+        [targetPath]: {
+          sourceSha256: older.sourceSha256,
+          targetSha256: hashText(older.content),
+          syncedAt: '2026-08-09T00:00:00.000Z',
+        },
+      },
+    };
+
+    const { report, lock: next } = apply(root, [s], lock, { write: true });
+
+    assert.deepEqual(report.drift, [], 'bytes equal to the rendering are never drift');
+    assert.deepEqual(
+      report.updated.map((i) => i.targetPath),
+      [targetPath],
+    );
+    assert.equal(
+      next.entries[targetPath].targetSha256,
+      hashText(s.content),
+      'the stale entry must be restamped, or the same verdict returns on every later run',
+    );
+  });
+});
+
+// The control against over-correcting: a matching entry must stay `unchanged`, so this adds no
+// lockfile churn. Without it, restamping unconditionally would stamp a fresh generatedAt into
+// every sync PR and the test above would still pass.
+test('a file identical to the current rendering with a matching entry stays unchanged', () => {
+  withTmp((root) => {
+    const s = spec();
+    seed(root, s.targetPath, s.content);
+
+    const first = apply(root, [s], readLock(root, BACKBONE), { write: true });
+    assert.equal(first.report.adopted.length, 1, 'precondition: baselined, not written');
+
+    const { report } = apply(root, [s], first.lock, { write: true });
+    assert.deepEqual(report.updated, [], 'a matching entry must not be rewritten');
+    assert.deepEqual(
+      report.unchanged.map((i) => i.targetPath),
+      [s.targetPath],
+    );
+  });
+});
