@@ -690,20 +690,30 @@ explanation will get one.
 
 
 The block does not merely stop work; it destroys the signal that would tell you whether anything
-else is wrong. Measured on `2026-08-11`, every private member was refused and every public one was
-green — 10 of 10 readable, `windows` unreadable behind an unrelated PAT 403:
+else is wrong. Every private member was refused and every public one was green — 10 of 10 readable,
+`windows` unreadable behind an unrelated PAT 403. Re-measured `2026-08-12`, splitting by
+`conclusion` rather than by step count:
 
 ```
-libro     failure   8 jobs   steps=[0 × 8]
-cartridge failure  12 jobs   steps=[0 × 12]
-docket    failure   9 jobs   steps=[0 × 9]
-product   failure   1 job    steps=[0]
-homelab   failure   5 jobs   steps=[0 × 5]
+libro      8 jobs    5 blocked   3 skipped
+cartridge 12 jobs    7 blocked   5 skipped
+docket    10 jobs    7 blocked   3 skipped
+product    1 job     1 blocked   0 skipped
+homelab    5 jobs    2 blocked   3 skipped
 ```
 
-35 failed jobs and not one executed step. A real regression landing in any of those repos during the
-outage is **indistinguishable from the outage** at the level anyone actually reads — a red check on a
-private member — and will be scrolled past for the same reason the outage is.
+36 jobs, of which **22 blocked and 14 skipped**. A real regression landing in any of those repos
+during the outage is **indistinguishable from the outage** at the level anyone actually reads — a red
+check on a private member — and will be scrolled past for the same reason the outage is.
+
+**This table previously read `steps=[0 × N]` per repo and totalled "35 failed jobs and not one
+executed step", and that was wrong in a way worth preserving rather than quietly fixing.** A job
+skipped by workflow conditions has zero steps too, so the step-count predicate swept the skipped jobs
+in with the blocked ones and inflated the blocked population by more than half. The step counts were
+individually accurate; the label on their sum was not. **`conclusion` is the discriminator, and
+`steps` is only ever corroboration** — which is the rule already stated in
+`instructions/workflow.instructions.md` under *Read `steps: 0` as a relation, not a count*, applied
+here a table too late.
 
 The trap is in how it ends. **The window does not close when the block lifts; it closes when someone
 re-reads the checks afterwards, and nothing prompts that**, because the repos go green on their own
@@ -2756,6 +2766,19 @@ diffing a file because a correspondent cited a stale blob hash for it. The defec
 for two merges. **A fault invisible to every standing check is found only by an errand that had no
 reason to look**, so when an errand does put you in front of a file, read what is there rather than
 only the lines you came for.
+
+**A check written after the work does not inherit the care that went into the work.** A member
+session hit the same defect in three instruments in one hour, and the instructive pair is the last
+two: a verification assertion bolted on after a patch script matched only the correction note the
+patch had just written, and the patch script itself shipped without the idempotency guard that an
+*earlier* script by the same author that same night already had. Neither guard was unknown. Both
+were **possessed and not carried across**, and what the two omissions share is position in the
+writing order — the verification was an afterthought to the patch, and the guard was skipped because
+the patch felt one-shot. The main work gets the attention; whatever is appended to confirm it gets
+whatever attention is left, which is why an appended check is the natural place for a known defect to
+reappear. **Put guards in the tool rather than in the author's continuity of attention**, and treat
+"I'll just add a quick check that it worked" as the highest-risk line in the session rather than the
+safest.
 
 ## Idempotency & drift
 
