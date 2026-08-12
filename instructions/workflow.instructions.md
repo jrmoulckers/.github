@@ -1719,6 +1719,26 @@ in the fleet — `Branch not
 protected` — which is exactly why the second body is dangerous: it is never seen until the query is
 wrong, so no census will ever have exercised the branch that distinguishes it.
 
+**The `403` bucket and the Actions-refusal bucket are the same repositories, for unrelated reasons.**
+Re-measured across the roster: every private member returns the plan `403` and no public member does,
+and every failed job in those same private members has **zero steps** — the spending-limit signature —
+while the one public member failing that day failed with a job that has steps, an ordinary red build.
+Two gates, two unrelated remedies (change plan or visibility; raise the spending limit), one
+population, because both key on `private`.
+
+**Co-extensive causes cannot be told apart by a census, only by the surface each produces.** Nothing
+in a list of affected repositories distinguishes them, so anyone who learns the population without the
+mechanism will merge them, and the merged claim then survives every check that ranges over membership.
+This is not hypothetical: a precise `plan-blocked` count of mine came back from a peer as a claim
+about the Actions spending limit, and no repository list could have contradicted it. Report the
+surface beside the count, because the count is the part that is identical under both explanations —
+and expect the fleet to look half-fixed when one gate clears, since the same repositories keep
+failing under a different signature.
+
+**Key the sweep on step count, not on `conclusion`.** A refusal and a genuine test failure are both
+`failure`; only the absence of steps separates them, so a bucket built on the conclusion field files
+real red builds as billing casualties and reports a blocker wider than the one that exists.
+
 **A sweep's population is not the manifest's, and stating the scope is not the same as getting it
 right.** The paragraph above originally read *twelve members plus the backbone*, having silently
 promoted `game-library` to membership because it appeared in an org-wide protection sweep.
@@ -3298,6 +3318,33 @@ diagnosis you would otherwise reach converts a self-correcting condition into a 
 fix at working code. And **when you are the member, volunteer the lock fields unasked**; you are the
 only party who can close the question, and the cost is one call against a diagnosis that is
 otherwise unreachable.
+
+**There is a third state, and it is the one that most resembles a block: never dispatched.** A
+scheduled or manually dispatched distribution that simply has not run leaves exactly the artifact a
+blocked one leaves — a member whose copy lacks the correction — and if the *last* run is red, the
+block reading is the one every party reaches. Before naming billing, an entitlement, or a token as
+the cause of a delivery gap, check when the distribution last ran at all; a gap measured in hours
+against a workflow nobody triggered is not evidence of a refusal.
+
+**A run conclusion is not a delivery outcome.** The last sync run here is `failure`, and 11 of its 12
+targets delivered; the single failure was one non-canon member the token cannot write, and the
+billing cause everyone was citing appears nowhere in its log. The whole-run status is the maximum
+over targets, so one unrelated member turns a successful fan-out red, and the red is then attributed
+to whatever cause is already in circulation. Read the per-target lines, not the conclusion.
+
+**The sharpest form of that: the run cited as evidence of blocked delivery was the run that
+delivered.** The member's own lock is stamped inside that run's window, roughly a minute before the
+step that failed it. An artifact bearing a timestamp from within the failing run is proof the
+distribution worked, and it was sitting in the repository the whole time the block was being asserted
+— including by me, repeatedly, for days, without once opening the log.
+
+**A hypothesis in circulation is unversioned.** Unlike a figure, it carries no revision, no
+instrument, and no scope; it is relayed by paraphrase, and each relay can widen it while preserving
+the authority of its origin. A precise claim of mine about plan entitlement returned as a claim about
+a different billing mechanism entirely, and I had no way to notice, because the population it named
+was still right. Quote the mechanism and the measurement that established it every time it is
+restated, and when a peer hands your own claim back to you, check it against what you actually
+measured before accepting it as yours.
 
 **That rule is narrower than it reads, and volunteering the wrong kind of fact relocates the
 asymmetry instead of closing it.** A member adopted it explicitly — correcting a stale member tip in
