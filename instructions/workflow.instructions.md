@@ -1467,18 +1467,24 @@ member on `2026-08-12`:
 Six private repositories, every one refused; five public repositories, every one clean. A failed
 payment is a state of the account and is visibility-independent — it would refuse public repos too.
 Public repos are succeeding *concurrently* with private repos being refused, so **the failed-payment
-clause is not the one firing; the spending limit is.** This is the account's own metering boundary
-acting as a natural control, and it discriminates a disjunction that the message deliberately
-conflates.
+clause is not the one firing; the spending limit is.**
 
-**The general form is worth more than the billing result: when a message refuses to say which of two
-causes fired, look for a population the two causes treat differently.** Diagnosis had been framed
-entirely as *read the failure more carefully*, and the failures are identical by construction — the
-discriminating evidence was never in the refused runs at all. **A concurrent control beats a temporal
-one**, too: the alternative reading available here was that an unobserved recovery gap contained a
-billing-cycle boundary. That reading was withdrawn by the member who raised it, and the reason it
-collapsed is worth more than the reading was. The concurrent control needs no such repair: the
-sibling successes are directly observed runs, resting on nothing unobserved.
+**That inference is void, and the step that fails is the one that felt like a definition.** A payment
+state is account-scoped, but its *effect on runs* is not, because Actions on public repositories with
+standard runners is free and therefore consumes no billed usage at all. Both branches predict the
+observed table identically: private refused, public clean. The split is a restatement of the free
+tier, not evidence about which clause fired. See the diagnostic table further down for the two
+measurements that do bear on it, and for the reason they still do not close the question.
+
+**The general form survives and needs one clause it did not have: when a message refuses to say which
+of two causes fired, look for a population the two causes treat differently — and verify that both
+causes are actually exposed to the axis you have chosen.** Diagnosis had been framed entirely as
+*read the failure more carefully*, and the failures are identical by construction, so the
+discriminating evidence was never in the refused runs. The correction is that a concurrent control is
+not automatically superior to a temporal one: here the concurrent axis was one arm's documented
+exemption, so it discriminated nothing, while the temporal evidence was the only thing addressing the
+clauses at all. **A control chosen along an axis one arm is exempt from is not a control**, and
+picking the axis is the whole test rather than a preliminary to it.
 
 **A zero-run interval measures triggering activity, not service availability.** During a refusal
 episode runs are still *created* — the earlier episode on `jrmoulckers/homelab` produced 55 run
@@ -1706,6 +1712,31 @@ value is not exposed by any reachable endpoint**, so naming that branch is a con
 elimination, not an observation, and it should be reported that way. In the live instance the
 account sat inside its allowance with nothing ever billed *and jobs were still refused* — which the
 two exclusions do not explain and do not need to.
+
+**The elimination does not close, and the reason is a blind spot in the endpoint rather than in the
+reasoning.** That data reports *metered usage* only: summed across every product and every month of
+the year it returns `0.0000`, but the products it can report are usage-billed ones. A subscription
+charge is never a usage row, so it cannot appear there at any value, and a failed subscription
+payment is therefore **invisible to this test while satisfying every observation** — nothing metered
+billed, allowance intact, private jobs refused. The payments branch was recorded as excluded when it
+had only been left unmeasured, which is the stronger error of the two: an absence produced by a
+population that cannot contain the thing sought.
+
+**And a second month settles what the allowance argument could not.** The prior episode occurred in a
+month whose private-repo consumption was **18 minutes against an allowance of 2,000**. No plausible
+accounting exhausts a budget at under one percent of it, so exhaustion is refuted for that episode
+outright rather than merely unproven — and with it the inference from onset dates clustering near a
+day of the month, which needs exhaustion as its mechanism. Take the second period before generalising
+a metering explanation from one.
+
+**The visibility split that looked decisive discriminates nothing.** Public repositories do not
+consume the allowance, so a table of private-refused against public-clean is predicted identically by
+both branches, and it was read as evidence for one of them. The step that failed was the claim that a
+payment state, being account-scoped, must be visibility-independent in its *effects*: the state is
+account-scoped, its effect on runs is not, because it can only bite where usage is billed. **A
+control chosen along an axis that one arm is exempt from is not a control**, and the exemption here
+was a documented free tier rather than anything subtle. Check that both arms are actually exposed to
+the axis before treating a clean split as discriminating.
 
 Non-Linux runners carry a minute multiplier — macOS bills at 10x and Windows at 2x — so adding a
 single macOS job can exhaust a budget that Linux jobs had comfortably fit inside. Budget for the
