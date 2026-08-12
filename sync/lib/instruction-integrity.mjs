@@ -136,7 +136,14 @@ function validateContent(byName, errors) {
       // consumer compiles, and the rendered result moves. The engine mirrors bytes and reports it
       // as an ordinary `Updated` path, so if this guidance is ever dropped from the instructions
       // there is nothing else in the org that tells a member to look.
-      [/changed token \*?value\*?.*announced change/is, 'token value-change announcement'],
+      //
+      // The emphasis character is optional and either form, because the contract is that the rule
+      // is *stated* — not that it is marked up one way. Prettier rewrites `*value*` to `_value_`,
+      // and pinning the asterisk made this check fail on canon that still said exactly the right
+      // thing. Measured, not hypothetical: formatting the instructions and running this validator
+      // failed here and nowhere else. Nothing formats this repo today, which is the only reason it
+      // has not happened, and an absence is not a safeguard.
+      [/changed token [*_]?value[*_]?.*announced change/is, 'token value-change announcement'],
     ],
     errors,
   );
