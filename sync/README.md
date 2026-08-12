@@ -798,6 +798,17 @@ first: `extractBlock` → `canonicalizeInner` → `hashText`, i.e. region → LF
 whitespace → SHA-256. A member check that hashes a managed target whole reports three permanent
 mismatches that no repository state can clear.
 
+Decide which of the two applies by asking the file, not a path list, and ask in this order:
+
+1. **Does the file exist?** An entry whose file is absent has no classification and no hash to
+   compare — report it as missing and stop. Classifying first turns "cannot tell" into "not
+   managed" and produces the same permanent mismatch this paragraph exists to prevent.
+2. **Is `extractBlock(bytes, markersFor(targetPath))` non-null?** Managed if so. Do not substitute
+   "has the marker at column 0": markers shown in a fenced example, quoted inline, or inside an
+   indented code block do not open a region, and a member is explicitly invited above to document
+   this convention in its own `AGENTS.md`. The looser test classifies that prose as managed and
+   reports drift on a region the engine never wrote.
+
 Re-running with no upstream change writes nothing and opens no PR. Hashes are computed on
 LF-normalized content, so line-ending differences don't cause spurious churn.
 

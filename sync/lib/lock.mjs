@@ -21,11 +21,24 @@
 // region* for a managed one (`AGENTS.md`, `.github/copilot-instructions.md`, `.gitattributes`),
 // because only that region is canon's to own — see `planManaged` in copier.mjs and
 // `canonicalizeInner` in basemerge.mjs. Every entry has the same shape either way, so the field
-// name alone does not say which rule produced it. Read it off the file rather than a path list:
-// a target is managed exactly when it carries its marker start at column 0
-// (`extractBlock(bytes, markersFor(targetPath)) !== null`), which stays correct when a managed
-// target is added. Hashing the whole file of a managed target matches under no member state at
-// all, not even one the engine just wrote, because the markers sit outside the region.
+// name alone does not say which rule produced it. Hashing the whole file of a managed target
+// matches under no member state at all, not even one the engine just wrote, because the markers
+// sit outside the region.
+//
+// Which rule an entry used is derivable, so no path list is needed and none can go stale:
+//
+//   1. Establish the file exists. The derivation reads the tree, so it is total over files that
+//      are present and *undefined* over an entry whose file is absent — a real state, since a
+//      member may have deleted a target pending repopulation. Classifying first reads "cannot
+//      tell" as "not managed", compares whole-file bytes, and reports a mismatch no repository
+//      state can clear. Absence is its own report, not a hashing rule.
+//   2. Then classify: managed exactly when `extractBlock(bytes, markersFor(targetPath)) !== null`.
+//
+// Use that call, not the approximation "has the marker at column 0". The two disagree: markers
+// shown inside a fenced example, quoted inline, or in an indented code block do not open a region,
+// and `sync/README.md` explicitly invites a member to document this convention in its own
+// `AGENTS.md`. Under the looser rule such a file classifies as managed and reports drift on a
+// region the engine never wrote. See the fenced/inline/indented tests in test/basemerge.test.mjs.
 
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
