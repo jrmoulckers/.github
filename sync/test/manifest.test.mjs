@@ -733,3 +733,38 @@ test('excluded is optional and never affects what is synced', () => {
     resolveAll(applyManifestDefaults(structuredClone(manifest))),
   );
 });
+// `principles/README.md` states that the principles tree is backbone-internal and that a
+// cross-authority handoff recorded there is not self-delivering. That is a claim about the
+// delivered surface, and a claim about the surface stated only in prose goes stale the moment the
+// surface changes -- silently, and in the direction that makes a handoff look delivered.
+//
+// The point is not that principles/ *should* stay undelivered. Widening the surface is an owner
+// decision. The point is that widening it must update the paragraph that tells a reader a handoff
+// named there has not reached anyone, so this fails until it does.
+test('no delivered file originates in a backbone-internal tree, as principles/README.md states', () => {
+  const members = resolveAll(manifest);
+  const origins = new Map();
+
+  for (const member of members)
+    for (const write of enumerateTargets(member, REPO_ROOT).writes) {
+      const tree = (write.sourcePath ?? '').split('/')[0];
+      origins.set(tree, (origins.get(tree) ?? 0) + 1);
+    }
+
+  // Without this, an enumeration that returned nothing would satisfy every assertion below.
+  const total = [...origins.values()].reduce((sum, n) => sum + n, 0);
+  assert.ok(total > 0, 'no writes enumerated: this test would assert nothing');
+
+  for (const tree of ['principles', 'docs', 'sync', 'profile']) {
+    assert.equal(
+      origins.get(tree) ?? 0,
+      0,
+      `${tree}/ now reaches members; principles/README.md still says a handoff there is undelivered`,
+    );
+  }
+
+  // The positive half: the trees that *are* delivered, so this cannot pass by enumerating a
+  // population that excludes the interesting one -- the failure it is modelled on.
+  assert.ok(origins.get('agents') > 0, 'agents/ is delivered; an enumeration missing it is wrong');
+  assert.ok(origins.get('skills') > 0, 'skills/ is delivered; an enumeration missing it is wrong');
+});

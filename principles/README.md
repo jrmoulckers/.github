@@ -27,6 +27,36 @@ Ratified.
 | --- | --- | --- |
 | [Session reporting](ai/session-reporting.md) | `GH-AIREP-001` | Status and standing reports: the measurement behind each line, and matching a measurement's scope to its claim's |
 
+## Reach
+
+**This tree is backbone-internal. No principle in it is delivered to any member repository.** Every
+principle names a *Cross-authority handoff*, and the authority named there cannot read the document
+naming it:
+
+```
+members                       11
+delivered writes             653
+originating in principles/     0
+originating in docs/           0
+source trees actually delivered:
+  agents/  skills/  prompts/  instructions/
+  AGENTS.md  agency.toml  .gitattributes  copilot-instructions.md
+```
+
+That has a consequence worth stating where the handoff is read rather than leaving it to be
+discovered: **a handoff recorded here is not self-delivering.** Naming Engineering, or a domain
+authority, or a member session as the party who must act does not put the obligation in front of
+them — the citation only discharges the obligation if the artifact is reachable by the audience, and
+this one is not. A principle that must reach an authority has to travel by an artifact that authority
+receives: an instruction, an agent definition, or a skill.
+
+The instance that makes this concrete is `GH-AIREP-001`, which was derived from a member session's
+own finding, hands off to Engineering and to domain authorities, and cannot be read by either. It
+reached the session that produced it only because the two were already corresponding.
+
+Widening the delivered surface is an owner decision and is not proposed here. What is recorded here
+is the limitation, so that no reader takes a handoff in this tree for a delivery.
+
 ## Ratification validation
 
 Run the repository-level principle validator:
