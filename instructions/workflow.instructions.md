@@ -421,6 +421,27 @@ raises the hit count while lowering the defect count**, and the metric moves opp
 it is meant to track, precisely on the artifacts that were just fixed. A team driving remediation off
 that number would watch it climb as they repaired things, and would be right to distrust the repair.
 
+**And the sharpest form is a guard that its own remediation invalidates.** The next iteration of that
+audit matched a correction marker with `[^)]*?` before its closing delimiter, so a correction whose
+text contained a parenthesis — one showing the figures it corrected — terminated the class early and
+stopped registering as coverage at all. A terse correction counted; a correction that showed its
+working did not, and the audit reported the freshly-corrected claims as uncorrected. The incentive
+gradient points at unhelpful remediation, and nothing in the output says so. **A delimiter must
+terminate on the full closing sequence, not on its first character**, because the omitted character
+is exactly what richer content contains.
+
+**The same class was latent here, in the opposite and worse direction.** A prompt validator matched
+`gh pr checks` commands with `[^\n`]*` and then checked their `--json` fields. A command written
+across a line continuation — the formatting already used for a long command elsewhere in this very
+file — captured only up to the backslash, so the selection on the continued line was never seen, no
+selections were found, the count comparison held at zero against zero, and the command passed
+unexamined. Adopting the better formatting convention would have disabled the check silently. That is
+the direction that matters: the peer's fault announced itself with three fresh hits on artifacts just
+verified clean, while this one fails toward `CLEAN` and would have been discovered by a bad field
+shipping. **When auditing a matcher for this class, ask which way it fails, and treat the silent
+direction as the one requiring a regression test** — one that is confirmed to fail against the old
+pattern before it is trusted, since a test written alongside a fix will pass either way.
+
 **The remedy is not a cleverer matcher.** Narrowing the pattern toward the strings you happen to have
 written is the detector agreeing with you by construction — the same fault as *disjointness asserted
 by construction when the construction is your own definition*, recorded later in this file, arriving
