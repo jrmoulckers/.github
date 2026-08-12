@@ -22,7 +22,8 @@ const FILE_SUFFIX = {
 };
 
 /**
- * @returns {{ writes: TargetSpec[], native: Array<{kind, names}>, external: Array<{kind, names}> }}
+ * @returns {{ writes: TargetSpec[], native: Array<{kind, names}>,
+ *             external: Array<{kind, names, sourceBase, targetBase, sourceRepo}> }}
  * TargetSpec = { kind, name, sourcePath, targetPath, targetBase, sourceSha256, content, type }
  *   type: 'file' | 'managed'
  *   targetBase: the group's target root, carried so the lock reconciler can recover the
@@ -34,6 +35,11 @@ const FILE_SUFFIX = {
  * to real members and enumerated by enumerateTokenTargets(studioRoot), so a caller that reports
  * `writes` as though it were the whole delivery is understating by an entire class and has nothing
  * in this value to warn it.
+ *
+ * The external record carries `sourceRepo` and `targetBase` because a disclosure channel that
+ * cannot name what it withheld is barely one: a caller holding `{kind, names}` can say a class was
+ * skipped but not where its bytes come from, which is the fact that decides whether the caller's
+ * own claim survives the omission.
  */
 export function enumerateTargets(resolved, backboneRoot) {
   const writes = [];
@@ -47,7 +53,14 @@ export function enumerateTargets(resolved, backboneRoot) {
       // Both are recorded rather than merely skipped: a bare `continue` here removed the
       // external class from this function's own accounting, so no caller could discover it.
       if (group.native) native.push({ kind: group.kind, names: group.names });
-      else external.push({ kind: group.kind, names: group.names });
+      else
+        external.push({
+          kind: group.kind,
+          names: group.names,
+          sourceBase: group.sourceBase,
+          targetBase: group.targetBase,
+          sourceRepo: group.sourceRepo,
+        });
       continue;
     }
     if (group.mode === 'managed' || group.mode === 'literal') {

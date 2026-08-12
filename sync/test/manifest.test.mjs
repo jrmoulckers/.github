@@ -741,15 +741,56 @@ test('excluded is optional and never affects what is synced', () => {
 // The point is not that principles/ *should* stay undelivered. Widening the surface is an owner
 // decision. The point is that widening it must update the paragraph that tells a reader a handoff
 // named there has not reached anyone, so this fails until it does.
-test('no delivered file originates in a backbone-internal tree, as principles/README.md states', () => {
-  const members = resolveAll(manifest);
+// Extracted so the premise below can be exercised against a constructed surface as well as the
+// real one. An inline guard is only ever run against a corpus that satisfies it, which makes it
+// indistinguishable from a guard that does nothing -- the failure this whole test exists to catch.
+function deliverySurface(members) {
   const origins = new Map();
-
-  for (const member of members)
-    for (const write of enumerateTargets(member, REPO_ROOT).writes) {
+  const externals = [];
+  for (const member of members) {
+    const targets = enumerateTargets(member, REPO_ROOT);
+    for (const group of targets.external) externals.push({ repo: member.repo, group });
+    for (const write of targets.writes) {
       const tree = (write.sourcePath ?? '').split('/')[0];
       origins.set(tree, (origins.get(tree) ?? 0) + 1);
     }
+  }
+  return { origins, externals };
+}
+
+// `writes` is not the delivered surface. Quantifying over it as though it were is the precise
+// misuse `enumerateTargets` warns about in its own docblock, and that the partition test above
+// describes in its own comment -- both texts predate the test that then did it. Vendored token
+// groups are delivered to real members and are structurally absent from `writes`.
+//
+// Leaving them out of the origin tally stays admissible only because their bytes are copied from
+// `sourceRepo` rather than from this repository, which makes a backbone-internal origin impossible
+// by construction rather than merely absent today. That premise is asserted, not assumed, and its
+// population is guarded: an exclusion that covers nothing silently restores the narrow reading.
+function assertExternalsCannotCarryCanon(externals, backboneRepo) {
+  assert.ok(
+    externals.length > 0,
+    'no external groups enumerated: the exclusion this justifies covers nothing, so the origin ' +
+      'tally has quietly gone back to quantifying over `writes` alone',
+  );
+  assert.ok(backboneRepo, 'the manifest names no backbone; the exclusion cannot be checked');
+  for (const { repo, group } of externals) {
+    assert.ok(
+      typeof group.sourceRepo === 'string' && group.sourceRepo.trim(),
+      `${repo}: external group "${group.kind}" names no sourceRepo, so nothing establishes that ` +
+        'its bytes come from outside this repository',
+    );
+    assert.notEqual(
+      group.sourceRepo,
+      backboneRepo,
+      `${repo}: external group "${group.kind}" is sourced from the backbone itself, so it can ` +
+        'carry a backbone-internal tree into a member and the origin tally would never see it',
+    );
+  }
+}
+
+test('no delivered file originates in a backbone-internal tree, as principles/README.md states', () => {
+  const { origins, externals } = deliverySurface(resolveAll(manifest));
 
   // Without this, an enumeration that returned nothing would satisfy every assertion below.
   const total = [...origins.values()].reduce((sum, n) => sum + n, 0);
@@ -767,6 +808,46 @@ test('no delivered file originates in a backbone-internal tree, as principles/RE
   // population that excludes the interesting one -- the failure it is modelled on.
   assert.ok(origins.get('agents') > 0, 'agents/ is delivered; an enumeration missing it is wrong');
   assert.ok(origins.get('skills') > 0, 'skills/ is delivered; an enumeration missing it is wrong');
+
+  // Read from the manifest rather than written here: a transcribed identity would be one more
+  // constant that agrees with canon today and silently stops agreeing later.
+  assertExternalsCannotCarryCanon(externals, manifest.backbone);
+});
+
+// The guard above fires only in states the real manifest does not reach, so against this corpus it
+// is indistinguishable from no guard at all. Weakening it changes no result and no test notices --
+// which is the exact shape being fixed, one level up. So the states are constructed here.
+test('the delivered-surface premise fails when its population empties or its source moves home', () => {
+  const backbone = manifest.backbone;
+  const real = deliverySurface(resolveAll(manifest)).externals;
+  assert.ok(real.length > 0, 'the real manifest must exercise the premise, or the cases below are hypothetical');
+
+  // Population empties: every token consumer switched off. The origin tally would then cover only
+  // `writes` while still claiming the delivered surface, and must not pass quietly.
+  const noTokens = structuredClone(manifest);
+  for (const member of noTokens.members) if (member.tokens) member.tokens.enabled = false;
+  const emptied = deliverySurface(resolveAll(noTokens)).externals;
+  assert.equal(emptied.length, 0, 'disabling every token consumer must actually empty the class');
+  assert.throws(
+    () => assertExternalsCannotCarryCanon(emptied, backbone),
+    /covers nothing/,
+    'an empty external class must fail the premise rather than satisfy it vacuously',
+  );
+
+  // Source moves home: a token group vendored out of the backbone itself could carry a principle
+  // into a member, and the origin tally -- which never looks at external groups -- would not see it.
+  const fromBackbone = real.map((entry) => ({
+    ...entry,
+    group: { ...entry.group, sourceRepo: backbone },
+  }));
+  assert.throws(
+    () => assertExternalsCannotCarryCanon(fromBackbone, backbone),
+    /sourced from the backbone itself/,
+  );
+
+  // And an external group that names no source at all establishes nothing either way.
+  const unsourced = real.map((entry) => ({ ...entry, group: { ...entry.group, sourceRepo: undefined } }));
+  assert.throws(() => assertExternalsCannotCarryCanon(unsourced, backbone), /names no sourceRepo/);
 });
 
 test('an accepted failure must name a member, a signature, and a route to its fix', () => {
