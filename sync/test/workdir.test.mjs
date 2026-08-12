@@ -11,6 +11,10 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 import { assertMemberCheckout, assertMemberIdentity, memberIdentity } from '../lib/workdir.mjs';
 import { apply } from '../lib/copier.mjs';
@@ -221,4 +225,39 @@ test('a member file materialized with CRLF is unchanged, not drift', () => {
     assert.deepEqual(second.report.drift, [], 'a CRLF checkout is not a member edit');
     assert.equal(second.report.unchanged.length, 1);
   });
+});
+
+// Canon documents this command's verdict for the whole fleet, and the verdict is narrower than the
+// obvious reading of it. `readSource` reads canon off the disk of whatever backbone checkout you
+// point at, and nothing in sync/lib compares that checkout to its own origin, so an all-unchanged
+// report means "matches the canon in front of me" and not "matches canon". Depth is guarded by the
+// shallow refusal; currency is guarded by nothing.
+//
+// This is the same shape `assertMemberIdentity` refuses one level down — there the reassuring output
+// is the defect, and withholding the write does not withhold it. `copier.mjs` already declines to
+// print "0 canon revisions behind" because it "would assert a currency the engine cannot support";
+// canon's prose was asserting it on the engine's behalf (#675).
+//
+// Pinned here because every other instrument in this repo is aimed at what the code computes, and
+// nothing is aimed at what the documentation claims on its behalf. The claim and its qualifier must
+// travel together: delete the qualifier and this fails.
+test('canon qualifies the dry-run verdict rather than claiming currency the engine cannot support', () => {
+  const canon = readFileSync(join(REPO_ROOT, 'copilot-instructions.md'), 'utf8');
+
+  // Guard the premise: if canon stops documenting the verdict, this test proves nothing.
+  const claim = /All-unchanged means[^.]*\./.exec(canon);
+  assert.ok(claim, 'canon must state the all-unchanged verdict for this to mean anything');
+
+  assert.match(
+    claim[0],
+    /as of the\s+backbone checkout you ran it from/,
+    'the all-unchanged verdict must name the checkout it is relative to',
+  );
+
+  // And the boundary itself must be stated, not just implied by a hedge on one sentence.
+  assert.match(
+    canon,
+    /depth is guarded and currency is not/i,
+    'canon must state that the engine cannot tell a stale backbone checkout from a current one',
+  );
 });
