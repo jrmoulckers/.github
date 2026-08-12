@@ -487,6 +487,17 @@ test('wildcard members receive the expanded agent roster while explicit subsets 
     manifest.canon.agents.filter((name) => name !== 'design-engineer'),
     'score-king receives canon except its declared local design replacement',
   );
+  // An explicit array is a frozen census: it stops tracking canon the moment it is written, so every
+  // later addition reaches the wildcard members and silently misses this one. The agents assertion
+  // above is keyed to canon and therefore fails when the roster grows; prompts had no equivalent, and
+  // the only other prompt reach test filters to `optIn.prompts === '*'`, excluding this member by
+  // construction. Keyed to canon minus the single recorded omission so a new prompt forces a decision
+  // rather than quietly not arriving.
+  assert.deepEqual(
+    [...scoreKing.optIn.prompts].sort(),
+    manifest.canon.prompts.filter((name) => name !== 'rebase-all').sort(),
+    'score-king receives canon prompts except rebase-all, which its notes record as unexplained',
+  );
 });
 
 // This test is also what backs a security claim: STUDIO_SYNC_TOKEN is documented as needing NO
