@@ -3793,8 +3793,32 @@ lock entry syncedAt   3m56s after that commit
 Nineteen revisions behind, not 139; **89.0% coverage, not 12.5%**. Both objects are real and the
 member was honest about the one it measured, but only one of them is the delivery. Before accepting
 any staleness claim, fetch the file from the member's default branch and reconcile it against a
-revision — a byte delta that resolves to the distributor's own header is proof of delivery, and it
-costs one request.
+revision — a byte delta that resolves to the distributor's own header identifies the revision
+exactly, and it costs one request.
+
+**But that reading measures merge, not delivery.** The distributor does not write to the member's
+default branch; it opens a pull request, and the file and lock reach `main` only when that PR
+merges.
+So a default-branch reading answers the merge gate and reports it as distribution — and the two
+diverge on precisely the members whose delivery is in question. Reading one dispatch from
+default-branch locks alone, I concluded the run had *selected* public members and skipped private
+ones, interleaved rather than truncated. The interleaving was real and the explanation inverted: the
+log shows every member attempted in config order about five seconds apart, ten pull requests opened
+and one failure on a missing write grant. The private members' sync PRs were opened in that window
+and are open still. Their `main` is stale because nothing merged, not because nothing was sent.
+**The default branch is the merge record; the pull request is the delivery record.** Cite the run
+log or the PR for delivery, and keep the byte reconciliation for identifying which revision a member
+holds.
+
+Two further hazards in the same instrument. **A heuristic with a perfect record is the one applied
+without checking.** Four consecutive scheduled runs were red and delivered nothing because no sync
+token was set and the target set was empty; once the token landed, red runs delivered, and nothing
+in the run list marks the transition. The confirmations and the counterexamples are the same colour,
+because what expired was the mechanism behind the correlation rather than any of its inputs — so an
+unblemished record is evidence about how often the rule was tested, not about whether it still
+holds. And **the conclusion field can report scope rather than outcome**: every successful run of
+this workflow excluded the one member lacking a write grant, and every run that included it failed,
+so success and failure track target-set composition and carry no information about delivery at all.
 
 I then repeated the member's figure as fact in a message where I had deliberately re-derived my own
 byte count, suite count, PR count and tree state rather than carrying them forward. **A claim quoted
