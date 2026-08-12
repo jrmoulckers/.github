@@ -152,7 +152,8 @@ operating guide does not also decline MCP policy, Copilot orientation, or LF nor
   engineering, issue/project/sprint management, i18n, onboarding, MCP tooling, go-to-market,
   monetization, and privacy compliance.
 - **Prompts** drive bounded backlog, bug-bash, cleanup, CI repair, rebase, review, sprint, and team
-  workflows; **instructions** attach path-scoped standards via `applyTo` globs.
+  workflows; **instructions** attach path-scoped standards via `applyTo` globs, each carrying a
+  required `description` that fills the index a session decides retrieval from.
 
 ### MCP runtime policy
 
