@@ -887,10 +887,27 @@ But only **one** of those four carries the sender's identity; the recipient tag 
 and the reply tag and the sign-off name neither. So attribution really is stuck near 192 while
 detection reaches past 700. **The pessimistic claim and the optimistic one are each correct about a
 different question**, and reporting one number forces a remedy choice that fits neither: a
-detection problem is fixed retroactively by searching harder, and an attribution problem is not fixed
-at all. When a channel's record is called unrecoverable, say which recovery — the class or the
-author — because the first is usually a search that has not been widened and the second is usually
-final.
+detection problem is fixed retroactively by searching harder, and an attribution problem is not
+fixed *in that channel*. That was first recorded here as *usually final*, which is too strong, and
+a later dispute settled it in one call. The prose channel has no author field; the work prose cites
+does:
+
+```
+#684  head=jrmoulckers-centralize-ai-tooling   merge=5bbc8e3   mine
+#593  head=jrmoulckers-centralize-ai-tooling   merge=9d1604f   mine
+#436  head=callee-runner-cost                  merge=df817c1   NOT mine
+```
+
+Three commits a peer and I had spent a message disputing, resolved against the forge. `author.login`
+reads the same for every session in this fleet and disambiguates nothing — **`headRefName` is the
+field that does**, because a branch belongs to one session even where the identity does not. So
+escalate from the channel to the artifact rather than searching the channel harder: a dispute about
+*claims* stays unresolvable, and a dispute about *commits* — which is the usual case, since claims
+cite them — does not. Note what the check bought beyond a verdict: the peer was right that the
+message misattributed work to them and wrong that the work was unattributable, and the third branch
+is a third session neither of us was speaking for. When a channel's record is called unrecoverable,
+say which recovery — the class or the author — because the first is usually a search that has not
+been widened, and the second is usually an artifact that has not been consulted.
 
 **Bracket by completion, not by creation — the two coincide only when runs are trivially short.**
 The reconciliation that established this was performed against runs refused for billing, which
