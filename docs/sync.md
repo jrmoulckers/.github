@@ -594,6 +594,28 @@ no information about the vacuity. The size is actively anti-diagnostic: `208` re
 coverage at exactly the moment nothing was covered. An uncounted population at least invites *how
 many?*; a counted one answers it with the wrong denominator and closes the question.
 
+**And a total is not a distribution.** The failure above reports the wrong population; this one
+reports the right population as a sum, which can be consistent with a claim whose shape it refutes.
+A member argued that a sync lock's git history already supplies the append-only record of past
+renderings that recovery would need, and offered `59 paths, 74 distinct target hashes` across four
+revisions. All three figures replicate exactly. The distribution does not survive them: **47 of the
+59 paths have exactly one recorded rendering**, the depth is carried entirely by 12 paths, and the
+mean of 1.25 describes no path in the repository. For 47 paths that history holds precisely the
+single datum the lock's tip already held.
+
+The aggravation is that the flatness concentrates where the argument needed depth. The two
+managed-region files — where canon text and local text share a file, and so where *were these bytes
+ever ours?* is hardest — have one recorded rendering each, and no entry at all in the three earlier
+revisions. They were introduced at the tip and **failed to correspond on the revision that recorded
+them**, so there is no revision at which they ever matched. A structural explanation was offered for
+that mismatch, and a structural cause would have shown across the series; a one-revision population
+cannot distinguish *must mismatch* from *did mismatch, once*.
+
+So report the distribution at the level the argument depends on, not the total above it. The general
+form: an aggregate is evidence for a claim about aggregates. A claim about *what is available per
+path* is answered only by the per-path counts, and a sum is comfortable precisely because it cannot
+report a hole.
+
 **And where the population cannot occur at all, the remedy is not to measure it.** Across the fleet
 every `-text` file is NUL-bearing, so no member's real corpus can reach the detection branch — no
 count taken anywhere would ever have been non-zero. What closed this was constructing the population

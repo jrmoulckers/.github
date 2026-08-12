@@ -2089,6 +2089,22 @@ the member's lock. The lock's job is to answer *what did this file look like las
 answer *which files exist* silently converts a deletion into a pass, and deletion is the failure an
 ordinary mistake produces first, because it needs one line removed rather than a hash forged.
 
+**The lock's committed history answers a longer version of that same question, not a different
+one.** It is tempting to reach for it when the tip is the suspect — a recovery path cannot consult
+the tip entry to authorize repairing its own corruption, since at the moment recovery runs that
+entry is either absent or already known not to match. Git has been recording superseded entries all
+along, in the member repo, at no cost. And the entries are genuine: hashing each one's file as it
+stood in that same commit matches on 110 of 112 checked across two revisions, so each is the
+engine's contemporaneous record of bytes it actually wrote, unre-derived.
+
+What it will not support is the weight usually put on it, because the record is nearly flat — most
+paths carry a single rendering, and the paths with an injected managed region carry one that never
+matched. Treat lock history as *what did this file look like on the few occasions it changed*, which
+is a real widening of "last time" and is not the same as *was this content ever ours*. Two further
+costs are easy to omit: it requires reading member git history, which scales with repository age,
+and it is **worthless where history was rewritten**. A force-push removes the evidence and leaves
+nothing in the file saying so — the same silent-deletion failure as above, one level up.
+
 Note that two partial signals can be complementary here rather than redundant: a marker or stamp is
 unreliable per file but can only ever *add* candidates to an enumeration, while an index is reliable
 per entry but cannot report what it never recorded. Neither closes the seam; their union does.
@@ -2199,6 +2215,21 @@ superseded, and neither can tell from the artifact whether it was superseded or 
 nothing in the message records what it was a reply to. Quoting the SHA being answered makes the
 crossing visible instead of arriving as an apparent contradiction. It costs one token and it is the
 only thing that distinguishes *you are wrong* from *we spoke past each other*.
+
+**And when replies lag, repeated sightings of one datum read as independent confirmation of a
+trend.** Dating and SHA-quoting fix the single crossed message; they do not fix what accumulates
+across several. Having seen a stale-looking revision in a correspondent's footer three exchanges
+running, this repo concluded a habit and said so. The correspondent's footers were in fact dated and
+current each time — the mechanism was that replies ran two messages behind, so each of three
+observations re-reported *the same original footer* as fresh evidence. Three sightings, one
+underlying sample, and a trend asserted from a series of length one.
+
+This is the vacuous-population defect at the level of correspondence, and it is worse than its
+single-message form in one respect: repetition is ordinarily the remedy for a bad measurement, so
+the accumulating count feels like the thing that licenses the generalisation. Before characterising
+a correspondent's pattern, check that the observations are of **distinct** artifacts rather than one
+artifact seen from successive positions in a lagging channel — and prefer the charge that survives a
+single instance, since the second and third may carry no information the first did not.
 
 ### An issue's state records a button press, not the state of the question
 
