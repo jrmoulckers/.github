@@ -309,6 +309,13 @@ the same blast radius. Put the lint in its own workflow file so a defective appl
 cannot prevent the diagnostic run from being created. A passing run is positive evidence only for
 the inspected commit; rerun it whenever a reusable workflow is re-pinned.
 
+A passing lint also removes one cause from the otherwise confusable zero-step, no-log failure shape:
+for the inspected commit, a direct canonical call did not exceed its caller permission ceiling. If
+another workflow run for that commit still dies before creating a job, investigate a different
+startup refusal — for example an Actions billing hold — instead of repeating the permission-ceiling
+diagnosis. This is elimination, not identification: the lint does not prove billing and does not
+rule out every other workflow-file or platform refusal.
+
 ## What gets synced
 
 Resolution follows each member's `optIn` in the manifest:
