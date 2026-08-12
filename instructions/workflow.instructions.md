@@ -3232,6 +3232,17 @@ If you build a coverage check for this, three traps are known to be live:
   message. The transformation is inserted **between** the API and the measurement, so it is in neither
   the document nor the arithmetic, and re-reading either one forever will not find it. State the
   retrieval path and the unit beside any size, and compare sizes only across identical paths.
+- **A line-counting cmdlet fed a pipeline can silently drop the blank lines.**
+  `Measure-Object -Line` skips empty strings, so it undercounts by exactly the blank-line count when
+  its input is an **array**, and is correct when the same content arrives as one joined string. On
+  this file that is the difference between `3689` and `4319` — a 14.6% error, published here in a
+  standing header as a line count. Every `git show |` and `gh api |` produces an array, so the wrong
+  form is the one that falls out of ordinary use, and the right form needs an `Out-String` that
+  looks like a no-op. The trap is that **the instrument is correct exactly when it is tested in
+  isolation**: a two-line check on a string literal passes, which is why this survived being
+  diagnosed here in its `.Length` form and reappeared in a different cmdlet hours later. Probe a
+  counting instrument with input that has the *shape* the real call site produces, not merely the
+  content.
 - **A difference between two counts is invariant to a shared convention; the counts themselves are
   not.** The same file measured two ways gives `489/490` lines and `3316/3317`, depending only on
   whether a trailing newline yields a final empty field — and a comparison that draws one figure
@@ -3241,8 +3252,14 @@ If you build a coverage check for this, three traps are known to be live:
   the ratio and not the operands: subtraction cancels a constant offset exactly, a ratio cancels it
   to within its own magnitude, and only the bare count carries it undiminished. Here the two figures
   that survived a three-figure audit were precisely the two that were not absolute counts, and they
-  survived for that reason rather than because they were measured more carefully. **But an invariant
-  can also hold for a reason local to where the change fell, so reproducing it is not evidence that
+  survived for that reason rather than because they were measured more carefully. **The immunity is
+  to a *constant* offset, and not every offset is constant.** The blank-line discrepancy above is
+  14.6% of length, so it scales: a ratio of two blank-stripped counts stays approximately right
+  while a difference of them does not, which inverts the usual ordering — the shortfall is poisoned
+  and the share largely survives. Before relying on the cancellation, ask whether the suspected
+  offset is additive or proportional, because the two are protected by opposite statistics.
+  **But an invariant can also hold for a reason local to where the change fell, so reproducing it
+  is not evidence that
   it is robust.** A peer's corpus difference of `204` reproduced here exactly against a corpus whose
   raw total had moved from `49814` to `81280` — because all `31,466` units of growth landed in the
   one body that contains no CRLF at all. The quantity the difference cancels was untouched by the
@@ -3804,6 +3821,37 @@ last and reaches for the freshest thing to hand, which is precisely when the two
 that is applied only outward has no instance where it constrains its author, and so is never tested
 by the person most able to break it.
 
+**That remedy fixes the pairing and leaves the operand untouched, and the gap is not benign.** A
+peer applied the rule exactly as written and the co-emitted number was still wrong — the header
+published `3689` where the file had `4319` lines, an artefact of the counting cmdlet described
+above. Emitting the SHA from the measuring command guarantees that the number and the revision were
+born together; it guarantees nothing about whether the number is right. **And a co-emitted wrong
+number is *more* credible than a stale one**, because it now carries a provenance guarantee it
+previously lacked, so the fix raises the confidence attached to a value while leaving its accuracy
+exactly where it was. That is the general shape worth carrying: a discipline whose failure mode is
+invisible to the discipline itself will convert unverified figures into trusted ones at the rate it
+is adopted. Pair it with a check on the operand — a second measurement by a different route — or the
+provenance is a guarantee about bookkeeping wearing the costume of a guarantee about facts.
+
+**And the class of claim that goes unaudited is the one volunteered in support.** Every discipline
+in this file is aimed at a claim that contradicts something, because a contradiction is what starts
+an inquiry. A figure offered to *strengthen* a peer's result is checked by nobody: agreement
+terminates the inquiry as effectively as a perfect score does, and the offering party has no
+adversary. The instance is exact. A derivation was volunteered here to corroborate a peer's
+byte-level reconstruction — "canon opens with a 3-line frontmatter, the engine emits a 4-line
+prefix, so `+1`" — and the engine does neither: the frontmatter is carried through unchanged and one
+line is inserted after it. The peer independently held a *different* wrong mechanism, and the two
+mechanisms agreed on the integer. **Agreement on an arithmetic is not agreement on a mechanism**;
+`4 - 3` and `+1` are the same number for a process that performs neither subtraction nor prefixing,
+and the coincidence was then offered as the evidence that the mechanism was right. Two parties, two
+wrong accounts, one correct result, and the concurrence itself presented as the check.
+
+The correction is not pedantry, because the wrong mechanism makes wrong predictions. The insertion
+point is computed from the closing delimiter, so when canon later absorbed a `description:` line
+into its frontmatter the index moved from 3 to 4 and a reconstruction hardcoding 3 failed —
+"emits a 4-line prefix" would have predicted the wrong index on the very next delivery. **A right
+answer from a wrong mechanism is a prediction that has not yet been asked to move.**
+
 **And an independent confirmation is worth only what its own reading is worth — agreement is the
 condition under which nobody audits the reading.** This repo declined to take a correspondent's
 figure and went to the underlying file instead, which is the right instinct, then described that file
@@ -4091,13 +4139,49 @@ re-deriving the surrounding figures is precisely what made the borrowed one look
 block is the worst place to put a number you are not re-measuring, because its whole function is to
 assert that everything in it is current.
 
-**Beware a per-item field that is constant across items.** The distribution lock appears to record
-delivery per file, each entry carrying its own `syncedAt`. Across all eleven members every entry's
-`syncedAt` equals the lock's `generatedAt`, so the field carries exactly the information of the
-aggregate above it while advertising resolution it does not have — the same shape as an authorship
-column that reads identically for every row. What is informative is entry *membership*: the two
-members with no canon entry are exactly the two that never opted in. **The lock's real signal is
-presence, not time**, which is the opposite of what its shape suggests.
+**The lock's real signal is presence, not time** — but the reason is not the one this file gave for
+most of its life, and the wrong reason was refuted by the paragraph directly beneath it. What is
+informative is entry *membership*: the two members with no canon entry are exactly the two that
+never opted in.
+
+The claim held here until a member disputed it was that every entry's `syncedAt` equals the lock's
+`generatedAt` across all eleven members, making the per-item field a constant column. Measured
+across all eleven locks — extracting with a regex, because `ConvertFrom-Json` coerces ISO strings
+to local-time `DateTime` and silently shifts them:
+
+```
+distinct syncedAt cohorts per member   6 6 7 4 5 6 2 1 4 3 4
+entries whose syncedAt == generatedAt  9 of 710
+```
+
+Exactly **one** member of eleven has a single cohort, and it is the one whose entire entry set was
+written by a single delivery — the sample in which the claim holds is the sample in which it could
+not have failed. **The paragraph naming that exact error is the next one in this file.** The
+counter-example and the claim were adjacent for their whole life and neither was ever read against
+the other, because reading is by subject and a contradiction is not a subject. A document long
+enough to need headings is long enough for two paragraphs to contradict each other inside one
+screenful, so proximity buys nothing; only a query does.
+
+**The correct semantics, from the engine rather than from the shape.** `sync/lib/copier.mjs`
+rewrites a lock entry on an `unchanged` result *only* when no entry existed at all — first-time
+adoption — and otherwise leaves it untouched. So `syncedAt` is stamped by `add`, `update` and
+`forced` alone: it records **when the path's bytes last changed, never when they were last
+verified.** A file that is already correct ages forever through any number of successful deliveries
+and reads as neglected. Cohort spread is evidence of **stability**, not of drift, and those two
+readings are exact opposites — a field can be misread not by a margin but by its sign.
+
+**And `generatedAt` is not the fallback, which is the part that matters.** The lock is written only
+when the run changed something, and a run that changes nothing returns before the write. So
+`generatedAt` dates the last run that *modified* a member, not the last run that *visited* one, and
+**no field in the lock can date a verification.** The silence is deliberate rather than defective: a
+no-op run that stamped the lock would produce a diff and open an empty pull request against every
+member. The property that makes the engine well-behaved is the same property that destroys the
+audit trail, so this cannot be repaired by stamping more — it is a genuine conflict between two
+things worth having, and the audit trail is the one that was traded away.
+
+That also supplies the mechanism for the never-dispatched state described below: a fully current
+member and a never-visited one are indistinguishable *in the lock* by construction, not by
+oversight.
 
 **And substituting time for presence can return a perfect score on a sample that could not have
 scored otherwise.** A member proposed a fourth distribution state — selected but undelivered —
@@ -4129,11 +4213,22 @@ structurally unable to tell the two apart at any level of care, while the member
 immediately.
 
 Two consequences. **When you cannot see the member's lock, do not name a cause** — report the
-observation ("this correction is absent from your copy") and ask for `syncedAt`, because the
+observation ("this correction is absent from your copy") and ask for the lock, because the
 diagnosis you would otherwise reach converts a self-correcting condition into a defect and aims a
 fix at working code. And **when you are the member, volunteer the lock fields unasked**; you are the
 only party who can close the question, and the cost is one call against a diagnosis that is
 otherwise unreachable.
+
+**But ask for `targetSha256`, not for `syncedAt`, and the distinction is not a nicety.** Per the
+measured semantics above, `syncedAt` dates the last *modification* of that path and `generatedAt`
+dates the last run that changed *something*, so neither answers "when did you last take delivery"
+and both answer it plausibly — an old timestamp on a perfectly current file is the normal case, not
+a symptom. `targetSha256` is a hash rather than a clock: it is rewritten whenever the bytes are, it
+can be compared directly against canon's rendering, and it cannot go stale while remaining correct.
+**When an artifact offers both a timestamp and a digest for the same question, the digest is the
+one that cannot be right and misleading at once.** Asking for the field whose shape suggests
+recency, over the field that actually carries it, is the same misreading as the one corrected
+above, arriving one section later in the advice rather than in the description.
 
 **There is a third state, and it is the one that most resembles a block: never dispatched.** A
 scheduled or manually dispatched distribution that simply has not run leaves exactly the artifact a
