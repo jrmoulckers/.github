@@ -666,26 +666,55 @@ an instruction that silently has no object reads as applicable.
 
 **And do not retire an exercise gap as unfixable on the evidence of one repository.** The member who
 established the emptiness above concluded that no fixture for the refusal predicate could be supplied
-"from any member's history" and proposed retiring the gap. True of their repository; false of the
-fleet. A single homelab run supplies it, and supplies both halves at once:
+"from any member's history" and proposed retiring the gap. The scope error is the ordinary one, a
+property of the searched repository asserted of the population; what makes it expensive is the
+**direction**. Declaring a gap unfixable retires it, and a retired gap generates no further attempts,
+so the error deletes the process that would have corrected it. Prefer *not obtainable from here*,
+which names the boundary and leaves the question open. Note also that the two deliberately
+manufactured probes among the runs above are both `startup_failure` carrying zero jobs: they show the
+harder fixture is producible on demand, and exercise no job-level predicate whatever. **A probe that
+fails before any job exists has probed nothing**, whatever it was named for.
+
+**The correction first offered here was itself too narrow, and wrong in the same direction.** It read
+*true of their repository; false of the fleet*, and nominated a single refusal run as supplying the
+whole fixture — two stepless failed jobs as positives, three stepless `skipped` jobs annotated as
+*zero-step, excluded by the conclusion conjunct* — claiming it "exercises both conjuncts and would
+catch a predicate that dropped either." Mutation-testing that run against the two single-conjunct
+variants refutes it:
 
 ```
-run 31461441074
-  secret-scan        failure  steps=0     <- refusal predicate, positive
-  changes            failure  steps=0     <- refusal predicate, positive
-  compose-validate   skipped  steps=0     <- zero-step, excluded by the conclusion conjunct
-  agent-layer        skipped  steps=0
-  yaml-lint          skipped  steps=0
+baseline   steps == 0 && conclusion == 'failure'   -> 2
+drop the steps conjunct                            -> 2   IDENTICAL, not caught
+drop the conclusion conjunct                       -> 5   differs, caught
 ```
 
-Two positives and three negatives that are zero-step for a *legitimate* reason, in one artifact —
-which exercises both conjuncts and would catch a predicate that dropped either. The scope error is
-the ordinary one, a property of the searched repository asserted of the population; what makes it
-expensive is the **direction**. Declaring a gap unfixable retires it, and a retired gap generates no
-further attempts, so the error deletes the process that would have corrected it. Prefer *not
-obtainable from here* — which names the boundary and leaves the question open — and note that two of
-the twelve runs above were deliberately manufactured probes, so even the harder fixture was
-producible on demand rather than merely awaited.
+**Every job in a refusal run is stepless, so the steps conjunct excludes nothing there and deleting
+it changes no selection.** The population is a sound negative control for one conjunct and vacuous
+for the other — the defect this passage exists to warn about, reproduced inside the artifact offered
+to cure it. The annotation is the proof, and it was written at the time: recording that the negatives
+were *excluded by the conclusion conjunct* records equally that the other conjunct did no work. The
+evidence of vacuity was not merely present but labelled, and the claim of exercising both conjuncts
+was written in the next sentence.
+
+So the fixture is a run **pair**, never a run: it needs one ordinary failing job with executed steps
+to separate the second variant. Generally, **a conjunctive predicate cannot be exercised by a
+population that its own failure mode made homogeneous.**
+
+That last clause asserts disjointness by construction, which this section warns against elsewhere, so
+it was measured rather than reasoned. Across every `conclusion == 'failure'` run in the last hundred
+of each member and the backbone — **296 runs over ten repositories with failures** — runs mixing a
+stepless refused job with a stepped one number **zero**. The claim survives, now on evidence rather
+than on the shape of its own definition. The 143-job census earlier in this section is the same rule
+seen from the other side: it found both conjuncts doing real work precisely because it was drawn
+across runs, so stepped jobs were present for the step test to exclude. One population spans the
+failure mode and one is contained by it, and only the containment makes a conjunct decorative.
+
+**The narrow claim inside a scope correction is the one least likely to be re-checked.** Widening the
+population feels like the correction, so the inner assertion rides along as if it had been verified
+too. Here it was worse than unverified: the pair existed in the very repository whose history was
+called insufficient, and the complementary stepped run sat **nine minutes** from the refusal run whose
+job census that same member had already reported line by line. The listing was open at the row that
+refuted the claim.
 
 **Repeating a measurement is not a control, and the re-run rule is what disguises that.** Every
 entry above describes a control that exists and is broken. This is the case where none exists and
