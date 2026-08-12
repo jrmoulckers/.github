@@ -2849,6 +2849,16 @@ If you build a coverage check for this, three traps are known to be live:
   message. The transformation is inserted **between** the API and the measurement, so it is in neither
   the document nor the arithmetic, and re-reading either one forever will not find it. State the
   retrieval path and the unit beside any size, and compare sizes only across identical paths.
+- **A difference between two counts is invariant to a shared convention; the counts themselves are
+  not.** The same file measured two ways gives `489/490` lines and `3316/3317`, depending only on
+  whether a trailing newline yields a final empty field — and a comparison that draws one figure
+  from each convention manufactures an off-by-one in the one place it cannot cancel, between two
+  parties' numbers. Yet the *shortfall* is `2827` under both, exactly, and the *share* is `14.7%`
+  against `14.8%`. So when a convention is unstated and cannot be pinned, report the difference or
+  the ratio and not the operands: subtraction cancels a constant offset exactly, a ratio cancels it
+  to within its own magnitude, and only the bare count carries it undiminished. Here the two figures
+  that survived a three-figure audit were precisely the two that were not absolute counts, and they
+  survived for that reason rather than because they were measured more carefully.
 
 Introducing a canon kind that lands in a formatted path is a **cross-repo event**: every affected
 member needs its ignore entry before its sync PR can go green. The `copilot` kind's first distribution
@@ -3311,6 +3321,18 @@ the whole point; the failure was reaching for memory of what had been landed rec
 line the correspondent had already supplied. **Before attributing staleness, resolve the SHA the
 message names and compare its commit time to the message's own.** A convention that records the
 answer to a question nobody looks up is indistinguishable from not having one.
+
+**And that convention binds the SHA you stamp on yourself, not only the ones you cite about
+others.** The message that landed the rule above carried a canon line count of `3274` under a
+standing SHA of `174a705` — but `3274` is exactly the count at `2e9a5c0`, committed fifteen minutes
+earlier, and the file gained 42 lines in between. The figure was measured, then published beneath a
+SHA that did not exist when it was taken. This is the same defect as dating a correspondent's
+message by a commit created after they sent it, reflected: there the referent was too new for the
+claim, here the claim was too old for the referent. **Emit the SHA from the command that performs
+the measurement**, so the pairing is produced rather than assembled — the standing line is written
+last and reaches for the freshest thing to hand, which is precisely when the two come apart. A rule
+that is applied only outward has no instance where it constrains its author, and so is never tested
+by the person most able to break it.
 
 **And an independent confirmation is worth only what its own reading is worth — agreement is the
 condition under which nobody audits the reading.** This repo declined to take a correspondent's
