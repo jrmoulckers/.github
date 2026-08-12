@@ -371,10 +371,10 @@ function validateExactDependencies(relativePath, kind, declared, referenced, err
 }
 
 function validateCheckFields(relativePath, body, errors) {
-  for (const command of body.matchAll(/\bgh\s+pr\s+checks\b[^\n`]*/g)) {
+  for (const command of body.matchAll(/\bgh\s+pr\s+checks\b(?:\\\r?\n|[^\n`])*/g)) {
     const occurrences = [...command[0].matchAll(/--json\b/g)];
     const selections = [
-      ...command[0].matchAll(/--json(?:=|\s+)(?:"([^"]*)"|'([^']*)'|([^\s`]+))/g),
+      ...command[0].matchAll(/--json(?:=|\s+)(?:"([^"]*)"|'([^']*)'|([^\s`\\]+))/g),
     ];
     if (occurrences.length !== selections.length) {
       errors.push(`${relativePath}: gh pr checks has an unparseable --json selection`);

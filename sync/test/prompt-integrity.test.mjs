@@ -75,6 +75,42 @@ gh pr checks 2 --json
   );
 });
 
+test('a line-continued gh pr checks command is still field-validated', () => {
+  withFixture(
+    {
+      'alpha.prompt.md': `---
+name: alpha
+description: Test prompt.
+parameters: []
+built_ins: []
+agent_dependencies: []
+---
+
+# Test
+
+## Runtime Contract
+
+gh pr checks 1 \\
+  --json name,totallyInvalid
+`,
+    },
+    {
+      prompts: ['alpha'],
+      agents: [],
+      members: [],
+    },
+    (root, manifest) => {
+      assert.throws(
+        () => validatePromptIntegrity(root, manifest),
+        (error) => {
+          assert.match(error.message, /unsupported JSON field "totallyInvalid"/);
+          return true;
+        },
+      );
+    },
+  );
+});
+
 test('selected prompts require their declared canonical agents', () => {
   const prompt = validPrompt('alpha', {
     agentDependencies: ['qa-tester'],
