@@ -1754,6 +1754,28 @@ If the change lands after their run, the disagreement is fully explained and the
 So: **date your measurements when you report them**, and read the date before diagnosing someone
 else's. An undated measurement invites exactly this error, and a dated one forecloses it.
 
+### An issue's state records a button press, not the state of the question
+
+The rule above concerns a measurement that was correct when made and has since been superseded. A
+tracker field fails differently: **nobody measured anything at all.** `OPEN` and `CLOSED` are set by
+hand, and the hand is not attached to the code, so the field lags repair in one direction and
+regression in the other.
+
+Both directions occurred here on a single day. **`OPEN` is not evidence the question is live:** one
+issue was repaired in code by two separate commits hours apart while three sessions went on arguing
+over which half remained broken. This repo was one of them — reading `state: OPEN` plus the single
+comment it had been pointed at, then posting a claim that two comments three hours earlier in the
+same thread had already falsified by measurement. **`CLOSED` is not evidence it was repaired:** of
+two issues closed the same day, both reading `CLOSED | COMPLETED`, one closed on a commit with zero
+added source lines that were not comments, the other on a new predicate and a new suite. The API
+does not distinguish documented-shut from repaired-shut.
+
+The pull toward the field is that it costs one call and returns a clean answer to a question it was
+never asked, while the answer lives in the expensive read. So **take the thread's most recent
+measurement, not the state field** — and when someone asks you to record a finding on an issue,
+**check that it is open before writing**, since a closed issue with no comments is not a place a
+finding survives.
+
 ### Conform against a population that outlives the implementation
 
 When you check that your copy of a rule still matches canon's, choose what to key the check on. Two
