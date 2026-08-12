@@ -923,9 +923,52 @@ test('a hand-repaired entry — target current, source stale — is corrected, n
   });
 });
 
-// The control against over-correcting: a matching entry must stay `unchanged`, so this adds no
-// lockfile churn. Without it, restamping unconditionally would stamp a fresh generatedAt into
-// every sync PR and the test above would still pass.
+// The mirror of the test above, and the half it could not see. `sameBaseline` is a conjunction, and
+// the comment above pins the `sourceSha256` operand by naming the failure a `targetSha256`-only
+// comparison would cause. It does not pin the other direction: a `sameBaseline` comparing
+// `sourceSha256` alone left the entire suite green, verified by mutant.
+//
+// The state it protects is the opposite hand-repair, and it arises on its own without anyone editing
+// anything. When the engine's own rendering changes while canon source does not -- a provenance
+// stamp reworded, a marker adjusted -- the delivered bytes move and the recorded `targetSha256`
+// describes output no engine now produces. A member whose file already holds the current rendering
+// then has a current source hash beside a stale target hash.
+//
+// Left unpinned, such an entry reads as clean forever: the lock keeps a target hash matching neither
+// the file beside it nor anything canon renders, and every later integrity comparison inherits it.
+test('an entry recording a superseded rendering — source current, target stale — is restamped', () => {
+  withTmp((root) => {
+    const s = spec();
+    const targetPath = s.targetPath;
+
+    seed(root, targetPath, s.content);
+
+    const lock = {
+      entries: {
+        [targetPath]: {
+          // Current canon, beside the hash of bytes an earlier rendering produced from it.
+          sourceSha256: s.sourceSha256,
+          targetSha256: hashText('# architect\n\nWhat an older rendering emitted.\n'),
+          syncedAt: '2026-08-07T15:35:03.616Z',
+        },
+      },
+    };
+
+    const { report, lock: next } = apply(root, [s], lock, { write: true });
+
+    assert.deepEqual(report.unchanged, [], 'an entry describing a superseded rendering is not clean');
+    assert.deepEqual(
+      report.updated.map((i) => i.targetPath),
+      [targetPath],
+      'the entry must be restamped, or it describes bytes no delivery ever produced',
+    );
+    assert.equal(
+      next.entries[targetPath].targetSha256,
+      hashText(s.content),
+      'the stale target must be corrected — asserting the source here would restate the precondition',
+    );
+  });
+});
 test('a file identical to the current rendering with a matching entry stays unchanged', () => {
   withTmp((root) => {
     const s = spec();
