@@ -1801,9 +1801,27 @@ elements, not `-Line`. Recording it because the sequence is the point: a member'
 caught by a coordinate, and the audit confirming it ran on a counter that was quietly wrong in the
 same direction.
 
-Every instrument they trusted agreed with them. The quoted phrase resolved, the SHA was pinned and
-exact, and the neighbourhood was on-topic. The coordinate was the only thing that dissented — it was
-past EOF, and a line beyond the end of a file returns nothing rather than near-missing.
+**And this entry then failed to protect its own author, which is the more useful half.** Hours after
+it was written, a peer reported a two-blob census of this file; their line counts disagreed with mine
+by 461 and 452, and my counts came from `Measure-Object -Line`. The measured split was exactly the
+recorded one — `.Count` returned 2887 and 2792 against the cmdlet's 2427 and 2341, and the gaps were
+the 460 and 451 blank lines. Their figures were right and my instrument was wrong, in the file
+carrying the warning, while reading that file.
+
+Note the near miss in the direction that matters: the undercount was **plausible**, so the disagreement
+read as *their* error. Had I trusted the cmdlet I would have corrected a correct peer with an
+authoritative-looking figure produced by a command. **An instrument that fails toward plausibility does
+not merely mislead its user; it arms them**, because the output is then spent on somebody else.
+
+The rule this confirms is the one about recorded rules not being applied ones, and the remedy is the
+same shape: not a restatement, but a property of the recorded commands. Every counting step in this
+document's standing checks reads `.Count` or `@(...).Count`, and `-Line` appears in canon only in
+this passage, as the example of what not to use — verified rather than asserted. A rule that has now
+failed its own author does not need saying more loudly; it needs to stop being reachable.
+
+Every instrument that member trusted agreed with them. The quoted phrase resolved, the SHA was pinned
+and exact, and the neighbourhood was on-topic. The coordinate was the only thing that dissented — it
+was past EOF, and a line beyond the end of a file returns nothing rather than near-missing.
 
 **That was recorded here as the coordinate working as a detector. It is withdrawn: it fired by
 arithmetic accident.** The reporter's objection is right and the numbers settle it. Detection required
@@ -2643,10 +2661,30 @@ $new = Get-Content $f
 git --no-pager diff -U0 -- $f | Select-String '^@@' | ForEach-Object {
   if ($_ -match '\+(\d+)') { [int]$Matches[1] }
 } | ForEach-Object {
-  $h = $new[0..($_ - 1)] | Select-String '^#{2,4} ' | Select-Object -Last 1
+  $h = $new[0..($_ - 1)] | Select-String '^#{1,6} ' | Select-Object -Last 1
   "line $_ -> $(if ($h) { $h.Line.Trim() } else { '(no heading)' })"
 }
 ```
+
+**That predicate reads `^#{1,6}` rather than `^#{2,4}` for a reason worth stating, because the
+narrower form was wrong only contingently.** A peer measuring this file's headings reconciled a census
+disagreement to two lines — one of predicate, one of revision — and the predicate line was an `H1` that
+a `^#{2,4}` real-side scan excludes. Reproduced over the same two blobs, so the predicate is the only
+free variable:
+
+| blob | `^#{1,4}` real / in-fence | `^#{2,4}` real / in-fence |
+| --- | --- | --- |
+| `db6335a8` | 37 / 12 | 36 / 12 |
+| `01957f8d` | 36 / 11 | 35 / 11 |
+
+`H1` outside fences is **1** at both revisions, and `^#{1,6}` and `^#{1,4}` return identical in-fence
+counts, so the entire real-side gap is the `H1` and the entire in-fence gap is drift. The narrow
+predicate never misreported placement here **only because both canon files carry exactly one `H1` and
+it is the title** — an insertion above the first `H2` therefore reports `(no heading)`, which is loud.
+Add a mid-file `H1` and the same check walks past it to the previous section's `H2` and names the
+wrong section silently. **The check was correct by a property of the corpus rather than by
+construction**, which is the condition a guard cannot detect about itself; widening the predicate
+costs nothing and removes the dependency.
 
 The general form is the one that keeps recurring: **a passing check licenses exactly the property it
 measures**, and a guard that has caught several real faults earns a trust that quietly extends to
