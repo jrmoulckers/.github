@@ -229,6 +229,31 @@ rather than a bug. A difference that is identical across every element of a samp
 the measuring apparatus until shown otherwise; the real signal here was the residue the offset was
 hiding, one second wide.
 
+**The two channels that supply these timestamps disagree by design, and the obvious fix makes it
+worse.** `git`'s `%cI` and `--date=iso-strict` are strict ISO 8601 and render in the *committer's*
+zone, while the platform API always returns `Z`. Neither is malformed, nothing looks wrong, and a
+table mixing them hides a day boundary. The natural remedy — force a UTC format string — is where the
+trap is:
+
+```
+%cI                                              2026-08-11T20:13:02-07:00   honest offset
+--date=format-local:'%Y-%m-%dT%H:%M:%SZ'         2026-08-11T20:13:02Z        LOCAL, labelled Z
+TZ=UTC ... --date=format-local:'...%SZ'          2026-08-12T03:13:02Z        correct
+%ct                                              1786504382                  frame-free
+```
+
+`format-local` honours the environment, so **without the environment variable it emits local time
+wearing a `Z`** — off by the offset, and now indistinguishable from a genuine UTC reading, where
+`%cI` at least declared its frame. That is strictly worse than the disease: the half-applied remedy
+converts an honest inconvenience into a silent falsehood, and it defeats the very check a reader
+would apply after learning this rule, since the string is `Z`-suffixed and well-formed.
+
+Prefer `%ct`, the Unix epoch, which has no frame to get wrong and no environment to depend on;
+convert once at the point of display. The principle generalises past dates: **where a remedy's
+correctness depends on an ambient setting, prefer the form that cannot express the error** over the
+form that merely requires remembering a flag — a rule whose failure mode is "the author forgets the
+second half" has the same standing as no rule.
+
 **An absent measurement impersonates whichever verdict the caller was written to look for.** A
 spawned linter returned exit code `null` — a spawn failure, not a result. `null` is falsy *and* is
 `!== 0`, so a success test reads it as failure and a failure test reads it as success; whichever
@@ -2942,6 +2967,16 @@ population it ranges over is the shared premise of both sides of the argument, a
 are what nobody checks. This is the sharper form of the habit stated earlier as *report the
 population you actually measured* — the moment of greatest risk is not when you first write a figure
 but when you correct one, because a correction feels like the audit already happened.
+
+**A carried-forward figure decays into the wrong-referent class without ever being restated.** A
+correspondent quoting a size for this file gave a number that was exact one exchange earlier and
+short by roughly a hundred lines against the revision their own message named — not re-measured and
+not wrong when first taken, simply reused. The distinctive property is that it requires no new act:
+the earlier measurement is copied forward while the referent moves underneath it, so there is no
+moment at which anyone decided anything. **A figure quoted without the revision it was taken at is
+already stale; one quoted with the revision it was taken at merely needs re-measuring.** Carry the
+pin with the number, or take the number again — and note that this fires hardest on documents that
+are compounding, which are exactly the ones being discussed when the figure matters.
 
 **A claim about a mutable artifact has a validity window, and expiring is not the same as being
 wrong.** The same exchange produced a claim that was true when sent and false when checked, because
