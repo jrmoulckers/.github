@@ -1109,6 +1109,25 @@ the other side; if your window has no other side, you have found the edge of you
 that the window may be defined by the subject's behaviour and not by your query, in which case the
 edge is real, unfixable, and indistinguishable from a finding.
 
+**The opposite case is commoner and is your own doing: a window bounded by the revisions under
+discussion can only detect change that happens to fall inside it, and you choose those bounds after
+you know what you are testing.** Refuting a peer's claim that a heading count had decayed, this
+canon was measured across the six revisions they had cited, found flat, and the decay explanation
+was rejected outright. Scanning all revisions of the path instead shows the count did move — twice,
+the last time thirteen hours before the reading in question and fifty-three minutes before the
+peer's measurement. The window was accurate and the conclusion drawn from it was false. An
+instrument check does not save this: the quantity had changed, just not between the chosen
+endpoints. **Bound by the quantity's history, not by the citation's** — scan until you find the
+change or prove there is none.
+
+Note what the correction inherited. First claim: the whole gap is decay. Correction: none of it ever
+was. Truth: decay moved it by exactly one and contributed zero to the discrepancy being explained.
+**Both readings were totals where the answer needed a series**, so the correction failed by the same
+all-or-nothing move as the error. And the rejected hypothesis was not merely plausible — it was true
+of the immediate past, off by one unit and under an hour. **A hypothesis that is almost exactly
+right is more dangerous than a fashionable one**, because a fashionable one dies on contact with
+data and a nearly-true one survives contact and still misattributes.
+
 **And when you replace someone's instrument with your own, check your coverage against the case
 theirs was built to observe.** A member probing one blocked repository by rerunning a single workflow
 was offered a fleet-wide scan in its place — broader on every axis but one, and that one was theirs. A
