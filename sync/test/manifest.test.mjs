@@ -393,6 +393,32 @@ test('engineering and product take the AI layer without a product toolchain', ()
   }
 });
 
+test('the tokens cohort supports cross-member arbitration', () => {
+  // sync/README.md tells a member that a second consumer's recorded sourceSha256 arbitrates a
+  // failing inverse audit without studio access. That recipe is only performable while at least
+  // two members vendor tokens, and the cohort is manifest state that has changed over time --
+  // consumers were opted in one at a time, so this property was false earlier and can become
+  // false again. Fail here rather than leaving the published recipe quietly unusable.
+  const consumers = manifest.members.filter((member) => member.tokens?.enabled === true);
+  assert.ok(
+    consumers.length >= 2,
+    `cross-member token arbitration needs 2+ consumers, found ${consumers.length}: ` +
+      `${consumers.map((member) => member.repo).join(', ') || '(none)'}`,
+  );
+
+  // The arbiter compares one target path across members, so the consumers must agree on where
+  // the distribution lands. A per-member targetPath would make the lookup in the recipe wrong
+  // without making any existing assertion fail.
+  const bases = new Set(
+    consumers.map((member) => member.tokens.targetPath ?? manifest.canon?.tokens?.targetPath ?? '(default)'),
+  );
+  assert.equal(
+    bases.size,
+    1,
+    `token consumers must share one target base for the arbiter to compare: ${[...bases].join(', ')}`,
+  );
+});
+
 test('enumerateTargets partitions every resolved group; nothing is silently dropped', () => {
   // A conservation law, not a count. The original defect was a bare `continue` that removed
   // external groups from the return value entirely, so no caller could discover that a whole
