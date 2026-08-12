@@ -1232,6 +1232,35 @@ across a Windows checkout will disagree with this check and the check is the one
 Vendored tokens pass their own `note`, so audit those with the same `note` the copier uses or they
 will all read as drift.
 
+##### Auditing `sourceSha256` when you cannot read the source
+
+The recipe above runs *forward*: render canon, compare. That needs the source in hand, which holds
+for backbone canon and **not** for vendored `@jrm/tokens` — those come from `jrmoulckers/studio`,
+which is private, so a member has the delivered file and nothing to render. The only direction
+available is the inverse: strip the stamp, then hash. `sourceSha256` is `hashText(raw)` over
+pre-render bytes, so a correct strip reproduces it exactly.
+
+The strip is fully determined by [`commentSyntaxFor`](lib/comment-syntax.mjs) — by file *type*, not
+by content:
+
+| family  | rendering                       | inverse                    |
+| ------- | ------------------------------- | -------------------------- |
+| `hash`  | `# note` + newline + content    | drop 1 line                |
+| `block` | `/* note */` + newline + content | drop 1 line               |
+| `html`  | `<!-- note -->` + blank + content | drop 2 lines             |
+| `html` with frontmatter | stamp spliced *after* the closing `---` | no leading strip recovers it |
+| `none`  | content unchanged (`.json`, `.map`) | drop nothing           |
+
+Then `hashText` (LF-normalize, then SHA-256) — not a raw byte hash, or a CRLF checkout disagrees
+with the engine for the reason given above.
+
+Two ways this is got wrong by inferring the rule from samples rather than reading it here. Deciding
+the shape by *frontmatter* scores well on a corpus that is mostly `.md` and is the wrong variable —
+frontmatter is an exception inside the `html` family, not a rule over all of them. And a one-line
+stamp on a `.toml` file is not evidence of a second stamper: `.toml` is in the `hash` family, and one
+line is what `inject` is specified to produce. Pinned by *the stamp is invertible per family* in
+`test/provenance.test.mjs`.
+
 #### The whole-file recipe reports false drift on managed-region targets
 
 The check above compares whole files, so it is wrong for the three managed-merge targets

@@ -23,6 +23,7 @@ import { enumerateTargets } from '../lib/assets.mjs';
 import { inject, toLF, PROVENANCE_NOTE, hasFrontmatter } from '../lib/provenance.mjs';
 import { buildFile, canonicalizeInner, extractBlock, markersFor } from '../lib/basemerge.mjs';
 import { commentSyntaxFor, CLASSIFIED_TYPES } from '../lib/comment-syntax.mjs';
+import { hashText } from '../lib/lock.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const manifest = loadManifest(ROOT);
@@ -365,4 +366,39 @@ test('every file the engine plans to write is classified, so the throw is unreac
     }
   }
   assert.ok(checked > 0, 'no planned writes inspected: this test would assert nothing');
+});
+
+test('the stamp is invertible per family, which is the only audit a token member can run', () => {
+  // `sourceSha256` hashes pre-render bytes. The documented recipe renders canon forward and
+  // compares -- unavailable for vendored @jrm/tokens, whose source repo is private, so a member
+  // holding only the delivered file must strip the stamp and hash. That inverse is a contract:
+  // reordering the blank line after an HTML stamp, or stamping the `none` family, breaks every
+  // member-side audit of `sourceSha256` while the forward tests stay green.
+  const raw = 'first body line\nsecond body line\n';
+
+  // Strip counts are literals; the family comes from the engine. Deriving both from
+  // `commentSyntaxFor` would check the table against itself.
+  for (const [path, family, drop] of [
+    ['vendor/@jrm/tokens/css/default/tokens.css', 'block', 1],
+    ['agency.toml', 'hash', 1],
+    ['.gitattributes', 'hash', 1],
+    ['docs/guide.md', 'html', 2],
+    ['vendor/@jrm/tokens/js/index.js.map', 'none', 0],
+  ]) {
+    assert.equal(commentSyntaxFor(path), family, `${path}: family moved`);
+    const rendered = inject(path, raw);
+    const stripped = rendered.split('\n').slice(drop).join('\n');
+    assert.equal(stripped, toLF(raw), `${path}: inverse of ${drop} line(s) does not recover raw`);
+    assert.equal(hashText(stripped), hashText(raw), `${path}: recovered bytes do not rehash`);
+  }
+
+  // Frontmatter is the exception, and it is an exception *within* the html family rather than a
+  // rule of its own: the stamp splices in after the closing delimiter, so no leading strip
+  // recovers the source. A member inferring "frontmatter decides" from samples gets this backwards.
+  const fm = '---\ntitle: t\n---\nbody\n';
+  assert.ok(hasFrontmatter(fm));
+  const renderedFm = inject('docs/guide.md', fm);
+  for (const drop of [0, 1, 2]) {
+    assert.notEqual(renderedFm.split('\n').slice(drop).join('\n'), toLF(fm));
+  }
 });
