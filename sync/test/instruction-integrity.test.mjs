@@ -374,3 +374,56 @@ test('member-facing instructions cite code by name, not by line number', () => {
     );
   }
 });
+
+// The comment above `requirePatterns` argues from counts — how many pinned patterns a reflow
+// breaks, how many markup-stripping breaks, how each candidate normalization scores. Those numbers
+// were transcribed by hand twice and were wrong both times, in both digits, because the
+// transcription silently omitted a whole file's worth of patterns. #643 corrected one figure and
+// left its twin four lines above the paragraph announcing the correction.
+//
+// So the denominator is derived here rather than trusted there. Every count claim in that block is
+// checked against the patterns actually present in the module, which means adding or removing a
+// pattern fails this test until the prose it invalidated is updated. A note recording that a number
+// was once wrong is not a check that it is now right.
+test('the pattern counts cited above requirePatterns are derived, not transcribed', () => {
+  const source = readFileSync(join(REPO_ROOT, 'sync', 'lib', 'instruction-integrity.mjs'), 'utf8');
+
+  // Same extraction the measurements use: read the requirement tables out of the module instead of
+  // re-declaring them, so this cannot drift from the list it describes.
+  const table = source.slice(
+    source.indexOf('function validateContent'),
+    source.indexOf('function validateMemberSelections'),
+  );
+  const patterns = table
+    .split('\n')
+    .filter((line) => /^\s*\[\/.*\/[a-z]*, '[^']+'\],?\s*$/.test(line));
+
+  assert.ok(patterns.length > 0, 'no pinned patterns extracted — this check would assert nothing');
+
+  const block = source.slice(
+    source.indexOf('// Every pattern below pins a phrase'),
+    source.indexOf('function requirePatterns'),
+  );
+  assert.ok(block.length > 0, 'requirePatterns commentary not found — this check would assert nothing');
+
+  // Historical figures are quoted ("6 of 21") precisely because they are wrong and are being
+  // recorded as wrong. Drop quoted spans before scanning so the record of the defect does not
+  // read as an instance of it.
+  const live = block.replace(/"[^"]*"/g, '""');
+  const claims = [...live.matchAll(/\b(\d+) of (?:the |these )?(\d+)\b/g)];
+
+  assert.ok(claims.length > 0, 'no count claims found in the block — this check would assert nothing');
+
+  for (const [text, numerator, denominator] of claims) {
+    assert.equal(
+      Number(denominator),
+      patterns.length,
+      `"${text}" counts against ${denominator} pinned patterns, but the module declares ${patterns.length}`,
+    );
+    assert.ok(
+      Number(numerator) <= patterns.length,
+      `"${text}" claims more patterns than the module declares (${patterns.length})`,
+    );
+  }
+});
+

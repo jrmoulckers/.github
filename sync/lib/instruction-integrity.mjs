@@ -316,13 +316,13 @@ function parseFrontmatter(relativePath, text, errors) {
 // Every pattern below pins a phrase, and a phrase is a sequence of words — not a sequence of
 // words with the line breaks canon happens to carry today. Matching raw bytes made each check
 // depend on where the file is wrapped: reflowing the corpus (`prettier --prose-wrap always`)
-// broke 3 of 21 patterns on canon that still stated the rule exactly. The corpus is 3,700 hand
+// broke 5 of 30 patterns on canon that still stated the rule exactly. The corpus is 3,700 hand
 // wrapped lines, so a break can land inside any phrase the next time someone edits a paragraph.
 //
 // This was already known one instance at a time. Two `infrastructure-operations` patterns are
 // written `second\s+access\s+path` and `canonical repository\s+state`, and both of those `\s+`
 // sites sit on a real newline in the source — the author hit the failure twice while authoring,
-// patched the two phrases their own wrap straddled, and left the other nineteen resting on it.
+// patched the two phrases their own wrap straddled, and left the other twenty-eight resting on it.
 // Normalizing here fixes the class, and fixes it for patterns not yet written.
 //
 // Whitespace, specifically. Stripping markup the same way does not transfer: 7 of these 30 pin
@@ -330,10 +330,16 @@ function parseFrontmatter(relativePath, text, errors) {
 // those characters destroys the assertion instead of normalizing it. Whitespace is never content
 // in a pinned phrase — the two hand-patched patterns already assert that.
 //
-// (That figure read "6 of 21" until #643. Both numbers came from a hand transcription of this
-// list that omitted `infrastructure-operations` entirely, so the denominator was wrong and the
-// pattern it hides — `local agent routing` — went uncounted. Measured since by extracting the
-// patterns from this module rather than retyping them.)
+// (That figure read "6 of 21" until #643, and the reflow figure above read "3 of 21" until #651.
+// Both numbers came from a hand transcription of this list that omitted `infrastructure-operations`
+// entirely, so the denominator was wrong and the pattern it hides — `local agent routing` — went
+// uncounted; it is one of the five the reflow breaks. Measured since by extracting the patterns
+// from this module rather than retyping them.
+//
+// #643 corrected one of the two figures and left its twin four lines above the paragraph
+// announcing the correction. A note that a number was wrong is not a check that the number is
+// right, so the denominator is now derived: `instruction-integrity.test.mjs` extracts these
+// patterns and fails if any count cited in this file disagrees with how many there are.)
 //
 // And global, not scoped to prose paragraphs. The narrower rule — join blank-line-separated prose
 // and leave any block holding a fence, list marker, table row or heading alone — is the better
