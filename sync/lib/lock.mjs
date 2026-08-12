@@ -105,6 +105,21 @@ export function writeLock(memberRoot, lock) {
  * entry backwards by two days, and because a lock entry that disagrees with disk reads as member
  * drift, the path was refused on every later run until someone hand-edited a generated file.
  *
+ * That incident is **not closed**, and the record is worth being exact about because the entry is
+ * still wrong in a way that looks repaired. Reconstructed from finance's lock history:
+ *
+ *   finance PR #4027  correct entry written; all three fields updated atomically
+ *   finance PR #4062  the overlapping run; sourceSha256 and syncedAt reverted, bytes untouched
+ *   finance PR #4085  hand repair titled "restore regressed lock hash" — fixed `targetSha256`
+ *                     only, so the entry now matches its own file while still describing a
+ *                     two-day-old canon source
+ *
+ * The recoverable values are `sourceSha256: 658721d4…` and `syncedAt: 2026-08-09T22:23:34.202Z`,
+ * confirmed independently: the delivered bytes unstamp to that hash, and `jrmoulckers/cartridge`
+ * vendored the same dist revision and recorded the same value. Do not hand-apply them — the fold
+ * below excludes keys the run itself wrote, so a sync that re-renders this target corrects all
+ * three fields for free. A second hand-edit is what produced the mixed state in the first place.
+ *
  * Two deliberate narrowings, because the general problem has a question in it that should not be
  * answered in passing:
  *

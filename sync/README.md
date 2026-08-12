@@ -1341,11 +1341,34 @@ gh api repos/jrmoulckers/<other>/contents/.studio-sync.lock.json --jq '.content'
   | base64 -d | jq '.entries["vendor/@jrm/tokens/css/default/tokens.css"]'
 ```
 
-- Their `sourceSha256` **equals yours** → the record is corroborated and the disagreement is in your
-  delivered bytes: a local edit, a hand-repair, or a partial write.
+- Their `sourceSha256` **equals yours** → *not yet conclusive.* Compare `syncedAt`. If their delivery
+  is **newer** than yours, your record is corroborated and the disagreement is in your delivered
+  bytes — a local edit, a hand-repair, or a partial write. If their delivery is **older**, see the
+  regression signature below, because a reverted record agrees with old observers by construction.
 - Their `sourceSha256` **differs** and their `syncedAt` is close to yours → suspect your record.
 - Their `sourceSha256` differs and their `syncedAt` is far from yours → nothing is proven; the dist
   legitimately changed between the two deliveries.
+
+**Query every consumer, not the first one.** Both halves of a disagreement can have a corroborating
+observer at the same time, pointing opposite ways, and one member answers only whichever question it
+happens to sit on.
+
+###### The regression signature
+
+The overlap failure in [#418](lib/lock.mjs) moves an entry *backwards*: a run whose lifetime
+overlapped another's rewrites `sourceSha256` and `syncedAt` with older values while the file on disk
+keeps the newer bytes. A reverted record is a verbatim copy of a genuine earlier value, so it
+**agrees exactly** with any member still on that earlier revision. Equality cannot tell corroborated
+from reverted; ordering can:
+
+> If your record matches an *older* consumer while your bytes reproduce a *newer* consumer's value,
+> your record has moved backwards. The bytes are right and the entry is stale.
+
+The live instance in this fleet reads that way in full — one consumer matches the stale record,
+another matches the delivered bytes, and the two are two days apart in the dist progression. The
+remedy is a sync: the fold declines to arbitrate keys the run itself wrote, so a fresh render
+replaces the stale entry outright. Do not hand-edit the lock to fix it; that is what produced the
+half-repaired state described in `mergeNewerBaseEntries`.
 
 **Agreement is evidence only across different delivery events.** Two members written by the same
 sync run carry the same bytes by construction and cannot disagree, so a matching pair from one run
