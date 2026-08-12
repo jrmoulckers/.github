@@ -86,7 +86,13 @@ export function createBranch(dest, branch) {
  */
 export function prepareSyncBranch(dest, branch, { reuse = false, defaultBranch = 'main' } = {}) {
   if (reuse) {
-    if (!fetchRemoteBranch(dest, branch)) {
+    const existing = remoteBranchPresence(dest, branch);
+    if (existing.status === 'unavailable') {
+      throw new Error(
+        `Could not determine whether open PR branch ${branch} still exists: ${existing.detail}`,
+      );
+    }
+    if (existing.status === 'absent') {
       throw new Error(`Open PR branch ${branch} disappeared before it could be reused.`);
     }
     git(['checkout', '-B', branch, `refs/remotes/origin/${branch}`], dest);
@@ -94,17 +100,29 @@ export function prepareSyncBranch(dest, branch, { reuse = false, defaultBranch =
     return { branch, reused: true, foreign: foreign.commits, foreignStatus: foreign.status };
   }
 
-  if (!fetchRemoteBranch(dest, branch)) {
+  const dated = remoteBranchPresence(dest, branch);
+  if (dated.status === 'unavailable') {
+    throw new Error(`Could not determine whether ${branch} already exists on the remote: ${dated.detail}`);
+  }
+  if (dated.status === 'absent') {
     createBranch(dest, branch);
     return { branch, reused: false, foreign: [], foreignStatus: 'ok' };
   }
 
+  // Probe `-rerun-N` for a free name. A failed probe must stop the search rather than end it:
+  // treating "could not tell" as "free" returns the first candidate, which is the one most likely
+  // to be taken. See remoteBranchPresence.
   let sequence = 2;
   let freshBranch;
-  do {
+  for (;;) {
     freshBranch = `${branch}-rerun-${sequence}`;
     sequence += 1;
-  } while (fetchRemoteBranch(dest, freshBranch));
+    const candidate = remoteBranchPresence(dest, freshBranch);
+    if (candidate.status === 'unavailable') {
+      throw new Error(`Could not determine whether ${freshBranch} is free: ${candidate.detail}`);
+    }
+    if (candidate.status === 'absent') break;
+  }
 
   createBranch(dest, freshBranch);
   return { branch: freshBranch, reused: false, foreign: [], foreignStatus: 'ok' };
@@ -112,11 +130,44 @@ export function prepareSyncBranch(dest, branch, { reuse = false, defaultBranch =
 
 /** Fetch `branch` from origin into its remote-tracking ref. False when the remote branch is absent. */
 export function fetchRemoteBranch(dest, branch) {
+  return remoteBranchPresence(dest, branch).status === 'present';
+}
+
+/**
+ * Presence of a remote branch, distinguishing "not there" from "could not tell".
+ *
+ * A bare boolean here is not merely imprecise, it inverts the one loop that consumes it. The
+ * `-rerun-N` search in `prepareSyncBranch` continues *while* a candidate exists and stops at the
+ * first that does not, so a blinded probe — every candidate reading absent — terminates on
+ * iteration one and returns `-rerun-2`: the lowest-numbered, longest-lived, most likely to already
+ * exist. A guard written to avoid collision selects the maximally colliding name at exactly the
+ * moment it cannot see. The non-forced `push -u` catches a diverged remote, but a remote tip that
+ * is an *ancestor* fast-forwards cleanly and silently reuses a retained branch, which is what the
+ * `prepareSyncBranch` docblock above forbids.
+ *
+ * The discriminator is git's own wording, captured from a live remote rather than assumed:
+ *
+ *   absent ref        fatal: couldn't find remote ref <name>
+ *   unreachable host  fatal: unable to access '<url>': Could not resolve host: <host>
+ *   missing repo      fatal: repository '<url>' not found
+ *
+ * Anchoring on `couldn't find remote ref` rather than a looser `not found` matters for the third
+ * case: a missing *repository* would otherwise classify as a missing *ref* and take the absent
+ * path, which is the same conflation one level up. Pinned against real git output in
+ * test/branch-reuse.test.mjs, because a fixture asserting the message is written from the same
+ * belief as the classifier and cannot catch a regex that mismatches reality.
+ *
+ * @returns {{ status: 'present'|'absent'|'unavailable', detail?: string }}
+ */
+export function remoteBranchPresence(dest, branch) {
   try {
     git(['fetch', '--depth', '50', 'origin', `${branch}:refs/remotes/origin/${branch}`], dest);
-    return true;
-  } catch {
-    return false;
+    return { status: 'present' };
+  } catch (err) {
+    const detail = err.message;
+    return /couldn't find remote ref/i.test(detail)
+      ? { status: 'absent' }
+      : { status: 'unavailable', detail };
   }
 }
 

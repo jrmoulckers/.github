@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import {
   prepareSyncBranch,
+  remoteBranchPresence,
   commitAll,
   push,
   remoteSyncBranches,
@@ -440,6 +441,85 @@ test('foreignCommits distinguishes "no reviewer commits" from "could not look"',
     const failed = foreignCommits(work, BRANCH, 'no-such-base');
     assert.equal(failed.status, 'unavailable');
     assert.deepEqual(failed.commits, []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// #665. These drive real `git`, not a fixture of what git is believed to print. A fixture asserting
+// the message is written from the same belief as the classifier, so it cannot catch a regex that
+// mismatches reality — the one axis a mutation suite has no access to.
+test('remoteBranchPresence separates a real absent ref from a real unreadable remote', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sync-presence-test-'));
+  try {
+    const { origin } = makeOrigin(root);
+    const work = clone(root, origin, 'work');
+
+    assert.equal(remoteBranchPresence(work, BRANCH).status, 'present');
+    assert.equal(remoteBranchPresence(work, 'no-such-branch').status, 'absent');
+
+    // Break the remote itself. The ref question is now unanswerable rather than answered "no".
+    git(['remote', 'set-url', 'origin', join(root, 'gone.git')], work);
+    const blinded = remoteBranchPresence(work, BRANCH);
+    assert.equal(blinded.status, 'unavailable', 'an unreadable remote must not read as absent');
+    assert.ok(blinded.detail, 'unavailable carries the reason it could not tell');
+    assert.equal(
+      remoteBranchPresence(work, 'no-such-branch').status,
+      'unavailable',
+      'and a genuinely absent ref is equally unanswerable once the remote is gone',
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('a blinded rerun search refuses instead of selecting the most-collided name', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sync-rerun-test-'));
+  try {
+    const { origin, seed } = makeOrigin(root);
+    // `-rerun-2` is taken, so a sighted search must skip it. It is also the name a blinded search
+    // returns first, which is what makes the failure mode a collision rather than a nuisance.
+    git(['checkout', '-b', `${BRANCH}-rerun-2`], seed);
+    git(['push', '-u', 'origin', `${BRANCH}-rerun-2`], seed);
+
+    const sighted = clone(root, origin, 'sighted');
+    assert.equal(
+      prepareSyncBranch(sighted, BRANCH, { reuse: false }).branch,
+      `${BRANCH}-rerun-3`,
+      'control: with a readable remote the search skips the taken name',
+    );
+
+    const blind = clone(root, origin, 'blind');
+    git(['remote', 'set-url', 'origin', join(root, 'gone.git')], blind);
+    assert.throws(
+      () => prepareSyncBranch(blind, BRANCH, { reuse: false }),
+      /Could not determine whether/,
+      'a blinded search must refuse, not return -rerun-2',
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('an unreadable remote is not reported as a branch that disappeared', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sync-reuse-blind-test-'));
+  try {
+    const { origin } = makeOrigin(root);
+    const work = clone(root, origin, 'work');
+    git(['remote', 'set-url', 'origin', join(root, 'gone.git')], work);
+
+    assert.throws(
+      () => prepareSyncBranch(work, BRANCH, { reuse: true }),
+      (err) => {
+        assert.match(err.message, /Could not determine whether open PR branch/);
+        assert.doesNotMatch(
+          err.message,
+          /disappeared/,
+          'diagnosing disappearance is the one hypothesis this evidence cannot support',
+        );
+        return true;
+      },
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
