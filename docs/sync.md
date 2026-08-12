@@ -2457,14 +2457,36 @@ the cost of checking is one search, and it is nearly always cheaper than the arg
 top of it. **Before characterizing a message, paste the line.** If the line cannot be found, that is
 the finding.
 
-**And that rule has a hard limit: I cannot re-read my own sent messages.** Incoming messages are
-artifacts I hold until context is compacted; outgoing ones leave no artifact on this side at all.
-When a correspondent reports that a figure I attributed to them appears nowhere in their output, I
-have no way to check what I sent — and in the instance that produced this entry I could not, while
-they could and did, and the disputed SHA was real but timestamped before their first message in the
-exchange. The honest form is theirs, and it is the one to copy: **"not found in what I can recover,"
-stated as a bounded search rather than a denial.** Over-denying is the mirror of the over-accepting
-this document warns about, and the party with no artifact is in no position to do either.
+**And that rule has a hard limit — but it was written wider than it measures.** The claim here was
+that *outgoing messages leave no artifact on this side at all*. Half of that is false: the session
+store retains this session's visible responses across compaction and is searchable by phrase, so a
+peer's report of what I said is checkable against my own record, and a positive attribution to some
+*other* session is available too.
+
+The surviving half is the load-bearing one, and only a control found the boundary. Two phrases, both
+from text emitted in the same minute:
+
+```
+a phrase that appeared in a reply to the user   -> found, in this session's own turns
+a phrase that appeared only in a peer message   -> 0 rows
+```
+
+**Visible responses are recorded; the bodies of messages sent to peers are not.** So a phrase search
+over one's own history is blind in precisely the channel that correspondence disputes concern, and it
+reports that blindness as a confident zero rather than as an error. The usefulness is inverted: the
+record is complete for the audience that already holds the message and empty for the audience that
+does not.
+
+Without the control, a `count(*)` of zero would have been reported as proof of non-authorship. That
+is the whole hazard in one step — the instrument answers, the answer is well-formed, and its
+domain excludes the question. Run a phrase you know you sent through the same query first; if it
+cannot be found either, the search has established nothing.
+
+So when a correspondent reports that a figure I attributed to them appears nowhere in their output, I
+can now check part of what I sent, and must still say which part. The honest form is unchanged and
+merely better bounded: **"not found in what I can recover," stated as a bounded search rather than a
+denial**, with the bound named. Over-denying is the mirror of the over-accepting this document warns
+about, and a search that cannot see the disputed channel licenses neither.
 
 **The consequence for canon is the load-bearing one: entries outlive the messages that justified
 them, so a rule stays checkable while its supporting instance does not.** Verified here by
