@@ -2068,6 +2068,31 @@ exist; **unpushed commits explain it positively**, because the triggers are push
 events, so work that was authored and never published produces exactly this absence. Prefer the
 explanation that predicts the observation to the one that is merely consistent with it.
 
+**But the most dangerous explanation for a discrepancy is a mechanism you have just spent hours
+proving real.** A member's heading census was 17 missing; this repo measured 23 and explained the gap
+as canon having grown between their reading and mine — citing, as support, the decay rule they had
+themselves proposed in the message under reply. It fit, it was topical, and it was false. Walking
+every commit in the window with a fence-masking counter:
+
+```
+five commits, 102 lines added
+naive headings  46 46 46 46 46      masked headings  36 36 36 36 36
+```
+
+The count did not move once. The entire discrepancy was my own naive regex counting template headings
+inside fenced blocks, and the member's 17 was right when taken and still right. **A live, well-evidenced
+mechanism is available, plausible, and requires no instrument check**, so it is reached for first and
+absorbs defects that have nothing to do with it — and the better the evidence for the mechanism, the
+more completely it launders the error. The discriminator is cheap and specific: decay predicts *the
+cited quantity changed*, so measure that quantity at both revisions before invoking it. A mechanism
+that explains a discrepancy in general is not thereby the one that produced this instance.
+
+Note also which way the explanation pointed. It placed the error in the peer's reading rather than in
+my instrument, which was the flattering direction and the unmeasured one — the same shape as an
+authorship claim recorded elsewhere in this file that settled on *not mine* because nothing could
+check it. Where a discrepancy admits an explanation that exonerates your instrument, that is the
+branch to measure first, not last.
+
 **Falsifiability is a property of the claim, not evidence for it.** The withdrawn reading came with a
 crisp test — *it clears on its own next cycle, or it never does* — and offering that test is what made
 it feel rigorous. It invites the reader to check the future instead of auditing the derivation, and
@@ -2631,6 +2656,26 @@ If you build a coverage check for this, three traps are known to be live:
   — because `#` is a heading in Markdown and a comment in `.prettierignore` and `.gitattributes`. The
   engine masks fenced blocks before matching and has a test pinning it; a re-implementation inherits
   neither. Conform against the engine's **output** where you can.
+- **That entry was in this file for fifteen hours before its author repeated the defect it describes.**
+  The same naive count was then run against a member's copy and against canon, inflating both — 46 for
+  23 where the masked figures are 36 and 19 — and the difference was published as a delivery gap. What
+  makes it more than a lapse is the shape of the entry: it bundles a **parameter** (the regex depth)
+  with a **procedure** (mask fenced blocks before matching), and only the parameter survived recall.
+  A parameter is concrete, local, and costs nothing to carry; a procedure requires restructuring the
+  query and is dropped under exactly the conditions that make a rule worth having. When writing a rule
+  that pairs the two, state the procedure as the rule and the parameter as an aside, or the reader —
+  including you — will keep the wrong half.
+- **Subtract sets, not counts, because subtraction silently assumes containment.** The corrected census
+  was reached as `36 - 19 = 17`, and the set difference is also 17 with zero headings present in the
+  member and absent from canon — so the arithmetic was sound, but it was sound *unverified*. A count
+  difference and a set difference coincide only when one side contains the other, which is the property
+  a delivery census exists to test.
+- **A length taken from a decoded string is not a byte count.** A probe reported `215641` bytes for a
+  file that is `216488` bytes; `String.length` in JavaScript counts UTF-16 code units, and the
+  847-unit gap is exactly the file's non-ASCII characters. The error is invisible on ASCII-only inputs,
+  scales with prose punctuation rather than with size, and survives every internal consistency check
+  because the number is stable and reproducible. Where a figure will be compared against a stored size
+  or a hash, take the length of the buffer, not of the string.
 
 Introducing a canon kind that lands in a formatted path is a **cross-repo event**: every affected
 member needs its ignore entry before its sync PR can go green. The `copilot` kind's first distribution
