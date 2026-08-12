@@ -145,6 +145,21 @@ function findBlock(lfText, markers) {
  * Anything reproducing an engine hash externally must run `extractBlock` first, i.e. region → LF →
  * strip trailing whitespace → SHA-256. A checker that skips it reports permanent, unclearable drift
  * on exactly the three files a member is most likely to have edited around.
+ *
+ * **Trailing, not both ends.** The regex is `/\s+$/` with no `m` flag, so it strips the end of the
+ * string and leaves the start exactly as canon wrote it. The natural external reproduction is
+ * `.trim()`, and it is wrong in a way no current fixture can show: the two rules agree on every
+ * region body that does not begin with whitespace, and all three canon sources presently begin with
+ * `#`. A member repo derived `.trim()` empirically, swept 68 lock entries, and got zero mismatches —
+ * an honest measurement over a corpus with no instance of the one input class that separates the
+ * rules (#659). Leading whitespace inside a managed region is therefore *significant*, and the
+ * engine round-trips it: `buildFile` → `extractBlock` preserves a leading blank or indented line, so
+ * a canon base file that gains one moves every managed entry into the divergent class at once.
+ *
+ * Both directions of that are pinned by 'a managed region body beginning with whitespace is
+ * significant, and .trim() is the near-miss' in test/basemerge.test.mjs, which fails if this
+ * function is ever simplified to `.trim()`. That regression would otherwise be silent here and
+ * would invalidate the managed `targetSha256` of every member that has ever synced.
  */
 export function canonicalizeInner(inner) {
   return toLF(inner).replace(/\s+$/, '');

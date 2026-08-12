@@ -486,3 +486,48 @@ test('a managed region identical to canon is restamped, not drifted, when the en
     );
   });
 });
+
+// #659. `canonicalizeInner` strips `/\s+$/` — the end of the string only. The natural external
+// reproduction of `targetSha256` is `.trim()`, which also strips the start, and the two agree on
+// every region body that does not begin with whitespace. A member repo derived `.trim()`, swept 68
+// lock entries and got zero mismatches, because no entry exercised the distinguishing input. This
+// pins the distinction so that simplifying the function to `.trim()` fails here instead of silently
+// invalidating the managed `targetSha256` of every member that has ever synced.
+test('a managed region body beginning with whitespace is significant, and .trim() is the near-miss', () => {
+  const trimRule = (inner) => hashText(inner.trim());
+
+  // Premise: the two rules are indistinguishable on canon as it stands today, which is why a sweep
+  // over real entries cannot separate them. If this ever fails, the corpus gained the input class
+  // and the divergence below stopped being latent.
+  for (const source of [CANON, '# GitHub Copilot\n', '# Normalize every detected text file\n']) {
+    assert.equal(
+      canonicalizeInner(source),
+      source.trim(),
+      'premise: canon sources start with non-whitespace, so both rules agree on them',
+    );
+    assert.equal(hashText(canonicalizeInner(source)), trimRule(source));
+  }
+
+  // The distinguishing class: a body that begins with whitespace.
+  for (const inner of ['\ncanon line\n', '  indented first line\n']) {
+    assert.equal(
+      canonicalizeInner(inner),
+      inner.replace(/\s+$/, ''),
+      'leading whitespace is preserved verbatim',
+    );
+    assert.notEqual(
+      hashText(canonicalizeInner(inner)),
+      trimRule(inner),
+      'the engine rule and .trim() must disagree here, or the distinction has been lost',
+    );
+  }
+
+  // And the engine really can produce one: nothing in the write/extract round-trip normalizes a
+  // leading blank or indented line away, so a canon base file that gains one moves every managed
+  // entry into the divergent class at once.
+  for (const canon of ['\nleading blank\n', '  indented\n']) {
+    const extracted = extractBlock(buildFile('', canon, MARKERS.html), MARKERS.html);
+    assert.equal(extracted, canon.replace(/\s+$/, ''), 'buildFile -> extractBlock round-trips it');
+    assert.notEqual(hashText(extracted), trimRule(extracted));
+  }
+});
