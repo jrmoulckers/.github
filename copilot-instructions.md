@@ -70,12 +70,15 @@ node sync/index.mjs --dry-run --members <member-name> --work-dir /path/to/your/c
 ```
 
 Run it from a backbone checkout with full history: it refuses on a shallow clone rather than
-comparing against truncated canon.
+comparing against truncated canon. Fetch that checkout first. The engine reads canon off your disk
+and never compares it to its own origin, so **depth is guarded and currency is not**: a complete but
+stale backbone reports every target unchanged while canon has moved on.
 
 **Read the answer as repo-wide, because that is what it is.** The report is a count across every
 target in your repo — `unchanged: 58`, `updated: 1`, `→ changes pending` — and there is no per-file
-or verbose flag. All-unchanged means every one of your files already matches canon, and is a
-complete answer. A non-zero `updated` means a re-sync brings them into line with no hand editing,
+or verbose flag. All-unchanged means every one of your files already matches canon *as of the
+backbone checkout you ran it from*, and is a complete answer for that revision. A non-zero `updated`
+means a re-sync brings them into line with no hand editing,
 but it does **not** tell you which target moved, so it cannot confirm or clear the specific region
 you came to check. Treat it as a repo-level verdict and re-run it after the sync lands.
 
