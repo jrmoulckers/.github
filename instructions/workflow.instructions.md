@@ -1362,6 +1362,38 @@ flipped: there an ungoverned repository inflated a sweep by appearing in reality
 here non-subscribers deflated a rate by appearing in the roster and not in the population. Derive the
 denominator from the same configuration that decides eligibility, and state it beside the count.
 
+**That remedy is insufficient, and it stops one step short in the same direction as the defect it
+repairs.** Non-subscribers are excluded because they have no region to describe. A second exclusion
+exists with the opposite structural cause: a file whose managed region *is* the whole file has
+nothing outside the region to describe it from. A denominator built on *has a region* counts it as
+eligible, because it has one. Measured across all eleven members, on both managed targets:
+
+```
+AGENTS.md                          region carriers   6   with member-authored space   6
+.github/copilot-instructions.md    region carriers   9   with member-authored space   3
+```
+
+On `AGENTS.md` the two predicates select the same six repositories. On the other target they differ
+by a factor of three — six of nine files are wholly managed. **The rule was derived and validated on
+the one target where the distinction is invisible**, which is the classifier-drift finding again:
+latent divergence is bounded by the corpus the consumer happens to hold, and that corpus is the one
+guaranteed not to exercise it.
+
+The cause is in `buildFile`, which branches on whether the target already had content — an absent or
+whitespace-only file makes the block the whole file, while a file with member text gets the region
+inserted around it. **One subscription therefore produces two shapes**, and which one a member gets
+is decided by whether the file pre-existed. That is a fact about history, not about configuration,
+so the configuration cannot answer it and the remedy above cannot produce the right denominator. Nor
+is it stable: two members carry regions at the head of `AGENTS.md` with member content below, the
+fully-managed shape after someone later added text. **Eligibility is a time-varying property of the
+delivered artifact, measured at a named ref** — not a property of the request that produced it.
+
+Note the direction, because it is the part worth carrying. The original defect inflated the
+denominator with repositories that could never have counted; this residue inflates it again with
+files that cannot. Both understate the rate, so the correction moved the number the right way and
+stopped before arriving. **A fix that fails in the same direction as the bug is the hardest kind to
+notice, because the number improved.**
+
 **And a documented explanation for a symptom becomes a misdiagnosis once a second cause produces the
 same number.** Canon warns against counting the bare delimiter name instead of the anchored line, and
 explains the inflation precisely: canon quotes the marker in its own prose *inside* the managed
