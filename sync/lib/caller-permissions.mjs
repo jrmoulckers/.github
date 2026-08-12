@@ -20,7 +20,7 @@ const PACKAGES_WORKFLOWS = new Set(reusableWorkflowsDeclaringPermission('package
 export function inspectCallerPermissionCheckout(root, backbone) {
   const workflowsRoot = join(root, '.github', 'workflows');
   if (!existsSync(workflowsRoot)) {
-    return { findings: [], unknown: [] };
+    return { findings: [], unknown: [], inspected: 0 };
   }
   const sources = walkFiles(workflowsRoot)
     .filter((path) => /\.ya?ml$/i.test(path))
@@ -47,7 +47,7 @@ export function inspectCallerPermissionSources(sources, backbone) {
       });
     }
   }
-  return { findings, unknown };
+  return { findings, unknown, inspected: sources.length };
 }
 
 export function inspectCallerPermissionSource(path, text, backbone) {
@@ -64,7 +64,7 @@ export function inspectCallerPermissionSource(path, text, backbone) {
         message: `could not resolve the jobs mapping for ${target.workflow}`,
       });
     }
-    return { findings, unknown };
+    return { findings, unknown, inspected: 1 };
   }
   const jobsBoundary = lines.findIndex(
     (line, index) =>
@@ -150,7 +150,7 @@ export function inspectCallerPermissionSource(path, text, backbone) {
     }
   }
 
-  return { findings, unknown };
+  return { findings, unknown, inspected: 1 };
 }
 
 export function observeCallerPermissions(
@@ -240,6 +240,21 @@ export function callerPermissionLintReport(result) {
       })),
     ...result.unknown,
   ];
+  // A scan that read no workflow file produces no findings, which is byte-identical to a clean
+  // result. This lint runs from a caller workflow file, so that file is always present in a
+  // correct checkout: zero inspected files means the checkout or the scan root is wrong, never
+  // that the repository is clean. Reporting it as unresolved keeps an absent measurement from
+  // rendering in the schema of a passing one.
+  if ((result.inspected ?? 0) === 0) {
+    unresolved.push({
+      path: '.github/workflows',
+      line: 1,
+      message:
+        'no workflow file was inspected, so this lint measured nothing; the check runs from a ' +
+        'caller workflow file, so an empty scan means the checkout or scan root is wrong rather ' +
+        'than that no caller exists',
+    });
+  }
   const annotations = [
     ...unsafe.map((finding) => ({
       level: 'error',
@@ -260,7 +275,8 @@ export function callerPermissionLintReport(result) {
 
   if (!unsafe.length && !unresolved.length) {
     lines.push(
-      'All direct calls to canonical package-reading workflows have compatible caller permissions.',
+      `Inspected ${result.inspected} workflow file(s). All direct calls to canonical ` +
+        'package-reading workflows have compatible caller permissions.',
       '',
       '**This passing check is the positive evidence for this commit.** A previously green run does ' +
         'not prove that a future reusable-workflow re-pin has a compatible permission ceiling.',
