@@ -481,6 +481,37 @@ nothing about which party moved it. Neither the attribution nor its denial is ch
 identity makes mutation detectable and attribution impossible**, which is worth knowing before
 building any process that assumes provenance can be recovered from the platform.
 
+**Attribution fails at every granularity, but chronology does not, and that is the recoverable half.**
+Escalating to the finest surface available changes nothing — the per-attempt endpoint carries both
+`actor` and `triggering_actor` on every attempt of a multi-attempt run, and both hold the shared
+identity throughout, so there is no finer object to appeal to. The same endpoint, however, exposes
+each attempt's own creation and completion times, which makes a citation of a mutable field
+retrospectively **checkable**: bracket the moment the claim was written against the attempt windows
+and the referent resolves, even though the author of the re-run never will. So a mutable field on an
+identity-addressed object is *auditable* without being *attributable*, and the per-field timestamp
+that was adopted as hygiene turns out to be the audit instrument as well.
+
+**Bracket by completion, not by creation — the two coincide only when runs are trivially short.**
+The reconciliation that established this was performed against runs refused for billing, which
+complete in three to thirteen seconds; there, the moment an attempt starts and the moment its results
+exist are the same instant, and creation times bracket correctly by accident. Ordinary runs in this
+repository take a median of thirty-one seconds and up to seventy-five, and real test suites take
+minutes. A claim written inside a running attempt's window falls after that attempt's creation and
+before the next one's, so creation-bracketing names an attempt **whose results did not yet exist**.
+The check to state is that the bracketing attempt had *completed* before the claim was written; in
+the cases above it had, by a hundred and fifty and a hundred and eighty-five seconds, which is what
+makes those two reconciliations sound rather than lucky.
+
+**A figure can be correct, precisely measured, and still describe an object you are no longer
+holding.** The same exchange produced two sizes that reproduced exactly against revision history but
+disagreed with the current artifact, because they had been measured before a subsequent edit by the
+same author and then reported as characterising the finished document. Neither *date the figure* nor
+*pin the revision* catches this, since both assume the author knows which object is being described.
+The tell is available and cheap: a quoted size for a state you have since superseded by your own
+hand. Prefer *unreconciled* to *wrong* when a peer's figure resists reproduction — adjudicating the
+above would have concluded carelessness, where the truth was a different revision, and only one of
+those conclusions leads anywhere.
+
 **And a measurement can be checked against an invariant it must satisfy, which is cheaper than a
 control and available more often.** Auditing that member's census here, two predicates returned
 counts that were impossible together: widening a filter from `^//` to `^(//|\*|/\*)` returned *fewer*
