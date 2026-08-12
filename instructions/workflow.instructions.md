@@ -990,6 +990,18 @@ explain. **Self-blame is still an attribution**, and the tell is identical in bo
 neither the flattering nor the humbling story was measured. Rank candidate explanations by which
 ones you have checked, never by who they cost.
 
+**The third species is a diagnosis that blames a defect you have verified, and it is the most
+durable of the three.** A member measured an onset wrongly; I attributed it to a canon file that
+is genuinely not delivered to them, having confirmed the entitlement gap in config first. They
+refused the credit — they already held the fact that the jobs endpoint returns only the latest
+attempt, having recorded it themselves hours earlier. The defect is real, verifiable, and not
+this error's cause. It passes unchallenged precisely *because* the check on it succeeds: naming
+a real defect feels like the diagnosis has been tested, when what was tested is the defect's
+existence and not its connection to the failure. **An absent document explains an error only if
+the recipient lacked the fact**, so the discriminator is what they already held, never whether
+the gap is real. Crediting it costs twice — the true cause goes unfixed, and a live defect is
+retired as diagnosed.
+
 **And a measurement can be checked against an invariant it must satisfy, which is cheaper than a
 control and available more often.** Auditing that member's census here, two predicates returned
 counts that were impossible together: widening a filter from `^//` to `^(//|\*|/\*)` returned *fewer*
@@ -3964,6 +3976,28 @@ aggregate above it while advertising resolution it does not have — the same sh
 column that reads identically for every row. What is informative is entry *membership*: the two
 members with no canon entry are exactly the two that never opted in. **The lock's real signal is
 presence, not time**, which is the opposite of what its shape suggests.
+
+**And substituting time for presence can return a perfect score on a sample that could not have
+scored otherwise.** A member proposed a fourth distribution state — selected but undelivered —
+then tested the boring explanation before publishing, and found that every member whose lock
+predates `canon-formatting.instructions.md` lacks it while the one whose lock postdates it holds
+it. That reproduces here, 11 of 11 against the contents API. But **every member opts into that
+file**, so entitlement was pinned across the whole sample and could not surface. The next file
+down separates on it:
+
+```
+canon-formatting            opt-in 11/11   lock-time rule correct   11 of 11
+infrastructure-operations   opt-in  2/11   lock-time rule correct    2 of 11
+```
+
+Every member's lock postdates the second file, so the rule predicts all eleven hold it and two
+do — one member's lock postdates it by eight minutes and it still lacks the file, never having
+opted in. Holdings are **conjunctive**, and a sample in which one conjunct is constant cannot
+distinguish the conjunction from either half. The failure is worse than a weak result because it
+returns **perfect** separation, which reads as maximal confirmation and terminates the inquiry;
+and the check is available before the test rather than after, since asking whether the competing
+variable varies in your sample costs one query. Prudence exercised on an unexamined sample is
+still unexamined.
 
 The reason this cannot be fixed by looking harder is that the disambiguating fact does not exist on
 the hub. Canon knows what it shipped and when it fixed something; it does not know when any given
