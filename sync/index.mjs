@@ -44,7 +44,7 @@ import { apply, formatBehind } from './lib/copier.mjs';
 import { cloneShallow } from './lib/git.mjs';
 import { assertMemberCheckout, assertMemberIdentity } from './lib/workdir.mjs';
 import { resolveStudioRoot } from './lib/studio.mjs';
-import { formatDriftWarning, partitionFailures, renderRunSummary, syncMembers } from './lib/runner.mjs';
+import { formatDriftWarning, partitionFailures, renderRunSummary, summarizeCheck, syncMembers } from './lib/runner.mjs';
 import { mirrorProfile, profileTarget } from './lib/profile.mjs';
 import { log } from './lib/log.mjs';
 import { assertMemberFacts } from './lib/member-facts.mjs';
@@ -173,7 +173,7 @@ function main() {
       );
     }
 
-    if (opts.check) return runCheck(plans, opts, manifest, token);
+    if (opts.check) return runCheck(plans, opts, manifest, token, Boolean(studio) || !needTokens);
     if (opts.workDir) return runWorkDir(plans, opts, manifest, date);
     if (opts.dryRun) return runDryRun(plans, opts, manifest, REPO_ROOT, date);
     return runSync(plans, opts, manifest, token, date);
@@ -234,9 +234,8 @@ function runWorkDir(plans, opts, manifest, date) {
   return 0;
 }
 
-function runCheck(plans, opts, manifest, token) {
-  let outOfDate = 0;
-  let failed = 0;
+function runCheck(plans, opts, manifest, token, tokenSourceResolved = true) {
+  const results = [];
   for (const { resolved, targets } of plans) {
     let checkout;
     try {
@@ -254,7 +253,11 @@ function runCheck(plans, opts, manifest, token) {
       const lock = readLock(checkout.root, manifest.backbone);
       const { report } = apply(checkout.root, targets.writes, lock, { force: false, write: false });
       const stale = report.changed || report.hasDrift;
-      if (stale) outOfDate++;
+      // A declared population the run could not enumerate is neither clean nor drifted. Naming it
+      // here keeps it out of both tallies instead of letting it default into the reassuring one.
+      const unmeasured =
+        resolved.tokens?.enabled && !tokenSourceResolved ? ['vendored @jrm/tokens'] : [];
+      results.push({ repo: resolved.repo, compared: targets.writes.length, stale, unmeasured });
       const bits = [
         report.added.length ? `${report.added.length} to add` : null,
         report.updated.length ? `${report.updated.length} to update` : null,
@@ -263,22 +266,24 @@ function runCheck(plans, opts, manifest, token) {
         report.pruned?.length ? `${report.pruned.length} stale lock entries to remove` : null,
         report.drift.length ? `${report.drift.length} drifted` : null,
       ].filter(Boolean);
-      log[stale ? 'warn' : 'ok'](`${resolved.repo}: ${stale ? bits.join(', ') : 'up to date'}`);
+      // The compared count rides along on every verdict: it is the only thing separating a real
+      // comparison from one that read nothing, and both otherwise print the same three words.
+      const scope = `${targets.writes.length} compared`;
+      log[stale || unmeasured.length ? 'warn' : 'ok'](
+        `${resolved.repo}: ${stale ? bits.join(', ') : 'up to date'} (${scope}${unmeasured.length ? `; ${unmeasured.join(', ')} NOT compared` : ''})`,
+      );
       if (report.hasDrift) log.warn(formatDriftWarning(resolved.repo, report.drift));
     } catch (err) {
-      failed++;
+      results.push({ repo: resolved.repo, compared: 0, failed: true });
       log.error(`${resolved.repo}: check failed — ${err.message}`);
     } finally {
       checkout?.cleanup();
     }
   }
-  if (outOfDate || failed) {
-    if (failed) log.error(`${failed} member(s) could not be verified.`);
-    if (outOfDate) log.error(`${outOfDate} member(s) out of date.`);
-    process.exitCode = 1;
-  } else {
-    log.ok('All members up to date.');
-  }
+
+  const verdict = summarizeCheck(results);
+  for (const line of verdict.lines) log[verdict.ok ? 'ok' : 'error'](line);
+  if (!verdict.ok) process.exitCode = 1;
   return process.exitCode ?? 0;
 }
 
