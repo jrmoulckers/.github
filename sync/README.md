@@ -1275,10 +1275,32 @@ with the engine for the reason given above.
 substantial minority of delivered files.** The strip removes the provenance line, and that line is
 the only multi-byte content most files are guaranteed to carry. What remains is the body, so if the
 body is ASCII then `latin1`, `ascii` and `utf8` produce identical bytes and a member hashing under
-the wrong one gets a PASS. Of 53 canon-delivered sources here, **9 have pure-ASCII bodies** —
-including `agency.toml` and four `instructions/*.instructions.md`. A member measuring its own
-delivered corpus found 10 of 64 reproducing under `latin1` as well as `utf8`, and could not predict
-which ten by name, kind, or size.
+the wrong one gets a PASS. The share is a substantial minority and it moves as canon grows, so
+re-derive it rather than trusting a figure printed here — the predicate is *the delivered body,
+after the strip, contains no byte above 0x7F*:
+
+```js
+// from the backbone root; the denominator is whatever the engine actually delivers
+import { loadManifest } from './sync/lib/manifest.mjs';
+import { resolveAll } from './sync/lib/resolve.mjs';
+import { enumerateTargets } from './sync/lib/assets.mjs';
+import { PROVENANCE_NOTE } from './sync/lib/provenance.mjs';
+const root = process.cwd();
+const seen = new Map(); // targetPath -> delivered content, deduped across members
+for (const m of resolveAll(loadManifest(root)))
+  for (const w of enumerateTargets(m, root).writes) seen.set(w.targetPath, w.content);
+// Measure the BODY, not the delivered file: the stamp itself carries an em dash, so every
+// delivered file is multi-byte and the unstripped count is uniformly zero -- which looks like
+// a clean "no hazard here" rather than like the wrong question.
+const body = (c) => c.split('\n').filter((l) => !l.includes(PROVENANCE_NOTE)).join('\n');
+const ascii = [...seen.values()].filter((c) => !/[^\x00-\x7F]/.test(body(c))).length;
+console.log(`${ascii} of ${seen.size} delivered bodies are pure ASCII`);
+```
+
+At the time of writing that reported a single-digit count against a corpus in the sixties,
+`agency.toml` and several `instructions/*.instructions.md` among them. A member measuring its own
+delivered corpus by the same predicate found 10 of 64 reproducing under `latin1` as well as `utf8`,
+and could not predict which ten by name, kind, or size.
 
 So a green inverse audit certifies the bytes, not the hasher. To check the hasher too, run it once
 against a file whose body is known to be multi-byte; `utf16le` is the useful negative control,

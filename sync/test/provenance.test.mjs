@@ -368,6 +368,27 @@ test('every file the engine plans to write is classified, so the throw is unreac
   assert.ok(checked > 0, 'no planned writes inspected: this test would assert nothing');
 });
 
+test('the encoding caveat is two-sided: some delivered bodies are ASCII, some are not', () => {
+  // The recipe's advice depends on both halves being non-empty, and neither is guaranteed by
+  // anything -- both are properties of whatever canon happens to contain today. If no delivered
+  // body were ASCII the hazard would be imaginary; if all of them were, the recommended
+  // multi-byte spot-check could not be performed at all. The counts themselves are deliberately
+  // NOT asserted: canon grows continuously, so pinning a number here would move the staleness
+  // that motivated this test out of the README and into the suite.
+  const seen = new Map();
+  for (const member of resolveAll(manifest))
+    for (const write of enumerateTargets(member, ROOT).writes) seen.set(write.targetPath, write.content);
+
+  assert.ok(seen.size > 0, 'no delivered files enumerated: this test would assert nothing');
+  // Strip the stamp before measuring. The stamp carries an em dash, so measuring the delivered
+  // file instead of its body reports zero ASCII bodies for every corpus that can ever exist --
+  // a false negative that reads exactly like a clean result.
+  const body = (c) => c.split('\n').filter((l) => !l.includes(PROVENANCE_NOTE)).join('\n');
+  const ascii = [...seen.values()].filter((c) => !/[^\x00-\x7F]/.test(body(c)));
+  assert.ok(ascii.length > 0, 'no ASCII-bodied delivered file: the encoding caveat is moot');
+  assert.ok(ascii.length < seen.size, 'every delivered body is ASCII: the spot-check is impossible');
+});
+
 test('an ASCII body cannot discriminate encodings, a multi-byte body can', () => {
   // The documented inverse audit strips the provenance line, then hashes what is left. The note is
   // the only multi-byte content most delivered files are guaranteed to carry, so the strip removes
