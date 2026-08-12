@@ -116,6 +116,7 @@ export function validateWorkflowIntegrity(repoRoot, manifest) {
     errors,
   );
   validateNativeSmokeContract(sources.get('reusable-native-smoke-test.yml'), errors);
+  validateCiGateCoverage(sources.get('ci.yml'), errors);
 
   if (errors.length) {
     throw new Error(`Invalid canonical workflows:\n  - ${errors.join('\n  - ')}`);
@@ -399,6 +400,68 @@ function validateChangeDetectionContract(text = '', errors) {
       'reusable-change-detection.yml: unclassified changed files must be reported as an output, in the step summary, and as a warning',
     );
   }
+}
+
+/**
+ * The CI gate names itself "Require every CI job" and enforces that with a transcribed list: a
+ * `needs` array and one `test "$X" = "success"` line per job. Adding a job requires three
+ * coordinated edits, and omitting any of them narrows the gate while leaving its name, its green
+ * tick, and every standing line that cites it unchanged.
+ *
+ * That is a licensing failure rather than a missed check. Nothing goes red; a claim about all of
+ * CI is simply issued on a measurement that no longer covers all of CI. Enforced as a conservation
+ * law over the file -- every job except the gate must be both awaited and asserted -- so it holds
+ * for whatever jobs the workflow gains rather than for the two it has today.
+ *
+ * The comparison is pinned to equality as well. `!= "failure"` would admit `cancelled` and
+ * `skipped` as success, which is the same gate at a coarser resolution than the claim it licenses.
+ */
+export function validateCiGateCoverage(text = '', errors = []) {
+  if (!text) {
+    errors.push('ci.yml: not found, so the gate covering every CI job cannot be checked');
+    return errors;
+  }
+
+  const blocks = extractJobBlocks(text.split('\n'));
+  const gate = blocks.find((block) => /^\s*name:\s*CI gate\s*$/m.test(block.text));
+  if (!gate) {
+    errors.push('ci.yml: no job named "CI gate"; the aggregate that licenses a green CI is missing');
+    return errors;
+  }
+
+  const needs = (gate.text.match(/^\s*needs:\s*\[([^\]]*)\]/m)?.[1] ?? '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean);
+
+  for (const block of blocks) {
+    if (block.name === gate.name) continue;
+    if (!needs.includes(block.name)) {
+      errors.push(
+        `ci.yml: job "${block.name}" is not in the CI gate's needs, so a green gate does not cover it`,
+      );
+    }
+    // The result must reach the gate's shell as a value it actually compares. An awaited job whose
+    // result is never asserted is worse than an unawaited one: the gate waits for it and ignores it.
+    // Job names are YAML keys (letters, digits, `-`, `_`), so a literal substring search is exact
+    // here and avoids building a pattern out of untrusted text.
+    const asserted =
+      gate.text.includes(`needs.${block.name}.result`) &&
+      /test\s+"\$[A-Z_]+"\s*=\s*"success"/.test(gate.text);
+    if (!asserted) {
+      errors.push(
+        `ci.yml: the CI gate never asserts "${block.name}" succeeded, so its result is awaited and discarded`,
+      );
+    }
+  }
+
+  if (/!=\s*"?failure"?/.test(gate.text)) {
+    errors.push(
+      'ci.yml: the CI gate must require success, not merely the absence of failure — cancelled and skipped are neither',
+    );
+  }
+
+  return errors;
 }
 
 export function validateCallerPermissionLintContract(reusableText = '', harnessText = '', errors = []) {

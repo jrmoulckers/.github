@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {
   inspectWorkflowSource,
   validateCallerPermissionLintContract,
+  validateCiGateCoverage,
   validateNativeSmokeContract,
   validateWorkflowIntegrity,
 } from '../lib/workflow-integrity.mjs';
@@ -249,4 +250,80 @@ test('the sync run names its mode and scope in the run list, not just in the sum
   // wrote at all. Naming one and not the other leaves the misread that motivated this available.
   assert.match(runName, /inputs\.dry_run/, 'run-name does not distinguish a dry run');
   assert.match(runName, /inputs\.members/, 'run-name does not state scope');
+});
+
+// The CI gate calls itself "Require every CI job" and enforces that by transcription: a `needs`
+// array plus one `test "$X" = "success"` per job. Adding a job and forgetting either edit narrows
+// what the gate covers while its name, its green tick, and every standing line citing it stay the
+// same. Nothing turns red -- a claim about all of CI is just issued over less than all of CI.
+//
+// The mutants below construct that state rather than asserting the two jobs present today, so the
+// contract holds for whatever jobs the workflow gains.
+const ciSource = () => readFileSync(join(REPO_ROOT, '.github', 'workflows', 'ci.yml'), 'utf8').replace(/\r\n?/g, '\n');
+
+const withExtraJob = (text) =>
+  text.replace(
+    '  ci-gate:',
+    `  coverage-tests:
+    name: Coverage tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - name: Run
+        run: node --test "coverage/*.test.mjs"
+
+  ci-gate:`,
+  );
+
+test('the real CI gate covers every job in its own workflow', () => {
+  assert.deepEqual(validateCiGateCoverage(ciSource()), []);
+  // Non-vacuity: an empty file must not read as a satisfied contract.
+  assert.ok(validateCiGateCoverage('').length > 0, 'a missing ci.yml cannot satisfy the contract');
+});
+
+test('a CI job the gate never waits for is rejected', () => {
+  const errors = validateCiGateCoverage(withExtraJob(ciSource()));
+  assert.ok(
+    errors.some((error) => error.includes('"coverage-tests" is not in the CI gate\'s needs')),
+    `expected an unawaited-job error, got: ${JSON.stringify(errors)}`,
+  );
+});
+
+test('a CI job the gate waits for and never asserts is rejected', () => {
+  // The worse half: `needs` grows, the shell does not. The gate blocks on the job, reads nothing
+  // from it, and reports success — an omission that looks more thorough than forgetting it twice.
+  const errors = validateCiGateCoverage(
+    withExtraJob(ciSource()).replace(
+      '    needs: [principle-tests, sync-tests]',
+      '    needs: [principle-tests, sync-tests, coverage-tests]',
+    ),
+  );
+  assert.ok(
+    errors.some((error) => error.includes('never asserts "coverage-tests" succeeded')),
+    `expected an awaited-but-unasserted error, got: ${JSON.stringify(errors)}`,
+  );
+  assert.ok(
+    !errors.some((error) => error.includes('is not in the CI gate\'s needs')),
+    'the needs list was satisfied, so only the assertion half may be reported',
+  );
+});
+
+test('a gate requiring the absence of failure rather than success is rejected', () => {
+  // `cancelled` and `skipped` are neither success nor failure, so `!= "failure"` licenses a green
+  // CI for a job that never ran -- the same gate measured at a coarser resolution than its claim.
+  const errors = validateCiGateCoverage(
+    ciSource().replace('test "$PRINCIPLE_RESULT" = "success"', 'test "$PRINCIPLE_RESULT" != "failure"'),
+  );
+  assert.ok(
+    errors.some((error) => error.includes('must require success')),
+    `expected a resolution error, got: ${JSON.stringify(errors)}`,
+  );
+});
+
+test('a workflow with no gate at all is rejected', () => {
+  const errors = validateCiGateCoverage(ciSource().replace('    name: CI gate', '    name: Something else'));
+  assert.ok(errors.some((error) => error.includes('no job named "CI gate"')));
 });
