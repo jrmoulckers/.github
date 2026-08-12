@@ -269,6 +269,28 @@ any sufficiently detailed document about failures contains the vocabulary of fai
 one instrument that turn erred *toward* the claim and one *away* from it, and only the second
 announced itself — the first was caught by an unrelated errand.
 
+**When a probe's data source is an API path, run the control before the population.** A member
+audited twelve runs for annotations and got a clean `annotations=0` on all twelve with a confident
+conclusion attached. Every call had 404'd: the path
+`repos/{owner}/{repo}/actions/runs/{id}/check-suites` does not exist and had been invented as a
+plausible-looking endpoint. `gh` writes the error body to stderr, the probe read stdout, and
+*absence of data rendered as a measured zero.* They caught it only by running a known-good control
+afterwards — on a hunch that the result looked too tidy — and the control returned zero as well, on a
+run they had personally annotated eleven times.
+
+The ordering is the whole rule. **A control that runs first cannot be skipped by a result that looks
+finished**, and a tidy zero is exactly what suppresses the urge to run one. This extends *prove the
+sentinel is locatable* from the target to the **transport**: it is possible to harden the search
+completely and leave the fetch unhardened, and the hardened search will then report cleanly on
+nothing.
+
+Two defenses exist here and they are not redundant. Measured: `gh api` on that path exits **1** and
+puts the JSON error on stderr, so the exit-code rule already recorded above would have caught this
+one outright and more cheaply. But an exit code only catches a transport that *reports* failing;
+running the control catches any source that yields an empty population, including a valid endpoint
+returning nothing for an unrelated reason. **Check the exit status because it is cheap, and run the
+control because it is not conditional on the source being honest.**
+
 **And agreement is evidence only about the dimension the instrument varies along.** Two parties here
 confirmed a line-counting convention by comparing a residual that came out identical — while reading
 *different revisions* of the file. The residual was invariant to revision, so it discriminated
@@ -419,6 +441,39 @@ vacuously forever. The reflex on discovering a vacuous test is to name a harder 
 inattention that made the first one vacuous is what selects the second. Note also what that gap
 means: a failure occurring before any job exists is invisible to every job-level predicate, and is
 reported as the absence of the condition rather than as an inability to look.
+
+**That gap is worse than *no log*: `startup_failure` carries no diagnostic text in any field.**
+Measured on the run object and the check-suite together — `latest_check_runs_count` is `0`, the
+check-suite has no check-runs, and therefore no annotation surface at all. The only non-empty strings
+on the run are author-supplied (`name`, `head_branch`, `path`, `display_title`) plus `status` and
+`conclusion`. So the two failure modes this section exists to separate are **asymmetrically
+described**: the billing refusal is *over*-described, by a canned annotation repeated identically
+across every job and unable to disambiguate its own two clauses, while the permissions trap is
+described nowhere. Guidance to "resolve it on the annotation" has no object for one of the two, and
+an instruction that silently has no object reads as applicable.
+
+**And do not retire an exercise gap as unfixable on the evidence of one repository.** The member who
+established the emptiness above concluded that no fixture for the refusal predicate could be supplied
+"from any member's history" and proposed retiring the gap. True of their repository; false of the
+fleet. A single homelab run supplies it, and supplies both halves at once:
+
+```
+run 31461441074
+  secret-scan        failure  steps=0     <- refusal predicate, positive
+  changes            failure  steps=0     <- refusal predicate, positive
+  compose-validate   skipped  steps=0     <- zero-step, excluded by the conclusion conjunct
+  agent-layer        skipped  steps=0
+  yaml-lint          skipped  steps=0
+```
+
+Two positives and three negatives that are zero-step for a *legitimate* reason, in one artifact —
+which exercises both conjuncts and would catch a predicate that dropped either. The scope error is
+the ordinary one, a property of the searched repository asserted of the population; what makes it
+expensive is the **direction**. Declaring a gap unfixable retires it, and a retired gap generates no
+further attempts, so the error deletes the process that would have corrected it. Prefer *not
+obtainable from here* — which names the boundary and leaves the question open — and note that two of
+the twelve runs above were deliberately manufactured probes, so even the harder fixture was
+producible on demand rather than merely awaited.
 
 **Repeating a measurement is not a control, and the re-run rule is what disguises that.** Every
 entry above describes a control that exists and is broken. This is the case where none exists and
