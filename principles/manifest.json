@@ -56,6 +56,9 @@
       "GH-AIEVAL-004",
       "GH-AIEVAL-005",
       "GH-AIEVAL-006"
+    ],
+    "principles/ai/session-reporting.md": [
+      "GH-AIREP-001"
     ]
   },
   "statusCatalog": {
@@ -273,6 +276,11 @@
       "path": "principles/ai/evidence-and-evals.md",
       "status": "Ratified",
       "semanticContentSha256": "fd024fecab5c1b4799157bb8088e2f618ecefe618c4d29bd81cb0cb6e9bd382f"
+    },
+    "GH-AIREP-001": {
+      "path": "principles/ai/session-reporting.md",
+      "status": "Draft",
+      "semanticContentSha256": "d4053246db0d0fa77c3ace53e277e6867a70b4eac15cce9a371898d40ca37e4d"
     }
   },
   "ratificationDecisions": [

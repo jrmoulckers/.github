@@ -1212,8 +1212,14 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
         throw new Error(`Legacy source verification failed:\n- ${errors.join('\n- ')}`);
       }
     }
+    const manifestForSummary = JSON.parse(readFileSync(DEFAULT_MANIFEST, 'utf8'));
+    const statuses = Object.values(manifestForSummary.published ?? {})
+      .flat()
+      .map((id) => manifestForSummary.statusCatalog?.[id]?.status ?? 'Ratified');
+    const ratified = statuses.filter((status) => status === 'Ratified').length;
+    const draft = statuses.length - ratified;
     console.log(
-      `Validated ${result.principleCount} Ratified principles across ${result.fileCount} files.`,
+      `Validated ${result.principleCount} principles across ${result.fileCount} files: ${ratified} Ratified, ${draft} Draft.`,
     );
   } catch (error) {
     console.error(error.message);
