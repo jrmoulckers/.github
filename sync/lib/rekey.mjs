@@ -56,6 +56,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { hashText } from './lock.mjs';
+import { canonicalizeInner, extractBlock, markersFor } from './basemerge.mjs';
 
 /**
  * Reconcile `entries` against the resolved plan.
@@ -73,10 +74,11 @@ export function reconcileLockKeys(memberRoot, writes, entries) {
   const orphans = Object.keys(next).filter((key) => !planned.has(key));
 
   const { pairs, ambiguous } = matchRelocations(writes, next, orphans);
+  const specsByTarget = new Map(writes.map((spec) => [spec.targetPath, spec]));
 
   const rekeyed = [];
   for (const { from, to } of pairs) {
-    if (!baselineFits(memberRoot, to, next[from])) continue;
+    if (!baselineFits(memberRoot, specsByTarget.get(to), next[from])) continue;
     next[to] = next[from];
     delete next[from];
     rekeyed.push({ from, targetPath: to });
@@ -133,20 +135,38 @@ function matchRelocations(writes, entries, orphans) {
 }
 
 /**
- * Whether `entry` may follow a file to `targetPath`.
+ * Whether `entry` may follow a file to `spec.targetPath`.
  *
  * Yes when the file's bytes hash to the recorded `targetSha256` — proof the engine wrote exactly
  * these bytes, merely at a different path. Yes, too, when nothing is there yet: the engine will
  * write the file this run and overwrite the baseline with the truth, so no false claim survives.
  * No when a file is present and hashes to something else — a stale copy or a hand-edit, neither of
  * which the orphaned baseline describes.
+ *
+ * "The file's bytes" is the wrong quantity for a managed target and comparing it there is not a
+ * near-miss: `planManaged` records the hash of the canonicalized *region*, so a whole-file hash
+ * disagrees under every member state, including a file the engine just wrote with no local content
+ * at all. The comparison could only ever decline, which is indistinguishable from a genuine
+ * mismatch and would strand the baseline — the permanent-freeze failure this module exists to
+ * prevent. So a managed spec is judged on the same quantity its entry records.
+ *
+ * A managed target whose file exists but carries no region is treated like an absent file, because
+ * it effectively is one: `planManaged` plans `add` unconditionally for that state, so the entry is
+ * replaced with the truth this run.
  */
-function baselineFits(memberRoot, targetPath, entry) {
+function baselineFits(memberRoot, spec, entry) {
+  const targetPath = spec?.targetPath;
+  if (!targetPath) return false;
   const abs = join(memberRoot, ...targetPath.split('/'));
   if (!existsSync(abs)) return true;
   if (!entry?.targetSha256) return false;
   try {
-    return hashText(readFileSync(abs, 'utf8')) === entry.targetSha256;
+    const bytes = readFileSync(abs, 'utf8');
+    if (spec.type !== 'managed') return hashText(bytes) === entry.targetSha256;
+
+    const region = extractBlock(bytes, markersFor(targetPath));
+    if (region === null) return true;
+    return hashText(canonicalizeInner(region)) === entry.targetSha256;
   } catch {
     return false;
   }
@@ -154,8 +174,16 @@ function baselineFits(memberRoot, targetPath, entry) {
 
 /**
  * A spec's path relative to its group's target base — the part that survives a base move.
- * Returns null when the spec carries no base (managed root files such as AGENTS.md sit at the
- * repo root and cannot be relocated), so those are never rekeyed.
+ * Returns null when the spec carries no base, which is why `AGENTS.md` and `.gitattributes`
+ * (targetBase `.`) are never rekeyed.
+ *
+ * That is not the reason managed targets in general are safe, and the difference matters.
+ * `.github/copilot-instructions.md` is managed and carries targetBase `.github`, so it returns a
+ * real relative path and *is* eligible for pairing. What makes it unreachable is elsewhere:
+ * `MANAGED_MERGE_TARGETS` in `manifest.mjs` pins every managed kind to an exact resolved target
+ * path and `validateManagedKinds` rejects a manifest that moves one, so no orphan can arise under
+ * an abandoned base for a managed kind. Relax that and this path opens; `baselineFits` handles the
+ * managed case correctly rather than relying on a guarantee stated in another module.
  */
 function planRelative(spec) {
   const base = spec.targetBase;
