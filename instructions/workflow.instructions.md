@@ -2797,16 +2797,50 @@ confidence of the checked one** — so either check both or separate them, and p
 because checking both is a discipline while separating is a structure.
 
 **Dating protects the slot you date, and a claim that a figure is current is itself a figure.** A
-correspondent adopted the dating rule correctly — `finance main 64282149 — measured
-2026-08-11T20:52Z` — and in the same message asserted, undated, that the value *is still the tip
-now*, with a `64282149 == main` comparison rendered `True`. Measured against the repository at
-`23:49Z`: the tip was `3494eaee`, and `64282149` was **13 commits behind**. Every one of those 13
-postdates `20:52Z`, so the dated footer was honest and accurate at the moment it claimed, and the
-discipline did exactly its job. **The only false statement in the message was the undated one about
-the dated one.** Currency claims decay at the same rate as the figures they certify and attract no
-date because they feel like verification rather than measurement; a bare `== main` cannot be told
-from one resolved against a stale local ref. Date the freshness claim, or drop it — the footer is
-already carrying it.
+correspondent adopted the dating rule correctly — a dated tip with an explicit measurement time — and
+in the same message asserted, undated, that the value *is still the tip now*, with an equality
+comparison rendered `True`. Measured against the repository hours later: the tip had moved and the
+dated value was well behind it. Every intervening commit postdates the stated measurement, so the
+dated footer was honest and accurate at the moment it claimed, and the discipline did exactly its
+job. **The only false statement in the message was the undated one about the dated one.**
+
+The mechanism was then resolved rather than left to inference, and the resolution matters because the
+obvious explanation is wrong. The suspicion recorded here was that the comparison had resolved
+against a stale local ref. The sender read their reflog: a real fetch had landed seconds before the
+assertion, and their local branch was dozens of commits behind — **so had the comparison resolved
+against it, it would have rendered `False`, not `True`.** The instrument was correct, freshly
+fetched, and correctly compared.
+
+That strengthens the rule rather than weakening it. There was no measurement error anywhere in the
+message; the value was right, the fetch was real, the comparison was sound, and the **tense** was
+false. **Instrument discipline cannot reach this class**, because the currency claim is not produced
+by the instrument — every check available examines whether a value was measured correctly, and none
+examines whether a verb was. Currency claims decay at the same rate as the figures they certify and
+attract no date, because they feel like verification rather than measurement. Date the freshness
+claim, or drop it — the footer is already carrying it.
+
+**One command is ordered, not atomic, and the guarantee needed is that the timestamp follows the
+value.** The construction recommended above emits the timestamp from the same command that performs
+the act, and the sender of the message above found the residual hazard by auditing their own footer:
+their stated time preceded their fetch by twenty-four seconds. Substitutions inside a single command
+line evaluate in order, not simultaneously — measured directly at over a second of separation between
+two adjacent substitutions in one line — so *one command* buys sequencing and nothing more.
+
+The direction decides whether it matters. A timestamp taken **before** the value understates
+freshness, which is self-limiting. Taken **after** the act but before slow work that precedes the
+read, it **overstates** freshness, and *emitted by one command* remains literally true while the label
+certifies an instant the value never occupied. State the guarantee as *timestamp taken after the
+value it labels*, rather than trusting the one-command form to imply it.
+
+**Consistency and currency are two questions wearing one word, and ancestry answers only the first.**
+A local ref left behind by many commits is still an **ancestor** of the remote, so it passes every
+check asking *is this consistent?* and fails only checks asking *is this current?* — meaning anything
+reasoning from an ancestry test gets a clean result from a ref that is days old. Audited here rather
+than assumed: every git comparison in this repository's tooling and workflows resolves the
+remote-tracking ref explicitly, the CI checkouts fetch full history so the ref is created fresh at job
+start, and a missing ref fails loudly instead of degrading. A null result, recorded because **an audit
+that goes unmentioned is indistinguishable from one never run** — which is the same asymmetry as a
+control that cannot fire.
 
 **A quoted figure and an asserted one render identically, so correspondence is a poisoned source for
 harvesting values.** A correction necessarily contains the value being refuted, sitting in the
