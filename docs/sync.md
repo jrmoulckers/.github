@@ -585,6 +585,23 @@ untested — it runs, it passes, it is wired into CI. Have such a check report h
 classified, so a green with a population of zero is distinguishable from a green with something in
 it, and pair it with a fixture supplying the inputs the repository does not.
 
+**Report the population at the narrowest branch the check discriminates on, not the corpus it
+walked** — the count remedy above is satisfiable by the wrong number, and was. Run against the guard
+it was derived from, that guard prints `208 tracked file(s)` and passes; the population that actually
+reaches the discriminating branch is **0**, because the repository declares no `-text` path at all.
+A member obeying the rule to the letter therefore prints a large, entirely true number that carries
+no information about the vacuity. The size is actively anti-diagnostic: `208` reads as thorough
+coverage at exactly the moment nothing was covered. An uncounted population at least invites *how
+many?*; a counted one answers it with the wrong denominator and closes the question.
+
+**And where the population cannot occur at all, the remedy is not to measure it.** Across the fleet
+every `-text` file is NUL-bearing, so no member's real corpus can reach the detection branch — no
+count taken anywhere would ever have been non-zero. What closed this was constructing the population
+rather than reporting on it: a temp repository with fixtures reaching all three buckets, each
+asserting its own capability first. That pairs with the rendered-output pin as the same instrument
+facing opposite directions — **a pin proves the code still does what it did; a constructed fixture
+proves it does anything at all.**
+
 Use the conjunction above as the body, an explicit allowlist as the only exemption **for the
 declarative half**, and a non-zero exit on anything unlisted. The bare grep survives as a
 **candidate list** — a useful first look, and not a check, because it cannot be green.
@@ -2667,14 +2684,36 @@ it is the section you intended:
 
 ```powershell
 $f = 'instructions/workflow.instructions.md'
-$new = Get-Content $f
+$new = @(Get-Content $f)
+function Get-Heading($lines, $line) {
+  $inFence = $false; $last = $null
+  for ($i = 0; $i -lt $line -and $i -lt $lines.Count; $i++) {
+    if ($lines[$i] -match '^\s*```') { $inFence = -not $inFence; continue }
+    if (-not $inFence -and $lines[$i] -match '^#{1,6} ') { $last = $lines[$i] }
+  }
+  if ($last) { $last.Trim() } else { '(no heading)' }
+}
 git --no-pager diff -U0 -- $f | Select-String '^@@' | ForEach-Object {
   if ($_ -match '\+(\d+)') { [int]$Matches[1] }
 } | ForEach-Object {
-  $h = $new[0..($_ - 1)] | Select-String '^#{1,6} ' | Select-Object -Last 1
-  "line $_ -> $(if ($h) { $h.Line.Trim() } else { '(no heading)' })"
+  "line $_ -> $(Get-Heading $new $_)"
 }
 ```
+
+**That snippet masks fenced blocks, and the earlier version did not — which is the more instructive
+half.** A `#` comment on the first line of a shell block matches `^#{1,6} ` exactly, so an unmasked
+scan can name a code comment as the governing section. Measured on the two canon files: the unmasked
+predicate finds 47 and 45 "headings" where 36 and 36 are real — **11 and 9 false positives, about a
+fifth of every answer it gives.** It reported `# repair: strip the stray CRs and commit` as the
+section governing an edit.
+
+The uncomfortable part is that the fence population was **already measured in this very passage** —
+the table below counts `in-fence` headings at 12 and 11 and reasons about them — and the rule was
+already stated one section away, where resolving a cited name is required to use a *fence-masked*
+pattern. So the knowledge was present, adjacent, and written down, and the placement snippet still
+shipped without it. **A rule stated for one instrument does not propagate to the next instrument that
+needs it**, and neither proximity nor having personally measured the population is sufficient to
+carry it across.
 
 **That predicate reads `^#{1,6}` rather than `^#{2,4}` for a reason worth stating, because the
 narrower form was wrong only contingently.** A peer measuring this file's headings reconciled a census
