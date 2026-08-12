@@ -156,7 +156,7 @@
       "mode": "application",
       "framework": "svelte",
       "packageManager": "npm",
-      "notes": "Game-night scoring app. Adopts the canonical roster and keeps its committed design-engineer as an explicit local replacement, so only design-engineer is omitted from sync.",
+      "notes": "Game-night scoring app. Adopts the canonical roster and keeps its committed design-engineer as an explicit local replacement, so design-engineer is the only agent omitted from sync. Its prompt list also omits rebase-all, absent since the scaffold with no recorded reason; whether that is a deliberate curation or an oversight is an open question, so the list is pinned against canon rather than changed on an assumption.",
       "localAgents": ["design-engineer"],
       "optIn": {
         "base": true,
