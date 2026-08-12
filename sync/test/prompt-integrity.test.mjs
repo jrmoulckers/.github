@@ -111,6 +111,49 @@ gh pr checks 1 \\
   );
 });
 
+test('an emphasised or backticked gh pr checks command is still field-validated', () => {
+  for (const [label, command] of [
+    ['bold subcommand', 'gh **pr** checks 1 --json name,totallyInvalid'],
+    ['backticked command', '`gh pr checks` 1 --json name,totallyInvalid'],
+    ['backticked flag', 'gh pr checks 1 `--json name,totallyInvalid`'],
+    ['fully inline', '`gh pr checks 1 --json name,totallyInvalid`'],
+  ]) {
+    withFixture(
+      {
+        'alpha.prompt.md': `---
+name: alpha
+description: Test prompt.
+parameters: []
+built_ins: []
+agent_dependencies: []
+---
+
+# Test
+
+## Runtime Contract
+
+${command}
+`,
+      },
+      {
+        prompts: ['alpha'],
+        agents: [],
+        members: [],
+      },
+      (root, manifest) => {
+        assert.throws(
+          () => validatePromptIntegrity(root, manifest),
+          (error) => {
+            assert.match(error.message, /unsupported JSON field "totallyInvalid"/, label);
+            return true;
+          },
+          label,
+        );
+      },
+    );
+  }
+});
+
 test('selected prompts require their declared canonical agents', () => {
   const prompt = validPrompt('alpha', {
     agentDependencies: ['qa-tester'],
