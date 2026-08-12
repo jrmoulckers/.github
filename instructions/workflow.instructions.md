@@ -2938,6 +2938,33 @@ same repository at the same moment, each with standing to correct the other, and
 have terminated in agreement on a wrong value had neither re-queried. Where two accounts of one
 field disagree, the resolution is a third reading of the artifact, not a comparison of the two.
 
+**Sharper still: two parties can hold the *same* figure, both be right, and each cite it as proof of
+the other's staleness.** A test-suite count was disputed across three exchanges. Measured by checking
+out each cited revision and running the suite in a throwaway worktree:
+
+```
+their revision   326      <- the figure each of us attributed to the other as stale
+later revision   336
+my own tip       338
+```
+
+Nothing was stale and nothing was wrong. `326` was exact at the revision it was taken at, and both
+parties had held it there; the later readings were exact at theirs. Yet one side wrote *your 326 is
+stale, actual 338* and the other wrote *I measured 336, not 326*, each treating a correct number as
+evidence of the other's carelessness. **A bare figure carries no revision, so a disagreement about
+one is indistinguishable from a disagreement about which object was measured** — and the argument
+that follows is unwinnable, because both sides are defending true statements. The reconciliation is
+never rhetorical: check out both revisions and measure. That the resolution required no judgement at
+all, only two checkouts, is the measure of how much of the exchange was avoidable.
+
+**And a count is not a function of diff size, in either direction.** Attributing that movement
+per-file turned up one file gaining eleven lines and **zero** tests — an assertion added inside an
+existing case — and another contributing four tests while being invisible to any diff of files that
+existed at the earlier revision, because the file itself was new. So *did this file change* is not a
+proxy for *did my number move*: it reports change where the count is fixed, and reports nothing where
+the count moved most. Re-derive the count itself; a cheaper signal that correlates with it is not a
+substitute for it, and here the correlation fails at both ends.
+
 **And two accounts that agree do not corroborate either, when both are denials.** Where the question
 is *who authored this*, a disclaimer carries information about its author and no one else, so a
 second session disclaiming the identical list is consistent with every possible third author — and
