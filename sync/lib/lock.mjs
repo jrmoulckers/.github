@@ -105,8 +105,8 @@ export function writeLock(memberRoot, lock) {
  * entry backwards by two days, and because a lock entry that disagrees with disk reads as member
  * drift, the path was refused on every later run until someone hand-edited a generated file.
  *
- * That incident is **not closed**, and the record is worth being exact about because the entry is
- * still wrong in a way that looks repaired. Reconstructed from finance's lock history:
+ * That incident was open when this was written, and the record is worth being exact about because
+ * the entry is wrong in a way that looks repaired. Reconstructed from finance's lock history:
  *
  *   finance PR #4027  correct entry written; all three fields updated atomically
  *   finance PR #4062  the overlapping run; sourceSha256 and syncedAt reverted, bytes untouched
@@ -114,11 +114,24 @@ export function writeLock(memberRoot, lock) {
  *                     only, so the entry now matches its own file while still describing a
  *                     two-day-old canon source
  *
+ * **Whether it is still open is a measurement, not a property of this comment.** A record that
+ * asserts a defect is live has no way to notice the defect being fixed, so it decays into a false
+ * statement that reads as current — the same failure as a suppression that outlives its cause,
+ * moved into prose. The closing condition is observable in one read:
+ *
+ *   gh api repos/jrmoulckers/finance/contents/.studio-sync.lock.json --jq '.content' \
+ *     | base64 -d | jq '.entries["vendor/@jrm/tokens/css/default/tokens.css"].sourceSha256'
+ *
+ * `658721d4…` means a sync has re-rendered the target and this paragraph is history; `343e10b1…`
+ * means it has not. Delete the incident record rather than updating it once it reads the former.
+ *
  * The recoverable values are `sourceSha256: 658721d4…` and `syncedAt: 2026-08-09T22:23:34.202Z`,
- * confirmed independently: the delivered bytes unstamp to that hash, and `jrmoulckers/cartridge`
- * vendored the same dist revision and recorded the same value. Do not hand-apply them — the fold
- * below excludes keys the run itself wrote, so a sync that re-renders this target corrects all
- * three fields for free. A second hand-edit is what produced the mixed state in the first place.
+ * confirmed independently three ways: the delivered bytes unstamp to that hash, `jrmoulckers/cartridge`
+ * vendored the same dist revision and recorded the same value, and finance's own #4027 recorded it
+ * before the rollback. Do not hand-apply them — the fold below excludes keys the run itself wrote,
+ * so a sync that re-renders this target corrects all three fields for free, which is pinned by
+ * *a hand-repaired entry — target current, source stale — is corrected, not read as clean* in
+ * `test/copier.test.mjs`. A second hand-edit is what produced the mixed state in the first place.
  *
  * Two deliberate narrowings, because the general problem has a question in it that should not be
  * answered in passing:
