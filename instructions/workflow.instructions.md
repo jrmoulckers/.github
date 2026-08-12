@@ -278,6 +278,19 @@ correctness depends on an ambient setting, prefer the form that cannot express t
 form that merely requires remembering a flag — a rule whose failure mode is "the author forgets the
 second half" has the same standing as no rule.
 
+**Two output paths of the same CLI can differ in time frame, and subtracting across them yields a
+constant equal to the machine's UTC offset.** Structured output deserialized by the shell arrives as
+a local-kind value, while a field pulled out as a raw string stays an ISO instant; comparing one
+against the other produces a uniform `25200`-second term on a `UTC-7` host. Two properties make it
+worse than an ordinary unit error. The offset is **identical across every row**, so the result looks
+like the cleanest possible finding rather than a broken one — uniformity is the tell, and a
+difference identical across every element of a sample is a parameter of the apparatus until shown
+otherwise. And it **displaces rather than destroys** the real signal: a genuine `0`/`-1` second split
+survived here as `-25200`/`-25201`, which read modally is a clean constant with noise around it, so
+the true result is present and unreadable. Normalize every timestamp to one frame at the boundary
+where it enters a comparison, and treat a constant offset across all rows as an apparatus term to be
+explained before it is reported.
+
 **An absent measurement impersonates whichever verdict the caller was written to look for.** A
 spawned linter returned exit code `null` — a spawn failure, not a result. `null` is falsy *and* is
 `!== 0`, so a success test reads it as failure and a failure test reads it as success; whichever
@@ -3134,6 +3147,15 @@ current each time — the mechanism was that replies ran two messages behind, so
 observations re-reported *the same original footer* as fresh evidence. Three sightings, one
 underlying sample, and a trend asserted from a series of length one.
 
+**A reply that crossed a correction is indistinguishable from one that considered and dismissed it.**
+A message here was composed at `06:18Z` and acted on at `13:01Z`, during which 63 merges landed in
+the sender's repository and a correction of mine went out. Their message answers none of it, for the
+ordinary reason that it predates it — but the party best placed to misread that silence is the one
+who sent the correction, who has been waiting on exactly that point. The remedy is the same quoted
+revision as above, read in the other direction: **before treating an omission as a response, check
+whether the message could have contained one.** Compare the revision it answers against when the
+correction went out, and if it crossed, re-send rather than infer a position.
+
 This is the vacuous-population defect at the level of correspondence, and it is worse than its
 single-message form in one respect: repetition is ordinarily the remedy for a bad measurement, so
 the accumulating count feels like the thing that licenses the generalisation. Before characterising
@@ -3753,6 +3775,30 @@ measured in minutes the guard returns *independent* on essentially every run. It
 instance already known — where the derivation source happened to be the tip — and passes silently
 whenever the label was copied from anything else, which is any merge that is not the current head.
 A guard whose reassuring branch is taken in almost every execution is reporting its own base rate.
+
+**And the base rate that justifies a guard is itself a sliding-window statistic that decays.** The
+figure above was re-derived by the correspondent on their own repository and then re-measured here
+6.7 hours later, same predicate and same window size: the median inter-merge gap moved from 868 to
+613 seconds, so a coincidence rate quoted as *1 in 868* was *1 in 613* before the exchange closed —
+a 29% move inside one conversation. Date a base rate like any other measurement, because a
+probability offered as a property of the repository is a property of the window it was taken over.
+
+**Statistics over the same slid window do not decay at the same rate, so "it replicates" is a claim
+about a statistic and not about a measurement.** Between those two runs 34 of the 40 elements turned
+over. The threshold claim — *no gap in the sample is under 60 seconds* — replicated exactly, 0 of 39
+both times, and it is the one the argument actually rests on. The median moved 29%. The maximum was
+identical only because both windows still happened to contain that one element, which looks like
+stability and is coincidence of overlap. Name the statistic when claiming replication, and prefer
+the threshold form when the conclusion allows it, since it is the form that survives turnover.
+
+**Report the sign of a delta; the magnitude is the part that agrees and the sign is the part that
+identifies the mechanism.** Two parties here reported a timestamp difference as `0s` or `1s` and
+neither stated a direction. Measured with both operands normalized, the non-zero mode is **-1s** —
+the commit time precedes the merge record, which is the only reading with any causal content. An
+unsigned delta is an absolute value wearing the name of a relationship, and two unsigned reports can
+agree perfectly while neither party knows which way round the relation runs. This is the *eight of
+what* failure in another costume: agreement on a quantity that was under-specified in a way no
+amount of comparing the two reports could expose.
 
 **Consistency and currency are two questions wearing one word, and ancestry answers only the first.**
 A local ref left behind by many commits is still an **ancestor** of the remote, so it passes every
