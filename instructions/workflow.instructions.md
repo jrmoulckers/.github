@@ -2100,12 +2100,34 @@ a repair to something that was working. The discriminator costs one lookup: **co
 of the measurement against the merge time of the change that would explain the difference.**
 
 ```
-git log -S'<the thing they named>' --format='%h %ad %s' --date=iso-strict -- <file>
+git log -G'<the thing they named>' --format='%h %ad %s' --date=iso-strict -- <file>
 ```
+
+**Use `-G`, not `-S`, and the difference is not cosmetic.** `-S` reports only commits where the
+*number of occurrences* of the string changed; `-G` reports commits whose diff mentions it at all. A
+paragraph rewritten around a term it already contained changes no count, so `-S` skips the rewrite
+and returns the older commit that first introduced the term. This was measured here on this file:
+`-S` dated a citation to `a06f5bf` at `2026-08-11T10:38Z`, while `git blame` and `-G` both place the
+line at `3ef527f`, `2026-08-11T23:07Z` — an error of nearly thirteen hours, in the direction that
+matters, since it made a citation look older than the change it failed to reflect.
+
+The failure mode is worse than a miss: `-S` returns a **real, plausible commit that genuinely touched
+the term**, so nothing about the output looks wrong. It had been about to license denying a
+correspondent's correct report. **When dating a specific line rather than the life of a term, prefer
+`git blame -L`**, which answers the question actually being asked; reserve the pickaxe for "when did
+this term enter or leave".
 
 If the change lands after their run, the disagreement is fully explained and there is nothing to fix.
 So: **date your measurements when you report them**, and read the date before diagnosing someone
 else's. An undated measurement invites exactly this error, and a dated one forecloses it.
+
+**The same discipline applies to the exchange itself: quote the revision you are answering.** Two
+sessions corresponding about a moving repository will cross messages, and a crossed message arrives
+looking exactly like a disagreement about facts — one party cites a SHA the other has already
+superseded, and neither can tell from the artifact whether it was superseded or misread, because
+nothing in the message records what it was a reply to. Quoting the SHA being answered makes the
+crossing visible instead of arriving as an apparent contradiction. It costs one token and it is the
+only thing that distinguishes *you are wrong* from *we spoke past each other*.
 
 ### An issue's state records a button press, not the state of the question
 
