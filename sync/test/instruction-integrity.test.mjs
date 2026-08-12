@@ -26,6 +26,19 @@ test('canonical instruction scopes, ownership, precedence, and member profiles p
   );
 });
 
+test('every canonical instruction carries a non-empty description', () => {
+  const manifest = loadManifest(REPO_ROOT);
+  const records = validateInstructionIntegrity(REPO_ROOT, manifest);
+
+  // A blank description renders as an empty cell in the consumer's instruction index, leaving the
+  // filename as the only retrieval signal. Assert on the parsed value rather than on the file text
+  // so this fails if the frontmatter parser ever stops reading the field.
+  for (const record of records) {
+    assert.equal(typeof record.description, 'string', `${record.name} description is not a string`);
+    assert.ok(record.description.trim().length > 0, `${record.name} has a blank description`);
+  }
+});
+
 test('workflow and documentation surfaces use immutable reusable workflow examples', () => {
   for (const relativePath of [
     'README.md',

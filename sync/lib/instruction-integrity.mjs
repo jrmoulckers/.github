@@ -46,7 +46,7 @@ export function validateInstructionIntegrity(repoRoot, manifest) {
     const name = fileName.slice(0, -'.instructions.md'.length);
     const relativePath = `${sourceBase}/${fileName}`;
     const text = readText(join(instructionDir, fileName));
-    return { name, relativePath, text, applyTo: parseApplyTo(relativePath, text, errors) };
+    return { name, relativePath, text, ...parseFrontmatter(relativePath, text, errors) };
   });
   const byName = new Map(records.map((record) => [record.name, record]));
 
@@ -266,13 +266,27 @@ function validateImmutableWorkflowExamples(repoRoot, errors) {
   }
 }
 
-function parseApplyTo(relativePath, text, errors) {
-  const match = text.match(/^---\napplyTo:\s*(['"])([^'"]+)\1\n---(?:\n|$)/);
+/**
+ * Instruction frontmatter is exactly two quoted scalars, in order: `applyTo` then `description`.
+ *
+ * `description` is required rather than optional because it is not decoration. A consumer receives
+ * scoped instructions as an index — pattern, path, description — and retrieves a body only when the
+ * row persuades it to. An absent description renders as a blank cell, which leaves the filename as
+ * the only thing a session can decide from, so an optional field would fail silently in exactly the
+ * case it exists to serve. The quoted-scalar shape keeps the parse anchored, so a description can
+ * never be mistaken for a second `applyTo` or smuggle one in.
+ */
+function parseFrontmatter(relativePath, text, errors) {
+  const match = text.match(
+    /^---\napplyTo:\s*(['"])([^'"]+)\1\ndescription:\s*(['"])([^'"]+)\3\n---(?:\n|$)/,
+  );
   if (!match) {
-    errors.push(`${relativePath}: requires frontmatter containing exactly one quoted applyTo value`);
-    return '';
+    errors.push(
+      `${relativePath}: requires frontmatter containing exactly one quoted applyTo value followed by one quoted description`,
+    );
+    return { applyTo: '', description: '' };
   }
-  return match[2];
+  return { applyTo: match[2], description: match[4] };
 }
 
 function requirePatterns(record, requirements, errors) {
