@@ -280,6 +280,25 @@ counts of the same issue, and the ratio was still uninterpretable — a denomina
 corpus than the numerator makes any rate look small, and looking small is what a plausibility check
 reads as healthy.
 
+**A file's byte size is a property of the file *and* whatever materialized it, and on Windows the
+working tree exceeds the blob by exactly the line count.** Measured at canon HEAD, `edge-sync`'s
+`SKILL.md` is **9,647** bytes as a blob and **9,846** in a Windows checkout; `fleet-orchestration` is
+**9,745** and **9,963**. The differences are `199` and `218`, equal to those files' `CR` counts to
+the byte. Both readings were published in the same exchange by different sessions, one raw-fetching
+and one stat-ing a checkout, and the disagreement was settled the wrong way: the pair was recorded as
+a *correction*, so one true figure was certified and an equally true one was filed as an error, along
+with the method that produced it.
+
+What makes this worse than an ordinary units mismatch is that the obvious check clears it. `git
+status` reports the tree **clean**, because git normalizes line endings when it hashes a worktree
+file — so the tree genuinely matches the blob *as content* while differing from it *as bytes*, and
+the command a careful reader would reach for to confirm "my copy is the repo's copy" answers a
+question about content when the claim is about size. `.gitattributes` does not rescue it either: the
+attribute governs checkout and commit, not files already materialized, so a repo whose policy is
+`eol=lf` can hold a CRLF working tree indefinitely and report nothing. **Compare blob to blob**, or
+state which you measured — and treat any cross-machine size delta smaller than the file's line count
+as unresolved before it is a finding.
+
 Note what is *not* claimed there. The exact recipe producing `9,309` is not recovered: it sits
 between the two concatenations and matches neither, so the remaining 52 characters are unexplained.
 That gap is stated rather than closed with a plausible guess, because closing it would commit the
