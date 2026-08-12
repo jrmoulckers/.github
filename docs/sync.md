@@ -987,6 +987,23 @@ the test fails rather than this table quietly going stale.
 Two separate member repositories have now reported this count as a defect. The rule above is not
 the remedy — it was already present, in full, both times.
 
+**And neither reader was reading this document, because it does not reach them.** `docs/` is in no
+canon kind, so `docs/sync.md` is delivered to none of the eleven members, while the party told to
+resolve a sync PR and assert this invariant is a member-side reader. A rule can be correctly stated,
+correctly justified, and still never arrive; more warning text here cannot fix an audience problem.
+
+So the rule now travels with the finding, in the sync PR body — the artifact the member does
+receive. `buildPrBody` emits the delimiter-anchored commands, the expected `1`, and the prohibition
+on the bare name alongside the list of duplicated regions, and `prbody.test.mjs` fails if any of the
+three is dropped. This document remains the argument; the PR body is the delivery.
+
+That matters most immediately after a *correct* repair. Deleting a duplicated region deletes canon's
+prose mention along with it, so the bare-name count moves 4 → 2 and never reaches `1` — a member who
+verifies that way sees the number they were told indicates a duplicate, on a file they have just
+fixed, and the obvious next move is to delete canon's prose out of the managed region.
+`basemerge.test.mjs` pins that sequence from real canon in *a correct repair still reports 2 under
+the bare name, which is why the body forbids it*.
+
 Hard-fail if the region extracts empty rather than hashing it: *found the markers* and *found the
 region* are different successes, and the SHA-256 of the empty string is a plausible-looking value
 rather than an obvious error.

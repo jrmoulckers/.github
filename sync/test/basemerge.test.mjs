@@ -409,6 +409,47 @@ test('canon quotes the marker names in prose, and only the delimiter form is cou
   assert.notEqual(extractBlock(file, MARKERS.html), null, 'the region still resolves');
 });
 
+// The sync PR body tells the member to delete the extra block. It now also tells them how to check
+// the result, because the natural check is the one that cannot report success.
+//
+// Duplicating a region duplicates canon's prose mention along with it, so the bare name moves 4 -> 2
+// across a correct repair and never reaches 1. A member who verifies that way sees the count they
+// were told indicates a duplicate, on a file they have just correctly fixed, and the obvious next
+// move is to delete canon's prose out of the managed region. Pinned from real canon so the body's
+// claim is measured rather than asserted.
+test('a correct repair still reports 2 under the bare name, which is why the body forbids it', () => {
+  const canon = readFileSync(join(REPO_ROOT, 'copilot-instructions.md'), 'utf8');
+  const healthy = buildFile('', canon, MARKERS.html);
+
+  assert.match(canon, /studio:base:start/, 'canon must quote the marker name for this to mean anything');
+
+  const region = healthy.slice(
+    healthy.indexOf(START_MARKER),
+    healthy.indexOf(END_MARKER) + END_MARKER.length,
+  );
+  const duplicated = `${healthy}\n\n${region}\n`;
+  assert.deepEqual(
+    orphanedRegions(duplicated, MARKERS.html).length,
+    1,
+    'the fixture must actually be duplicated, or the repair proves nothing',
+  );
+
+  // Exactly what the body instructs: delete the extra block, markers included.
+  const repaired = duplicated.slice(0, duplicated.lastIndexOf(region)).replace(/\n+$/, '\n');
+  assert.deepEqual(orphanedRegions(repaired, MARKERS.html), [], 'the repair must be correct');
+  assert.equal(repaired.trimEnd(), healthy.trimEnd(), 'the repair must restore the healthy file');
+
+  const bare = (text) => (text.match(/studio:base:start/g) ?? []).length;
+  assert.equal(bare(duplicated), 4, 'duplicating carries canon prose with it');
+  assert.equal(bare(repaired), 2, 'a correct repair never reaches 1 under the bare name');
+
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const anchored = (text) =>
+    (text.match(new RegExp('^' + esc(START_MARKER) + '[ \\t]*$', 'gm')) ?? []).length;
+  assert.equal(anchored(duplicated), 2);
+  assert.equal(anchored(repaired), 1, 'the prescribed matcher reaches 1, which is why it is prescribed');
+});
+
 // The managed path has the same ordering defect and the same repair. Pinned separately because the
 // two paths have diverged before: the never-delivered force refusal (#558) was implemented on the
 // plain-file path only and the suite stayed green because nothing exercised the managed twin.
