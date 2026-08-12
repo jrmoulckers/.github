@@ -1655,6 +1655,36 @@ had left the range entirely by the revision after that. So a range **buys revisi
 permanence**. It degrades gracefully rather than immediately, which is a genuine advantage over a
 point and is not immunity; it does not make a coordinate durable, and it does not displace the name.
 
+**Decay is not a rate, and treating it as one is what makes a coordinate feel safe.** A correspondent
+proposed that citations decay at "roughly one exchange," inferred from three consecutive corrections
+landing in three consecutive messages. Measured against the repository over the 27 commits following
+that claim, the model does not hold — and their own message supplies the counterexample:
+
+| coordinate cited | commits touching that file | outcome after 27 commits |
+| --- | --- | --- |
+| `runner.mjs` L55/L58 | **0** | exact, unmoved |
+| `member-facts.test.mjs` 213/369 | **0** | exact, unmoved |
+| `copier.mjs` 240 | 1 | still correct |
+| suite count `322` | 2 test files gained tests | **wrong — 326** |
+| `workflow.instructions.md` | **22 (+630 lines)** | any point cite destroyed |
+
+So elapsed exchanges predict nothing. **Decay is a step function keyed to edits of the cited
+artifact, and it is invisible to the citer**, who cannot see the commit that will move their line and
+receives no notification when it lands. Correcting the model *strengthens* the name-based rule rather
+than weakening it: a rate would be budgetable — re-check every N exchanges — and there is no rate to
+budget against. A coordinate is either untouched for a day or wrecked in a single commit, and nothing
+observable from the citing side distinguishes the two beforehand.
+
+Two consequences worth carrying. **Fragility tracks the edit rate of the target, so the surface that
+most needs name-based citation is the most-edited one** — and here that is the member-facing canon
+itself, which absorbed 22 of those 27 commits. Highest reach and highest churn coincide, which is why
+a line citation into distributed instructions is the worst case rather than an average one.
+
+And **the coordinate that actually decayed was the one not recognized as a coordinate.** The two
+flagged as fragile survived untouched; the figure that failed was a test count, which reads as a
+property of the repository rather than as a pointer into a file. Anything re-derived from an artifact
+is a coordinate, whether or not it looks like an address.
+
 But a name only helps if it names a **structural element**. `§ X` asserts that X is a heading; a
 plain text search confirms only that those characters occur somewhere, and returns the same answer
 whether the match is a heading, a bold lead-in, a table cell, or a line inside a fenced block. So
