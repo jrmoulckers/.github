@@ -869,6 +869,60 @@ test('a file identical to the current rendering is restamped, not drifted, when 
   });
 });
 
+// The test above regresses *both* fields, which is what an overlapping run produces. A hand-repair
+// produces a different shape and the difference is load-bearing: `targetSha256` is corrected to
+// match disk while `sourceSha256` is left describing an older canon revision. Every field is
+// individually corroborated by some real delivery; the combination was delivered to no one.
+//
+// That state is what `lock.mjs` tells a member to leave alone -- "a sync that re-renders this target
+// corrects all three fields for free" -- and that advice is the reason a member does not hand-edit a
+// lockfile a second time. The whole promise rests on `sameBaseline` consulting `sourceSha256`, and
+// the test above cannot tell whether it does: a `sameBaseline` comparing `targetSha256` alone leaves
+// the entire suite green while freezing every hand-repaired entry as `unchanged` forever.
+//
+// So this pins the recovery on the shape the advice is actually about, and asserts the source field
+// specifically -- asserting the target would restate the precondition.
+test('a hand-repaired entry — target current, source stale — is corrected, not read as clean', () => {
+  withTmp((root) => {
+    const s = spec();
+    const targetPath = s.targetPath;
+
+    seed(root, targetPath, s.content);
+
+    const older = spec('# canon\n\nAn older revision.\n');
+    const lock = {
+      entries: {
+        [targetPath]: {
+          // The hand-repair: the target hash was corrected to the delivered bytes, and the source
+          // hash was left behind. This entry agrees with its own file and describes stale canon.
+          sourceSha256: older.sourceSha256,
+          targetSha256: hashText(s.content),
+          syncedAt: '2026-08-07T15:35:03.616Z',
+        },
+      },
+    };
+
+    const { report, lock: next } = apply(root, [s], lock, { write: true });
+
+    assert.deepEqual(report.unchanged, [], 'an entry describing stale canon is not clean');
+    assert.deepEqual(
+      report.updated.map((i) => i.targetPath),
+      [targetPath],
+      'the entry must be re-rendered, or the hand-repair is permanent',
+    );
+    assert.equal(
+      next.entries[targetPath].sourceSha256,
+      s.sourceSha256,
+      'the stale source must be corrected — this is the promise that stands in for hand-editing',
+    );
+    assert.notEqual(
+      next.entries[targetPath].syncedAt,
+      lock.entries[targetPath].syncedAt,
+      'a corrected entry records when it was corrected',
+    );
+  });
+});
+
 // The control against over-correcting: a matching entry must stay `unchanged`, so this adds no
 // lockfile churn. Without it, restamping unconditionally would stamp a fresh generatedAt into
 // every sync PR and the test above would still pass.
