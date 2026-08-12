@@ -1467,6 +1467,38 @@ check failure — Vercel's `Deployment rate limited — retry in 24 hours` hit a
 window, from a different system with the same shape. When a check fails and no diff explains it,
 ask whether the limit being hit belongs to the account rather than to the repository.
 
+**Recognizing the refusal is not diagnosing it, and the annotation names two causes with different
+remedies.** *"recent account payments have failed **or** your spending limit needs to be increased"*
+is a disjunction: one branch costs money to clear, the other does not. Every session here has
+recommended raising the limit without testing which branch was live. Two of them are testable.
+
+The account-scoped billing endpoints are gone, and that is not the end of the enquiry — a `410`
+names its successor in the response body, and following it returns per-repository, per-SKU rows:
+
+```bash
+gh api /users/OWNER/settings/billing/actions          # 410 "This endpoint has been moved."
+gh api /orgs/OWNER/settings/billing/actions           # 404 on a personal account
+gh api "/users/OWNER/settings/billing/usage?year=YYYY&month=M"   # 182 rows
+```
+
+Against that data, on a `type=User`, `plan=free` account:
+
+| Branch | Test | Reading |
+| --- | --- | --- |
+| payments have failed | `netAmount` summed over all months | `0.0000` — no charge ever existed, so none can have failed |
+| allowance exhausted | private-repo minutes, multiplier-weighted, vs the plan's included figure | `1,282` of `2,000` — not exhausted, so *waiting for the cycle boundary is not a remedy* |
+
+Public repositories do not consume the allowance, so weight **only private ones** — and confirm
+visibility with `.private` rather than from memory, which is how a seven-repository set was
+published as six here for a week.
+
+Both exclusions are negative results and inherit the scope of their population, so state the months
+and the repository set with them. Note also what neither one settles: **the spending limit's own
+value is not exposed by any reachable endpoint**, so naming that branch is a conclusion by
+elimination, not an observation, and it should be reported that way. In the live instance the
+account sat inside its allowance with nothing ever billed *and jobs were still refused* — which the
+two exclusions do not explain and do not need to.
+
 Non-Linux runners carry a minute multiplier — macOS bills at 10x and Windows at 2x — so adding a
 single macOS job can exhaust a budget that Linux jobs had comfortably fit inside. Budget for the
 multiplier when you add one, and prefer `ubuntu-latest` unless the job genuinely requires the
