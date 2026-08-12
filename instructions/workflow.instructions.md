@@ -78,6 +78,15 @@ single-attempt runs while differing on **every** multi-attempt run, by between 1
 dating an onset from `run_started_at` reports when the condition was last *re-examined*, not when it
 started, and it always errs late.
 
+**Recording a hazard's magnitude does not make the hazard stop firing.** The `199` second figure
+above is not a generic bound — it is one specific run, `31437205907`. An independent correspondent
+subsequently dated an outage's onset from `run_started_at` **on that same run**, and was late by
+exactly 199 seconds: they reported `22:14:22Z` where attempt 1, equally zero-step, had been refused
+at `22:11:03Z`. The canon entry was correct, present, specific, and quantified, and it did not reach
+them — see the entitlement gap below. **A finding only prevents a defect for readers who receive the
+file it lives in**, so when a correction is published, check whether the party most exposed to that
+defect is entitled to read it.
+
 Two properties make this worse than an ordinary wrong-field mistake. The agreement is near-total on
 untouched objects, so a sample drawn at random validates the field at 98% and certifies nothing —
 the disagreement lives entirely in the re-run subset. And that subset is **the one investigation
@@ -2392,8 +2401,20 @@ questioned. **Ask what would have to be true for a figure to move before crediti
 did not.**
 
 Both exclusions are negative results and inherit the scope of their population, so state the months
-and the repository set with them. Note also what neither one settles: **the spending limit's own
-value is not exposed by any reachable endpoint**, so naming that branch is a conclusion by
+and the repository set with them.
+
+**Measure the allowance at the onset, not over the month, because a refusal suppresses the usage it
+would have produced.** A month total taken during an outage is partly an *effect* of that outage, so
+using it to argue the allowance was never exhausted is circular in its general form. The sound
+quantity is cumulative private usage at the instant of the first refusal. Both episodes here survive
+the stricter test — `18 / 2,000` at the first, `1,282 / 2,000` at the second — and the first is exact
+rather than approximate, because July private usage is a **single row** dated three days before
+onset. But the shortcut was safe only by accident: both episodes were still running at their month's
+end. An episode that ended mid-month would have its recovery usage counted into the same total,
+inflating usage-at-onset and biasing toward the very arm the test is trying to refute.
+
+Note also what neither one settles: **the spending limit's own value is not exposed by any reachable
+endpoint**, so naming that branch is a conclusion by
 elimination, not an observation, and it should be reported that way. In the live instance the
 account sat inside its allowance with nothing ever billed *and jobs were still refused* — which the
 two exclusions do not explain and do not need to.
@@ -3442,6 +3463,25 @@ a different billing mechanism entirely, and I had no way to notice, because the 
 was still right. Quote the mechanism and the measurement that established it every time it is
 restated, and when a peer hands your own claim back to you, check it against what you actually
 measured before accepting it as yours.
+
+**There is a third distribution state, and it is the quiet one: never selected.** Beyond *delivered*
+and *blocked at merge* sits **unsubscribed** — `workflow.instructions.md` is absent from one member's
+default branch and absent from the nine files of their open sync pull request, because their
+`optIn.instructions` lists `agents`, `canon-formatting`, and `infrastructure-operations` and not
+`workflow`. **9 of 11** members are entitled to this file; the two that are not are the two
+infrastructure members. Correcting a peer with *delivery works, merge is blocked* was therefore
+wrong for exactly those two, and no sync output reports that a member is unsubscribed from a file, so
+the gap is invisible from both ends. **Before concluding a member has ignored canon, verify they are
+entitled to it.**
+
+**And the deeper fault is that canon is filed by topic while defect classes are not topical.** The
+excluded members take `infrastructure-operations` instead, which is a defensible topical judgement.
+But the defect they then committed was a *measurement* error against the run-timestamp fields — and
+the members most exposed to that error are precisely the infrastructure ones, who read run timestamps
+constantly. A topic-relevance entitlement decision silently determines who can learn from
+cross-cutting findings, and cross-cutting is the property that makes a finding worth publishing at
+all. **When material is general-purpose, file it where every consumer takes it, or accept that its
+audience was chosen by a judgement about subject matter that the material does not respect.**
 
 **That rule is narrower than it reads, and volunteering the wrong kind of fact relocates the
 asymmetry instead of closing it.** A member adopted it explicitly — correcting a stale member tip in
