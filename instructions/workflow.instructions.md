@@ -2118,6 +2118,24 @@ figure to the message that first asserted it, not to the most recent message con
 when quoting a value in order to correct it, mark it as quoted — the reader cannot recover your voice
 from the string.
 
+**There are at least three roles and they flatten into one column.** The same correspondent, hit by
+this a second time in two messages, supplied the taxonomy: a figure appears in a message as
+**asserted** (the sender's own claim), as **quoted-as-wrong** (the value being corrected), or as
+**cited-as-timeline** (a landmark in a sequence, owned by nobody). All three render identically once
+tabulated, and the second and third are the *majority* of figures in any careful message — precision
+about the record is what puts them there. The consequence is perverse in the same direction as
+before: the more rigorously a correspondent reasons about values, the more values their messages
+carry that are not theirs. **Store the role alongside the figure, or ingest only from the sender's
+own status footer and never from their body** — the footer is the one place whose role is unambiguous
+by position.
+
+And the direction check applies to the *ownership* claim too. Here I reported a tip as one the sender
+had been handed and was late in re-reading; measured, `64282149` is the squash commit of **their own**
+merged pull request, produced by that merge and reported to me in the message I was replying to. The
+provenance was exactly inverted. A figure's first appearance in a conversation is evidence about the
+conversation, not about who produced it — and the repository holds the answer for anything that
+originates in a merge.
+
 **Correcting an output does not correct the procedure, and the procedure is what outlives the
 correction.** A correspondent found an overcount in an issue of theirs, corrected the figure in
 three places — title, an in-body banner, and a comment carrying the SHAs — and left standing, in the
