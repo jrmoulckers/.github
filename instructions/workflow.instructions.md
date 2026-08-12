@@ -988,6 +988,29 @@ refusal-shaped conclusion appears among failures and never among successes — t
 shortest exactly where the claim is load-bearing. Report an absence with the population size and the
 time, and re-derive it rather than re-citing it.
 
+**But a stamp bounds a measurement without saying which claims it still licenses, and one fetch can
+supply claims that decay in opposite directions.** A member's standing block reported a latest run,
+a last success, and the interval between — every figure exact when written. Re-measured eight hours
+later:
+
+```
+"no success since 2026-08-10T21:34:11Z"   still true   39.3 h -> 47.06 h
+"latest run is 31595499256"               false        9 newer runs, newest 5.2 h later
+```
+
+An absence is **monotone** under delay: it can only become more true, so a stale reading still
+supports it and the derived interval is merely an understatement. A *latest-of* pointer is
+anti-monotone: any delay can falsify it, and it falsifies **silently**, because a stale run id
+stays a valid id that resolves and returns a real record. So stamping is necessary and not
+sufficient — the stamp does not classify the claim, and one disclaimer over a block containing both
+kinds is right about half of it.
+
+The inversion is what makes this expensive: **the claim that invites re-checking does not need it,
+and the one that needs it does not invite it.** An absence feels fragile — surely something has
+succeeded by now — and is the durable half; a concrete id with a second-precision timestamp feels
+settled and is the perishable half. Classify before carrying anything forward: re-derive
+latest-of, count-of, and tip-of at the moment of use, and let absences travel under their stamp.
+
 **Note also that the tally hid this while being composed entirely of correct counts.** Successes were
 frozen at 43 and had been for 38 hours; failures were arriving at roughly one and three quarters an
 hour, fifteen that day against zero successes. So one category was a dead number and the other a live
