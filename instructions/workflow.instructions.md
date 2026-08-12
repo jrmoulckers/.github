@@ -157,6 +157,30 @@ because everything downstream was written against the guard's meaning. Prefer de
 predicate — one shared constant used by both — over correcting it, since a corrected third expression
 of the rule has to be re-checked against the guard exactly as carefully as the bug did.
 
+**A guard is a claim about a relation between two texts, and inspecting either one alone always
+shows it satisfied.** A correspondent's idempotency guard tested a fetched body for the literal
+`Added 2026-08-12T05:5` while its own payload emitted `(added 2026-08-12T05:55Z)` — differing in
+case, so the guard tested for a string the script could not produce and **no number of applications
+could ever satisfy it**. Applying twice appended twice, `7770 -> 8928 -> 10086`, exactly `+1158` each
+time. Auditing the other scripts found a second instance of the same shape, in the script whose
+idempotency had already been *reported as verified*.
+
+The reason that verification was worthless in a way that looks rigorous is the transferable part.
+Idempotency was confirmed by **reading the guard** rather than by **running the script twice**.
+Reading establishes that a guard exists and is compared against the right object — both true here.
+What it cannot establish is that the guard's literal and the payload's literal are the same string,
+because that requires holding two widely separated regions of the file side by side, which is exactly
+what sequential reading does not do. Each half looks well-formed; the defect lives only in the space
+between them.
+
+**And this is the accidentally-safe entry recorded elsewhere in this file with its sign flipped.**
+There, an instruction was safe for a reason its author did not know, so its clean record taught
+nothing. Here an instruction is *unsafe* for a reason its author did not know, and its clean record
+also teaches nothing, because it was never exercised. **Both are certified by identical evidence —
+nothing has gone wrong — so that evidence cannot distinguish a guard that works from one that cannot
+possibly fire.** The only thing that separates them is performing the operation the guard exists to
+make safe. Verify idempotency by applying twice; there is no reading that substitutes.
+
 **That safe direction holds only while nothing acts on the miss.** It is stated for a guard, whose
 `false` declines to proceed. A **locator** is different: returning "not found" hands control to
 whatever handles the miss, and if that path performs the action anyway, a stricter predicate is not
@@ -861,6 +885,29 @@ ordering** — the jobs endpoint returns the latest attempt, so the sweep was co
 reached. Establish which stage of a pipeline the fault is in before discarding the conclusion: a wrong
 timestamp beside a sound sweep invalidates the attribution, not the finding.
 
+**A threshold in a damage sweep is a second scope statement, and it tends to exclude the exact
+artifact class the failure produces.** Following the guard defect above, the same correspondent
+swept every durable artifact for duplicated content and found none — hashing paragraphs **of at least
+eighty characters**. Re-run with no minimum at all the answer is the same, zero, so the conclusion
+holds. But the filter was removing 48 paragraphs across the audited set, and those short paragraphs
+are precisely what a mis-stamped guard duplicates: a stamp line, a status row, a table entry. The
+sweep was calibrated to prose while the hazard emits markers. **A threshold chosen for signal-to-noise
+in the common case is a blind spot positioned by the shape of the data, not by the shape of the
+defect** — so state it, and for a bounded corpus prefer running with the filter off, since a
+clean result at threshold zero costs nothing and needs no defending.
+
+**And two checks described as complementary do not compose unless they cover the same population.**
+The correspondent correctly observed that auditing scripts finds latent guards but no damage, while
+hashing content finds damage but no latent guard, and that neither subsumes the other. Both true. The
+two audits were then run over **different sets**: a script targeting one pull request was examined and
+declared sound, and that pull request does not appear among the eight artifacts the content sweep
+covered — though at 17,148 characters it is the largest artifact in the repository, nearly twice the
+next. Re-measured across the union, including the four artifacts the sweep omitted, duplication is
+still zero, so nothing was hiding there. The hazard is structural: **when two checks are justified by
+their non-overlap, the union reads as coverage while only the intersection is actually covered**, and
+the argument for running both is the same sentence that conceals the gap between them. Name the
+population of each check, not just its method.
+
 **And a catch-all around a fetch converts every failure into the emptiest plausible answer.** The
 fleet scan reported elsewhere in this section was written *after* three separate entries in this file
 about absence rendering as a measured zero, and its first run reported `homelab NO RUNS` — for the
@@ -1217,6 +1264,14 @@ neither party intended to measure. A quantity invariant across inputs cannot dis
 inputs, so agreement on the residual is fully consistent with the two parties reading different
 files. Report the convention *and* the revision; the residual settles the first and is blind to the
 second.
+
+**Sometimes both readings are in one message, which makes the cheapest possible check the one nobody
+runs.** A correspondent reporting a de-duplicated artifact gave its size as `8929` in prose and
+`8930` in the audit table eight lines below, and every one of the eight figures in that table was
+exactly one above the API's own count. Detecting it required no fetch, no peer, and no second
+instrument — only reading the message against itself. An internal inconsistency is the only kind that
+is fully verifiable at zero cost, and it is routinely missed because self-review checks arguments for
+soundness rather than figures for agreement. Before sending, diff your own numbers against each other.
 
 **And a constant offset is equally the signature of a constant lag.** The same two sessions later
 diverged by ~34 lines at two unrelated revisions — far too large for the trailing-newline convention,
