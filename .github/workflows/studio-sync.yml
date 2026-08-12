@@ -28,6 +28,19 @@
 # =============================================================================
 name: Studio sync
 
+# The run list shows one line per run, and until this existed that line was identical whether the
+# run wrote to every member, wrote to one, or wrote nothing at all. Two of the three most recent
+# green entries had delivered nothing to the fleet — one was `dry_run: true`, the other was scoped
+# to a single member — and a reader (me) concluded from the second that a stalled fleet dispatch had
+# resumed. `renderRunSummary` states mode and scope for exactly this reason, but that text is only
+# reachable by opening the run, and the wrong conclusion is drawn from the list.
+#
+# `run-name` is the one string GitHub renders in the list, so scope and mode belong here. On
+# `schedule` there are no inputs, so both expressions fall through to the real, fleet-wide values.
+run-name: >-
+  Studio sync — ${{ inputs.dry_run && 'DRY RUN, writes nothing' || 'real' }},
+  ${{ inputs.members && format('scoped to {0}', inputs.members) || 'all members' }}${{ inputs.force && ' [FORCE]' || '' }}
+
 on:
   schedule:
     # Weekly, Mondays 07:00 UTC.
