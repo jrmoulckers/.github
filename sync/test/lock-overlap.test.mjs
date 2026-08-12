@@ -130,6 +130,37 @@ test('a newer base entry with identical hashes is not reported as restored', () 
   assert.equal(restored.length, 0);
 });
 
+// The test above is named for both hashes and varies one: `entry()` defaults `sourceSha256` to the
+// same value on either side, so a `sameBaseline` consulting `targetSha256` alone left the whole
+// suite green -- verified by mutant, not by reading. This supplies the operand it never varied.
+//
+// The state is ordinary rather than exotic. `sourceSha256` records which canon revision produced the
+// bytes, and distinct revisions can render byte-identical output: an edit outside a managed region,
+// or a canon change that only reorders something the renderer normalizes. When the default branch
+// holds a newer sync recording the same bytes from a newer source, skipping it keeps a stale
+// provenance in our lock while the timestamps say we are current.
+//
+// That matters downstream rather than cosmetically: classification asks whether on-disk bytes are
+// recognizable output of a known canon revision, and it asks `sourceSha256`. A lock frozen on a
+// superseded source answers that question wrongly for as long as it survives.
+test('a newer base entry that moved only the canon source is restored, not skipped as identical', () => {
+  const ours = { 'a.md': entry('same', '2026-08-07T00:00:00.000Z', 'canon-before') };
+  const base = { 'a.md': entry('same', '2026-08-09T00:00:00.000Z', 'canon-after') };
+
+  const { entries, restored } = mergeNewerBaseEntries(ours, base, new Set());
+
+  assert.equal(
+    entries['a.md'].sourceSha256,
+    'canon-after',
+    'the newer provenance must be folded in; identical bytes do not make the entries the same',
+  );
+  assert.deepEqual(
+    restored.map((r) => r.targetPath),
+    ['a.md'],
+    'a restored entry is reported, or the fold is silent about what it changed',
+  );
+});
+
 test('the fold does not mutate the entries it was given', () => {
   // `apply` has already written this object to disk; a caller that folds and then decides not to
   // commit must not have altered the run's own record as a side effect.
