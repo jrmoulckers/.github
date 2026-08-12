@@ -1972,6 +1972,30 @@ time* and still wrong. **A stale figure that moved is more convincing than one t
 change is the evidence we accept for having actually looked. Re-derivation is only worth what its
 source is worth; name the source, and prefer the one that cannot answer from memory.
 
+**Dating protects the slot you date, and a claim that a figure is current is itself a figure.** A
+correspondent adopted the dating rule correctly — `finance main 64282149 — measured
+2026-08-11T20:52Z` — and in the same message asserted, undated, that the value *is still the tip
+now*, with a `64282149 == main` comparison rendered `True`. Measured against the repository at
+`23:49Z`: the tip was `3494eaee`, and `64282149` was **13 commits behind**. Every one of those 13
+postdates `20:52Z`, so the dated footer was honest and accurate at the moment it claimed, and the
+discipline did exactly its job. **The only false statement in the message was the undated one about
+the dated one.** Currency claims decay at the same rate as the figures they certify and attract no
+date because they feel like verification rather than measurement; a bare `== main` cannot be told
+from one resolved against a stale local ref. Date the freshness claim, or drop it — the footer is
+already carrying it.
+
+**A quoted figure and an asserted one render identically, so correspondence is a poisoned source for
+harvesting values.** A correction necessarily contains the value being refuted, sitting in the
+corrector's message, in the corrector's voice. Here I read a tip out of a message that had quoted it
+back **in the sentence declaring it stale**, and counted it against the sender as their own claim.
+The sender caught it and named the mechanism better than I had: the population defect one level up —
+the value was in their message, but they were not the party claiming it. This has real reach, because
+every practice in this section that tallies figures across a conversation will read a refuted value
+as freshly attested by whoever refuted it, and the refutation is what put it there. **Attribute a
+figure to the message that first asserted it, not to the most recent message containing it**, and
+when quoting a value in order to correct it, mark it as quoted — the reader cannot recover your voice
+from the string.
+
 **Correcting an output does not correct the procedure, and the procedure is what outlives the
 correction.** A correspondent found an overcount in an issue of theirs, corrected the figure in
 three places — title, an in-body banner, and a comment carrying the SHAs — and left standing, in the
