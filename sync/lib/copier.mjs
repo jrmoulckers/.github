@@ -247,6 +247,20 @@ function planFile(memberRoot, spec, entries, force, forceable = new Set()) {
 
   const currentHash = hashText(readFileSync(abs, 'utf8'));
   const lockEntry = entries[spec.targetPath];
+
+  // Bytes already identical to what this run would write. Decide this *before* consulting the
+  // lock, because `isLocallyModified` compares against the recorded hash and never against the
+  // current rendering: a stale entry therefore reports a file that is provably current as drift,
+  // and drift leaves the entry untouched, so the run repeats that verdict forever and `--check`
+  // fails on a correct file. Equality with the rendering is direct evidence about the bytes,
+  // while the entry is only a claim about them; when they disagree the bytes win. There is no
+  // member edit to preserve here by construction, so restamping discards nothing.
+  if (currentHash === renderedHash) {
+    return lockEntry && !sameBaseline(lockEntry, newEntry)
+      ? { action: 'update', newContent: rendered, newEntry }
+      : { action: 'unchanged', newEntry };
+  }
+
   if (isLocallyModified(lockEntry, currentHash, renderedHash)) {
     if (
       isUnstampedCanon(lockEntry, currentHash, spec) ||
@@ -269,8 +283,12 @@ function planFile(memberRoot, spec, entries, force, forceable = new Set()) {
       ? { action: 'forced', newContent: rendered, newEntry }
       : { action: 'drift' };
   }
-  if (currentHash === renderedHash) return { action: 'unchanged', newEntry };
   return { action: 'update', newContent: rendered, newEntry };
+}
+
+/** Whether two entries record the same canon source and the same rendered output. */
+function sameBaseline(a, b) {
+  return a?.sourceSha256 === b?.sourceSha256 && a?.targetSha256 === b?.targetSha256;
 }
 
 /**
@@ -296,6 +314,15 @@ function planManaged(memberRoot, spec, entries, force, forceable = new Set()) {
   const currentHash = hashText(currentInner);
   const outranks = outrankedRules(existing, markers, spec.targetPath);
   const lockEntry = entries[spec.targetPath];
+
+  // Same precedence as planFile: a region already equal to canon's rendering is current whatever
+  // a stale entry claims, and reporting it as drift would be permanent.
+  if (currentHash === renderedHash) {
+    return lockEntry && !sameBaseline(lockEntry, newEntry)
+      ? { action: 'update', newContent: buildFile(existing, inner, markers), newEntry, outranks }
+      : { action: 'unchanged', newEntry, outranks };
+  }
+
   if (isLocallyModified(lockEntry, currentHash, renderedHash)) {
     // Same rule as planFile, and for the same reason. The refusal asks whether canon holds a copy
     // of what the write would destroy — a question about provenance, not about scope. A managed
@@ -311,7 +338,6 @@ function planManaged(memberRoot, spec, entries, force, forceable = new Set()) {
       ? { action: 'forced', newContent: buildFile(existing, inner, markers), newEntry, outranks }
       : { action: 'drift', note: suspectBlockNote(spec.targetPath, currentInner, inner), outranks };
   }
-  if (currentHash === renderedHash) return { action: 'unchanged', newEntry, outranks };
   return { action: 'update', newContent: buildFile(existing, inner, markers), newEntry, outranks };
 }
 

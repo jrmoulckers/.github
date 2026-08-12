@@ -299,3 +299,40 @@ test('canon quotes the marker names in prose, and only the delimiter form is cou
   );
   assert.notEqual(extractBlock(file, MARKERS.html), null, 'the region still resolves');
 });
+
+// The managed path has the same ordering defect and the same repair. Pinned separately because the
+// two paths have diverged before: the never-delivered force refusal (#558) was implemented on the
+// plain-file path only and the suite stayed green because nothing exercised the managed twin.
+test('a managed region identical to canon is restamped, not drifted, when the entry is stale', () => {
+  withTmp((root) => {
+    const local = '# member\n\nProduct-local content.\n';
+    writeFileSync(join(root, 'AGENTS.md'), buildFile(local, CANON, MARKERS.html), 'utf8');
+
+    const lock = {
+      entries: {
+        'AGENTS.md': {
+          sourceSha256: hashText('older source'),
+          targetSha256: hashText(canonicalizeInner('# older\n\nAn older revision.\n')),
+          syncedAt: '2026-08-09T00:00:00.000Z',
+        },
+      },
+    };
+
+    const { report, lock: next } = apply(root, [agentsSpec()], lock, { write: true });
+
+    assert.deepEqual(report.drift, [], 'a region equal to canon is never drift');
+    assert.deepEqual(
+      report.updated.map((i) => i.targetPath),
+      ['AGENTS.md'],
+    );
+    assert.equal(
+      next.entries['AGENTS.md'].targetSha256,
+      hashText(canonicalizeInner(CANON)),
+      'the stale entry must be restamped',
+    );
+    assert.ok(
+      readFileSync(join(root, 'AGENTS.md'), 'utf8').includes('Product-local content.'),
+      'the member half is still never ours',
+    );
+  });
+});
