@@ -62,24 +62,55 @@ test('a description may contain the quote character it is not delimited by', () 
   }
 });
 
-test('the token value-change rule is pinned on its wording, not its emphasis characters', () => {
+// Rewrite rendered single-asterisk emphasis the way a markdown formatter does (`*x*` -> `_x_`),
+// leaving code spans and fenced blocks alone because their asterisks are content: several pinned
+// patterns assert literal globs such as `dist/**` and `skills/**,.github/skills/**`, and a
+// character-class strip would destroy the thing being asserted rather than normalize it.
+function reformatEmphasis(text) {
+  return text
+    .split(/(```[\s\S]*?```|`[^`\n]*`)/g)
+    .map((part, i) => (i % 2 ? part : part.replace(/(^|[^*\w])\*([^*\n]+)\*(?![*\w])/g, '$1_$2_')))
+    .join('');
+}
+
+test('no pinned pattern depends on the emphasis characters a formatter would rewrite', () => {
   // Prettier rewrites markdown emphasis from `*value*` to `_value_`. This validator pinned the
   // asterisk, so formatting canon made the check fail on a file that still stated the rule exactly
   // right — and that rule is the one nothing else in the org enforces. Copy the repo, apply the
   // rewrite a formatter would, and require the validator to still accept it. Asserting through
   // validateInstructionIntegrity rather than against a re-declared pattern, so this fails if the
   // requirement is dropped as well as if the emphasis tolerance is lost.
+  //
+  // The rewrite is deliberately corpus-wide rather than the single `*value*` span that motivated
+  // it. A test built from one instance passes for every pattern that pins a *different* span, which
+  // is the same defect wearing different words — and the corpus carries 276 emphasis spans, so
+  // pinning one is the ordinary way these patterns get written, not a remote scenario. Measured
+  // against a real span (`erases *absence*` … `erases *failure*`): the narrow rewrite leaves such a
+  // pattern matching and reports success; this one fails it.
+  //
+  // The guarantee belongs one layer lower — normalizing markup out of the scanned text, as
+  // jrmoulckers/finance does for its count claims — but that does not transfer here: stripping
+  // [*`_] before matching breaks 6 of the 21 pinned patterns, because the ones pinning file names
+  // and globs have markup as their content. Distinguishing the two needs a markdown parser, which
+  // a test can afford and a scanner should not carry.
   const tmp = mkdtempSync(join(tmpdir(), 'canon-emphasis-'));
   try {
     cpSync(REPO_ROOT, tmp, {
       recursive: true,
       filter: (src) => !src.includes(`${sep}.git${sep}`) && !src.endsWith(`${sep}.git`),
     });
-    const tokensPath = join(tmp, 'instructions', 'tokens.instructions.md');
-    const original = readFileSync(tokensPath, 'utf8');
-    const reformatted = original.replace(/changed token \*value\*/g, 'changed token _value_');
-    assert.notEqual(reformatted, original, 'fixture did not change; the asterisk wording moved');
-    writeFileSync(tokensPath, reformatted);
+
+    const dir = join(tmp, 'instructions');
+    let rewritten = 0;
+    for (const file of readdirSync(dir).filter((name) => name.endsWith('.instructions.md'))) {
+      const path = join(dir, file);
+      const original = readFileSync(path, 'utf8');
+      const reformatted = reformatEmphasis(original);
+      if (reformatted === original) continue;
+      writeFileSync(path, reformatted);
+      rewritten += 1;
+    }
+    assert.ok(rewritten > 0, 'no file changed; the rewrite matched nothing and proves nothing');
 
     const manifest = loadManifest(tmp);
     const records = validateInstructionIntegrity(tmp, manifest);
