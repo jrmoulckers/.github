@@ -327,6 +327,30 @@ export function buildPrBody(report, { date, intro, waveLookup } = {}) {
     );
   }
 
+  if (report.orphaned?.length) {
+    lines.push('');
+    lines.push('### ⚠️ This file has more than one managed region');
+    lines.push('');
+    lines.push(
+      'Only the **first** region is maintained. Any region below it keeps whatever canon said when ' +
+        'it appeared, and it sits inside `studio:*` markers that assert it *is* canon — so the file ' +
+        'reads as current, hashes as clean, and never reports drift. Canon also tells you not to ' +
+        'edit inside those markers, which is what keeps the stale copy alive.',
+    );
+    lines.push('');
+    for (const file of report.orphaned) {
+      lines.push(
+        `\`${file.targetPath}\` — extra region(s) beginning at line ${file.lines.join(', ')}`,
+      );
+    }
+    lines.push('');
+    lines.push(
+      'The engine never creates this: it replaces a region in place and never relocates or adds a ' +
+        'second one. A duplicate is a merge artifact. **Delete the extra block(s), markers included, ' +
+        'before merging** — the region this PR updated is the first one.',
+    );
+  }
+
   if (report.abandoned?.length) {
     lines.push('');
     lines.push(`### 📌 Still present but no longer synced (${report.abandoned.length})`);

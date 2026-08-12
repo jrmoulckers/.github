@@ -18,6 +18,7 @@ import {
   extractBlock,
   buildFile,
   canonicalizeInner,
+  orphanedRegions,
   MARKERS,
   START_MARKER,
   END_MARKER,
@@ -62,6 +63,114 @@ test('a real managed block is still found and replaced', () => {
   assert.equal(extractBlock(rebuilt, MARKERS.html), 'new canon');
   assert.ok(rebuilt.includes('local text'), 'product-local text survives');
   assert.equal(rebuilt.match(/studio:base:start/g).length, 1, 'no duplicate block');
+});
+
+test('a second managed region is located rather than silently maintained away', () => {
+  // A duplicate is a merge artifact: the match is lazy, so pair one absorbs every operation and
+  // pair two becomes invisible. It then holds whatever canon said when it appeared, inside markers
+  // asserting it IS canon, in a file the member is told not to edit inside. Nothing else in the
+  // engine can see it, and the region hash agrees with canon, so it never reports drift.
+  const file = [
+    '# Product',
+    '',
+    START_MARKER,
+    'old canon',
+    END_MARKER,
+    '',
+    'member content between the pairs',
+    '',
+    START_MARKER,
+    'old canon',
+    END_MARKER,
+    '',
+  ].join('\n');
+
+  assert.deepEqual(orphanedRegions(file, MARKERS.html), [9], 'the extra region is at line 9');
+
+  const rebuilt = buildFile(file, 'new canon', MARKERS.html);
+  assert.equal(extractBlock(rebuilt, MARKERS.html), 'new canon', 'the first region is updated');
+  assert.ok(rebuilt.includes('old canon'), 'and the orphan is deliberately left in place');
+  assert.ok(rebuilt.includes('member content between the pairs'), 'member text survives');
+  assert.deepEqual(
+    orphanedRegions(rebuilt, MARKERS.html),
+    [9],
+    'still reported after the write, since the engine reports rather than repairs',
+  );
+});
+
+test('a single region, and a documented example, are not reported as duplicates', () => {
+  const single = `# Product\n\nlocal text\n\n${START_MARKER}\nold canon\n${END_MARKER}\n`;
+  assert.deepEqual(orphanedRegions(single, MARKERS.html), [], 'one pair is not a duplicate');
+
+  // The control that matters: canon invites members to document the sync in their own guide, so a
+  // fenced example is expected content. It must not read as a second region — the same masking
+  // extractBlock relies on, asserted here so the two cannot drift apart.
+  const documented = [
+    '# Product',
+    '',
+    START_MARKER,
+    'old canon',
+    END_MARKER,
+    '',
+    'Our guide explains the mechanism:',
+    '',
+    '```markdown',
+    START_MARKER,
+    'canon lands here',
+    END_MARKER,
+    '```',
+    '',
+  ].join('\n');
+  assert.deepEqual(orphanedRegions(documented, MARKERS.html), [], 'a fenced example is not a region');
+});
+
+test('a duplicated region reaches the operator through the report', () => {
+  withTmp((root) => {
+    writeFileSync(
+      join(root, 'AGENTS.md'),
+      [
+        '# Product',
+        '',
+        START_MARKER,
+        canonicalizeInner(CANON),
+        END_MARKER,
+        '',
+        'member note',
+        '',
+        START_MARKER,
+        'canon as it stood at the bad merge',
+        END_MARKER,
+        '',
+      ].join('\n'),
+      'utf8',
+    );
+
+    const { report } = apply(root, [agentsSpec()], { entries: {} }, { write: true });
+
+    assert.equal(report.orphaned.length, 1, 'the duplicate must be named, not absorbed');
+    assert.equal(report.orphaned[0].targetPath, 'AGENTS.md');
+    assert.deepEqual(report.orphaned[0].lines, [11], 'CANON is three lines, so the orphan starts at 11');
+
+    const written = readFileSync(join(root, 'AGENTS.md'), 'utf8');
+    assert.equal(canonicalizeInner(extractBlock(written, MARKERS.html)), canonicalizeInner(CANON));
+    assert.ok(
+      written.includes('canon as it stood at the bad merge'),
+      'reporting must not quietly delete member-visible content',
+    );
+    assert.ok(written.includes('member note'));
+  });
+});
+
+test('a single managed region reports nothing', () => {
+  withTmp((root) => {
+    writeFileSync(
+      join(root, 'AGENTS.md'),
+      `# Product\n\n${START_MARKER}\nstale\n${END_MARKER}\n\nmember note\n`,
+      'utf8',
+    );
+    const { report } = apply(root, [agentsSpec()], { entries: {} }, { write: true });
+    assert.deepEqual(report.orphaned, [], 'the ordinary case must stay quiet');
+  });
 });
 
 test('markers quoted inline in prose do not form a block', () => {

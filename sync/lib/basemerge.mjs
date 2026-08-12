@@ -160,6 +160,36 @@ export function extractBlock(fileContent, markers) {
   return found ? canonicalizeInner(found.inner) : null;
 }
 
+/**
+ * 1-based line numbers of every managed region in the file *after the first*.
+ *
+ * The match is lazy, so a file carrying two pairs resolves to the first one and the rest become
+ * invisible: `extractBlock` reads pair one, `buildFile` replaces pair one, the hash agrees with
+ * canon, and the file reports clean while a second block sits below holding whatever canon said
+ * when the duplicate appeared. Staleness alone would be tolerable — the damage is that the orphan
+ * is *branded*. It is fenced by `studio:*` markers asserting it is canon, and canon's own guidance
+ * tells members not to edit inside them, so the block is protected from the one reader positioned
+ * to notice it is wrong.
+ *
+ * A duplicate is a merge artifact and nothing the engine does creates one; a region is replaced in
+ * place and never relocated. So this reports and does not act. Refusing the write would withhold
+ * canon from a file whose first region is perfectly fine, and deleting the orphan would remove
+ * member-visible content on an inference about how it got there.
+ */
+export function orphanedRegions(fileContent, markers) {
+  const lfText = toLF(fileContent);
+  const re = new RegExp(
+    blockRe(requireMarkers(markers, 'orphanedRegions(content, markers)')).source,
+    'gm',
+  );
+  const masked = maskFences(lfText);
+  const starts = [];
+  for (let match = re.exec(masked); match !== null; match = re.exec(masked)) {
+    starts.push(match.index);
+  }
+  return starts.slice(1).map((index) => lfText.slice(0, index).split('\n').length);
+}
+
 function renderBlock(inner, markers) {
   return `${markers.start}\n${canonicalizeInner(inner)}\n${markers.end}`;
 }
