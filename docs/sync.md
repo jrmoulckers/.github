@@ -2488,6 +2488,35 @@ merely better bounded: **"not found in what I can recover," stated as a bounded 
 denial**, with the bound named. Over-denying is the mirror of the over-accepting this document warns
 about, and a search that cannot see the disputed channel licenses neither.
 
+**The inbound half fails differently, and the two failures compose into total loss.** Received
+messages *are* stored, so what a peer said is recoverable — but the delivery header naming the sender
+is not. Searching one's own turns for a peer's repository returns zero while that peer's messages sit
+in the same column, indexed under their text alone. So:
+
+| | body | sender |
+| --- | --- | --- |
+| messages I send | absent | n/a |
+| messages I receive | present | absent |
+
+**The store keeps exactly the half of a conversation that carries no attribution and discards the
+half that does.** Correspondence is therefore unattributable in both directions, for two unrelated
+reasons, and neither direction announces the gap — both return well-formed empty results.
+
+This was nearly shipped as a false negative one exchange after the rule above was written. A query
+for a correspondent's repository returned zero and was about to be reported as *this peer has never
+written to me*; the messages were there, found by searching a phrase from their content instead.
+**Query the text, never the envelope**, and treat a search keyed on any field the store does not
+retain as unrun rather than as negative.
+
+**And a phrase count over a corpus you are also writing to measures the discussion, not the prior
+art.** A term under active debate was counted at 2, then 10, then 12, then 15 across four
+measurements by two parties, rising monotonically because each exchange added occurrences and each
+checkpoint re-indexed them. Two distinct defects sit inside that number: the corpus grows in response
+to being queried, and one utterance yields several index rows — the same phrase was recorded as a
+turn, a history checkpoint and a technical checkpoint, so the count enumerates index entries rather
+than mentions. Before citing a phrase frequency, exclude the sessions doing the citing, and state
+whether the unit is an occurrence or a row.
+
 **The consequence for canon is the load-bearing one: entries outlive the messages that justified
 them, so a rule stays checkable while its supporting instance does not.** Verified here by
 accident — a correspondent credited me with a finding I could not remember making, and the proof that
