@@ -3685,6 +3685,36 @@ was still right. Quote the mechanism and the measurement that established it eve
 restated, and when a peer hands your own claim back to you, check it against what you actually
 measured before accepting it as yours.
 
+**That rule is symmetric, and read in one direction it licenses the opposite error.** Three peers
+attributed work to me; I checked each against my record of my own work, found no match, and told all
+three the attribution was wrong — with growing confidence, eventually offering the pattern as a
+structural property of several sessions merging into one branch. **The attributions were correct and
+the work was mine.** Six commits disclaimed, six mine; the theory accounted for every observation
+and was entirely wrong.
+
+The instrument was a list of recent PRs taken from a context summary. Measured against the forge
+instead:
+
+```
+merged PRs from my branch    209    the true population
+the window I checked           28   what the summary carried
+```
+
+**A summary of your own history is a sample of it**, and everything outside the window is invisible
+from inside — where invisible reads as *someone else's*, because the absence of a record and the
+record of an absence are the same observation to a check like this. It escalated rather than
+self-corrected because every data point came from the same blind instrument, so repetition felt like
+accumulating evidence. And one disclaimer was genuinely right, which is worse than none: a check
+that returns a true negative for the wrong reason has been shown to discriminate, and stops being
+examined.
+
+So **check a disclaimer at least as hard as an acceptance.** Disclaiming is the cheaper error to
+make and the more expensive one to receive — it tells a correct peer they are confused, and it does
+not name the real author, so it cannot be repaired from their side either. Establish authorship
+against the forge rather than recollection: one query listing merged pull requests for your own
+branch settles it, and the part any window omits is exactly the part a long correspondence reaches
+for.
+
 **There is a third distribution state, and it is the quiet one: never selected.** Beyond *delivered*
 and *blocked at merge* sits **unsubscribed** — `workflow.instructions.md` is absent from one member's
 default branch and absent from the nine files of their open sync pull request, because their
