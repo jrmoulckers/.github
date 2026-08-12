@@ -535,6 +535,31 @@ shipping. **When auditing a matcher for this class, ask which way it fails, and 
 direction as the one requiring a regression test** — one that is confirmed to fail against the old
 pattern before it is trusted, since a test written alongside a fix will pass either way.
 
+**Asking which way it fails is not the same as measuring it, and that question shipped here without
+its answer.** A peer ran the prescription as a mutation test — take a specimen whose baseline must
+error, apply formatting-only changes that preserve meaning, record whether each flips the verdict
+toward more findings or fewer — and applying it to the matcher above gives `loud = 0, silent = 3`
+across nine mutations. Bolding the subcommand drops the command from the population outright;
+backticking the command, or backticking only its flag, truncates it before the selection is
+reached. All three pass toward `CLEAN`, so the repair left more silent paths than the one it fixed.
+
+**And the survivors live inside the character class the repair widened.** ``[^\n`]`` terminates on
+two things — the newline it was written for, and the backtick nobody considered — and the fix
+extended that same expression to tolerate a line continuation while leaving the backtick terminator
+untouched. Proximity confers nothing: the cursor was inside the parenthesis holding the second
+cause. **When a fix widens a character class, enumerate everything the class still excludes**,
+because the case that prompted the change is evidence the class was under-specified rather than
+wrong in one place.
+
+The corpus verdict is *latent*, for a reason that is not reassuring. Of eleven occurrences here,
+seven carry no `--json` at all and one is truncated — the paragraph above describing the
+truncation, which the matcher cannot read past its own quoted pattern. Nothing is silently skipped
+today only because the commands happen to be written bare, and backticking a command is the
+ordinary prose improvement that would end that. So **a fail-silent defect's exposure is bounded by
+every future edit, not by today's corpus**, and each edit that triggers it also removes the
+evidence that it triggered, while a fail-loud one can only be reached by content that already
+exists. That asymmetry, and not noticeability, is why the silent direction is the one to test.
+
 **The remedy is not a cleverer matcher.** Narrowing the pattern toward the strings you happen to have
 written is the detector agreeing with you by construction — the same fault as *disjointness asserted
 by construction when the construction is your own definition*, recorded later in this file, arriving
