@@ -2371,6 +2371,26 @@ Public repositories do not consume the allowance, so weight **only private ones*
 visibility with `.private` rather than from memory, which is how a seven-repository set was
 published as six here for a week.
 
+**Governance exclusion is not resource exclusion, so the allowance has a different population than
+the roster.** Of the `1,282` private adjusted minutes, **126 — 9.8% — belong to `game-library`**,
+which sits in the top-level `excluded` array and is deliberately ungoverned. It receives no canon, is
+exempt from every sweep, and consumes the same shared monthly allowance as every member. So a
+repository the fleet has decided not to manage can degrade or halt CI for all eleven that it does,
+and no roster-scoped query will ever show it. **Compute allowance questions over the billing
+account; compute governance questions over the roster; and never let one partition stand in for the
+other.** A membership cut and a visibility cut are different cuts, and correcting the second says
+nothing about the first.
+
+**A figure that reproduces exactly may do so because the process generating it has stopped.** Two
+parties measured this account hours apart. The private total reproduced *to the unit* at `1,282`
+while the public total moved from `32,338` to `39,087` — a 20.9% divergence over the same interval.
+The stability was not measurement quality: private usage is frozen **because the refusal under
+investigation is what froze it**, so the exact agreement is a symptom of the phenomenon rather than
+evidence about it, and the live figure's failure to reproduce is not an error. This inverts the
+default reading, and dangerously, because exact reproduction is the result least likely to be
+questioned. **Ask what would have to be true for a figure to move before crediting the fact that it
+did not.**
+
 Both exclusions are negative results and inherit the scope of their population, so state the months
 and the repository set with them. Note also what neither one settles: **the spending limit's own
 value is not exposed by any reachable endpoint**, so naming that branch is a conclusion by
@@ -3889,6 +3909,17 @@ measured in minutes the guard returns *independent* on essentially every run. It
 instance already known — where the derivation source happened to be the tip — and passes silently
 whenever the label was copied from anything else, which is any merge that is not the current head.
 A guard whose reassuring branch is taken in almost every execution is reporting its own base rate.
+
+**The degenerate case of that is a test that cannot return true, and it renders exactly like a true
+negative.** Checking each billed repository for roster membership here returned *not a member* for
+all fourteen — including the eleven that are members — because the roster stores `owner/repo` and the
+test supplied a bare name. Nothing errored and no row looked malformed; the output was a clean column
+of correct-shaped negatives. It was caught only because the answer was absurd at the tail, the same
+tell that exposed a 21.7-hour refusal in an adjacent measurement, and absurdity is not available when
+the true answer is merely *small*. **A predicate over a known population must be shown to fire at
+least once before its negatives are read** — assert a known-positive into every membership test,
+because a comparison across mismatched key formats is silent, total, and always in the direction of
+finding nothing.
 
 **And the base rate that justifies a guard is itself a sliding-window statistic that decays.** The
 figure above was re-derived by the correspondent on their own repository and then re-measured here
