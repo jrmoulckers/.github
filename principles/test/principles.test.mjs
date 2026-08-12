@@ -24,10 +24,21 @@ const MANIFEST = JSON.parse(
 test('the published principle corpus passes metadata and reference validation', () => {
   const result = validatePrinciples();
 
-  assert.equal(result.fileCount, 5);
-  assert.equal(result.principleCount, 43);
-
   const ids = Object.values(MANIFEST.published).flat();
+  assert.equal(result.fileCount, Object.keys(MANIFEST.published).length);
+  assert.equal(result.principleCount, ids.length);
+
+  // The owner Ratification decision is append-only and its set is fixed at 43; the corpus may grow
+  // past it only through Draft principles, which carry no claim of owner approval.
+  const ratified = MANIFEST.ratificationDecisions.flatMap((decision) => decision.principles);
+  assert.equal(ratified.length, 43);
+  const draft = ids.filter((id) => MANIFEST.statusCatalog[id]?.status === 'Draft');
+  assert.deepEqual(
+    ids.filter((id) => !ratified.includes(id)).sort(),
+    draft.sort(),
+    'every principle outside the Ratification decision must be Draft',
+  );
+
   assert.equal(ids.filter((id) => id.startsWith('GH-AIP-')).length, 8);
   assert.equal(ids.filter((id) => id.startsWith('GH-AIOPS-')).length, 15);
   assert.equal(ids.filter((id) => id.startsWith('GH-AIEVAL-')).length, 6);
