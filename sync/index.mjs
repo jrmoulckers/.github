@@ -44,7 +44,7 @@ import { apply, formatBehind } from './lib/copier.mjs';
 import { cloneShallow } from './lib/git.mjs';
 import { assertMemberCheckout, assertMemberIdentity } from './lib/workdir.mjs';
 import { resolveStudioRoot } from './lib/studio.mjs';
-import { formatDriftWarning, partitionFailures, renderRunSummary, summarizeCheck, syncMembers } from './lib/runner.mjs';
+import { formatDriftWarning, formatScope, partitionFailures, renderRunSummary, summarizeCheck, syncMembers } from './lib/runner.mjs';
 import { mirrorProfile, profileTarget } from './lib/profile.mjs';
 import { log } from './lib/log.mjs';
 import { assertMemberFacts } from './lib/member-facts.mjs';
@@ -336,7 +336,10 @@ function runSync(plans, opts, manifest, token, date) {
     log.info('Profile mirror skipped (member filter active).');
   }
   publishRunSummary(outcomes, opts, manifest, 'sync');
-  log.info(`${outcomes.filter((o) => o.status !== 'failed').length} of ${outcomes.length} target(s) succeeded.`);
+  log.info(
+    `${outcomes.filter((o) => o.status !== 'failed').length} of ${outcomes.length} target(s) succeeded ` +
+      `(scope: ${formatScope(opts.members, manifest.members.length, outcomes.length)}).`,
+  );
 
   // A failure the owner has already recorded still prints, still counts, and still names the issue
   // that closes it — it just stops holding the run's one published bit hostage. See
