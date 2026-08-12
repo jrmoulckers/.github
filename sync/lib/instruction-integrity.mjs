@@ -313,10 +313,31 @@ function parseFrontmatter(relativePath, text, errors) {
   return { applyTo: match[1] ?? match[2], description: match[3] ?? match[4] };
 }
 
+// Every pattern below pins a phrase, and a phrase is a sequence of words — not a sequence of
+// words with the line breaks canon happens to carry today. Matching raw bytes made each check
+// depend on where the file is wrapped: reflowing the corpus (`prettier --prose-wrap always`)
+// broke 3 of 21 patterns on canon that still stated the rule exactly. The corpus is 3,700 hand
+// wrapped lines, so a break can land inside any phrase the next time someone edits a paragraph.
+//
+// This was already known one instance at a time. Two `infrastructure-operations` patterns are
+// written `second\s+access\s+path` and `canonical repository\s+state`, and both of those `\s+`
+// sites sit on a real newline in the source — the author hit the failure twice while authoring,
+// patched the two phrases their own wrap straddled, and left the other nineteen resting on it.
+// Normalizing here fixes the class, and fixes it for patterns not yet written.
+//
+// Whitespace, specifically. Stripping markup the same way does not transfer: 6 of these 21 pin
+// file names and globs where a backtick delimits and an asterisk *is* the glob, so collapsing
+// those characters destroys the assertion instead of normalizing it. Whitespace is never content
+// in a pinned phrase — the two hand-patched patterns already assert that.
+//
+// Callers that depend on line structure must keep using `record.text`: frontmatter parsing, the
+// `../wt-*` negative check, and the `uses:` scans all read fenced or line-anchored syntax that a
+// prose formatter does not reflow and that this collapse would flatten.
 function requirePatterns(record, requirements, errors) {
   if (!record) return;
+  const prose = record.text.replace(/\s+/g, ' ');
   for (const [pattern, label] of requirements) {
-    if (!pattern.test(record.text)) errors.push(`${record.relativePath}: missing ${label}`);
+    if (!pattern.test(prose)) errors.push(`${record.relativePath}: missing ${label}`);
   }
 }
 
