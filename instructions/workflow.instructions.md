@@ -291,10 +291,12 @@ table mixing them hides a day boundary. The natural remedy — force a UTC forma
 trap is:
 
 ```
-%cI                                              2026-08-11T20:13:02-07:00   honest offset
---date=format-local:'%Y-%m-%dT%H:%M:%SZ'         2026-08-11T20:13:02Z        LOCAL, labelled Z
-TZ=UTC ... --date=format-local:'...%SZ'          2026-08-12T03:13:02Z        correct
-%ct                                              1786504382                  frame-free
+FORM                          unset                        TZ=UTC
+%cI / iso-strict              2026-08-12T10:12:31-07:00  2026-08-12T10:12:31-07:00  honest
+%ct / unix                    1786554751                 1786554751                 frame-free
+format:'...%SZ'               2026-08-12T10:12:31Z       2026-08-12T10:12:31Z       LIES ALWAYS
+format-local:'...%SZ'         2026-08-12T10:12:31Z       2026-08-12T17:12:31Z       lies unless set
+iso-strict-local              2026-08-12T10:12:31-07:00  2026-08-12T17:12:31Z       honest either way
 ```
 
 `format-local` honours the environment, so **without the environment variable it emits local time
@@ -303,11 +305,31 @@ wearing a `Z`** — off by the offset, and now indistinguishable from a genuine 
 converts an honest inconvenience into a silent falsehood, and it defeats the very check a reader
 would apply after learning this rule, since the string is `Z`-suffixed and well-formed.
 
+**The sibling form is worse still, and it is the one this rule's own remedy sends you to.**
+`--date=format:` renders in the commit's recorded offset and labels it `Z`, and setting `TZ=UTC`
+does not change it — it is wrong in both columns. So a reader who learns "force UTC" and reaches
+for the nearest format string lands on the variant nothing recovers, while `format-local` at least
+*responds* to the fix. State the remedy against the whole family or it misdirects: **a rule that
+names one member of a family of forms has implicitly endorsed the others**, and the sibling that
+resists the prescribed fix is the one it endorses most strongly.
+
+That resistance is also why testing for it fails. Flagging each form by whether its output changes
+under `TZ=UTC` — intending frame-independence as the safety signal — ranks `format:` as *stable*
+and `format-local` as *dependent*, i.e. it scores the unrecoverable form as the safest one, and
+scores it that way **because** it is unrecoverable. **A discriminator that measures invariance
+cannot separate "immune to the frame" from "immune to the fix", and those two rank oppositely.**
+Insensitivity to a correction presents as robustness; before trusting a stability check, ask what a
+broken-and-unfixable input would score.
+
 Prefer `%ct`, the Unix epoch, which has no frame to get wrong and no environment to depend on;
-convert once at the point of display. The principle generalises past dates: **where a remedy's
-correctness depends on an ambient setting, prefer the form that cannot express the error** over the
-form that merely requires remembering a flag — a rule whose failure mode is "the author forgets the
-second half" has the same standing as no rule.
+convert once at the point of display. Where a rendered date is wanted, `%cI`, `iso-strict`, and
+`iso-strict-local` all carry their frame and cannot lie in either configuration. A literal `Z` in a
+hand-written format string is an **assertion about the frame made by the author**, which neither
+the tool nor the reader can check — that, not the missing variable, is the defect both `format:`
+and `format-local` share. The principle generalises past dates: **where a remedy's correctness
+depends on an ambient setting, prefer the form that cannot express the error** over the form that
+merely requires remembering a flag — a rule whose failure mode is "the author forgets the second
+half" has the same standing as no rule.
 
 **Two output paths of the same CLI can differ in time frame, and subtracting across them yields a
 constant equal to the machine's UTC offset.** Structured output deserialized by the shell arrives as
