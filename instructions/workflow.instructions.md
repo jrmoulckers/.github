@@ -481,6 +481,30 @@ and the "onset" was an artifact of only ever looking forward. A one-sided extrem
 what makes it a boundary is that the other side differs, and that is a separate measurement nobody
 is prompted to take, because the first one already produced a satisfying number.
 
+**The sampling that manufactures a false extremum is not always yours to control.** A member later
+scanned that repository's *complete* history rather than a sample and pushed the episode start three
+weeks earlier — the correct fix, and it establishes a real boundary because the run immediately to
+its left is an ordinary failure with executed steps. But running the same scan across every member
+returns a **different** first refusal per repository:
+
+```
+homelab   2026-07-09    studio     2026-07-18    docket   2026-08-10
+libro     2026-08-10    cartridge  2026-08-11    product  2026-08-11
+game-library  2026-08-11
+```
+
+None of those later dates is an episode start. Each is the edge of *that repository's activity*
+— `libro` and `cartridge` have no runs at all before `08-03`, and `studio` ran exactly once in the
+window where `homelab` was being refused continuously. **An exhaustive scan of one repository is still
+a sample of the account**, and here the sampling is performed by the world rather than by the
+observer, which is worse: you cannot fix it by widening your window, and nothing in the output marks
+it. Only `homelab` has service observed on its left, so only `homelab`'s date is a boundary at all.
+
+The reusable form, which the member supplied: **an extremum is a boundary only if you have observed
+the other side; if your window has no other side, you have found the edge of your instrument.** Add
+that the window may be defined by the subject's behaviour and not by your query, in which case the
+edge is real, unfixable, and indistinguishable from a finding.
+
 **And when you replace someone's instrument with your own, check your coverage against the case
 theirs was built to observe.** A member probing one blocked repository by rerunning a single workflow
 was offered a fleet-wide scan in its place — broader on every axis but one, and that one was theirs. A
@@ -500,6 +524,23 @@ which the run vanishes with no error and no empty result to notice. And **the de
 ordering** — the jobs endpoint returns the latest attempt, so the sweep was correct about every run it
 reached. Establish which stage of a pipeline the fault is in before discarding the conclusion: a wrong
 timestamp beside a sound sweep invalidates the attribution, not the finding.
+
+**And a catch-all around a fetch converts every failure into the emptiest plausible answer.** The
+fleet scan reported elsewhere in this section was written *after* three separate entries in this file
+about absence rendering as a measured zero, and its first run reported `homelab NO RUNS` — for the
+repository whose 102 runs were the entire point, two minutes after those runs had been queried
+successfully by hand. Cause: passing `--paginate` alongside an explicit `page=` parameter makes `gh`
+emit **two concatenated JSON objects**, `JSON.parse` throws, and `catch { return null }` reported that
+as no data.
+
+Three properties made it dangerous rather than merely wrong. It fired **only on repositories with more
+than 100 runs**, so it selected against exactly the largest and most informative member while leaving
+every smaller one correct and credible. `NO RUNS` is **plausible** for a quiet repository, so the
+output invited no suspicion. And the whole failure lived in an error path written to be tidy. The fix
+is not more care at the call site: **a `catch` that returns a value must log what it caught**, because
+a silent fallback is indistinguishable from a real result, and the same edit that quieted the error is
+the one that made it survivable. Once it printed, the very next run surfaced a genuine `HTTP 502` on a
+different repository that would otherwise have been absorbed the same way.
 
 **A control that cannot fire at all scores perfectly and reports nothing.** A refusal predicate
 requiring `steps == 0` was censused against ordinary CI failures and returned no false positives —
@@ -1157,6 +1198,46 @@ carries **both clauses joined by `or`**. GitHub is not reporting which condition
 declining to distinguish them. So no operator can ever confirm the clause from the annotation, and
 the recovery-time asymmetry is the only observable bearing on it — inference from timing, not
 evidence from the message. Do not present the two-clause account to anyone as diagnosable.
+
+**That last sentence was too strong, and the fleet scan that disproved it shows how.** The clause is
+not diagnosable *from the annotation* — that part stands, and no amount of re-fetching the message
+will ever help. But the two clauses make **different predictions about repositories that are not
+refused**, and that is an observable this section never thought to collect. Measured across every
+member on `2026-08-12`:
+
+| repo | visibility | zero-step refusals | during the current episode |
+| --- | --- | --- | --- |
+| `docket` | private | 341 | refused |
+| `homelab` | private | 74 | refused |
+| `libro` | private | 25 | refused |
+| `cartridge` | private | 25 | refused |
+| `game-library` | private | 11 | refused |
+| `product` | private | 2 | refused |
+| `score-king` | public | **0** | **16 successes**, latest `00:54:39Z` |
+| `finance` | public | **0** | succeeding |
+| `jrm-recipes` | public | **0** | succeeding |
+| `engineering` | public | **0** | succeeding |
+| `.github` | public | **0** | succeeding |
+
+Six private repositories, every one refused; five public repositories, every one clean. A failed
+payment is a state of the account and is visibility-independent — it would refuse public repos too.
+Public repos are succeeding *concurrently* with private repos being refused, so **the failed-payment
+clause is not the one firing; the spending limit is.** This is the account's own metering boundary
+acting as a natural control, and it discriminates a disjunction that the message deliberately
+conflates.
+
+**The general form is worth more than the billing result: when a message refuses to say which of two
+causes fired, look for a population the two causes treat differently.** Diagnosis had been framed
+entirely as *read the failure more carefully*, and the failures are identical by construction — the
+discriminating evidence was never in the refused runs at all. **A concurrent control beats a temporal
+one**, too: the alternative reading available here was that an unobserved recovery gap contained a
+billing-cycle boundary, which is suggestive but rests on an interval whose endpoints were never
+measured. Sixteen successes today rest on nothing unobserved.
+
+**And this qualifies, without overturning, the rule above that each repository's annotation is the
+only evidence about that repository.** That remains true of *repository-side* hypotheses. It is false
+of the account-level clause, where a sibling that is **not** refused carries the only evidence
+anyone can get.
 
 **When your own block lifts, the first green is a first measurement, not a recovery.** The rule
 above governs a *sibling's* green; this one governs your own. A refused run executed no steps, so it
