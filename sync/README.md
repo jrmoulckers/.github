@@ -1271,6 +1271,25 @@ by content:
 Then `hashText` (LF-normalize, then SHA-256) — not a raw byte hash, or a CRLF checkout disagrees
 with the engine for the reason given above.
 
+**The audit is insensitive to encoding whenever the body is pure ASCII, which is the case for a
+substantial minority of delivered files.** The strip removes the provenance line, and that line is
+the only multi-byte content most files are guaranteed to carry. What remains is the body, so if the
+body is ASCII then `latin1`, `ascii` and `utf8` produce identical bytes and a member hashing under
+the wrong one gets a PASS. Of 53 canon-delivered sources here, **9 have pure-ASCII bodies** —
+including `agency.toml` and four `instructions/*.instructions.md`. A member measuring its own
+delivered corpus found 10 of 64 reproducing under `latin1` as well as `utf8`, and could not predict
+which ten by name, kind, or size.
+
+So a green inverse audit certifies the bytes, not the hasher. To check the hasher too, run it once
+against a file whose body is known to be multi-byte; `utf16le` is the useful negative control,
+because it fails everything and therefore proves the encoding is load-bearing at all.
+
+The general form, which cost one guarantee already: *a property of the payload is only a control if
+it survives into the quantity under test.* The provenance note is present in every delivered file
+and absent from every hashed body, because stripping it is the operation the audit performs. Pinned
+by *an ASCII body cannot discriminate encodings, a multi-byte body can* in
+`test/provenance.test.mjs`.
+
 Two ways this is got wrong by inferring the rule from samples rather than reading it here. Deciding
 the shape by *frontmatter* scores well on a corpus that is mostly `.md` and is the wrong variable —
 frontmatter is an exception inside the `html` family, not a rule over all of them. And a one-line
