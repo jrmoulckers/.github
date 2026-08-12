@@ -147,19 +147,36 @@ function findBlock(lfText, markers) {
  * on exactly the three files a member is most likely to have edited around.
  *
  * **Trailing, not both ends.** The regex is `/\s+$/` with no `m` flag, so it strips the end of the
- * string and leaves the start exactly as canon wrote it. The natural external reproduction is
+ * string and leaves the start exactly as the body was rendered. The natural external reproduction is
  * `.trim()`, and it is wrong in a way no current fixture can show: the two rules agree on every
- * region body that does not begin with whitespace, and all three canon sources presently begin with
- * `#`. A member repo derived `.trim()` empirically, swept 68 lock entries, and got zero mismatches —
- * an honest measurement over a corpus with no instance of the one input class that separates the
- * rules (#659). Leading whitespace inside a managed region is therefore *significant*, and the
- * engine round-trips it: `buildFile` → `extractBlock` preserves a leading blank or indented line, so
- * a canon base file that gains one moves every managed entry into the divergent class at once.
+ * region body that does not begin with whitespace. A member repo derived `.trim()` empirically,
+ * swept 68 lock entries, and got zero mismatches — an honest measurement over a corpus with no
+ * instance of the one input class that separates the rules (#659).
  *
- * Both directions of that are pinned by 'a managed region body beginning with whitespace is
- * significant, and .trim() is the near-miss' in test/basemerge.test.mjs, which fails if this
- * function is ever simplified to `.trim()`. That regression would otherwise be silent here and
- * would invalidate the managed `targetSha256` of every member that has ever synced.
+ * What holds that divergence latent is **`inject()`, not canon's authoring style** (#670). The
+ * argument here is never canon's own bytes: `assets.mjs` renders every managed spec as
+ * `content: inject(targetPath, raw)` and `planManaged` canonicalizes *that*, so canon's first line
+ * never reaches position 0. Injection puts non-whitespace there by two distinct routes — the stamp
+ * itself (`<!--` or `#`, per `commentSyntaxFor`) when the source has no frontmatter, and the `---`
+ * delimiter when it does, because the stamp is spliced in after the frontmatter block.
+ *
+ * So the trigger is not a canon file gaining a leading blank line; that input has been measured and
+ * cannot fire. It is anything that stops injecting provenance ahead of the region body, or injects
+ * it with leading whitespace — engine-side, uniform across kinds, and not a change anyone would
+ * think of as touching digests. It would move every member into the divergent class at once and
+ * invalidate the managed `targetSha256` of every repo that has ever synced. The nearer edge is a
+ * managed target whose `commentSyntaxFor` is `'none'`, where `inject` returns content unchanged and
+ * the guarantee simply does not apply; that class is presently empty (all three managed targets are
+ * `html` or `hash`) and nothing prevents it being populated.
+ *
+ * Leading whitespace inside a managed region is therefore *significant* and the engine round-trips
+ * it: `buildFile` → `extractBlock` preserves a leading blank or indented line. Both that and the
+ * property above are pinned by 'a managed region body beginning with whitespace is significant, and
+ * .trim() is the near-miss' in test/basemerge.test.mjs, which fails if this function is simplified
+ * to `.trim()` *and* if provenance stops leading the rendered body. The fixture builds its bodies
+ * through `inject` for that reason: an earlier version built them from raw canon text and so
+ * asserted agreement for the non-operative reason, passing through the change that actually breaks
+ * this.
  */
 export function canonicalizeInner(inner) {
   return toLF(inner).replace(/\s+$/, '');

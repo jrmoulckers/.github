@@ -25,6 +25,7 @@ import {
 } from '../lib/basemerge.mjs';
 import { apply } from '../lib/copier.mjs';
 import { hashText } from '../lib/lock.mjs';
+import { inject, PROVENANCE_NOTE, hasFrontmatter } from '../lib/provenance.mjs';
 
 const CANON = '# JRM Studio base guide\n\nGolden rules go here.\n';
 
@@ -496,16 +497,49 @@ test('a managed region identical to canon is restamped, not drifted, when the en
 test('a managed region body beginning with whitespace is significant, and .trim() is the near-miss', () => {
   const trimRule = (inner) => hashText(inner.trim());
 
-  // Premise: the two rules are indistinguishable on canon as it stands today, which is why a sweep
-  // over real entries cannot separate them. If this ever fails, the corpus gained the input class
-  // and the divergence below stopped being latent.
-  for (const source of [CANON, '# GitHub Copilot\n', '# Normalize every detected text file\n']) {
-    assert.equal(
-      canonicalizeInner(source),
-      source.trim(),
-      'premise: canon sources start with non-whitespace, so both rules agree on them',
+  // Premise: the two rules are indistinguishable on the bodies the engine actually renders, which is
+  // why a sweep over real lock entries cannot separate them. Build them the way `assets.mjs` does —
+  // `content: inject(targetPath, raw)` — because the argument is about the rendered body, not about
+  // canon's source bytes. An earlier version of this fixture used raw canon text and so asserted
+  // agreement for a reason that is not the operative one, and would have passed through the change
+  // that actually breaks this (#670). Every case below is canon that *does* begin with whitespace:
+  // if injection were removed, they would separate the rules and this loop would fail.
+  const rendered = [
+    ['AGENTS.md', CANON],
+    ['AGENTS.md', '\n# canon gained a leading blank line\n'],
+    ['AGENTS.md', '   canon gained a leading indent\n'],
+    ['.gitattributes', '\n* text=auto eol=lf\n'],
+    ['.github/instructions/x.instructions.md', '---\napplyTo: "**"\n---\n\n\n# body after frontmatter\n'],
+  ].map(([targetPath, raw]) => canonicalizeInner(inject(targetPath, raw)));
+
+  for (const body of rendered) {
+    assert.ok(
+      !/^\s/.test(body),
+      'premise: the rendered body never begins with whitespace, so both rules agree on it',
     );
-    assert.equal(hashText(canonicalizeInner(source)), trimRule(source));
+    assert.equal(hashText(canonicalizeInner(body)), trimRule(body));
+  }
+
+  // Name the guarantor rather than the coincidence. Injection is what puts non-whitespace at
+  // position 0, by two routes: the stamp itself when there is no frontmatter, and the `---`
+  // delimiter when there is (the stamp is spliced in after the block). Asserting this is what makes
+  // the premise above fail if provenance ever stops leading the body.
+  for (const [targetPath, raw] of [
+    ['AGENTS.md', '\nblank first line\n'],
+    ['.gitattributes', '\nblank first line\n'],
+    ['.github/instructions/x.instructions.md', '---\napplyTo: "**"\n---\n\nbody\n'],
+  ]) {
+    const body = canonicalizeInner(inject(targetPath, raw));
+    const firstLine = body.split('\n')[0];
+    assert.ok(body.includes(PROVENANCE_NOTE), 'the rendered body carries the provenance note');
+    if (hasFrontmatter(raw)) {
+      assert.equal(firstLine, '---', 'frontmatter delimiter holds position 0');
+    } else {
+      assert.ok(
+        firstLine.includes(PROVENANCE_NOTE),
+        'the provenance stamp, not canon, occupies position 0',
+      );
+    }
   }
 
   // The distinguishing class: a body that begins with whitespace.
@@ -522,12 +556,13 @@ test('a managed region body beginning with whitespace is significant, and .trim(
     );
   }
 
-  // And the engine really can produce one: nothing in the write/extract round-trip normalizes a
-  // leading blank or indented line away, so a canon base file that gains one moves every managed
-  // entry into the divergent class at once.
-  for (const canon of ['\nleading blank\n', '  indented\n']) {
-    const extracted = extractBlock(buildFile('', canon, MARKERS.html), MARKERS.html);
-    assert.equal(extracted, canon.replace(/\s+$/, ''), 'buildFile -> extractBlock round-trips it');
+  // And the round-trip really does preserve it: nothing in write/extract normalizes a leading blank
+  // or indented line away. So if such a body is ever produced — by injection changing, or by a
+  // managed target whose comment syntax is 'none' — the two rules separate immediately, and every
+  // managed `targetSha256` computed with the wrong one is invalid.
+  for (const body of ['\nleading blank\n', '  indented\n']) {
+    const extracted = extractBlock(buildFile('', body, MARKERS.html), MARKERS.html);
+    assert.equal(extracted, body.replace(/\s+$/, ''), 'buildFile -> extractBlock round-trips it');
     assert.notEqual(hashText(extracted), trimRule(extracted));
   }
 });
