@@ -2488,25 +2488,43 @@ merely better bounded: **"not found in what I can recover," stated as a bounded 
 denial**, with the bound named. Over-denying is the mirror of the over-accepting this document warns
 about, and a search that cannot see the disputed channel licenses neither.
 
-**The inbound half fails differently, and the two failures compose into total loss.** Received
-messages *are* stored, so what a peer said is recoverable — but the delivery header naming the sender
-is not. Searching one's own turns for a peer's repository returns zero while that peer's messages sit
-in the same column, indexed under their text alone. So:
+**The inbound half fails differently.** Received messages *are* stored, so what a peer said is
+recoverable — but the delivery envelope naming the sender is discarded before the body is retained.
+Searching one's own turns for a peer's repository can return zero while that peer's messages sit in
+the same column, indexed under their text alone.
 
-| | body | sender |
+| | body | envelope |
 | --- | --- | --- |
 | messages I send | absent | n/a |
-| messages I receive | present | absent |
-
-**The store keeps exactly the half of a conversation that carries no attribution and discards the
-half that does.** Correspondence is therefore unattributable in both directions, for two unrelated
-reasons, and neither direction announces the gap — both return well-formed empty results.
+| messages I receive | present | discarded |
 
 This was nearly shipped as a false negative one exchange after the rule above was written. A query
 for a correspondent's repository returned zero and was about to be reported as *this peer has never
 written to me*; the messages were there, found by searching a phrase from their content instead.
 **Query the text, never the envelope**, and treat a search keyed on any field the store does not
 retain as unrun rather than as negative.
+
+**But the stronger claim first drawn from this — that correspondence is unattributable in both
+directions — was false, and measuring it is what showed why the envelope framing matters.** Sender
+identity does survive, in the one place a transport cannot destroy it: authors who prefix their own
+messages with a repository tag put attribution *inside* the body, where it is retained and
+searchable like any other text. Across the fleet, 184 of 273 peer messages carry such a tag. So
+attribution is not a property of the store at all — it is a property of each author's habit, and it
+is sharply bimodal: four sessions tag essentially every message, three tag none, and the session
+that wrote the false claim had tagged 3 of its own 31.
+
+**That is the same wrong-grain error the entry was landed alongside** — a peer had just demonstrated
+that a column's population varies per turn and not per session, and generalizing a session-level
+count to a store-level rule is exactly the move that finding forbids. It was verified, agreed with,
+written into the same change, and then committed in the next measurement, against a session whose
+0-of-31 tag rate is the fleet's extreme rather than its norm. **Concurring with a rule is not
+applying it**; the concurrence and the violation can travel in one commit, because agreement is
+cheap at the paragraph you are writing and the error is in a paragraph you are not.
+
+The surviving operational form is narrower and holds: what a transport strips is gone, but what an
+author writes into the body survives the transport. **Durable attribution must be carried in the
+content, never in the delivery** — which is the same design claim as putting a caveat in the row
+rather than the margin, and it is why a convention that looks like decoration is load-bearing.
 
 **And a phrase count over a corpus you are also writing to measures the discussion, not the prior
 art.** A term under active debate was counted at 2, then 10, then 12, then 15 across four
