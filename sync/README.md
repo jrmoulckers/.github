@@ -1349,6 +1349,35 @@ gh api repos/jrmoulckers/<other>/contents/.studio-sync.lock.json --jq '.content'
 - Their `sourceSha256` differs and their `syncedAt` is far from yours → nothing is proven; the dist
   legitimately changed between the two deliveries.
 
+**Compare `targetSha256` too, and prefer it.** The three rules above arbitrate on `sourceSha256` and
+`syncedAt`, which are both *claims* about a delivery. `targetSha256` is the hash of delivered bytes,
+so hashing your own file and finding it identical to another member's recorded target identifies
+**which delivery event actually produced what you are holding** — direct evidence where the other two
+are testimony. A member whose target you reproduce byte-for-byte delivered your file, whatever your
+own `sourceSha256` says.
+
+###### The chimeric record
+
+The three fields can come from *different* delivery events, and then every field is corroborated by
+some real member while the combination was delivered to none. The live instance:
+
+| field | value | corroborated by |
+| --- | --- | --- |
+| `sourceSha256` | `343e10b1…` | `libro`, delivered 08-05 |
+| `targetSha256` | `9966d8a4…` | `cartridge`, delivered 08-09 |
+| delivered bytes | 21,016 B → `9966d8a4…` | `cartridge`, byte-identical |
+
+This is what a **partial** hand-repair produces: one field corrected to match disk, the rest left
+behind. Single-field arbitration cannot see it — each rule above finds a member that agrees — and it
+reports its most confident verdict on the case it is least equipped for. Read all three fields
+before concluding anything, and treat *fields corroborated by different members* as the finding
+itself: it is a repair signature, not a delivery.
+
+The remedy is never a second hand-edit. An entry whose target matches disk and whose source is stale
+is re-rendered and fully corrected by the next sync — pinned by *a hand-repaired entry — target
+current, source stale — is corrected, not read as clean* in `test/copier.test.mjs`, because the
+promise is what stands in for hand-editing and an unpinned promise is not one.
+
 **Query every consumer, not the first one.** Both halves of a disagreement can have a corroborating
 observer at the same time, pointing opposite ways, and one member answers only whichever question it
 happens to sit on.
