@@ -1943,6 +1943,19 @@ same repository at the same moment, each with standing to correct the other, and
 have terminated in agreement on a wrong value had neither re-queried. Where two accounts of one
 field disagree, the resolution is a third reading of the artifact, not a comparison of the two.
 
+**And two accounts that agree do not corroborate either, when both are denials.** Where the question
+is *who authored this*, a disclaimer carries information about its author and no one else, so a
+second session disclaiming the identical list is consistent with every possible third author — and
+with one of the deniers being wrong. This repo disclaimed three PRs to two peers across seven
+exchanges, treating a peer's independent disclaimer of the same set as making the pair *much
+stronger than either alone*. All three were its own work, recorded in its own checkpoints alongside
+the design rationale it had written. **Agreement is the shape corroboration takes, which is why
+agreement between negatives is worth distrusting**: neither account contains evidence about the
+author, so summing them adds confidence without adding information. Authorship is decidable from
+each session's own record, that record was available throughout, and this repo had already named it
+to that peer as the only reliable key — while applying it outward and never once to itself. **A rule
+you author is applied outward by default; run it on yourself first.**
+
 Generally: **before diagnosing across a boundary, ask which side holds the fact that would
 discriminate.** Where it is the other side's, no amount of care on yours substitutes for asking —
 and the failure is invisible because both hypotheses fit everything you can see.
