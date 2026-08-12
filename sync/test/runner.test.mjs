@@ -7,7 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { formatDriftWarning, partitionFailures, renderRunSummary, syncMembers } from '../lib/runner.mjs';
+import { formatDriftWarning, partitionFailures, renderRunSummary, summarizeCheck, syncMembers } from '../lib/runner.mjs';
 
 const plan = (repo) => ({ resolved: { repo }, targets: { writes: [] } });
 const ctx = { token: 'x', date: '2026-08-03', backbone: 'jrmoulckers/.github' };
@@ -330,4 +330,72 @@ test("the manifest's own expectedFailures entries are honoured by the partition"
     assert.equal(expected.length, 1, `${entry.repo}: signature does not match its own failure`);
     assert.ok(entry.issue, `${entry.repo}: no issue recorded`);
   }
+});
+
+// `--check` gates CI on three words. Each test below is one way those words could be produced by a
+// run that compared nothing, which is the failure mode they exist to make unreachable.
+test('a clean verdict states the population it compared', () => {
+  const v = summarizeCheck([
+    { repo: 'a/b', compared: 61, stale: false },
+    { repo: 'a/c', compared: 23, stale: false },
+  ]);
+
+  assert.equal(v.ok, true);
+  assert.equal(v.lines.length, 1);
+  // Zero drifted and zero compared print the same three words without this number.
+  assert.match(v.lines[0], /84 target\(s\) compared/);
+  assert.match(v.lines[0], /All 2 member\(s\) up to date/);
+});
+
+test('a population that could not be compared is unresolved, never clean', () => {
+  const v = summarizeCheck([
+    { repo: 'a/b', compared: 61, stale: false, unmeasured: ['vendored @jrm/tokens'] },
+  ]);
+
+  // Not drifted, not failed -- and still not ok. A check that could not look is not a check that
+  // found nothing, so it must not sum into the reassuring answer.
+  assert.equal(v.ok, false);
+  assert.equal(v.outOfDate, 0);
+  assert.equal(v.failed, 0);
+  assert.equal(v.unresolved, 1);
+  assert.match(v.lines.join('\n'), /was not compared, so "up to date" does not cover it/);
+  assert.doesNotMatch(v.lines.join('\n'), /All \d+ member\(s\) up to date/);
+});
+
+test('the clean line is never emitted alongside an unresolved population', () => {
+  const v = summarizeCheck([
+    { repo: 'a/b', compared: 61, stale: false },
+    { repo: 'a/c', compared: 61, stale: false, unmeasured: ['vendored @jrm/tokens'] },
+  ]);
+
+  // The dangerous rendering is the mixed one: a true clean line for one member sitting above an
+  // omission for another reads as an overall pass.
+  assert.equal(v.ok, false);
+  assert.doesNotMatch(v.lines.join('\n'), /All \d+ member\(s\) up to date/);
+});
+
+test('drift and verification failure stay distinct from an unmeasured population', () => {
+  const v = summarizeCheck([
+    { repo: 'a/b', compared: 61, stale: true },
+    { repo: 'a/c', compared: 0, failed: true },
+    { repo: 'a/d', compared: 61, unmeasured: ['vendored @jrm/tokens'] },
+  ]);
+
+  // Three different states that a single boolean would have collapsed: drifted, unreadable, and
+  // never looked at. Only the first two were ever counted.
+  assert.equal(v.outOfDate, 1);
+  assert.equal(v.failed, 1);
+  assert.equal(v.unresolved, 1);
+  assert.equal(v.ok, false);
+});
+
+test('a failed member does not also count as unresolved or out of date', () => {
+  // A member that threw was not compared either, but it already has a louder verdict; counting it
+  // twice would inflate the unresolved tally and make the fix look like it found more than it did.
+  const v = summarizeCheck([
+    { repo: 'a/b', compared: 0, failed: true, stale: true, unmeasured: ['vendored @jrm/tokens'] },
+  ]);
+  assert.equal(v.failed, 1);
+  assert.equal(v.outOfDate, 0);
+  assert.equal(v.unresolved, 0);
 });

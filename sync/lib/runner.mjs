@@ -130,6 +130,64 @@ export function partitionFailures(failures, expectedFailures = [], attempted = [
 }
 
 /**
+ * Decide a `--check` run's verdict from per-member results.
+ *
+ * `--check` answers one question — "are the members up to date?" — and the answer is trusted
+ * enough to gate CI. Before this it was computed from drift alone, and drift is only meaningful
+ * relative to a population that was actually compared. A member whose vendored `@jrm/tokens`
+ * targets were never enumerated has zero drift in them, which rendered as `up to date`, which
+ * summed to `All members up to date.` That is the same shape as a caller-permission scan that read
+ * no workflow file: **zero drifted is byte-identical to zero compared**, and the reassuring line
+ * names the axis it did not measure.
+ *
+ * It is not hypothetical. Token targets live in an external repository, so `--work-dir` and
+ * `--dry-run` runs cannot resolve them and drop the whole group. Every member declaring a `tokens`
+ * block in `studio.config.json` is affected: an offline check compares the writes it enumerated and
+ * silently omits the rest.
+ *
+ * So an unmeasured population is reported as **unresolved** rather than folded into either answer,
+ * following `caller-permissions.mjs`: a check that could not look is not a check that found
+ * nothing. `compared` is carried into the per-member line for the same reason — a count is the
+ * only thing that distinguishes a real comparison from a vacuous one, and it costs one word.
+ *
+ * @param {Array<{repo: string, compared: number, stale?: boolean, failed?: boolean,
+ *                unmeasured?: string[]}>} results
+ * @returns {{ok: boolean, failed: number, outOfDate: number, unresolved: number, lines: string[]}}
+ */
+export function summarizeCheck(results) {
+  const failed = results.filter((r) => r.failed);
+  const outOfDate = results.filter((r) => !r.failed && r.stale);
+  const unresolved = results.filter((r) => !r.failed && (r.unmeasured?.length ?? 0) > 0);
+  const lines = [];
+
+  if (failed.length) lines.push(`${failed.length} member(s) could not be verified.`);
+  if (outOfDate.length) lines.push(`${outOfDate.length} member(s) out of date.`);
+  for (const r of unresolved) {
+    lines.push(
+      `${r.repo}: ${r.unmeasured.join(', ')} was not compared, so "up to date" does not cover ` +
+        'it. Pass --studio-dir <checkout> to include it.',
+    );
+  }
+
+  // The clean line states its own scope. A verdict that cannot name what it covered is the defect
+  // this function exists to remove, so it is never emitted alongside an unresolved population.
+  if (!failed.length && !outOfDate.length && !unresolved.length) {
+    const compared = results.reduce((sum, r) => sum + (r.compared ?? 0), 0);
+    lines.push(
+      `All ${results.length} member(s) up to date — ${compared} target(s) compared.`,
+    );
+  }
+
+  return {
+    ok: !failed.length && !outOfDate.length && !unresolved.length,
+    failed: failed.length,
+    outOfDate: outOfDate.length,
+    unresolved: unresolved.length,
+    lines,
+  };
+}
+
+/**
  * The run summary written to GITHUB_STEP_SUMMARY.
  *
  * A run's published result is one bit wide, and a red bit says only "something went wrong" —
