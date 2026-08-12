@@ -3141,6 +3141,37 @@ Both are the same mistake at different levels: reading Markdown as flat text rat
 structure. Whichever form you use, **quote a sentence from the target** — but do not expect the quote
 to settle it on its own.
 
+**There is a third mode where every component is correct except the one nobody checks, and the
+prescribed remedy above passes.** A sibling cited an array literal quoted verbatim and correctly,
+against a coordinate that was also right:
+
+```
+cited   sync/lib/basemerge.mjs:144                            <- no such expression in this file
+actual  .github/workflows/reusable-change-detection.yml:144   <- same coordinate, right file
+```
+
+`basemerge.mjs` contains no such expression anywhere. But it has a line 144, holding unrelated prose
+about managed-region hashing, so the citation resolved to something plausible and dense enough to
+read as confirmation. Quoting a sentence from the target does not catch it, because **the quote is
+authentic; it merely does not come from the file named** — verifying it confirms the string exists
+somewhere in the corpus and never tests the path.
+
+A path-and-coordinate pair is a **compound** locator, and that is the general lesson: its components
+key on different dimensions, a reader checks them jointly, and resolution exercises only one.
+Resolution of the pair gets read as verification of both, and the compound additionally loses the
+ability to say *which* half failed. The failure is silent whenever the named file is merely long
+enough to have that line — for a corpus of similarly-sized technical files, nearly always. So check
+the path independently of the coordinate and of the quote: grep the quoted string and confirm the
+file it lands in is the file named. **A citation that resolves is not a verified citation.**
+
+Note how this paragraph reached its present shape. It was first written with both locators inline in
+prose, and `member-facing instructions cite code by name, not by line number` failed on it — the
+standing check against coordinates in canon caught the entry documenting why coordinates fail. Its
+own rationale supplied the fix: a fenced block **exhibits** a coordinate rather than depending on
+one, which is precisely the distinction this passage needs, since the specimen is a defect on
+display. **A rule strong enough to catch its own documentation is calibrated correctly**, and the
+seam it fails at is usually the seam the writing actually needed.
+
 **Every locator is blind in the dimension it keys on.** Content keys on words, so it cannot see
 structure. A coordinate keys on position, so it cannot see content. A blob hash keys on bytes, so it
 cannot see meaning. They are not ranked and none subsumes another: they span different dimensions,
