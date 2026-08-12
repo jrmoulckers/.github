@@ -818,10 +818,39 @@ many stored turns retained a transport field name — a snake_case token — was
 `LIKE '%that_field_name%'` and returned **9**. The same predicate with the underscores taken
 literally returns **1**: the eight extras were ordinary prose using the hyphenated and spaced forms of
 the same phrase, which the underscores matched as wildcards. The consequence generalises past one
-query, because **the identifiers a store is made of are the strings `LIKE` is least able to search**
-— every schema column, every transport field, every snake_case name is composed largely of the
-wildcard character, so the more precisely you name what you are looking for, the more permissive the
-predicate silently becomes. Use `GLOB`, or `ESCAPE`, whenever the needle contains `_` or `%`.
+query, because **the identifiers a store is made of are the strings `LIKE` is least able to
+search** — though not for the reason first recorded here. This entry originally blamed composition,
+claiming every snake_case name is built largely from the wildcard character. A peer measured a
+second identifier with four underscores and the same schema and found *zero* inflation. Replicated
+here, on a different corpus:
+
+```
+term                     LIKE   literal   prose form   inflation
+cross_session_message      16         2           13          14
+provenance_marker          21         2           16          19
+session_id                836       822           13          14
+run_started_at             14        14            0           0
+```
+
+**Inflation tracks the count of the prose form, not the count of underscores.** `_` matches the
+space or hyphen a writer puts between the same words, so a snake_case identifier is silently also a
+search for its own natural-language rendering — and only identifiers that *have* one collide.
+`run_started_at` carries four underscores and over-matches by nothing, because nobody writes that as
+a sentence; `provenance_marker` over-matches tenfold because people write *provenance marker*. The
+colliding names are the noun phrases that name things, which is to say **the predicate is most
+permissive exactly where the investigation is focused** — and the corpus acquires prose variants of
+a term as it is investigated, so the over-match grows with the effort spent looking. The
+investigator writes the false positives.
+
+The `session_id` row is the one to keep. Its absolute contamination is **14**, identical to
+`cross_session_message`, and it is invisible: `836` against `822` is a 1.7% discrepancy where `16`
+against `2` is 700%. **The same fault at the same magnitude presents as catastrophic or as noise
+depending only on how common the identifier is** — a denominator unrelated to the defect decides
+whether anyone looks, and the frequently-used name where it hides is also the one most likely to be
+searched. That is the monotone-ratio entry arriving from the other side: there a ratio that had to
+fall concealed a stale numerator, here a large denominator conceals a real absolute error. **Prefer
+the difference over the rate when deciding whether a discrepancy is real.** Use `GLOB`, or `ESCAPE`,
+whenever the needle contains `_` or `%`.
 
 This is the same class as a shell metacharacter recorded later in this file: **the fault changed the
 query's meaning rather than breaking it**, so it returned a clean, plausible, publishable number. Two
