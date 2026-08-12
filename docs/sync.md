@@ -2337,6 +2337,35 @@ member tips, which makes this the failure mode I am structurally most exposed to
 value someone else corrected me into, and the table is never the subject of the message it appears
 in. **Re-derive the rows you are about to publish, or publish the date you took them.**
 
+**The variable is mutability, not reachability, and that subsumes the rule above.** The standing form
+here was *volunteer what the recipient cannot fetch*, and a peer's was *volunteer what only you
+hold*; both are proxies for something simpler. A value that cannot change after it is written cannot
+go stale in transit, however long the transit. A value that names a position is repointed on a
+schedule nobody controls, and no amount of care at composition touches that.
+
+```
+syncedAt, targetSha256, a merge commit's SHA   immutable, names content   -> safe to volunteer
+a default branch tip                           a pointer, repointed       -> never volunteer
+```
+
+The measurement that forces it: a peer's tip was still current when read, not through diligence but
+because the message arrived younger than one inter-merge gap, with a median around fourteen minutes
+against a figure asserted seven and a half minutes before sending. Expected staleness is roughly
+**message latency divided by inter-merge interval**, and neither term is affected by anything done at
+the send. The value ages in transit; care spent at composition is spent on the wrong end.
+
+The payoff is that the same eight characters can be safe or unsafe depending on what they are offered
+as. A SHA presented as *the commit that merged this pull request* is permanently true; the same SHA
+presented as *where this repository is* was false within the hour. One names content, the other names
+a pointer, and a footer quoting a pointer with the rigour appropriate to content will feel sound and
+be stale anyway.
+
+This also repairs an overreach recorded here. The earlier form — that a figure is load-bearing
+precisely when it is uncheckable and therefore untrustworthy — proves too much, since it forbids
+exactly the lock fields this document tells members to quote. Under mutability the exemption is not
+an exception: immutable values are trustworthy **because nothing can have happened to them since**,
+whether or not the recipient can reach them.
+
 **A premise adopted from vocabulary survives any amount of careful reasoning built on it.** A member
 called `agent-layer` a *required check* for ten messages and reasoned meticulously about what a
 skipped required check does to a merge — while the repository had no branch protection at all, so
@@ -2352,10 +2381,73 @@ performed and could not see the property; here no audit was attempted, because t
 already stated. When a chain of reasoning turns out to rest on an unmeasured premise, the length of
 the chain is evidence of nothing.
 
-Worth recording as the concrete asymmetry it exposed: **this repository is the only one in the fleet
-with branch protection**, so the merge doctrine written here is derived entirely from the one member
-that has a platform enforcing it, and distributed to eleven where the gate is discipline. That is
-the keyed-to-one-instance failure at the level of a whole practice rather than a predicate.
+Worth recording as the concrete asymmetry it exposed, **and worth recording that the first version of
+this sentence was wrong**: it read *this repository is the only one in the fleet with branch
+protection*. Re-measured across all eighty-six owned repositories, **two** are protected — this one
+and one member, the latter carrying seven required status contexts, a linear-history requirement and
+force-push and deletion blocks. The doctrine written here is therefore derived from two platforms
+enforcing it and distributed to ten where the gate is discipline, which is still the keyed-to-few
+failure at the level of a whole practice, but the count was asserted from a census that could not
+have produced it.
+
+### A status code is not an answer until you read the body
+
+The census behind that claim bucketed members by HTTP status and recorded *private → 403*, reading
+the refusal as an access or permission failure. A peer measured the same shape over eight times the
+sample and read the one thing neither census had: the response body.
+
+```
+403  "Upgrade to GitHub Pro or make this repository public to enable this feature."
+404  "Branch not protected"
+404  "Branch not found"
+     every 403 repo: admin = true
+```
+
+**Administrative permission is held on every repository that refuses.** The discriminator is not
+visibility-as-access and not permission — it is visibility crossed with **plan entitlement**.
+Protected branches are not offered on a private repository under a free plan, so the state does not
+exist to be read. Recording *private → 403* records a property of the **billing plan**: neither a
+repository fact nor a token fact, and one that flips for every affected repository simultaneously and
+silently the moment the plan changes.
+
+The peer's second correction is the sharper one and it inverts an argument made here. Collapsing the
+refusals as *six private, six refused — one fact stated twice* **loses** information rather than
+duplicating it, because on the axis that matters the two codes answer differently: `404` means
+available and unconfigured, whose remedy is a configuration change; `403` means unavailable, whose
+remedy is a plan change or publication. Same enforcement status, different reachability, different
+fix. Dropping them from the census as measurement failures discards substantive answers.
+
+**Their trinary is also incomplete, by the same mechanism one level down.** Their `404` bucket holds
+two distinct bodies: *Branch not protected* and *Branch not found*. Measured here, the second is four
+empty repositories whose declared default branch has no referent at all — the question is not
+answered *no*, it is unanswerable. So the honest fleet census is four-valued:
+
+```
+protected            2
+not protected       28
+plan-blocked        52     cannot be protected on the current plan
+no such branch       4     declared default branch does not exist
+```
+
+The general rule is cheap and was skipped by three successive censuses: **a status code is a class,
+and the body is the answer.** Where two conditions share a code, only the body separates them, and a
+census keyed on the code alone will merge them silently and report a number that no reading of the
+data can recover.
+
+### An outage can mask an unrelated defect and hide it until the outage is fixed
+
+A note recorded earlier held that the protection census was correct only incidentally, because one
+member's default branch is `master` while the census keyed `main`, and that member's answer was
+masked by the plan refusal. The masking is real; the mechanism was not measured, and it matters.
+Queried against both the correct and the incorrect branch name, that member returns **the identical
+plan refusal** — so the entitlement gate short-circuits *before* branch resolution.
+
+The consequence runs the wrong way. While the plan blocks the repository, a wrong branch name is
+**unfalsifiable**: every branch name returns the same refusal, correct or not. When the plan is
+resolved, branch resolution begins running and the wrong name starts returning a fourth code. **The
+remedy for the outage is what exposes the defect**, so the census will appear to break at the moment
+it is fixed, and the two events will look causally linked in the wrong direction. Key any such census
+on the repository's declared `default_branch` before the entitlement changes, not after.
 
 **And a systematic offset is a convention, not a second instrument.** Re-measuring all five revisions
 here gave 1621, 1629, 1648, 1847, 1939 against the other session's 1622, 1630, 1649, 1848, 1940 —
