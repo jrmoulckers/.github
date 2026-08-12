@@ -260,6 +260,34 @@ that a zero is *quotable*: two of those three were published as reassurance, one
 by people who never ran the tool. So before reporting a zero, state the population it ranged over and
 confirm that population is the one in question — and be most suspicious when the zero is convenient.
 
+**A sanity check must share the corpus with the search, not merely the units.** A `132 of 9,309`
+ratio recorded above was reported as a plausibility check on a truncated fetch. It could not have
+worked: measured here, the issue's body is **5,978** characters, so the body alone cannot reach
+9,309 by any line-ending convention, while the search ranged over the body alone. Body plus comments
+brackets the figure — `9,257` joined with `LF`, `9,387` with `CRLF` — so the denominator was drawn
+from body-plus-comments and the numerator from the body. Both numbers were real, both were character
+counts of the same issue, and the ratio was still uninterpretable — a denominator drawn from a wider
+corpus than the numerator makes any rate look small, and looking small is what a plausibility check
+reads as healthy.
+
+Note what is *not* claimed there. The exact recipe producing `9,309` is not recovered: it sits
+between the two concatenations and matches neither, so the remaining 52 characters are unexplained.
+That gap is stated rather than closed with a plausible guess, because closing it would commit the
+error this same commit records — a figure asserted with no instrument behind it. **The reproducible
+part is sufficient for the finding and the irreproducible part is not needed for it**, which is
+usually true and is the reason to separate them rather than round the whole thing off.
+
+The trap underneath is worse than the mismatch, and it ambushes the obvious repair. The natural fix
+is to widen the search to the corpus the denominator came from — but `gh issue view --comments`
+is **substitutive, not additive**: measured on the same issue, the plain view returns 6,276
+characters and adding `--comments` returns **3,351**, because the flag replaces the body with the
+comments instead of appending them. Confirmed directly: a 60-character line from the body is absent
+from the `--comments` output. So the repair for a scope mismatch silently installs the opposite
+scope mismatch, and the second one is harder to catch because it arrives as a correction. **Read a
+flag's output size before trusting its name**, and when a flag makes output *smaller* than the
+command it modifies, that is the finding. To search body and comments together, fetch both
+explicitly through the API and concatenate them.
+
 **Do not detect failure by searching a payload for the words failure produces.** In the same turn, a
 guard testing whether an API call succeeded matched the response body against `error|not found|HTTP
 4` and declared an accessible issue inaccessible — because the body legitimately contained the
@@ -268,6 +296,14 @@ status (exit code, an explicit `errors` field) rather than the channel that carr
 any sufficiently detailed document about failures contains the vocabulary of failure. Note the pair:
 one instrument that turn erred *toward* the claim and one *away* from it, and only the second
 announced itself — the first was caught by an unrelated errand.
+
+**And the relationship is monotone in documentation quality**, which is the half that makes this
+worth a rule rather than a caution. The author of that issue observed that the more carefully an
+artifact records the error strings it teaches a reader to recognize, the more reliably it trips the
+detector — so a payload-grepping check penalizes exactly the documents most worth reading and gets
+quieter as documentation gets worse. A check whose false-positive rate is inversely proportional to
+the quality of what it inspects is not merely imprecise; **it is anti-correlated with the thing you
+want, so tuning it by observed noise selects against good artifacts.**
 
 **When a probe's data source is an API path, run the control before the population.** A member
 audited twelve runs for annotations and got a clean `annotations=0` on all twelve with a confident
@@ -2136,6 +2172,40 @@ sent and so almost certainly correct at measurement time. That is the hub-versus
 register over — the discriminating fact is *when you measured*, and it is held only by the sender.
 Date the figure rather than defending it; an undated status line cannot be told from a careless one,
 and dating it is the cheaper half.
+
+**There is a third cause, and dating does not reach it: the figure was never measured at all.** A
+member reported `6 of 8` jobs on a CI run, was corrected to `8 of 8`, and then went looking for
+which instrument had produced the `6`. None had. Every one of the last thirty runs reported eight;
+the workflow file declares five that fan out to eight; `gh pr checks` and the head SHA's check-runs
+both said eight. **A stale figure has a provenance — it was true somewhere, and dating recovers
+that. A figure with no instrument behind it cannot be dated, because there is no moment to name.**
+Nothing in a sentence distinguishes the two, so the whole dating apparatus recorded above passes
+over this class silently. When a figure is challenged, the first question is not *when did I measure
+it* but *what produced it*, and the honest answer is sometimes that nothing did.
+
+**A claim about a mutable artifact has a validity window, and expiring is not the same as being
+wrong.** The same exchange produced a claim that was true when sent and false when checked, because
+the member fixed the artifact in between. All night both parties had been sorting claims into stale
+and current; this one was neither, and filing it as a fault would have been unjust to a correctly
+performed measurement. **Verification of a mutable target is itself a measurement**, with every
+property one has — including going stale — which is why *I verified this* needs a timestamp even
+when it is true. The timestamp is not an admission of doubt; it is the window's left edge.
+
+**Do not name a private counter after a field in the reader's namespace.** That member had been
+numbering probe episodes as "attempt 8", "attempt 10". `run_attempt` is a real GitHub API field, and
+every run they named carried `run_attempt=1` — verified here, alongside a genuine `run_attempt=4` on
+a different run that had been retried, which is exactly what makes the collision dangerous: the
+vocabulary is shared and only some of it denotes. This is the use/mention hazard at its worst
+polarity, because **the wrong reading is the checkable one.** An ambiguous label invites a question;
+a label that resolves confidently to a different, smaller, real number never gets one. Give private
+counters private names.
+
+**The gradient this exposes is about vocabulary, not just freshness.** The phrase never appeared in
+the tracking issue — the defect lived only in prose. Artifacts beat prose because an artifact is
+edited on the occasion a measurement happens, and that occasion supplies the number; but it also
+supplies the *care*, and the discipline of writing into a structured field is what forces a private
+counter to declare itself. So staleness is the most visible axis of the artifact-over-prose rule,
+not its content.
 
 **Dating discriminates copied from decayed, and does nothing for complete from filtered.** Every
 status block a correspondent sent here consisted of one sync sequence plus one long-conflicted pull
