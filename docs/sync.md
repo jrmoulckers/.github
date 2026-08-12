@@ -951,8 +951,8 @@ one:
 
 ```sh
 # 1. exactly one marker pair — a duplicated region is a merge artifact, not canon.
-#    Match the DELIMITER at column 0, never the bare name: canon's own prose quotes
-#    `studio:base:start`, so a name count returns 2 on every member in the fleet.
+#    Match the DELIMITER at column 0, never the bare name. A file that must describe its own
+#    markers necessarily contains strings that satisfy a bare-name matcher.
 #    `.gitattributes` uses the `#` form; the HTML form is not valid there.
 grep -c '^<!-- studio:base:start -->$' <file>      # AGENTS.md, copilot-instructions.md
 grep -c '^# studio:base:start$'        .gitattributes
@@ -964,6 +964,34 @@ grep -c '^# studio:base:start$'        .gitattributes
 Hard-fail if the region extracts empty rather than hashing it: *found the markers* and *found the
 region* are different successes, and the SHA-256 of the empty string is a plausible-looking value
 rather than an obvious error.
+
+**The prescription above is right; the justification this document used to give for it was false,
+and the correction is worth more than the rule.** It read *"canon's own prose quotes
+`studio:base:start`, so a name count returns 2 on every member in the fleet."* Backbone's own
+`AGENTS.md` contains the literal **zero** times. Counted across all eleven members:
+
+| name occurrences in `AGENTS.md` | members |
+| --- | --- |
+| 0 (no managed region at all) | studio, engineering, homelab, product, windows |
+| 1 (delimiter only) | score-king, jrm-recipes, finance, docket |
+| 2 (delimiter + a prose mention) | libro, cartridge |
+
+*Every member* was two of twelve. The prose mention that made the number 2 sits **outside** the
+managed region — in libro at line 6, with the region at 419–567 — so it is **member-authored**, and
+canon claimed it as its own and then generalised a fleet invariant from it. The rule survived
+because it was right for a reason nobody checked; a reader auditing the fleet against the stated
+count would have found ten discrepancies and no defect.
+
+**And the harm from matching the bare name is worse than a miscount: it relocates the region.** A
+member's detector took the line-6 mention as the opening delimiter, which put the region's start
+above the whole document and reported conflict hunks at 208–289 as falling *inside* it. That
+converts an ordinary `AGENTS.md` resolution into an apparently human-gated one — a false escalation,
+produced by the very sentence warning against writing the literals in prose. **A document that must
+discuss its own delimiters contains strings satisfying any matcher for them; this is forced, not
+incidental**, so the parser must require a delimiter to *be* the whole line rather than to appear in
+it. Note the direction that made it survivable: the error announced itself by contradicting a prior
+finding. Had it mislocated the region the other way — reporting hunks as safely outside — it would
+have been read as corroboration and shipped.
 
 **Assertion 2 asserts provenance, not equality with any reference, and that is what makes it
 durable.** Both candidate references are wrong on a legitimate outcome, in opposite directions:

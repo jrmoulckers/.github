@@ -184,6 +184,21 @@ one-sided instrument cannot distinguish *the property is absent* from *I cannot 
 This applies to any measurement reported as a zero: no matches, no drift, no candidates, no
 regressions. State what you did to show the instrument fires.
 
+**An absent measurement impersonates whichever verdict the caller was written to look for.** A
+spawned linter returned exit code `null` — a spawn failure, not a result. `null` is falsy *and* is
+`!== 0`, so a success test reads it as failure and a failure test reads it as success; whichever
+polarity the code happens to use, the non-measurement agrees with it. Distinguish *did not run* from
+*ran and returned* as a third state with its own name, and treat it as neither verdict.
+
+**And an exit-code assertion cannot tell the failure it targets from any other failure of the same
+run.** Hunting a formatting regression, the same probe finally exited `1` — the exact code sought —
+because the throwaway clone had no `node_modules` and the configured plugin was unresolvable. The
+verdict was correct, the run reproduced nothing, and the tell was entirely in the reason printed one
+line below the code. That is more dangerous than a wrong answer, because there is no discrepancy to
+notice: **pass conditions must name the failure's identity, not merely its occurrence.** Assert on
+the diagnostic the target failure emits — here the specific `[warn] <path>` line — and print the
+output beside the code, so the evidence travels with the verdict rather than being replaced by it.
+
 **And a filter that silently degrades to no filter returns the unfiltered answer — which confirms a
 figure derived without one.** A path-filtered commit count built its path list from a lockfile field
 that does not exist, producing an empty array, which `git log --` treats as *no restriction*. It
@@ -977,13 +992,25 @@ six of them the enforcement state cannot be read at all from this account — wh
 
 **Re-measured `2026-08-12` keyed on each repository's own `default_branch` — scope stated, since the
 paragraph above counts the backbone separately and this one does not: thirteen repositories, being
-twelve members plus the backbone.** `200` × 2 (`.github`, `finance`), `404` × 4 (`studio`,
-`score-king`, `jrm-recipes`, `engineering`), `403` × 7 (`homelab`, `libro`, `cartridge`, `docket`,
-`product`, `game-library`, `windows`). So *one member in twelve* enforces anything — still `finance`
-alone, the other `200` being the backbone — and `game-library` is the addition, landing in the bucket
-that cannot be read. Only one `404` body occurs naturally anywhere in the fleet — `Branch not
+eleven members, the backbone, and one recorded exclusion.** `200` × 2 (`.github`, `finance`), `404`
+× 4 (`studio`, `score-king`, `jrm-recipes`, `engineering`), `403` × 7 (`homelab`, `libro`,
+`cartridge`, `docket`, `product`, `game-library`, `windows`). So *one member in eleven* enforces
+anything — still `finance` alone, the other `200` being the backbone — and `game-library` is the
+addition, landing in the bucket that cannot be read. Only one `404` body occurs naturally anywhere
+in the fleet — `Branch not
 protected` — which is exactly why the second body is dangerous: it is never seen until the query is
 wrong, so no census will ever have exercised the branch that distinguishes it.
+
+**A sweep's population is not the manifest's, and stating the scope is not the same as getting it
+right.** The paragraph above originally read *twelve members plus the backbone*, having silently
+promoted `game-library` to membership because it appeared in an org-wide protection sweep.
+`game-library` is the entry in the top-level `excluded` array — deliberately ungoverned, with a
+recorded reason — so the thirteen repositories are eleven members, the backbone, and one exclusion.
+The error survived a scope note explicitly written to prevent it, because the note fixed the
+*boundary* (does this count the backbone?) and not the *roster*. Take the member list from
+`studio.config.json`, never from whatever the sweep happened to return, and remember that an
+excluded repository is the one population member designed to appear in org queries and in no
+manifest.
 
 **A refusal is not a reading.** A `403` says the API declined to answer; it says nothing about how
 the branch is configured. A member reported one as *this repository has no protection*, reached the
