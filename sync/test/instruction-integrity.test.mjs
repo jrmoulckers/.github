@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { readFileSync, readdirSync, cpSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join, sep } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { validateInstructionIntegrity } from '../lib/instruction-integrity.mjs';
 import { loadManifest } from '../lib/manifest.mjs';
@@ -58,6 +59,33 @@ test('a description may contain the quote character it is not delimited by', () 
       record.text.includes(record.description),
       `${record.name} description was altered in parsing rather than read verbatim`,
     );
+  }
+});
+
+test('the token value-change rule is pinned on its wording, not its emphasis characters', () => {
+  // Prettier rewrites markdown emphasis from `*value*` to `_value_`. This validator pinned the
+  // asterisk, so formatting canon made the check fail on a file that still stated the rule exactly
+  // right — and that rule is the one nothing else in the org enforces. Copy the repo, apply the
+  // rewrite a formatter would, and require the validator to still accept it. Asserting through
+  // validateInstructionIntegrity rather than against a re-declared pattern, so this fails if the
+  // requirement is dropped as well as if the emphasis tolerance is lost.
+  const tmp = mkdtempSync(join(tmpdir(), 'canon-emphasis-'));
+  try {
+    cpSync(REPO_ROOT, tmp, {
+      recursive: true,
+      filter: (src) => !src.includes(`${sep}.git${sep}`) && !src.endsWith(`${sep}.git`),
+    });
+    const tokensPath = join(tmp, 'instructions', 'tokens.instructions.md');
+    const original = readFileSync(tokensPath, 'utf8');
+    const reformatted = original.replace(/changed token \*value\*/g, 'changed token _value_');
+    assert.notEqual(reformatted, original, 'fixture did not change; the asterisk wording moved');
+    writeFileSync(tokensPath, reformatted);
+
+    const manifest = loadManifest(tmp);
+    const records = validateInstructionIntegrity(tmp, manifest);
+    assert.ok(records.some((record) => record.name === 'tokens'));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
   }
 });
 
