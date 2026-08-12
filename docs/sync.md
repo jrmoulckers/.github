@@ -3179,6 +3179,36 @@ reappear. **Put guards in the tool rather than in the author's continuity of att
 "I'll just add a quick check that it worked" as the highest-risk line in the session rather than the
 safest.
 
+## A declaration of how a thing may behave is not a declaration that it exists
+
+`PERMISSION_CEILINGS` names every workflow in canon and constrains what each of its jobs may ask
+for. It reads like an inventory, and in one direction it is one: a job with no ceiling entry is an
+error. The other direction was silent. Deleting `native-smoke-harness.yml` or `studio-sync.yml`
+left `validateWorkflowIntegrity` throwing nothing at all, because every check downstream reads a
+file's contents and a file that is gone is simply never examined. The harness that calls the native
+smoke workflow on every pull request and asserts its result could vanish while canon stayed green.
+
+The map was complete the whole time -- fourteen keys, fourteen files, neither direction missing.
+Completeness of an inventory says nothing about whether anything requires the inventory to hold.
+The fix is one loop asserting a file for every key, which needs no new list precisely because the
+list already existed.
+
+Absence is the general case, and it is studio's phrasing that names it: **absence is not a
+declaration.** A missing file cannot distinguish "deliberately not required here" from a typo or a
+bad delete, so a checker that treats absence as permission to skip has a control that cannot fire.
+Every contract validator in this engine defaults its source to `''` and therefore fails closed on
+absence -- verified by deleting each of the seven files a validator reads. That is a convention,
+not an invariant: it holds because each author remembered the default, and nothing tested it.
+
+The instrument lesson is the sharper half. The first sweep used a hand-picked list of seven files
+and reported **7/7 detected** -- a perfect score, and the two gaps were in the files not on the
+list. A sample assembled by the same judgement that built the thing under test shares its blind
+spots, so it returns the zero-variance shape for the same reason a stalled instrument does. Only
+enumerating the real directory found anything. The same run produced a second false negative in the
+opposite direction: errors were matched against `reusable-ci-lint.yml` while the roster reports
+`"reusable-ci-lint"` without the extension, so a correctly-named error read as unnamed. One sweep,
+one transcription defect, once in the sample and once in the needle.
+
 ## Idempotency & drift
 
 - The tool is **idempotent**: once a member carries a lockfile, re-running with no upstream change
