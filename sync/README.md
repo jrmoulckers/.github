@@ -1148,8 +1148,25 @@ warning already existed — `WITHHOLDING an update (last received canon never)` 
 operator was about to authorize, which is not where the decision was made. The decision was made
 when they were told "one known file"; a refusal is the only outcome that survives that gap.
 
-Managed merge targets need no such guard: `planManaged()` splices canon's region and preserves
-everything outside the markers, so a force there cannot reach member-authored content.
+Managed merge targets get the same guard, and the first version of this rule wrongly exempted them.
+The exemption's reasoning was that `planManaged()` splices canon's region and preserves everything
+outside the markers, so a force there could not reach member-authored content. That is true of the
+*surrounding* file and false of the region itself. A managed region canon has never delivered was
+authored by someone else — a hand-added block, the state `suspectBlockNote` already exists to warn
+about, or one whose lock entry failed to rekey across a canon relocation. Canon holds no copy of
+either, so the write is the same unrecoverable delete on both paths.
+
+The general form is worth keeping, because it is the same mistake as the two refusals below in a
+different unit: preserving the surrounding file does not make the region recoverable, it only makes
+the loss smaller. A rule that turned on *how much* is lost would exempt a small region for the same
+reason it would exempt a small file. The question the refusal asks is about provenance — does canon
+hold a copy of what this write would destroy — and that question is answered identically whether the
+target is a whole file or a region inside one.
+
+The exemption also made `--force-paths` **inert** on that path rather than merely unnecessary: with
+no refusal to override, an operator had no way to name a managed target either to authorize a write
+or to reason about one. A flag documented as the sole route past a refusal must have a route
+wherever the refusal applies.
 
 ### Auditing a member by hand: compare against `inject()`, not against canon
 
@@ -1308,7 +1325,7 @@ cd sync && npm test        # or: node --test "test/*.test.mjs"
 | File | Covers |
 | --- | --- |
 | `test/branch-reuse.test.mjs` | Sync-branch lifecycle: active reviewer work survives; squash-merged and closed branches are bypassed; clean reruns and first runs start from default; a diverged active remote is rejected instead of force-pushed. |
-| `test/basemerge.test.mjs` | Managed-block detection: markers quoted in prose, shown in a fenced example, or indented as a code block do not form a block; real blocks are still replaced; a canon change after adoption updates in place without duplicating markers; genuine edits are still drift. |
+| `test/basemerge.test.mjs` | Managed-block detection: markers quoted in prose, shown in a fenced example, or indented as a code block do not form a block; real blocks are still replaced; a canon change after adoption updates in place without duplicating markers; genuine edits are still drift. The never-delivered force refusal on the managed path, in both directions: a member-wide `--force` leaves an unrecorded region byte-for-byte untouched and names `--force-paths` in the refusal, naming the path does overwrite it, and a *recorded* region is still forced without naming one — the control that separates the guard from a blanket refusal. Added after the refusal was found to have landed on the plain-file path only, with the managed path forcing unrecorded regions under a full green suite. |
 | `test/runner.test.mjs` | Per-member failure isolation: one member's error does not stop the others, and is reported rather than thrown; drift warnings name every exact skipped path. Also that the run records what *survived* — every success branch, including the common no-changes one — so a partial failure and a total one no longer render the same; that every mode publishes a summary, so a scoped dry run cannot present as a fleet delivery; and that the summary is actually written to `GITHUB_STEP_SUMMARY` rather than merely computed. |
 | `test/rekey.test.mjs` | Lock reconciliation when a target base moves: a relocated tree ends with every planned file tracked and no entry pointing at a nonexistent path, and converges as `updated` instead of freezing as drift; a baseline moves only onto a file it provably describes, and an unproven file is left unrecorded so historical recovery stays available to it; the moved baseline still catches a genuine hand-edit; a stale entry is pruned only when its file is gone, while an unplanned entry whose file remains keeps its baseline; an ambiguous relocation is left alone; a root-level managed target is never rekeyed; a steady-state re-run rekeys and prunes nothing and still produces no diff. |
 | `test/revisions-behind.test.mjs` | The staleness magnitude: revisions are ordered newest-first and a revert does not count twice; a withheld file reports how many versions it has missed; a file customised on top of *current* canon is not withheld and stays at zero forever; a baseline matching no published version reports `null` rather than 0, because unanswerable must not read as up to date; a target with no baseline at all is answerable and maximal — behind every published version, on the same scale as the recorded case, one past the oldest — while an empty history stays `null` rather than collapsing to 0; the aggregate warning and the per-file CLI line both carry the count, and it pluralizes. |
