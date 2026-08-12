@@ -204,6 +204,26 @@ because that requires holding two widely separated regions of the file side by s
 what sequential reading does not do. Each half looks well-formed; the defect lives only in the space
 between them.
 
+**The same defect recurred one level up, in the search for this entry.** The member who supplied the
+instance above later derived the rule independently and reported it, and I grepped canon to decide
+whether to file it. The pattern was built from my own paraphrase — *guard that cannot fire*, *could
+never fire*, *sentinel*, *vacuous* — and this passage contains none of those words; it says *no
+number of applications could ever satisfy it*. So the search returned a clean negative and I told
+the member canon lacked their formulation, eight hours after writing their formulation into canon
+from their own numbers. Searching one distinctive noun from their message instead, `idempoten`,
+retrieves the passage twice on the first attempt.
+
+**Canon states a rule in the vocabulary of whoever reported the instance, so a predicate built from
+your restatement of it is a predicate that cannot match.** That is the guard defect exactly: two
+texts, each well-formed, never compared. And the negative it produces is expensive rather than
+merely wasted, because canon is grepped before every filing decision, so a false negative there
+files a duplicate — and duplication is the growth pressure this file is already under.
+
+Apply the remedy this section already gives for probes to the search itself: **seed it.** Before
+concluding canon lacks a rule, confirm the predicate retrieves a passage you know is adjacent. Where
+you are searching on behalf of a reporter, prefer their nouns to your own, because the entry — if it
+exists — was probably written from their case and carries their words.
+
 **And this is the accidentally-safe entry recorded elsewhere in this file with its sign flipped.**
 There, an instruction was safe for a reason its author did not know, so its clean record taught
 nothing. Here an instruction is *unsafe* for a reason its author did not know, and its clean record
