@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import {
   callerPermissionLintReport,
   formatCallerPermissionWarnings,
+  inspectCallerPermissionCheckout,
   inspectCallerPermissionSource,
   inspectCallerPermissionSources,
   observeCallerPermissions,
@@ -178,7 +179,7 @@ test('non-installing reusable workflows are ignored', () => {
     }),
     BACKBONE,
   );
-  assert.deepEqual(result, { findings: [], unknown: [] });
+  assert.deepEqual(result, { findings: [], unknown: [], inspected: 1 });
 });
 
 test('unsupported permission expressions warn instead of being certified safe', () => {
@@ -323,7 +324,7 @@ test('workflow-looking text in shell does not produce a caller warning', () => {
 `,
     BACKBONE,
   );
-  assert.deepEqual(result, { findings: [], unknown: [] });
+  assert.deepEqual(result, { findings: [], unknown: [], inspected: 1 });
 });
 
 test('lint report names the unsafe job and every collateral job in its file', () => {
@@ -388,8 +389,45 @@ test('a passing lint states the bounded positive evidence it supplies', () => {
 
   assert.equal(report.ok, true);
   assert.deepEqual(report.annotations, []);
+  assert.match(report.summary, /Inspected 1 workflow file\(s\)/);
   assert.match(report.summary, /passing check is the positive evidence for this commit/);
   assert.match(report.summary, /future reusable-workflow re-pin/);
+});
+
+test('a scan that inspected no workflow file is unresolved, not clean', () => {
+  // The lint runs from a caller workflow file, so an empty scan cannot mean "no caller exists";
+  // it means the checkout or the scan root is wrong. Without this, zero inspected files produces
+  // zero findings, which renders byte-identically to a clean pass and certifies the commit.
+  const report = callerPermissionLintReport({ findings: [], unknown: [], inspected: 0 });
+
+  assert.equal(report.ok, false);
+  assert.equal(report.unsafe.length, 0);
+  assert.equal(report.unresolved.length, 1);
+  assert.equal(report.annotations.length, 1);
+  assert.match(report.summary, /measured nothing/);
+  assert.doesNotMatch(report.summary, /positive evidence for this commit/);
+});
+
+test('an absent workflows directory reports zero inspected rather than a clean scan', (context) => {
+  const root = mkdtempSync(join(tmpdir(), 'caller-perms-'));
+  context.after(() => rmSync(root, { recursive: true, force: true }));
+
+  const missing = inspectCallerPermissionCheckout(root, BACKBONE);
+  assert.equal(missing.inspected, 0);
+  assert.equal(callerPermissionLintReport(missing).ok, false);
+
+  mkdirSync(join(root, '.github', 'workflows'), { recursive: true });
+  const empty = inspectCallerPermissionCheckout(root, BACKBONE);
+  assert.equal(empty.inspected, 0, 'an empty workflows directory inspects nothing');
+  assert.equal(callerPermissionLintReport(empty).ok, false);
+
+  writeFileSync(
+    join(root, '.github', 'workflows', 'ci.yml'),
+    workflow({ workflowPermission: '  contents: read\n  packages: read' }),
+  );
+  const scanned = inspectCallerPermissionCheckout(root, BACKBONE);
+  assert.equal(scanned.inspected, 1, 'a present workflow file is counted');
+  assert.equal(callerPermissionLintReport(scanned).ok, true);
 });
 
 test('the workflow resolver recovers the exact remote pin and rejects a mutable call', (context) => {
