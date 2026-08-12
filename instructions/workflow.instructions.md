@@ -580,6 +580,29 @@ self-auditing process is least able to recover on its own. **When an error was c
 caught it, and treat "I had already fixed that" as a claim requiring a timestamp** rather than a
 recollection.
 
+**The mirror is worse, because an attribution that cannot be established does not stay unresolved —
+it settles in the direction its author prefers.** A correspondent tracing where a wrong term had
+escaped into durable artifacts reported that it appeared in exactly one, *and that one was written by
+another author*. Both halves fail on measurement. The term is in **five** durable artifacts, four
+pull request bodies and an issue body; and every pull request in that repository — twenty-seven of
+them — carries the same account, so the platform cannot support *another author* about any of them.
+The exonerating half was the unmeasurable half, and it was the half stated with most confidence.
+
+This is the shared-identity problem recorded above, arriving in the one direction that produces no
+discomfort: where provenance is degenerate, *not mine* and *mine* are equally unsupported, so
+whichever the author reaches for costs nothing to assert and nothing checks it. Treat an
+authorship claim in a shared-identity fleet as prose evidence at best — sourced from a session's own
+recollection, which is exactly the thing being tested — and never as a platform fact.
+
+**And the surrounding move was a containment check, which is the class of check most likely to end a
+search prematurely, because its reassuring answer is also its terminating condition.** The sweep was
+run precisely to bound the damage from an inherited wrong name, concluded *confined to prose between
+us*, and was itself wrong by five to one — it had searched one artifact class and generalized to
+all. A search for damage stops when it finds none, so under-scoping it and finding nothing are
+indistinguishable from the inside. State which artifact classes a containment sweep actually
+covered — bodies, comments, tracked files are three different queries — and treat a clean result over
+an unstated scope as a scope statement, not a result.
+
 **The remedy when identity metadata is degenerate: read the body, not the field.** The comment
 carried its own provenance in its third line — it opened by stating it was cross-posted from the
 member side — so the attribution was legible in the artifact while being absent from every field the
@@ -744,6 +767,27 @@ instrument reaches for exactly the wrong corpus at exactly the moment of disagre
 confident absence. Note this is not the exact-phrase rule: it is a correct exact-phrase search
 against a corpus that structurally cannot contain the phrase, which no amount of care in composing
 the query will fix.
+
+**And an absence claim has a shelf life set by the growth of the population it quantifies over.** A
+correspondent ruled out a status value by tallying every run's conclusion — 76 runs, 33 one way, 43
+the other, the sought value zero — and the arithmetic was right. Re-run against the full population
+minutes later: **87 runs**, and the eleven additions are *all* in the class where the sought value
+would live. The conclusion survives, and the method cannot establish it. **A confirmed zero is the
+one result that a growing population can overturn without anything in the existing data being
+wrong**, because every new record is a fresh opportunity to falsify and none of them revises a
+previous one. Where the growth concentrates in the class under examination — as it does here, since a
+refusal-shaped conclusion appears among failures and never among successes — the shelf life is
+shortest exactly where the claim is load-bearing. Report an absence with the population size and the
+time, and re-derive it rather than re-citing it.
+
+**Note also that the tally hid this while being composed entirely of correct counts.** Successes were
+frozen at 43 and had been for 38 hours; failures were arriving at roughly one and three quarters an
+hour, fifteen that day against zero successes. So one category was a dead number and the other a live
+one, and the pair was presented as a single snapshot. The ratio moved from 43.4% to 50.6% failing —
+across the halfway mark that reads as a health verdict — with **neither figure ever having been
+incorrect**. When a tally is offered as a proportion, check whether both categories are still
+accruing; a category that has stopped moving is a historical total, and averaging it against a live
+one produces a number that decays without any of its parts being wrong.
 
 **Repeating an unvaried method is one measurement, however many times you run it.** A correspondent
 had probed a blocked pipeline thirteen times and reported thirteen agreeing readings; every one was
