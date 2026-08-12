@@ -4476,14 +4476,33 @@ either repository. The tell is that it agreed to three digits while every figure
 the same comparison disagreed. **Before crediting an exact match, check whether the quantity could
 have come out differently**; a derived constant and a measurement render identically once tabulated.
 
-**Report the sign of a delta; the magnitude is the part that agrees and the sign is the part that
-identifies the mechanism.** Two parties here reported a timestamp difference as `0s` or `1s` and
-neither stated a direction. Measured with both operands normalized, the non-zero mode is **-1s** —
-the commit time precedes the merge record, which is the only reading with any causal content. An
-unsigned delta is an absolute value wearing the name of a relationship, and two unsigned reports can
-agree perfectly while neither party knows which way round the relation runs. This is the *eight of
-what* failure in another costume: agreement on a quantity that was under-specified in a way no
+**Write the subtraction, not just the sign: `delta = A - B`.** Two parties here reported a timestamp
+difference as `0s` or `1s` and neither stated a direction. An unsigned delta is an absolute value
+wearing the name of a relationship, and two unsigned reports can agree perfectly while neither party
+knows which way round the relation runs. But attaching a sign only relocates the ambiguity, because
+**a sign is uninterpretable without the operand order** — the same physical fact reads `-1s` or
+`+1s` depending on which term is subtracted, so two parties can now agree on a signed figure and
+still disagree about the world. This entry previously recorded that mode as `-1s`; measured with the
+subtraction written out it is `mergedAt - committer.date = +1s`, never negative, on 25 zeros and 15
+non-zero of 40. The commit exists first and the merge record is written after, which is the only
+causally available order and is what the prose said while the number denied it. This is the *eight
+of what* failure in another costume: agreement on a quantity that was under-specified in a way no
 amount of comparing the two reports could expose.
+
+**And a scalar has no signature.** A correspondent nearly published a merge count inflated by 39%,
+and their account of why is the durable part: their earlier timezone fault was caught because every
+element was off by exactly the same amount, and no real quantity is that well-behaved, whereas a
+count has no internal structure to betray itself. **Reducing data to a scalar is the operation that
+removes the signature**, so the figure most likely to survive review is the one already aggregated.
+Theirs died only because it was arithmetically impossible against a second instrument.
+
+The mechanism sits one operand over from where it looks. Reproduced on identical data at one
+instant, a `ConvertFrom-Json` pipeline counted 93 where offset-aware parsing and a commit listing
+both counted 67 — but the deserialized field is `Kind=Utc` and correct. The faulty operand is the
+cutoff: casting an ISO string with `[datetime]` yields `Kind=Local` shifted by the local offset. And
+**`DateTime` comparison ignores `Kind` entirely**, so a Utc midnight equals a Local midnight and the
+mix moves a boundary by the offset with no exception. Use `DateTimeOffset`, which carries the offset
+and compares correctly.
 
 **Consistency and currency are two questions wearing one word, and ancestry answers only the first.**
 A local ref left behind by many commits is still an **ancestor** of the remote, so it passes every
