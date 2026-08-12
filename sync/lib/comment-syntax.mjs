@@ -26,6 +26,8 @@
 // replaces ("a new extension must be classified here", stated in prose) fired in nobody's run,
 // and typically in a different repo than the one that added the type.
 
+import { createHash } from 'node:crypto';
+
 /** Whole file names — dotfiles with no extension, so matched by basename, not suffix. */
 const HASH_BASENAMES = new Set([
   '.gitattributes',
@@ -104,3 +106,28 @@ export const CLASSIFIED_TYPES = Object.freeze([
   ...BLOCK_EXTENSIONS,
   ...NO_COMMENT_EXTENSIONS,
 ]);
+
+/**
+ * A digest of the whole classification, published in each member's lockfile.
+ *
+ * A member that validates sync output has to re-derive this table to know which marker syntax to
+ * look for, and nothing otherwise tells it when the table moves. A stale member copy and a wrong
+ * file are indistinguishable from the member side — both surface as "canonical provenance marker
+ * is missing" against content the engine wrote correctly — and only the first is actionable by the
+ * member. Publishing the digest lets it say *your classifier is stale* instead.
+ *
+ * It covers the family assignment and not merely the type list, because moving `.conf` from hash
+ * to block drifts a consumer exactly as much as dropping it, and a set-membership digest is blind
+ * to that. Rows are sorted so the value depends on the classification and not on declaration
+ * order.
+ */
+export function classifierDigest() {
+  const rows = [
+    ...[...HASH_BASENAMES].map((name) => `basename\t${name}\thash`),
+    ...[...HASH_EXTENSIONS].map((ext) => `ext\t${ext}\thash`),
+    ...[...HTML_EXTENSIONS].map((ext) => `ext\t${ext}\thtml`),
+    ...[...BLOCK_EXTENSIONS].map((ext) => `ext\t${ext}\tblock`),
+    ...[...NO_COMMENT_EXTENSIONS].map((ext) => `ext\t${ext}\tnone`),
+  ].sort();
+  return createHash('sha256').update(rows.join('\n')).digest('hex');
+}

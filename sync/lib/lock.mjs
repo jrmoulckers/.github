@@ -7,6 +7,7 @@
 //   {
 //     "version": 1,
 //     "backbone": "jrmoulckers/.github",
+//     "classifierSha256": "…",  // digest of the comment-syntax classification, see below
 //     "generatedAt": "<iso>",
 //     "entries": {
 //       ".github/agents/architect.agent.md": {
@@ -16,6 +17,15 @@
 //       }
 //     }
 //   }
+//
+// `classifierSha256` exists because a member that validates sync output must re-derive the
+// comment-syntax table to know which marker syntax to look for, and the lock otherwise says what
+// to expect without saying how the expectation is computed — which is where drift lives. A member
+// holding a stale copy reports "canonical provenance marker is missing" against content the engine
+// wrote correctly, indistinguishable from the file being wrong, and only one of those is
+// actionable by the member. Comparing this digest lets it fail with *your classifier is stale*.
+// Anything a member must reproduce to check canon's output is a versioned contract whether or not
+// it is published as one.
 //
 // `targetSha256` hashes the whole file for an ordinary target and the canonicalized *managed
 // region* for a managed one (`AGENTS.md`, `.github/copilot-instructions.md`, `.gitattributes`),
@@ -44,6 +54,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { toLF } from './provenance.mjs';
+import { classifierDigest } from './comment-syntax.mjs';
 
 export const LOCK_FILENAME = '.studio-sync.lock.json';
 const LOCK_VERSION = 1;
@@ -66,13 +77,14 @@ export function lockPath(memberRoot) {
 export function readLock(memberRoot, backbone) {
   const p = lockPath(memberRoot);
   if (!existsSync(p)) {
-    return { version: LOCK_VERSION, backbone, generatedAt: null, entries: {} };
+    return { version: LOCK_VERSION, backbone, classifierSha256: null, generatedAt: null, entries: {} };
   }
   try {
     const parsed = JSON.parse(readFileSync(p, 'utf8'));
     return {
       version: parsed.version ?? LOCK_VERSION,
       backbone: parsed.backbone ?? backbone,
+      classifierSha256: parsed.classifierSha256 ?? null,
       generatedAt: parsed.generatedAt ?? null,
       entries: parsed.entries && typeof parsed.entries === 'object' ? parsed.entries : {},
     };
@@ -85,6 +97,7 @@ export function serializeLock(lock) {
   const ordered = {
     version: LOCK_VERSION,
     backbone: lock.backbone,
+    classifierSha256: classifierDigest(),
     generatedAt: new Date().toISOString(),
     entries: sortEntries(lock.entries),
   };

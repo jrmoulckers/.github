@@ -4243,6 +4243,29 @@ So when a sync PR touches a managed region, read the rendered block itself, and 
 render upstream rather than repairing it locally; a member cannot validate a rendering without
 reimplementing the renderer, which is the vendored-copy problem returning.
 
+**And a member that reimplements it holds a snapshot, so the lock has to publish the derivation and
+not only the result.** A member vendored the comment-syntax table from `provenance.mjs` while that
+file was still the losing half of a two-table split, and the backbone then unified the pair
+upstream — so the copy preserved the defect *after* the original was repaired, missing five hash
+basenames and three hash extensions. The lock records what to expect and never how the expectation
+is computed, and the second is where drift lives: from the member side *your classifier is stale*
+and *your file is wrong* arrive as the same message, `canonical provenance marker is missing`, and
+only the first is actionable by the member — the second sends someone to inspect a correct file.
+**Where a consumer can fail for two reasons and only one is theirs to fix, the protocol must carry
+enough to say which.** The engine now emits `classifierSha256` in each lockfile, digesting the
+family assignment rather than the type list, because moving a type between families drifts a
+consumer exactly as much as dropping it and a membership digest is blind to that. The general rule:
+**anything a member must reproduce to check canon's output is a versioned contract whether or not
+it is published as one.**
+
+Note where the drift was found and where it was not. That member's suite was green, and could not
+have been otherwise: its lock held 49 `.md` and one `.toml`, so every misclassified type was one it
+did not yet hold. **A latent drift is bounded by the consumer's current population, which is the
+one corpus guaranteed not to exercise it** — the defect is invisible precisely until canon adds a
+target of the type in question, so the population that would prove the tables differ is the
+population that does not exist yet. It surfaced by reading the other party's current source instead
+of a local record of it, which is the same move that settles a disputed attribution.
+
 **A remedy handed across the boundary must be executable with the artifacts the recipient holds.**
 A member was told to enumerate the population from canon's manifest; the manifest lives in the
 backbone, and the member has exactly two local artifacts — its own tree and

@@ -22,8 +22,8 @@ import { resolveAll } from '../lib/resolve.mjs';
 import { enumerateTargets } from '../lib/assets.mjs';
 import { inject, toLF, PROVENANCE_NOTE, hasFrontmatter } from '../lib/provenance.mjs';
 import { buildFile, canonicalizeInner, extractBlock, markersFor } from '../lib/basemerge.mjs';
-import { commentSyntaxFor, CLASSIFIED_TYPES } from '../lib/comment-syntax.mjs';
-import { hashText, sha256 } from '../lib/lock.mjs';
+import { commentSyntaxFor, CLASSIFIED_TYPES, classifierDigest } from '../lib/comment-syntax.mjs';
+import { hashText, sha256, serializeLock } from '../lib/lock.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const manifest = loadManifest(ROOT);
@@ -537,4 +537,38 @@ test('the stamp is invertible per family, which is the only audit a token member
   for (const drop of [0, 1, 2]) {
     assert.notEqual(renderedFm.split('\n').slice(drop).join('\n'), toLF(fm));
   }
+});
+
+// A member that validates sync output re-derives this table; the lock is what tells it the table
+// moved. See homelab #33 -- a member copy that predated the basemerge/provenance unification kept
+// the losing half, and no test using that member's own content could distinguish the two.
+test('the lockfile publishes the classifier digest so a stale member copy is nameable', () => {
+  const lock = JSON.parse(serializeLock({ backbone: 'jrmoulckers/.github', entries: {} }));
+  assert.equal(lock.classifierSha256, classifierDigest());
+  assert.match(lock.classifierSha256, /^[0-9a-f]{64}$/);
+});
+
+test('the classifier digest is stable across calls and covers every classified type', () => {
+  assert.equal(classifierDigest(), classifierDigest());
+  assert.equal(CLASSIFIED_TYPES.length, new Set(CLASSIFIED_TYPES).size);
+  for (const type of CLASSIFIED_TYPES) {
+    assert.ok(type.startsWith('.'), `classified type ${type} is not a dotted name`);
+  }
+});
+
+// Membership is the drift that happened; family reassignment is the one that would be invisible to
+// a digest over the type list alone, so assert the digest sees both.
+test('the classifier digest changes when a type moves family, not only when one is added', () => {
+  const rowsFor = (assignments) =>
+    Object.entries(assignments)
+      .map(([type, family]) => `ext\t${type}\t${family}`)
+      .sort()
+      .join('\n');
+
+  const base = { '.toml': 'hash', '.md': 'html' };
+  const moved = { '.toml': 'block', '.md': 'html' };
+  const added = { '.toml': 'hash', '.md': 'html', '.conf': 'hash' };
+
+  assert.notEqual(sha256(rowsFor(base)), sha256(rowsFor(moved)), 'family move is invisible');
+  assert.notEqual(sha256(rowsFor(base)), sha256(rowsFor(added)), 'added type is invisible');
 });
