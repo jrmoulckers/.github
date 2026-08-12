@@ -950,6 +950,17 @@ hand. Prefer *unreconciled* to *wrong* when a peer's figure resists reproduction
 above would have concluded carelessness, where the truth was a different revision, and only one of
 those conclusions leads anywhere.
 
+**But *unreconciled* is only the conservative filing when it is reported bare.** A correspondent
+filed a peer's figure that way and attached an exhaustive search to it — twenty-eight candidate
+line-ending conventions, none matching — which reads as evidence that the *other* instrument is
+unexplained. The peer's figure was exact. The search had been run under an unexamined assumption of
+uniform line endings against an object that was mixed, `129` CRLF pairs and `160` bare LF in one
+`17148`-unit body, so all twenty-eight candidates failed for the same reason and each failure looked
+like corroboration. **An exhaustive claim reported without its enabling assumption is a stronger
+claim than a wrong number**, because a wrong number invites a recount while a closed state space
+ends the inquiry for everyone. State the assumption that made the enumeration finite, or report the
+failures and not the exhaustion.
+
 **And a measurement can be checked against an invariant it must satisfy, which is cheaper than a
 control and available more often.** Auditing that member's census here, two predicates returned
 counts that were impossible together: widening a filter from `^//` to `^(//|\*|/\*)` returned *fewer*
@@ -3068,6 +3079,21 @@ If you build a coverage check for this, three traps are known to be live:
   to within its own magnitude, and only the bare count carries it undiminished. Here the two figures
   that survived a three-figure audit were precisely the two that were not absolute counts, and they
   survived for that reason rather than because they were measured more carefully.
+- **The terminator carries its own convention, and a scalar count of line endings conflates it with
+  the body's.** Sweeping all 57 issue and pull-request bodies in one member, 12 are "mixed" by a
+  CRLF count — but in 10 of those the single CRLF sits at exactly `len - 2`, so the body is pure LF
+  with a CRLF terminator, and only 2 are mixed throughout. The count reports all 12 alike. Nor is
+  the convention stable within one object: across 26 revisions of a single issue the CRLF count runs
+  `0, 0, 49, 67, 0` and then zero for twenty-two more, so it is a property of the **writing act**,
+  not of the document, and *this body uses CRLF* is not a fact that survives its next edit.
+- **A terminator remedy is specific to the transport, not to the field it was found on.** Stripping
+  a trailing newline is correct for a shell-piped fetch, which appends one. Carried over by field
+  name to a GraphQL read, which has no shell in the path, the same strip deletes real content — and
+  on a body ending in twelve significant newlines it silently broke a true equality and reported
+  *no match*. It failed toward the reassuring answer, so nothing prompted a second look. **A
+  correction migrates into a defect when it is filed under the name of the field it was found on
+  rather than the mechanism that produced it**, and the migration is invisible because the rule
+  still cites a real result.
 
 Introducing a canon kind that lands in a formatted path is a **cross-repo event**: every affected
 member needs its ignore entry before its sync PR can go green. The `copilot` kind's first distribution
@@ -3672,9 +3698,19 @@ Two consequences for using it. The pin is real once it exists — the oldest nod
 holds the genuine pre-edit body, verified against a live body of a different size — so it is worth
 reaching for. And because an edit is what *causes* the record, anyone with write access can
 manufacture a pin for a document they did not author, which is the answer to *I can content-address
-what I wrote but not what I read*: you can content-address anything you can edit. Whether submitting
-an identical body creates a revision is **unmeasured** here; the corpus contains no adjacent
-identical-content revisions, which is no evidence either way, and the write is human-gated.
+what I wrote but not what I read*: you can content-address anything you can edit. Submitting an
+identical body creates **no** revision; an edit followed by a revert creates **two**, and leaves the
+body byte-identical to a node already in the store — measured on an issue where the revert
+reproduced a prior revision exactly, six seconds apart. So a pin can be manufactured, but not
+covertly: it costs two visible revisions and an `edited` marker. Describe the technique as
+**available and self-marking**, which is a better property to rely on than either guess.
+
+**And the probe that established this accreted into the corpus it measured.** Three of that issue's
+revisions are instrument rather than content, and the store records them identically; it now holds
+twenty-six, with nothing in the history separating a measurement from an edit. So a revision count
+is not merely stale on arrival — **it is not purely a property of the document**, and a session that
+probes an artifact it also cites should record the probe in the artifact, so a later reader is not
+left reconstructing which revisions were the reading.
 
 Note also that edit provenance cannot separate actors under a single identity — every editor login
 across this corpus is the same account, so a session cannot exclude its own influence on a
