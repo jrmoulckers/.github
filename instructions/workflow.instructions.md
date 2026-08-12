@@ -1495,6 +1495,21 @@ gap in question was six days wide, and a six-day window in that position contain
 almost wherever recovery actually fell — so "the window contains the billing-cycle boundary" had no
 power to discriminate, while reading exactly like evidence.
 
+**And a commit census must declare whether its population is authored or published, because the two
+diverge enormously in a shared worktree.** Two parties measured the same interval and got one commit
+and twenty-one; both were correct. `--remotes` counts what was pushed, `--all` additionally counts
+local-only refs, which in an environment where several sessions share a checkout means other agents'
+unpushed work. Measured in this repository's worktree the gap is not marginal: **1,177 commits
+reachable from all refs against 437 from remote-tracking refs**, so nearly two-thirds of the
+population is unpublished, and a census that does not name which it counted is off by a factor of
+nearly three. The same command reproduces to a different number on a fresh clone, which is what makes
+the discrepancy read as someone's mistake rather than as two questions.
+
+The direction matters for the case above. *The gap was idle* merely fails to explain why no runs
+exist; **unpushed commits explain it positively**, because the triggers are push and pull-request
+events, so work that was authored and never published produces exactly this absence. Prefer the
+explanation that predicts the observation to the one that is merely consistent with it.
+
 **Falsifiability is a property of the claim, not evidence for it.** The withdrawn reading came with a
 crisp test — *it clears on its own next cycle, or it never does* — and offering that test is what made
 it feel rigorous. It invites the reader to check the future instead of auditing the derivation, and
@@ -1514,14 +1529,17 @@ the pre-correction version — nothing links the two, and compression is exactly
 needed. **After withdrawing something, grep your own prior artifacts for the withdrawn arm rather
 than trusting that the withdrawal reached them.** The check is cheap and the failure is silent.
 
-**And the cross-visibility control qualifies, without overturning, the rule above that each
-repository's annotation is the only evidence about that repository.** That remains true of *repository-side* hypotheses. It is false
-of the account-level clause, where a sibling that is **not** refused carries the only evidence
-anyone can get.
+**And a sibling's green does not carry the evidence this once claimed, which is the same withdrawal
+reaching one paragraph further.** The rule above — that each repository's annotation is the only
+evidence about that repository — was qualified here on the grounds that for an *account-level* clause
+a sibling which is not refused carries evidence nobody else can get. That qualification inherited the
+confounded control: the siblings that stay green are the public ones, and they are exempt from billed
+usage entirely, so their green is a property of the free tier rather than a reading of the account. A
+private sibling's green would carry the evidence; a public sibling's does not, and every green
+sibling observed during this episode was public. The unqualified rule stands.
 
-**When your own block lifts, the first green is a first measurement, not a recovery.** The rule
-above governs a *sibling's* green; this one governs your own. A refused run executed no steps, so it
-carries no evidence about the diff in either direction — the red was a statement about the account.
+**When your own block lifts, the first green is a first measurement, not a recovery.** A refused run
+executed no steps, so it carries no evidence about the diff in either direction — the red was a statement about the account.
 There is therefore no prior known-good state being returned to, and a regression that landed during
 the outage was indistinguishable from the outage the whole time it held. The trap is in how it ends:
 the window does not close when the block lifts, it closes when someone re-reads the checks, and
