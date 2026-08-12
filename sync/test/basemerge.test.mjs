@@ -204,6 +204,80 @@ test('a genuinely edited managed block is still drift, with a note when implausi
   });
 });
 
+// #457 established that `--force` must not delete content canon has never delivered, because the
+// bytes are member-authored and canon holds no copy to put back. #460 implemented that on the
+// plain-file path only, and these pin the managed path, where the same rule applies for the same
+// reason: the refusal is about provenance, not about scope. Both directions are pinned, because a
+// gate with no test is silent whether it is present or absent — the state below was forced for
+// several releases with a full green suite.
+test('member-wide --force refuses a managed region canon never delivered', () => {
+  withTmp((root) => {
+    const local = '# member\n\nSurrounding content.\n';
+    const handAuthored = 'Rules that exist nowhere else.\n';
+    const before = buildFile(local, handAuthored, MARKERS.html);
+    writeFileSync(join(root, 'AGENTS.md'), before, 'utf8');
+
+    // No lock entry: the engine has never delivered canon to this path.
+    const { report } = apply(root, [agentsSpec()], { entries: {} }, { force: true, write: true });
+
+    assert.deepEqual(report.forced, [], 'a never-delivered region must not be overwritten');
+    assert.deepEqual(
+      report.drift.map((i) => i.targetPath),
+      ['AGENTS.md'],
+    );
+    assert.match(report.drift[0].note, /--force-paths/, 'the refusal must name its own remedy');
+    assert.equal(readFileSync(join(root, 'AGENTS.md'), 'utf8'), before, 'byte-for-byte untouched');
+  });
+});
+
+test('--force-paths authorizes a managed region the member-wide force refused', () => {
+  withTmp((root) => {
+    const local = '# member\n\nSurrounding content.\n';
+    writeFileSync(
+      join(root, 'AGENTS.md'),
+      buildFile(local, 'Rules that exist nowhere else.\n', MARKERS.html),
+      'utf8',
+    );
+
+    const { report } = apply(root, [agentsSpec()], { entries: {} }, {
+      force: true,
+      forcePaths: ['AGENTS.md'],
+      write: true,
+    });
+
+    assert.deepEqual(
+      report.forced.map((i) => i.targetPath),
+      ['AGENTS.md'],
+      'naming the path must be a working route, not merely an accepted flag',
+    );
+    const written = readFileSync(join(root, 'AGENTS.md'), 'utf8');
+    assert.equal(canonicalizeInner(extractBlock(written, MARKERS.html)), canonicalizeInner(CANON));
+    assert.ok(written.includes('Surrounding content.'), 'the member half is still never ours');
+  });
+});
+
+// The control: without this, a gate that refused *every* managed force would pass both tests above
+// while breaking ordinary recovery. A recorded target has received canon before, so it is
+// recoverable and member-wide force still applies.
+test('a recorded managed region is still forced without naming a path', () => {
+  withTmp((root) => {
+    writeFileSync(
+      join(root, 'AGENTS.md'),
+      buildFile('# member\n', 'drifted\n', MARKERS.html),
+      'utf8',
+    );
+
+    const lock = { entries: { 'AGENTS.md': { renderedSha256: hashText(canonicalizeInner(CANON)) } } };
+    const { report } = apply(root, [agentsSpec()], lock, { force: true, write: true });
+
+    assert.deepEqual(
+      report.forced.map((i) => i.targetPath),
+      ['AGENTS.md'],
+      'the refusal must not spread to targets canon has delivered before',
+    );
+  });
+});
+
 // The real canon body, not a synthetic one. The synthetic cases above prove the reader
 // rejects a phantom block; only the shipped file proves it is pointed at the right thing.
 // canon's own prose quotes the bare marker names, so a check counting NAMES sees two

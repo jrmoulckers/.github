@@ -65,7 +65,7 @@ export function apply(memberRoot, writes, lock, opts = {}) {
   for (const spec of writes) {
     const res =
       spec.type === 'managed'
-        ? planManaged(memberRoot, spec, entries, force)
+        ? planManaged(memberRoot, spec, entries, force, forceable)
         : planFile(memberRoot, spec, entries, force, forceable);
     const item = { targetPath: spec.targetPath, kind: spec.kind, name: spec.name };
     if (res.outranks?.length) report.outranked.push({ ...item, rules: res.outranks });
@@ -234,6 +234,9 @@ function walkFiles(memberRoot, base) {
   return found;
 }
 
+const FORCE_REFUSED_NOTE =
+  'force refused — never received canon; name this path in --force-paths to overwrite it';
+
 function planFile(memberRoot, spec, entries, force, forceable = new Set()) {
   const abs = join(memberRoot, ...spec.targetPath.split('/'));
   const rendered = spec.content;
@@ -260,7 +263,7 @@ function planFile(memberRoot, spec, entries, force, forceable = new Set()) {
     // them and says so. A target with a lock entry has received canon before and is recoverable,
     // so member-wide force still applies there.
     if (force && !lockEntry && !forceable.has(spec.targetPath)) {
-      return { action: 'drift', note: 'force refused — never received canon; name this path in --force-paths to overwrite it' };
+      return { action: 'drift', note: FORCE_REFUSED_NOTE };
     }
     return force
       ? { action: 'forced', newContent: rendered, newEntry }
@@ -275,7 +278,7 @@ function planFile(memberRoot, spec, entries, force, forceable = new Set()) {
  * only the block between the studio markers is ours, so drift is judged on the block inner
  * rather than the whole file and the member's surrounding content is always preserved.
  */
-function planManaged(memberRoot, spec, entries, force) {
+function planManaged(memberRoot, spec, entries, force, forceable = new Set()) {
   const abs = join(memberRoot, ...spec.targetPath.split('/'));
   const markers = markersFor(spec.targetPath);
   const inner = canonicalizeInner(spec.content);
@@ -292,7 +295,18 @@ function planManaged(memberRoot, spec, entries, force) {
   }
   const currentHash = hashText(currentInner);
   const outranks = outrankedRules(existing, markers, spec.targetPath);
-  if (isLocallyModified(entries[spec.targetPath], currentHash, renderedHash)) {
+  const lockEntry = entries[spec.targetPath];
+  if (isLocallyModified(lockEntry, currentHash, renderedHash)) {
+    // Same rule as planFile, and for the same reason. The refusal asks whether canon holds a copy
+    // of what the write would destroy — a question about provenance, not about scope. A managed
+    // region the engine has never delivered was authored by someone else: a hand-added block (the
+    // state suspectBlockNote already exists to warn about), or one whose lock entry failed to
+    // rekey across a canon relocation. Canon cannot put either back. Preserving the surrounding
+    // file does not make the region recoverable; it only makes the loss smaller, and a rule that
+    // turned on how much is lost would exempt a small region that is equally irreplaceable.
+    if (force && !lockEntry && !forceable.has(spec.targetPath)) {
+      return { action: 'drift', note: FORCE_REFUSED_NOTE, outranks };
+    }
     return force
       ? { action: 'forced', newContent: buildFile(existing, inner, markers), newEntry, outranks }
       : { action: 'drift', note: suspectBlockNote(spec.targetPath, currentInner, inner), outranks };
