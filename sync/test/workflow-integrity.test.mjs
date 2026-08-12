@@ -231,3 +231,22 @@ test('the harness asserts on the reusable workflow result rather than merely cal
   assert.match(text, /SMOKE_RESULT:\s*\${{\s*needs\.smoke\.outputs\.result\s*}}/);
   assert.match(text, /"\$SMOKE_RESULT" != "pass"/);
 });
+
+// A green "Studio sync" in the run list meant nothing until this: a dry run writes nothing and a
+// member-filtered run writes to one repo, yet both render exactly like a fleet run that wrote to
+// every member. Two of the three most recent green entries had delivered nothing to the fleet, and
+// that ambiguity was read -- by this repo's own maintainer session -- as evidence that a stalled
+// dispatch had resumed. `run-name` is the only string GitHub renders in that list.
+test('the sync run names its mode and scope in the run list, not just in the summary', () => {
+  const source = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), '../../.github/workflows/studio-sync.yml'),
+    'utf8',
+  );
+  const runName = source.match(/^run-name:[\s\S]*?(?=\n[a-z-]+:)/m)?.[0];
+  assert.ok(runName, 'studio-sync.yml declares no run-name');
+
+  // Both distinctions must be visible without opening the run: what it wrote to, and whether it
+  // wrote at all. Naming one and not the other leaves the misread that motivated this available.
+  assert.match(runName, /inputs\.dry_run/, 'run-name does not distinguish a dry run');
+  assert.match(runName, /inputs\.members/, 'run-name does not state scope');
+});
