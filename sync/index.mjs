@@ -465,6 +465,17 @@ function printReport(report) {
     }
   }
 
+  if (report.orphaned?.length) {
+    for (const file of report.orphaned) {
+      const lines = file.lines.join(', ');
+      log.warn(`    ⚠️ ${file.targetPath}: ${file.lines.length} extra managed region(s) at line ${lines}`);
+      log.warn('        Only the first region is maintained. The rest hold whatever canon said when');
+      log.warn('        they appeared, inside markers that assert they ARE canon — so the file reads');
+      log.warn('        as current, hashes as clean, and is fenced off from the member who would');
+      log.warn('        notice. A duplicate is a merge artifact; delete the extra block(s) by hand.');
+    }
+  }
+
   if (report.abandoned?.length) {
     // Left on disk, and the plan no longer names them, so they are frozen at whatever the last
     // run that did target them wrote. Saying so is the only thing that ever triggers the manual

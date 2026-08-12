@@ -29,7 +29,7 @@ import { existsSync, readFileSync, mkdirSync, writeFileSync, readdirSync } from 
 import { join, dirname } from 'node:path';
 import { hashText, writeLock } from './lock.mjs';
 import { reconcileLockKeys } from './rekey.mjs';
-import { extractBlock, buildFile, canonicalizeInner, markersFor } from './basemerge.mjs';
+import { extractBlock, buildFile, canonicalizeInner, markersFor, orphanedRegions } from './basemerge.mjs';
 
 const BUCKET = {
   add: 'added',
@@ -60,6 +60,7 @@ export function apply(memberRoot, writes, lock, opts = {}) {
     pruned: reconciled.pruned,
     ambiguous: reconciled.ambiguous,
     outranked: [],
+    orphaned: [],
   };
 
   for (const spec of writes) {
@@ -69,6 +70,7 @@ export function apply(memberRoot, writes, lock, opts = {}) {
         : planFile(memberRoot, spec, entries, force, forceable);
     const item = { targetPath: spec.targetPath, kind: spec.kind, name: spec.name };
     if (res.outranks?.length) report.outranked.push({ ...item, rules: res.outranks });
+    if (res.orphaned?.length) report.orphaned.push({ ...item, lines: res.orphaned });
 
     switch (res.action) {
       case 'add':
@@ -313,14 +315,15 @@ function planManaged(memberRoot, spec, entries, force, forceable = new Set()) {
   }
   const currentHash = hashText(currentInner);
   const outranks = outrankedRules(existing, markers, spec.targetPath);
+  const orphaned = orphanedRegions(existing, markers);
   const lockEntry = entries[spec.targetPath];
 
   // Same precedence as planFile: a region already equal to canon's rendering is current whatever
   // a stale entry claims, and reporting it as drift would be permanent.
   if (currentHash === renderedHash) {
     return lockEntry && !sameBaseline(lockEntry, newEntry)
-      ? { action: 'update', newContent: buildFile(existing, inner, markers), newEntry, outranks }
-      : { action: 'unchanged', newEntry, outranks };
+      ? { action: 'update', newContent: buildFile(existing, inner, markers), newEntry, outranks, orphaned }
+      : { action: 'unchanged', newEntry, outranks, orphaned };
   }
 
   if (isLocallyModified(lockEntry, currentHash, renderedHash)) {
@@ -332,13 +335,13 @@ function planManaged(memberRoot, spec, entries, force, forceable = new Set()) {
     // file does not make the region recoverable; it only makes the loss smaller, and a rule that
     // turned on how much is lost would exempt a small region that is equally irreplaceable.
     if (force && !lockEntry && !forceable.has(spec.targetPath)) {
-      return { action: 'drift', note: FORCE_REFUSED_NOTE, outranks };
+      return { action: 'drift', note: FORCE_REFUSED_NOTE, outranks, orphaned };
     }
     return force
-      ? { action: 'forced', newContent: buildFile(existing, inner, markers), newEntry, outranks }
-      : { action: 'drift', note: suspectBlockNote(spec.targetPath, currentInner, inner), outranks };
+      ? { action: 'forced', newContent: buildFile(existing, inner, markers), newEntry, outranks, orphaned }
+      : { action: 'drift', note: suspectBlockNote(spec.targetPath, currentInner, inner), outranks, orphaned };
   }
-  return { action: 'update', newContent: buildFile(existing, inner, markers), newEntry, outranks };
+  return { action: 'update', newContent: buildFile(existing, inner, markers), newEntry, outranks, orphaned };
 }
 
 /**
