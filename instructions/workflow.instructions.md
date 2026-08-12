@@ -1082,6 +1082,22 @@ variants* — its strongest possible negative result. The remedy is to make the 
 locatable **by construction**: inject a known sentinel and assert the probe finds it before believing
 any run in which it does not.
 
+**A live instance, where the mechanism was a shell metacharacter rather than a logic error.** A
+script run through a platform shell compared each commit against its parent by building the revision
+string with a caret suffix. The caret is that shell's escape character, so every parent reference
+silently resolved to the child, and eight independent commits each reported a delta of exactly zero.
+The table was well-formed and read as *these commits contributed nothing to the section* — a finding
+— rather than as *no comparison happened*. A sentinel asserting the parent differs from the child
+caught it at once, and only because a uniform result prompted adding one.
+
+The pointed part came one command later in the same script: a second metacharacter, a pipe inside a
+format string, failed **loudly** with a shell error. **Identical class, identical shell, and only the
+silent one produced a publishable table.** The loud failure cost a minute; the quiet one nearly cost
+a false claim about authorship. Risk from a quoting fault is therefore not proportional to how badly
+it breaks the command but inverse to it. Where a script builds revisions, paths or globs as strings,
+pass them as an argument vector rather than through a shell, and where that is impossible, assert on
+a known-unequal pair before trusting any zero.
+
 **The same requirement applies to agreement between two instruments, and is easier to miss there.**
 Two measurements matching is evidence only if they *could* have differed. Two sessions measuring one
 file across five revisions produced totals differing by exactly one at every revision — `LF`-count
@@ -1215,6 +1231,34 @@ The same three files were cited at sizes that had already grown by factors of 1.
 the time the message was read — one had doubled. Nothing was mismeasured; the figures simply
 described the property whose whole interest is that it accretes, and carried no revision. Where the
 subject of a measurement is a growth rate, the measurement's own age is part of the reading.
+
+**And a multiplier anchored on a plateau is insensitive to the interval, so pairing it with an
+elapsed time manufactures a rate.** A section of this file was reported as having gone from 605 bytes
+*yesterday* to 68,627 — **113× in 21 hours**. Both endpoints are exact. But the baseline had been
+flat at 605 for **822 hours** before the growth began, and the 21-hour anchor falls inside that
+plateau, so the interval was a free choice while the ratio was not:
+
+```
+anchor inside plateau, 21 h   -> 113x,  3,239 B/h
+onset-dated, 15.5 h           -> 113x,  4,394 B/h
+plateau start, 822 h          -> 113x,     83 B/h
+```
+
+One multiplier, a fifty-threefold spread in implied rate, and nothing in the report distinguishes
+them. **The ratio's robustness is real and it transfers to the interval, which has none** — the
+numerator is a property of the data and the denominator is a property of where the author happened to
+look. A rate assembled this way is unfalsifiable in the direction that matters, because any challenge
+to it re-derives the same defensible multiplier. Date the **onset**: the first departure from the
+plateau is unique and measurable, and it is the only endpoint the data chooses for you.
+
+**A related failure on the other side of the same message: re-measuring is not re-fetching.** The
+sender had adopted the rule to re-measure at send, did so, and reported a tip **43 commits behind**
+the actual one, with a byte count taken from that stale object. The rule was followed exactly and did
+not help, because it addresses the age of the *reading* and the defect was the currency of the
+*object*. **A fresh reading of a stale ref is worse than a stale reading**, since the timestamp is
+honest, recent, and certifies the wrong thing — it converts a decayed figure into one that looks
+actively confirmed. Where a remedy adds a timestamp, check that the step generating the timestamp is
+also the step that refreshes what is being timed.
 
 **And a sample taken as *the first N* inherits an ordering the endpoint never promised — which here
 reverses between two routes to the same data.** Reading the annotations on a refused run, one route
