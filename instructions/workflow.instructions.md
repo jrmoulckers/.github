@@ -655,15 +655,32 @@ inattention that made the first one vacuous is what selects the second. Note als
 means: a failure occurring before any job exists is invisible to every job-level predicate, and is
 reported as the absence of the condition rather than as an inability to look.
 
-**That gap is worse than *no log*: `startup_failure` carries no diagnostic text in any field.**
-Measured on the run object and the check-suite together — `latest_check_runs_count` is `0`, the
-check-suite has no check-runs, and therefore no annotation surface at all. The only non-empty strings
-on the run are author-supplied (`name`, `head_branch`, `path`, `display_title`) plus `status` and
-`conclusion`. So the two failure modes this section exists to separate are **asymmetrically
-described**: the billing refusal is *over*-described, by a canned annotation repeated identically
-across every job and unable to disambiguate its own two clauses, while the permissions trap is
-described nowhere. Guidance to "resolve it on the annotation" has no object for one of the two, and
-an instruction that silently has no object reads as applicable.
+**That gap is worse than *no log*: a genuine `startup_failure` carries no diagnostic text in any
+field.** Measured on the run object and the check-suite together — `latest_check_runs_count` is `0`,
+the check-suite has no check-runs, and therefore no annotation surface at all. Re-measured on the two
+manufactured probes: both report `jobs=0` **and** `check-runs=0`, so the emptiness is structural
+rather than incidental. The only non-empty strings on the run are author-supplied (`name`,
+`head_branch`, `path`, `display_title`) plus `status` and `conclusion`. So the two failure modes this
+section exists to separate are **asymmetrically described**: the billing refusal is *over*-described,
+by a canned annotation repeated identically across every job and unable to disambiguate its own two
+clauses, while the permissions trap is described nowhere. Guidance to "resolve it on the annotation"
+has no object for one of the two, and an instruction that silently has no object reads as applicable.
+
+**Verify the conclusion string before applying that claim, because the billing refusal is normally
+not a `startup_failure` at all.** A peer read this passage, measured a refused run, found five
+annotated check-runs carrying the payments message, and reported the claim falsified. Their own
+evidence block opened with `conclusion=failure` — the run had **eight jobs**, five stepless failures
+and three skipped, which is the *other* column of the discrimination table further down this
+document, where the annotation is expected and a command to fetch it is given. Billing refuses jobs
+that were created; permissions kills the run before any job exists. **The refuting datum was printed
+inside the refutation**, one line above the conclusion it was offered against, because
+`startup_failure` had become the name for *the refusal* rather than for a value of a field.
+
+The general form is worth more than the correction: **a claim scoped to one value of a field is
+refuted only by a case that carries that value, and a name that has drifted into a synonym stops
+carrying its own scope.** Where a passage is keyed to a status string, quote the string and the
+command that reads it, so a reader holding the wrong run discovers that before generalizing rather
+than after. The two cases are one API call apart and read identically in prose.
 
 **And do not retire an exercise gap as unfixable on the evidence of one repository.** The member who
 established the emptiness above concluded that no fixture for the refusal predicate could be supplied
@@ -838,7 +855,34 @@ Note the direction, which is what makes this expensive rather than merely wrong:
 *simplifying* finding. It converts a heterogeneous repair into one action, so it terminates the
 investigation that would have found the other three versions.
 
-**And never write an unresolvable citation, even as an example.** There is no markup for
+**And a sample taken as *the first N* inherits an ordering the endpoint never promised — which here
+reverses between two routes to the same data.** Reading the annotations on a refused run, one route
+returns the annotated failures first and the other returns the un-annotated skips first, over an
+identical set of eight:
+
+```
+check-suites/{suite_id}/check-runs    ascending id    failure, failure, failure, ...
+commits/{sha}/check-runs              descending id   skipped, skipped, skipped, ...
+```
+
+A reader sampling the first three gets `annotations_count: 1` three times on one route and `0` three
+times on the other, from the same run, at the same moment. The second is the dangerous direction: a
+correct endpoint queried with no selector returns a well-formed empty result that is
+**indistinguishable from the absence being tested for** — one step from concluding the diagnostic
+text does not exist. Select on the property (`conclusion == "failure"`), never on position.
+
+Two things generalize past this API. **An ordering that is stable is not thereby documented**, and
+one observed twice is most cheaply explained by a sort key nobody chose — here plainly the record id,
+ascending on one route and descending on the other. And **a caveat can be right while the
+demonstration attached to it is not reproducible**: the advice to filter by conclusion is correct on
+both routes, but the observation offered as its proof holds on exactly one and silently inverts on
+the other, so a reader who verifies on the wrong route concludes the caveat is imaginary. Where a
+finding depends on order, name the route and the sort key, or drop the sample and enumerate.
+
+Note that the procedure documented later in this file is immune by construction, and not by
+foresight: it takes the check-run id out of the `log not found` message and fetches that one
+annotation directly, so it never enumerates and never sorts. **An instruction can be accidentally
+safe, which means its safety does not transfer to the obvious alternative route a reader invents.**
 use-versus-mention, so a document exhibiting a broken locator to illustrate the defect is
 indistinguishable from a document containing one — to a checker and to a skimming reader alike. This
 generalizes past citations: **any document that carries a counter-example in the same notation as
