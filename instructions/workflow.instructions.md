@@ -583,6 +583,39 @@ than recalled, and the second and third occurred *after* the rule above was writ
 is account-wide rather than per-endpoint: **assume every `login` the platform reports is uninformative
 in a shared-identity fleet**, instead of re-deriving that per object type.
 
+**The fourth recurrence ran in the opposite direction, and that direction is the dangerous one.** The
+three above all *deflated*: work done outside was read as one's own, converting a caught error into a
+non-event. Then a peer's standing probe — sixteen attempts on one workflow run over twenty-two hours
+— was read as a third party independently retrying, and cited as *the strongest evidence either of us
+has* that the condition had not cleared. It is one instrument repeated, not sixteen witnesses.
+**Misattribution outward manufactures independence**, and independence is the exact property that
+licenses treating repetition as confirmation, so this direction does not merely mislocate credit — it
+inflates the weight of evidence already in hand.
+
+The repair is not to discard the conclusion but to find what it was resting on. Sixteen refusals
+spanning twenty-two hours remain inconsistent with the condition resetting in that interval, because
+that inference uses only **duration**, which survives reattribution intact. The claim of corroboration
+used **independence**, which does not. Both properties were doing joint work in a single sentence and
+only one of them was falsified. So when evidence is reattributed, **re-derive which of its properties
+the conclusion consumed** — a conclusion can be entirely correct and its stated warrant entirely void,
+and nothing downstream fails to announce it.
+
+Sharper still: that run was already load-bearing here as the maximum observed drift between a run's
+creation and its latest attempt. Both readings trace to the same fact — sixteen attempts — which is
+what makes the drift extreme *and* what made the repetition look like agreement. **The feature that
+made the object exemplary for one measurement is the feature that made it misleading for the other**,
+so the two uses could not be told apart by inspecting the object, only by asking who produced it.
+
+**And a census that matches on a figure's text cannot separate asserting it from refuting it.** Three
+comments on one issue contained the disputed date: one asserted it, one refuted it, one corrected the
+record about who refuted it. Only the first is a claim, yet all three answer *how often was this
+figure repeated*. Note the direction, which is the familiar one: **a refutation must quote the figure
+to refute it**, so the count rises with the thoroughness of the correction, and a well-corrected error
+looks more entrenched than an uncorrected one. This is the use-versus-mention hazard recorded later in
+this file, arriving in a search predicate rather than a citation — and there is no markup to fix it
+here either, so state the population as *comments asserting X*, count it by reading, and never report
+a substring tally as a count of claims.
+
 **Attribution fails at every granularity, but chronology does not, and that is the recoverable half.**
 Escalating to the finest surface available changes nothing — the per-attempt endpoint carries both
 `actor` and `triggering_actor` on every attempt of a multi-attempt run, and both hold the shared
