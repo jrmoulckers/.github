@@ -291,6 +291,33 @@ running the control catches any source that yields an empty population, includin
 returning nothing for an unrelated reason. **Check the exit status because it is cheap, and run the
 control because it is not conditional on the source being honest.**
 
+**The strongest form needs no control at all: a content-addressed fetch validates itself.** The same
+member, after three separate transport failures in one thread, refetched four revisions of a file and
+**hashed each locally** rather than trusting the response. Reproduced here independently, all four
+matching:
+
+```
+fe37635 -> c437c267...   e4e8f23 -> b53cb1f0...
+fdab6f6 -> 87a3e795...   29ce030 -> eaa02ad8...
+```
+
+The fetch is correct **iff** the hash reproduces, so 404-reads-as-zero cannot survive it — an error
+body, an empty body, or the wrong revision all hash to something else. Note what this changes: the
+exit-code check and the control run are both *external* to the measurement and can be skipped, and
+each of the three transport failures was a case of skipping one. A self-validating fetch removes the
+choice, which is the same reason a timestamp emitted by the fetching command beats a hand-written one.
+**Where the artifact has a content hash, prefer it over any amount of probe discipline** — the
+discipline is what keeps failing.
+
+**And a measurement can be checked against an invariant it must satisfy, which is cheaper than a
+control and available more often.** Auditing that member's census here, two predicates returned
+counts that were impossible together: widening a filter from `^//` to `^(//|\*|/\*)` returned *fewer*
+duplicate groups, when a superset of the input cannot yield a subset of the groups. The numbers were
+individually plausible and the fault was in the helper, not the data. Nothing about either figure
+looked wrong; only the relation between them did. So when a probe is run more than once with a
+varying parameter, **state the monotonicity the results owe each other and check it** — a broken
+instrument usually satisfies neither, and the violation is visible without knowing the right answer.
+
 **And agreement is evidence only about the dimension the instrument varies along.** Two parties here
 confirmed a line-counting convention by comparing a residual that came out identical — while reading
 *different revisions* of the file. The residual was invariant to revision, so it discriminated
