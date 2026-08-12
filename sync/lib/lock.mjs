@@ -1,8 +1,8 @@
 // Per-member lockfile helpers and content hashing.
 //
 // The lockfile (`.studio-sync.lock.json`) lives at the member repo root and records,
-// for every synced target, the hash of the canonical source and the hash of the exact
-// bytes the tool last wrote:
+// for every synced target, the hash of the canonical source and the hash of what the
+// tool last wrote:
 //
 //   {
 //     "version": 1,
@@ -16,6 +16,16 @@
 //       }
 //     }
 //   }
+//
+// `targetSha256` hashes the whole file for an ordinary target and the canonicalized *managed
+// region* for a managed one (`AGENTS.md`, `.github/copilot-instructions.md`, `.gitattributes`),
+// because only that region is canon's to own — see `planManaged` in copier.mjs and
+// `canonicalizeInner` in basemerge.mjs. Every entry has the same shape either way, so the field
+// name alone does not say which rule produced it. Read it off the file rather than a path list:
+// a target is managed exactly when it carries its marker start at column 0
+// (`extractBlock(bytes, markersFor(targetPath)) !== null`), which stays correct when a managed
+// target is added. Hashing the whole file of a managed target matches under no member state at
+// all, not even one the engine just wrote, because the markers sit outside the region.
 
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';

@@ -13,6 +13,7 @@ import { join, dirname } from 'node:path';
 import { apply } from '../lib/copier.mjs';
 import { hashText } from '../lib/lock.mjs';
 import { reconcileLockKeys } from '../lib/rekey.mjs';
+import { buildFile, canonicalizeInner, markersFor } from '../lib/basemerge.mjs';
 import { inject } from '../lib/provenance.mjs';
 
 const NOTE = 'generated + synced from jrmoulckers/studio @jrm/tokens — do not edit here';
@@ -247,6 +248,70 @@ test('a root-level managed target is never rekeyed onto some other path', () => 
     const res = reconcileLockKeys(root, [managed], entries);
 
     assert.deepEqual(res.rekeyed, []);
+  });
+});
+
+// A managed target that is NOT at the repo root, so it survives `planRelative` and reaches
+// `baselineFits` — the case the root-level test above cannot reach. Its lock entry records the
+// hash of the canonicalized region, so judging it on whole-file bytes could only ever decline,
+// and the entry would be stranded exactly as in #418.
+test('a managed baseline is judged on its region, not the whole file', () => {
+  withTmp((root) => {
+    const targetPath = '.github/copilot-instructions.md';
+    const inner = canonicalizeInner('Canon guidance for the member.\n');
+    const file = buildFile('# local preamble\n', inner, markersFor(targetPath));
+    write(root, targetPath, file);
+
+    const spec = {
+      kind: 'copilot',
+      name: 'copilot-instructions.md',
+      sourcePath: 'copilot-instructions.md',
+      targetPath,
+      targetBase: '.github',
+      sourceSha256: 'a',
+      content: 'Canon guidance for the member.\n',
+      type: 'managed',
+    };
+    const orphan = 'legacy/copilot-instructions.md';
+    const entry = (targetSha256) => ({ [orphan]: { sourceSha256: 'a', targetSha256, syncedAt: 'x' } });
+
+    write(root, orphan, file); // present, so prune cannot mask the result
+
+    const onRegion = reconcileLockKeys(root, [spec], entry(hashText(inner)));
+    assert.deepEqual(
+      onRegion.rekeyed,
+      [{ from: orphan, targetPath }],
+      'the baseline the engine actually records must be accepted',
+    );
+
+    const onWholeFile = reconcileLockKeys(root, [spec], entry(hashText(file)));
+    assert.deepEqual(
+      onWholeFile.rekeyed,
+      [],
+      'a whole-file hash does not describe a managed region and must not be adopted',
+    );
+  });
+});
+
+// The control for the test above: an ordinary target is still judged on its whole bytes, so the
+// managed branch cannot be a blanket loosening that accepts anything.
+test('a plain baseline is still judged on the whole file', () => {
+  withTmp((root) => {
+    const spec = tokenSpec('tokens.css');
+    const bytes = spec.content;
+    write(root, spec.targetPath, bytes);
+    const orphan = `${OLD_BASE}/tokens.css`;
+    write(root, orphan, bytes);
+
+    const fits = reconcileLockKeys(root, [spec], {
+      [orphan]: { sourceSha256: 'a', targetSha256: hashText(bytes), syncedAt: 'x' },
+    });
+    assert.deepEqual(fits.rekeyed, [{ from: orphan, targetPath: spec.targetPath }]);
+
+    const doesNot = reconcileLockKeys(root, [spec], {
+      [orphan]: { sourceSha256: 'a', targetSha256: hashText('something else\n'), syncedAt: 'x' },
+    });
+    assert.deepEqual(doesNot.rekeyed, [], 'bytes that disagree are still refused');
   });
 });
 
