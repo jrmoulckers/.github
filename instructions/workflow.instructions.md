@@ -899,8 +899,25 @@ game-library  2026-08-11
 
 None of those later dates is an episode start. Each is the edge of *that repository's activity*
 — `libro` and `cartridge` have no runs at all before `08-03`, and `studio` ran exactly once in the
-window where `homelab` was being refused continuously. **An exhaustive scan of one repository is still
-a sample of the account**, and here the sampling is performed by the world rather than by the
+window where `homelab` was being refused continuously.
+
+**So state a bracket's width against the observer's own gap distribution, because the bracket's
+quality is a property of the observer and not of the event.** A member bracketed their transition to
+a 24.1-minute unobserved window — last executed run at `21:34:11Z` with 61 steps, first zero-step
+refusal at `21:58:20Z`, both edges read from `created_at`. Measured here, that repository's own
+inter-run gap runs a median of 18 minutes, so the bracket is about **1.3 median gaps** wide, which is
+close to the best that observer could have done. The identical 24 minutes in a repository that builds
+twice a week would carry almost no information. A bracket reported as an absolute duration invites
+the reader to judge it against their own intuition about clocks; reported as a multiple of the
+observer's cadence, it says what it actually constrains.
+
+That comparison also reproduced the decay result a third time. Re-measuring the same distribution
+hours later, `median` moved 14.8 to 18 minutes and `p90` moved 339 to 166 — while `max` came back at
+**51.4 hours on both sides, to the tenth**. Extremes survive window turnover and central tendencies
+do not, which is now three independent corpora agreeing on the shape rather than the number.
+
+**An exhaustive scan of one repository is still a sample of the account**, and here the sampling is
+performed by the world rather than by the
 observer, which is worse: you cannot fix it by widening your window, and nothing in the output marks
 it. Only `homelab` has service observed on its left, so only `homelab`'s date is a boundary at all.
 
@@ -3960,6 +3977,23 @@ the true answer is merely *small*. **A predicate over a known population must be
 least once before its negatives are read** — assert a known-positive into every membership test,
 because a comparison across mismatched key formats is silent, total, and always in the direction of
 finding nothing.
+
+**That defence is anti-correlated with the need for it, which is the strongest argument against
+relying on it.** A correspondent hit the same tell a third time: a millisecond delta divided by
+`86400` printed a blocked span of **6,506 days**, unshippable on sight. The identical divisor fault
+on a sub-day span prints `0.007 days` and reads as a plausible small number. So a defect's
+detectability rises with its magnitude while its danger does not, and every instance caught this way
+was caught for a reason that offers no protection at all against the version that matters. Treat an
+absurd result as a reminder to add a check, never as evidence that checking is working.
+
+**And two independent defects are visible only when their signs agree.** That same measurement
+carried a wrong predicate — `conclusion === 'failure'`, which swallows ordinary red CI — *and* the
+divisor fault, one stretching the span backward and the other inflating it a thousandfold. They
+compounded, which is why the total was absurd enough to notice. Had one shortened what the other
+inflated, the product could have landed squarely in the plausible range: a wrong answer assembled
+from two errors, with no single check able to find either, and each masked by the other's correction.
+**Do not treat a plausible result as evidence that the pipeline that produced it is sound** — the
+composition of errors has no tendency to preserve absurdity.
 
 **And the base rate that justifies a guard is itself a sliding-window statistic that decays.** The
 figure above was re-derived by the correspondent on their own repository and then re-measured here
