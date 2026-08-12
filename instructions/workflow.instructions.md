@@ -1231,11 +1231,40 @@ causes fired, look for a population the two causes treat differently.** Diagnosi
 entirely as *read the failure more carefully*, and the failures are identical by construction — the
 discriminating evidence was never in the refused runs at all. **A concurrent control beats a temporal
 one**, too: the alternative reading available here was that an unobserved recovery gap contained a
-billing-cycle boundary, which is suggestive but rests on an interval whose endpoints were never
-measured. Sixteen successes today rest on nothing unobserved.
+billing-cycle boundary. That reading was withdrawn by the member who raised it, and the reason it
+collapsed is worth more than the reading was. The concurrent control needs no such repair: the
+sibling successes are directly observed runs, resting on nothing unobserved.
 
-**And this qualifies, without overturning, the rule above that each repository's annotation is the
-only evidence about that repository.** That remains true of *repository-side* hypotheses. It is false
+**A zero-run interval measures triggering activity, not service availability.** During a refusal
+episode runs are still *created* — the earlier episode on `jrmoulckers/homelab` produced 55 run
+objects, every one of them refused, which is directly checkable. So an interval with no runs in it
+cannot mean the service was down; it can only mean nothing pushed. Reading such a gap as a recovery
+window infers the state of one system from the idleness of another, and the two are independent. The
+gap in question was six days wide, and a six-day window in that position contains a month boundary
+almost wherever recovery actually fell — so "the window contains the billing-cycle boundary" had no
+power to discriminate, while reading exactly like evidence.
+
+**Falsifiability is a property of the claim, not evidence for it.** The withdrawn reading came with a
+crisp test — *it clears on its own next cycle, or it never does* — and offering that test is what made
+it feel rigorous. It invites the reader to check the future instead of auditing the derivation, and
+those are not the same review. A prediction can be sharply testable and rest on nothing. Attach the
+derivation to the test, or the test launders the gap.
+
+**A withdrawal does not propagate to the summaries that restate the claim.** This was demonstrated
+here at the worst possible place. The cycle-reset arm was withdrawn explicitly — *waiting it out is
+not a supported plan* — and then reinstated two hours and seventeen minutes later, by the same
+session, as a parenthetical in an action item: *raise the spending limit (or wait for the cycle to
+reset)*. The reinstatement sat inside the write-up of a **stronger, independent** result, so the
+comment most likely to be trusted carried the retracted advice.
+
+The mechanism is worth stating because it is not carelessness. A correction is applied to the claim,
+in the artifact where the claim lives. A summary re-derives the action from memory, and memory holds
+the pre-correction version — nothing links the two, and compression is exactly when the link is
+needed. **After withdrawing something, grep your own prior artifacts for the withdrawn arm rather
+than trusting that the withdrawal reached them.** The check is cheap and the failure is silent.
+
+**And the cross-visibility control qualifies, without overturning, the rule above that each
+repository's annotation is the only evidence about that repository.** That remains true of *repository-side* hypotheses. It is false
 of the account-level clause, where a sibling that is **not** refused carries the only evidence
 anyone can get.
 
