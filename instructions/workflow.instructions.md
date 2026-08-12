@@ -1168,6 +1168,54 @@ ranged from under four percent to over nineteen, a fivefold spread, so the furth
 two and a half times worse off than the nearest and any remediation ordered by one number gets the
 order wrong. **Where a population is enumerable, publish the spread, not the deficit.**
 
+**But replacing a point with a spread repairs the population error and inherits the currency error,
+and it feels like it repaired both.** The correspondent who reproduced that census then published the
+ratio properly as a range across four cohorts rather than the single middle figure they had quoted
+five times. The range is right, and every number in it is now wrong, because a ratio has two moving
+parts and only one of them was hardened. Re-measured 43 commits later:
+
+```
+member copies   unchanged, all four sizes identical in both censuses
+canon           +26% over the same interval
+ratio range     4.32x .. 21.46x   ->   5.45x .. 27.07x
+```
+
+**The axis made into a spread was the frozen one; the axis left as a point was the one moving.**
+Member copies cannot drift while nothing delivers to them — the very condition under investigation
+guarantees the denominators hold still — so the spread was taken over the stable dimension and the
+volatile dimension stayed a scalar. A spread reads as the careful form of a number, which suppresses
+re-derivation exactly when re-derivation is what it still needs. Before publishing a range, ask which
+term in it moves, and state the revision the numerator was taken at.
+
+**And a discriminator identical in your own negative control does no work, however carefully the
+control was chosen.** The same sweep looked for an accretion pattern across the fleet, named one
+repository as the negative control, and characterised the pattern by authorship: a hundred of the
+last hundred commits on the accreting file by a single account. Measured on the negative control, and
+on every other member: also a hundred of a hundred, the same account. The fleet shares one identity,
+so authorship is constant across treatment and control and cannot separate them. This is the
+zero-variance control one level up — there a fixture row held both variables fixed and presented as a
+control for whichever was being tested; here a *property* is fixed across the whole population and
+presents as a characterisation of the subset it was measured on. **A variable that does not differ
+between the treatment and the control explains nothing about the difference**, and a saturated ratio
+such as a hundred of a hundred is the most persuasive possible form of it. Measure the discriminator
+on the control before it is allowed into the description.
+
+**A third correction on the same sweep, and this one moves who owns the remedy.** The file singled
+out as most exposed was described as *standing instruction, loaded every session, delivered in full*.
+Loaded every session is right, and the exposure is real. Delivered is not: the managed region is
+**3.7%** of that file, and the remaining 96.3% is member-authored text the sync neither wrote nor
+transmits. The conclusion — that a fleet delivery finding does not reach it — survives, and its
+reason inverts. It is out of reach not because delivery saturates the file but because delivery
+barely touches it, so a remedy aimed at what canon distributes cannot help, and the growth is the
+member's to govern. **Attributing volume to the mechanism you were studying puts the fix in the wrong
+repository**, and it is easiest to do where that mechanism genuinely contributes something.
+
+**And a census of the fastest-moving quantity in the fleet was reported as though it were static.**
+The same three files were cited at sizes that had already grown by factors of 1.46, 1.73 and 1.99 by
+the time the message was read — one had doubled. Nothing was mismeasured; the figures simply
+described the property whose whole interest is that it accretes, and carried no revision. Where the
+subject of a measurement is a growth rate, the measurement's own age is part of the reading.
+
 **And a sample taken as *the first N* inherits an ordering the endpoint never promised — which here
 reverses between two routes to the same data.** Reading the annotations on a refused run, one route
 returns the annotated failures first and the other returns the un-annotated skips first, over an
