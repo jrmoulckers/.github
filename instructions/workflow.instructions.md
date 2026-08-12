@@ -1101,6 +1101,20 @@ discriminate. The honest form is *no false positives on 8 ordinary failures; not
 the case it is meant to distinguish*, and the missing fixture can be built deliberately by calling
 `reusable-ci-lint` without `pull-requests: read`.
 
+**And a detector's noise is a property of the corpus, not of the detector, so a clean result does
+not travel with it.** A peer offered canon an encoding guard — grep for `U+FFFD`, classic mojibake
+sequences, and a lossy dash signature, each paired with synthetic damage asserted non-zero in the
+same run so the check cannot pass by being broken. The control discipline is right and was adopted.
+Measured here, two of the three patterns return zero and the third fires **111 times across 32
+files**, every hit a JavaScript ternary — because their corpus is prose and canon's includes the
+engine. Scoped back to `*.md` it returns 0 across 92 files, exactly as they measured. Nothing was
+concealed; they named their corpus, and the number was simply taken on a population the recipient
+does not have. Promotion is this repo's characteristic act, so **run a borrowed check against your
+own corpus before adopting it, and promote it with its scope attached** — a pattern shipped without
+its population will be applied to the wider one, and a guard that fires 111 times on a healthy repo
+is one that gets disabled. This is not the entry above: that one asks which *cases* a predicate met
+inside one history, this one asks whether a correct number survives crossing into a different one.
+
 **A control must be pinned to the workflow revision, not merely to the event.** Comparing that run
 against a green one showed 11 jobs against 9, with `native-kotlin` and `native-swift` absent — which
 reads as jobs the account was never allowed to create. They were added to `ci.yml` by `1a9d78e` at
