@@ -1956,6 +1956,20 @@ each session's own record, that record was available throughout, and this repo h
 to that peer as the only reliable key — while applying it outward and never once to itself. **A rule
 you author is applied outward by default; run it on yourself first.**
 
+**And record the identity the transport gave you, not the name you inferred from it.** The rule
+above says the settling artifact is each session's own record; this is what gives you something to
+settle *against*. Every inbound message carries a session id, and writing *"the studio session"*
+into an issue instead discards the only key that could later verify the claim — a name is not an
+identifier when every session authenticates as the same account, it is a guess that reads like a
+fact and becomes permanent on merge. Three misattributions to one peer in a day, the third reaching
+a merged commit that named them as author of a census they had not written, all survived an
+exhaustive claim manifest that peer had sent expressly to prevent them. Their diagnosis is the
+general one: **a list you have to remember to consult is not a guard, because it acts when you
+already suspect an error and not at the moment you make one.** Carrying the id costs nothing and
+fails loudly at write time. The asymmetry is what makes it worth the habit: a false credit is not
+self-correcting, since the party named can disclaim it but **the real author cannot claim it while
+someone else's name sits there**, and usually never sees the artifact at all.
+
 Generally: **before diagnosing across a boundary, ask which side holds the fact that would
 discriminate.** Where it is the other side's, no amount of care on yours substitutes for asking —
 and the failure is invisible because both hypotheses fit everything you can see.
