@@ -1366,6 +1366,27 @@ Sharpening the predicate **collapsed** the disagreement rather than splitting it
 reconciliation that explains why two numbers may both stand should be suspected first of having
 skipped that step: *two correct denominators* is the more flattering finding and the rarer one.
 
+**And state the population at every stage of the pipeline, because one number will be read as all
+of them.** A census of this kind runs *list → inspect → match*, each stage narrower than the last,
+and a scope line naming a single figure silently claims the same figure for all three. This repo
+published `last 100 runs (reaching back to 2026-07-27)` for a member whose complete history is 102
+runs reaching back to `2026-07-06`; `07-27` was the oldest run **matching** the zero-step signature
+inside a **10-run inspected subsample**, and it was written down as the reach of the listing. The
+true shape was `102 listed, 10 inspected, 6 matched`.
+
+The consequence is not a rounding error. **Understating reach converts *I did not classify these*
+into *these lie outside my window*** — 48 runs sat inside the listing, unexamined, and were made to
+look excluded by it. Absence of evidence is thereby promoted to a boundary, and a boundary is
+exactly what a reader reasons from: the figure turned a three-week episode into a three-day one, and
+the three-day version was then used to argue about whether the current outage needed intervention or
+a wait.
+
+This is the inverse of the vacuity failure. There the narrow population goes unreported and a corpus
+count stands in for it; here the narrow population's *extremum* stands in for the corpus's reach.
+Both are one number doing the work of several, and the remedy for both is the same: report the
+stages, and prefer *the oldest item I looked at* to *the oldest item that matched*, since only the
+first bounds what you did not find.
+
 **Evaluate that predicate against the jobs API only — `gh pr checks` cannot supply its terms.** That
 view renders an unfinished job as `pending 0`, where the `0` is its column for *no duration yet*, not
 a step count. A member watching a healthy `native-kotlin` job saw `pending 0` for 22 minutes while it
@@ -2252,6 +2273,24 @@ never asked, while the answer lives in the expensive read. So **take the thread'
 measurement, not the state field** — and when someone asks you to record a finding on an issue,
 **check that it is open before writing**, since a closed issue with no comments is not a place a
 finding survives.
+
+**And when you amend one, `gh api -f body=@file` will destroy it.** `-f`/`--raw-field` sends its
+value as a literal string; only `--input` (a JSON payload) or `-F` reads a file. A patch written as
+`-f body=@note.md` replaced a 2739-byte comment with the 13 characters `@note.md`, and reported
+success. There is no error, because nothing was malformed — a body was supplied and accepted. For
+any write that carries prose, build a JSON payload and use `--input`.
+
+Two habits make that recoverable rather than terminal. **Never put cleanup in the same command as
+the verification it depends on:** the `Remove-Item` that deleted the only local copy was written
+after the verification output and ran regardless of what the verification said, so the copy was gone
+before the failure was read. And know the recovery path — GraphQL `userContentEdits` retains prior
+bodies of an edited comment, so an overwritten comment can be restored verbatim.
+
+Verify the restoration structurally, not by size. The byte count available for comparison was itself
+an artifact of a shell redirect that appends a newline, and character count differed from UTF-8 byte
+count by the multi-byte dashes in the prose — two plausible reconciliations that both failed. What
+settled it was five remembered landmarks reappearing at their original line numbers. **A length is a
+weak identity for text; positions of known content are a strong one.**
 
 ### Conform against a population that outlives the implementation
 
