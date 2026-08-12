@@ -93,6 +93,28 @@ minutes and the true ordering was different. A cross-object comparison must name
 on every object, because mixing them manufactures agreement rather than merely adding noise — and a
 striking coincidence is the result most likely to be believed without re-checking.
 
+**A duration inherits every one of these traps and hides them better, because a wrong duration is
+just a number.** A wrong onset is a timestamp a reader may recognise as implausible; `updated_at -
+created_at` is dimensionally fine whichever fields it drew on. Two consequences, both measured. At
+run level the subtraction is not a duration at all but a **span across attempts**, bracketing the
+idle gaps between them: a census of billing refusals here returned a single value of **78,023
+seconds** — 21.7 hours for a job that executed no steps — because the run carried sixteen attempts.
+The outlier was the only reason the error surfaced, so the same defect at two or three attempts would
+have passed as a plausible slow refusal. And at attempt level the two fields **invert** relative to
+the top-level case: `run_started_at` equals `created_at` on attempt 1, but on retried attempts it
+*precedes* it by one to two seconds, so the attempt is recorded as starting before it was created.
+
+```
+attempt  created_at   run_started_at   dur(created)  dur(runstart)
+  a1     04:27:27     04:27:27              48s          48s
+  a2     04:52:57     04:52:56               4s           5s
+  a5     11:22:17     11:22:15              22s          24s
+```
+
+Two parties measuring the same seven attempts disagreed on every row for this reason while both were
+correct. **Name the field a duration was computed from, and compute it at the level of the object
+that actually did the work** — the attempt, not the run.
+
 
 ## Worktrees
 
@@ -3624,6 +3646,24 @@ vocabulary is shared and only some of it denotes. This is the use/mention hazard
 polarity, because **the wrong reading is the checkable one.** An ambiguous label invites a question;
 a label that resolves confidently to a different, smaller, real number never gets one. Give private
 counters private names.
+
+**Take the loop bound for an enumeration off the object being enumerated, and hard-fail if the
+enumeration falls short of it.** A correspondent enumerated four attempts of a seven-attempt run, and
+the reason was not haste: they iterated until a fetch failed, and no fetch failed, because
+`attempts/5` was there the whole time. The bound came from a *neighbouring* run that genuinely had
+four. An enumeration bounded by "when the fetch stops working" silently reports whatever prefix it
+was handed, and the fleet worst case measured here is **sixteen** attempts on one run, so a stop-at-4
+can miss twelve. Read the declared count first — `run_attempt` for runs — and assert against it.
+
+**A bound published as the support for a rule makes the rule contingent on a fact that can change.**
+The same exchange produced a bound on how long a refused run takes, offered as the reason to bracket
+a claim by an attempt's completion rather than its creation. Both parties' bounds were wrong and each
+was computed on a population the author had already truncated: `3-13s` refuted by a `48s` case, and
+`3-48s` refuted in turn by a census over a corpus neither had chosen — 118 single-attempt zero-step
+refusals running `min 3 / median 8 / p90 16 / max 80`. The rule survived both refutations because it
+was independently supported by measured margin. **Prefer the support that does not move**: bracket by
+completion because completion is when the results exist, not because refusals happen to be fast, and
+the argument stops depending on the billing state that produced the sample.
 
 **The gradient this exposes is about vocabulary, not just freshness.** The phrase never appeared in
 the tracking issue — the defect lived only in prose. Artifacts beat prose because an artifact is
