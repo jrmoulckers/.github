@@ -2709,6 +2709,16 @@ If you build a coverage check for this, three traps are known to be live:
   scales with prose punctuation rather than with size, and survives every internal consistency check
   because the number is stable and reproducible. Where a figure will be compared against a stored size
   or a hash, take the length of the buffer, not of the string.
+- **And a length is a property of the retrieval path as much as of the encoding.** One issue body,
+  fetched three ways in a single command, gives `10094` code units, `10138` UTF-8 bytes, and `10256`
+  when the same REST field is passed through the shell's string conversion — the last because the
+  body's 160 line feeds are rejoined with CRLF and a trailing newline is appended, and re-joining
+  with LF instead reproduces `10094` exactly. All three are correct answers to different questions.
+  This single mechanism accounts for discrepancies chased separately as three defects: sizes that run
+  uniformly `+1`, a code-unit-versus-byte gap, and one artifact published at two sizes within the same
+  message. The transformation is inserted **between** the API and the measurement, so it is in neither
+  the document nor the arithmetic, and re-reading either one forever will not find it. State the
+  retrieval path and the unit beside any size, and compare sizes only across identical paths.
 
 Introducing a canon kind that lands in a formatted path is a **cross-repo event**: every affected
 member needs its ignore entry before its sync PR can go green. The `copilot` kind's first distribution
@@ -3230,6 +3240,29 @@ the verification it depends on:** the `Remove-Item` that deleted the only local 
 after the verification output and ran regardless of what the verification said, so the copy was gone
 before the failure was read. And know the recovery path — GraphQL `userContentEdits` retains prior
 bodies of an edited comment, so an overwritten comment can be restored verbatim.
+
+**That store exists only for documents somebody has already edited, and it materialises
+retroactively.** Measured across a member's complete issue census, 11 of 13 have bodies and **zero**
+revision nodes; the creation-time node is not written at creation but appears on the first edit,
+stamped with the creation timestamp. So the original text of an unedited document has no immutable
+record at all, and once one appears it covers a window that had already closed — a citation made
+before the first edit was unverifiable when made and is verifiable now, with nothing in the artifact
+distinguishing it from a citation made afterwards. **Every other referent tracked here decays;
+this one accretes**, and accretion is the more dangerous direction, because decay eventually
+announces itself by failing to resolve while accretion silently makes past looseness look rigorous.
+
+Two consequences for using it. The pin is real once it exists — the oldest node on an edited issue
+holds the genuine pre-edit body, verified against a live body of a different size — so it is worth
+reaching for. And because an edit is what *causes* the record, anyone with write access can
+manufacture a pin for a document they did not author, which is the answer to *I can content-address
+what I wrote but not what I read*: you can content-address anything you can edit. Whether submitting
+an identical body creates a revision is **unmeasured** here; the corpus contains no adjacent
+identical-content revisions, which is no evidence either way, and the write is human-gated.
+
+Note also that edit provenance cannot separate actors under a single identity — every editor login
+across this corpus is the same account, so a session cannot exclude its own influence on a
+revision-history sample by avoiding its own documents. Timestamps against a known working window are
+the only available discriminator, and only the session that owns the window can apply them.
 
 **That recovery path is a full snapshot, not a patch, and it exists for almost no issues.** The
 `diff` field is named misleadingly: measured here, the newest node is byte-identical to the current
@@ -3782,6 +3815,13 @@ figure above was re-derived by the correspondent on their own repository and the
 613 seconds, so a coincidence rate quoted as *1 in 868* was *1 in 613* before the exchange closed —
 a 29% move inside one conversation. Date a base rate like any other measurement, because a
 probability offered as a property of the repository is a property of the window it was taken over.
+
+**Some quantities decay in a known direction, and a ratio built on one does not inherit that.**
+Documents acquire edit history and never lose it, so the *count* holding a citable revision pin only
+rises and a stale reading of it is a valid lower bound forever. The *fraction* is not monotone,
+because fresh unedited documents enlarge the denominator, and it looks exactly as quotable as the
+count it came from. Where staleness has a direction, quote the monotone quantity as a bound and
+derive any ratio fresh — a bound survives the delay that a rate does not.
 
 **Statistics over the same slid window do not decay at the same rate, so "it replicates" is a claim
 about a statistic and not about a measurement.** Between those two runs 34 of the 40 elements turned
