@@ -539,6 +539,17 @@ read **4** and **7**. Both statements were true when written. **An identifier pi
 content-addressed one also pins value** — so where only an identity-addressed id exists, a cited
 field needs its own timestamp, and the id is not doing the work its immutability suggests.
 
+**But pinning value is not currency, and the most rigorous verification is the one best able to
+conceal that.** A correspondent verified a cited blob by content-addressed fetch — object id, byte
+count, exit status, stderr byte-counted at zero — and it verified exactly. The revision they verified
+against was **42 commits behind**, and the file had grown by roughly a quarter in the interval.
+Nothing about the check was weak; the check was perfect, and that is the difficulty. **A
+content-addressed fetch answers *are these the bytes I was handed* and is structurally silent on *are
+these the current bytes*** — it cannot even be asked the second question, because the hash is the
+query. So the confidence the verification earns is real, and it transfers to a claim about which the
+verification establishes nothing. Report the distance from the tip beside the hash: the hash is the
+half that cannot move, so it is the half that carries no news.
+
 **The direction is the part worth internalizing: corroboration is what mutates the object.** Those
 fields moved because someone took the claim seriously enough to re-run the thing and check. The more
 carefully a peer engages, the more likely they change the field you cited — so **a citation's
@@ -926,6 +937,46 @@ too. Here it was worse than unverified: the pair existed in the very repository 
 called insufficient, and the complementary stepped run sat **nine minutes** from the refusal run whose
 job census that same member had already reported line by line. The listing was open at the row that
 refuted the claim.
+
+**A constraint that is true, and was measured, still prunes a search that nothing afterwards
+re-checks.** The reason the row was missed is not inattention to the listing. The clause *a refusal
+run contains no ordinary failing job* is correct, was verified over 296 runs, and is precisely why
+the fixture has to be a pair. Holding it then set the search to look **across repositories** — because
+the clause forbids the two observations from sharing a run, and says nothing whatever about the run
+nine minutes earlier in the same one. The premise was checked, the inference from it was valid, and
+the region it removed contained the answer. **Verification licenses a constraint to prune, and no
+later step audits the pruned region** — which makes a true premise a worse failure than a false one,
+since a false premise eventually contradicts something and a true one merely removes the
+counterexample from view. When a constraint narrows a search, state the region it excluded and
+confirm the target could not lie there.
+
+**A row in which nothing varies presents as a control for whichever conjunct you are testing.** The
+replacement fixture is better than the cross-repository pair, and for a property neither party
+claimed at first: both runs execute the same workflow file, so job names align one-to-one and the
+population contains *within-name* comparisons — one job, two observations, differing in one variable.
+Measured across the nine matched names:
+
+```
+isolates the steps conjunct        2    conclusion held at failure, steps 0 -> 3 and 0 -> 16
+isolates the conclusion conjunct   0
+both variables move                6
+neither variable moves             1
+```
+
+The offered symmetry is not there. One row was nominated as the mirror control for the conclusion
+conjunct on the ground that its step count is held at zero across both runs — true, and its
+conclusion is *also* held, identical in both. It is the one row in the fixture where nothing moves at
+all, so it isolates nothing. **A control is identified by what varies in it, not by what is held**,
+and checking one is asymmetric in practice: the held-constant condition is the half you verify,
+because the varying half is the thing you assumed the row was supplying. A zero-variance row
+satisfies the half you check for *every* conjunct simultaneously, so it presents as whichever control
+you are currently looking for.
+
+The fixture remains sound — the mutation does catch both conjuncts, because the conclusion conjunct
+is exercised *across* runs. But that is the joint exercise the pair was meant to improve on, and for
+that conjunct it is unimproved. **Publish the number of controls per conjunct beside the mutation
+table**, since a summary that eight of nine names flip conceals that six flip in both variables at
+once and only two are controlled.
 
 **Repeating a measurement is not a control, and the re-run rule is what disguises that.** Every
 entry above describes a control that exists and is broken. This is the case where none exists and
