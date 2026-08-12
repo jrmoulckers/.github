@@ -134,6 +134,7 @@ export function validateManifest(m) {
   validateTokens(m, errors);
   validateManagedKinds(m, errors);
   validateExcluded(m, errors);
+  validateExpectedFailures(m, errors);
 
   if (errors.length) {
     throw new Error(`Invalid studio.config.json:\n  - ${errors.join('\n  - ')}`);
@@ -382,4 +383,71 @@ function validateExcluded(m, errors) {
 
 function isObject(v) {
   return v !== null && typeof v === 'object' && !Array.isArray(v);
+}
+
+/**
+ * An expected failure is a fault the owner has already seen, recorded, and cannot fix from here.
+ *
+ * It is the mirror image of `excluded` and the constraints run the opposite way: an excluded
+ * repository must *not* be a member, while an expected failure must be one — a fault can only be
+ * accepted for a repository the engine actually contacts. Recording one for a non-member would
+ * accept a failure that can never occur, which is an exemption that is inert on arrival and stale
+ * forever after.
+ *
+ * `signature` is required and is matched against the failure message, so the record pins one fault
+ * rather than granting a repository standing amnesty. `issue` is required because an accepted
+ * failure without a route to its fix is indistinguishable from an abandoned one, and this field is
+ * the only thing that keeps the entry from reading as a decision to leave the member unsynced.
+ *
+ * Nothing here suppresses a failure: the runner still reports it, still counts it, and treats a
+ * recorded entry whose repository stopped failing as a blocking error. See `partitionFailures`.
+ */
+function validateExpectedFailures(m, errors) {
+  if (!('expectedFailures' in m)) return;
+  if (!Array.isArray(m.expectedFailures)) {
+    errors.push('`expectedFailures` must be an array');
+    return;
+  }
+
+  const members = new Set(
+    Array.isArray(m.members) ? m.members.filter(isObject).map((member) => member.repo) : [],
+  );
+  const seen = new Set();
+
+  m.expectedFailures.forEach((entry, i) => {
+    if (!isObject(entry)) {
+      errors.push(`expectedFailures[${i}] must be an object`);
+      return;
+    }
+    if (typeof entry.repo !== 'string' || !/^[^/]+\/[^/]+$/.test(entry.repo)) {
+      errors.push(`expectedFailures[${i}].repo must be "owner/name"`);
+      return;
+    }
+    if (typeof entry.signature !== 'string' || !entry.signature.trim()) {
+      errors.push(
+        `expectedFailures[${i}].signature must be a non-empty string matching the failure ` +
+          `message accepted for "${entry.repo}"; a repository-wide exemption would absorb the ` +
+          'next, unrelated failure',
+      );
+    }
+    if (typeof entry.reason !== 'string' || !entry.reason.trim()) {
+      errors.push(`expectedFailures[${i}].reason must be a non-empty string`);
+    }
+    if (typeof entry.issue !== 'string' || !entry.issue.trim()) {
+      errors.push(
+        `expectedFailures[${i}].issue must name the issue that closes this failure for ` +
+          `"${entry.repo}"; an accepted failure with no route to a fix is an abandoned one`,
+      );
+    }
+    if (seen.has(entry.repo)) {
+      errors.push(`expectedFailures[${i}].repo "${entry.repo}" is listed twice`);
+    }
+    seen.add(entry.repo);
+    if (!members.has(entry.repo)) {
+      errors.push(
+        `expectedFailures[${i}].repo "${entry.repo}" is not in \`members\`; a failure can only ` +
+          'be accepted for a repository the engine actually contacts',
+      );
+    }
+  });
 }
