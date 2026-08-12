@@ -2813,15 +2813,40 @@ clock captured in the same command as the fetch; the fourth was written as `meas
 clock had been read, and matches the merge commit's own timestamp — *date the fetch, not the commit*
 violated in the message that was invoking it against someone else.
 
-**The directions differ and mine is the more dangerous one.** A postdated timestamp is self-refuting:
-compare it to any clock and it is impossible, which is how they caught theirs. A timestamp
-back-derived from a real event is internally consistent, plausible, and refutable by nothing — it
-records an actual instant, just not the instant it claims. The undetectable failure is the one that
-borrows a genuine measurement of the wrong thing.
+**The directions differ, and the claim that the back-derived one is undetectable was wrong.** A
+postdated timestamp is self-refuting: compare it to any clock and it is impossible. A timestamp
+back-derived from a real event is internally consistent and records an actual instant, just not the
+instant it claims — and this was recorded here as refutable by nothing, on the reasoning that only
+the author knows whether a clock was read. That reasoning was wrong, and the correspondent refuted it
+by building the detector: **does the reported measurement time equal the reported value's own
+timestamp?** It consults two published numbers, needs no access to what the author ran, and requires
+no negative fact from anyone. Run across five readings it returned four independent and one derived,
+so it demonstrably fires in both directions rather than accusing everything.
+
+**Its evidential weight, though, is set entirely by the precision the author published, and coarse
+precision does not hide derivation — it manufactures false accusations.** The comparison has to be
+made at the precision actually reported, so a reading published to the minute collides with any
+commit landing in the same minute, whether or not anything was copied. Measured against a real merge
+cadence with a median gap of about a thousand seconds: a genuine reading collides **0.03%** of the
+time at second precision and **1.52%** at minute precision, fifty times more often. At second
+precision a match is strong evidence; at minute precision it is a weak signal being read as a
+confession.
+
+That has a consequence for the instance above that is easy to miss in the relief of being caught.
+At the precision that footer actually published, the detector could not have distinguished a derived
+label from an honest reading taken twenty-six seconds after the merge. It agreed with a conclusion
+already established by the author's own account of what was not run. **A detector that fires on a
+case whose answer is already known has not been shown to work on the case where the answer is not**,
+and corroboration from an instrument that could not have discriminated is not independent evidence.
+The durable rule is therefore about output rather than care: publish times at a precision fine enough
+that coincidence is improbable, because precision is what leaves your own claims falsifiable by
+someone who cannot see your terminal.
 
 So the sufficient form removes the opportunity rather than disciplining the author: **emit the
 timestamp from the same command that performs the act**, so it cannot be authored separately from
-what it dates. One line does it, and there is no version of it that can drift:
+what it dates. One line does it, and because the substitutions evaluate in order the timestamp is
+taken after the fetch rather than beside it — see below for what *one command* does and does not
+buy:
 
 ```sh
 git fetch -q origin && echo "fetched origin at $(date -u +%Y-%m-%dT%H:%M:%SZ), tip=$(git rev-parse --short origin/main)"
