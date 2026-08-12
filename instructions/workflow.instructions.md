@@ -364,6 +364,14 @@ flag's output size before trusting its name**, and when a flag makes output *sma
 command it modifies, that is the finding. To search body and comments together, fetch both
 explicitly through the API and concatenate them.
 
+**The degenerate case is worse than the substitution: on an issue with no comments the flag returns
+zero characters.** Measured across three uncommented issues, plain views of 3,273, 2,750 and 4,162
+characters all became **0** under the flag. So a scan repaired this way does not merely read the
+wrong corpus, it reads an *empty* one and reports clean — and an empty result from the correct
+endpoint with the wrong selector is indistinguishable from the absence it is testing for. Any audit
+whose corpus can be empty must assert a non-zero size before interpreting a clean verdict; a count
+of documents will not do it, because an empty document still counts as one.
+
 **Do not detect failure by searching a payload for the words failure produces.** In the same turn, a
 guard testing whether an API call succeeded matched the response body against `error|not found|HTTP
 4` and declared an accessible issue inaccessible — because the body legitimately contained the
@@ -2433,6 +2441,22 @@ the verification it depends on:** the `Remove-Item` that deleted the only local 
 after the verification output and ran regardless of what the verification said, so the copy was gone
 before the failure was read. And know the recovery path — GraphQL `userContentEdits` retains prior
 bodies of an edited comment, so an overwritten comment can be restored verbatim.
+
+**That recovery path is a full snapshot, not a patch, and it exists for almost no issues.** The
+`diff` field is named misleadingly: measured here, the newest node is byte-identical to the current
+body, and the oldest node's `editedAt` equals the issue's `createdAt`, so the original text is
+present rather than only the deltas after it. It works on private repositories. The limit is the one
+that matters for citation — across a hundred consecutive issues in this repository, **ninety-nine had
+no revision history at all**. An issue that has never been edited has an empty edit list, so the
+tempting pin of *(issue, revision timestamp)* has no referent for nearly the whole corpus.
+
+**And its availability runs backwards, which no pin should.** An unedited body cannot be pinned at
+the moment you cite it, and acquires a citable revision only if someone edits it later — so whether
+your citation is anchorable is decided by events after you made it. The pin is also easy to validate
+on exactly the wrong sample: the artifacts that carry rich edit histories are the ones the author has
+been revising, which is why a mechanism checked against your own working documents will look
+universal at a one-in-a-hundred base rate. For an unedited body the current text *is* the original,
+so content is recoverable; what is unavailable is any evidence that it is unchanged.
 
 Verify the restoration structurally, not by size. The byte count available for comparison was itself
 an artifact of a shell redirect that appends a newline, and character count differed from UTF-8 byte
