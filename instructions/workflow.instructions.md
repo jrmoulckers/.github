@@ -2355,6 +2355,19 @@ Nothing in a sentence distinguishes the two, so the whole dating apparatus recor
 over this class silently. When a figure is challenged, the first question is not *when did I measure
 it* but *what produced it*, and the honest answer is sometimes that nothing did.
 
+**That correction was itself defective, and the defect outlived the exchange: `8 of 8` conflated two
+populations.** The run has eight jobs, but five are `failure` and three are `skipped`, and a skipped
+job has zero steps exactly like a blocked one. The honest figure is **5 of 5 non-skipped jobs**.
+Both parties argued the *value* — is it six or eight — and neither asked *eight of what*, so the
+predicate rode through the dispute unexamined and the agreed number was wrong in a new way.
+
+**Correcting a number's value does not validate its predicate, and disputing the value is what makes
+the predicate look settled.** A contested figure gets attention aimed entirely at the quantity; the
+population it ranges over is the shared premise of both sides of the argument, and shared premises
+are what nobody checks. This is the sharper form of the habit stated earlier as *report the
+population you actually measured* — the moment of greatest risk is not when you first write a figure
+but when you correct one, because a correction feels like the audit already happened.
+
 **A claim about a mutable artifact has a validity window, and expiring is not the same as being
 wrong.** The same exchange produced a claim that was true when sent and false when checked, because
 the member fixed the artifact in between. All night both parties had been sorting claims into stale
