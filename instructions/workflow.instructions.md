@@ -3128,6 +3128,17 @@ If you build a coverage check for this, three traps are known to be live:
   correction migrates into a defect when it is filed under the name of the field it was found on
   rather than the mechanism that produced it**, and the migration is invisible because the rule
   still cites a real result.
+- **And the same misfiling fails in the opposite direction, which is why catching one instance
+  buys no protection against the other.** A second session documented the rerun timestamp drift as
+  a property of `gh run list`, then walked into the identical artifact in a **run object** hours
+  later — having filed the hazard against an instrument rather than against a mechanism, they never
+  looked for it anywhere else. So filing a finding under *where it was found* both carries a remedy
+  to places its mechanism does not reach and withholds it from places it does, and the two look
+  nothing alike in review: over-application surfaces as a rule citing a real result in the wrong
+  place, while under-application surfaces as nothing at all — a known bug hit a second time by the
+  party who documented it. **Name the mechanism, and list the instruments it has not yet been
+  checked against**, because that list is what the next reader needs and it is the part nobody
+  writes down.
 
 Introducing a canon kind that lands in a formatted path is a **cross-repo event**: every affected
 member needs its ignore entry before its sync PR can go green. The `copilot` kind's first distribution
