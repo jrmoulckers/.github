@@ -2988,6 +2988,31 @@ The exclusions are **whole-file even for `AGENTS.md`**, which is only partly can
 cannot be pointed at half a file, and the managed region must stay byte-identical to canon or the sync
 stops matching.
 
+**Sequence the two changes: ignore before deliver, never deliver before ignore.** An ignore entry
+for a path that does not exist yet is inert, so it can land at any time; the canon file landing
+first
+puts an unformatted path on `main` and fails the check immediately. A member holding both an
+ignore-entry PR and a sync PR must merge the ignore one first, and one member's earlier sync PR was
+closed unmerged for precisely this reason.
+
+**And expect this rule to be satisfied only where CI runs.** Because it is member-owned and
+member-verified, it is enforced exactly in the repositories whose checks execute and unenforced
+exactly in those whose checks are refused. Measured across eleven members, every member with working
+CI carried the entry and five of six with blocked CI did not — the sixth being the one member whose
+sync PRs merge. **The population that cannot check is the population that needs checking**, so
+sampling the observable members returns a result that is not merely unrepresentative but
+anti-representative. The consequence is that the failure is synchronized rather than gradual: when
+the billing gate clears, four members fail `prettier --check` on their existing `main` at once and a
+fifth fails on its next sync merge, which will present as a regression caused by the unblocking
+rather than revealed by it. Audit member-owned prerequisites from the hub before lifting a gate, not
+after.
+
+When auditing that way, **detect file presence from the request's exit status, not from the
+truthiness of its body.** A sweep using `gh api ... --jq '.size'` reported every member as holding
+the file, because a 404 still emits an error document and any output read as present — a uniform
+column that looks like a clean result and is the same shape as any other constant standing in for a
+measurement.
+
 If you build a coverage check for this, three traps are known to be live:
 
 - **`inferredParser: null` means both "no parser" and "ignored".** Treating it as "nothing to format,
