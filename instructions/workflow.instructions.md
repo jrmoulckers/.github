@@ -3677,6 +3677,33 @@ onto the reader for holding the artifact canon published to them. The report is 
 artifact in their hands. When distribution is blocked, expect the same correct report repeatedly, and
 fix the distribution rather than the reporter.
 
+**And lag is not neutral in content — a stale copy keeps the claims and drops the corrections.** A
+correction is always newer than the claim it corrects, so freezing a copy at time T retains every
+claim made before T and no correction issued after it. The copy is therefore not a uniformly older
+document; it is enriched for uncorrected error, and enriched most in whichever passages attracted
+the most correction, because contentious claims are precisely the ones whose revisions sit in the
+undelivered tail. Measured on a member holding a copy generated four days earlier:
+
+```
+canon         339,688 B   9 occurrences of the term under dispute
+member copy     9,833 B   2 occurrences        144 of 151 revisions behind
+```
+
+Delivery was faithful — canon carried exactly two at the revision the member holds. But both of
+those *prescribe* a diagnostic, and all seven it lacks *scope or correct* that prescription,
+including the one stating the failure being diagnosed is normally not that status at all. The single
+retained instruction is also the superseded form: canon has since appended *but confirm the failure
+is scoped to the calling job before you do*, and the member holds the imperative without its
+qualifier. So the copy did not merely fail to help; **it supplied a confident instruction and
+withheld the sentence saying when not to apply it.**
+
+The visible cost is a member re-deriving a correction canon already records — that member
+investigated, reached the same conclusion the undelivered passage states, and reported it as a new
+finding. Treat that as the signature of content-biased lag rather than as duplicated effort, and
+read it as evidence about distribution rather than about the member. It also reprices the backlog:
+every undelivered revision is disproportionately a correction, so guidance degrades faster than the
+undelivered byte count suggests.
+
 **A merged sync PR does not make you current — it makes you current as of the moment it was
 generated.** Its files are pinned at its head commit, so every canon change since is still missing
 after it lands. libro's blocked `#37` was generated at `04:27:21Z`; the authorship and peer-gate rules
