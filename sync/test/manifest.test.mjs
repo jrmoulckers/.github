@@ -393,6 +393,45 @@ test('engineering and product take the AI layer without a product toolchain', ()
   }
 });
 
+test('enumerateTargets partitions every resolved group; nothing is silently dropped', () => {
+  // A conservation law, not a count. The original defect was a bare `continue` that removed
+  // external groups from the return value entirely, so no caller could discover that a whole
+  // delivered class existed -- and a caller that reported `writes` as the delivery understated
+  // it by the entire token distribution with nothing in the value to warn it. Asserting today's
+  // kinds would self-liquidate the moment the manifest gains or loses one; asserting the
+  // partition holds regardless of what canon contains.
+  const members = resolveAll(manifest);
+  assert.ok(members.length > 0, 'no members resolved: this test would assert nothing');
+
+  let sawExternal = false;
+  for (const member of members) {
+    const { writes, native, external } = enumerateTargets(member, REPO_ROOT);
+    if (external.length > 0) sawExternal = true;
+
+    const accounted = new Set([...native, ...external].map((group) => group.kind));
+    for (const write of writes) accounted.add(write.kind);
+
+    for (const group of member.groups) {
+      assert.ok(
+        accounted.has(group.kind),
+        `${member.repo}: group "${group.kind}" appears in no bucket of enumerateTargets`,
+      );
+    }
+
+    const nativeKinds = new Set(native.map((group) => group.kind));
+    for (const group of external) {
+      assert.ok(
+        !nativeKinds.has(group.kind),
+        `${member.repo}: kind "${group.kind}" is both native and external`,
+      );
+    }
+  }
+
+  // Non-vacuity: the external bucket must actually be exercised by the real manifest, or the
+  // partition above is proven only for classes that were never at risk.
+  assert.ok(sawExternal, 'no member has an external group: the regression cannot recur here');
+});
+
 test('Docket records its completed transition from pre-bootstrap to application', () => {  const docket = manifest.members.find((member) => member.repo === 'jrmoulckers/docket');
   assert.equal(docket.mode, 'application');
   assert.equal(docket.framework, 'svelte');
