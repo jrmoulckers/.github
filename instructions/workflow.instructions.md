@@ -627,6 +627,28 @@ this file, arriving in a search predicate rather than a citation — and there i
 here either, so state the population as *comments asserting X*, count it by reading, and never report
 a substring tally as a count of claims.
 
+**And a search predicate can silently match strings it was never given, when the query language
+spends a character the data uses.** In SQL `LIKE`, `_` is a single-character wildcard. A census of how
+many stored turns retained a transport field name — a snake_case token — was written as
+`LIKE '%that_field_name%'` and returned **9**. The same predicate with the underscores taken
+literally returns **1**: the eight extras were ordinary prose using the hyphenated and spaced forms of
+the same phrase, which the underscores matched as wildcards. The consequence generalises past one
+query, because **the identifiers a store is made of are the strings `LIKE` is least able to search**
+— every schema column, every transport field, every snake_case name is composed largely of the
+wildcard character, so the more precisely you name what you are looking for, the more permissive the
+predicate silently becomes. Use `GLOB`, or `ESCAPE`, whenever the needle contains `_` or `%`.
+
+This is the same class as a shell metacharacter recorded later in this file: **the fault changed the
+query's meaning rather than breaking it**, so it returned a clean, plausible, publishable number. Two
+independent instances now, in two different languages, both from a character that is punctuation to
+the author and syntax to the interpreter. The detector that caught it is worth keeping: `LIKE` is
+case-insensitive and `instr` is case-sensitive and neither treats `_` alike, so **putting two
+functions with different matching rules in the same row and requiring them to agree** exposed the
+wildcard immediately, where either alone would have reported confidently. Note also the direction —
+the wildcard can only over-match, so a retention count read as *higher* than the truth and the
+underlying finding was stronger than measured. That direction is a property of this operator, not a
+general safety margin.
+
 **Attribution fails at every granularity, but chronology does not, and that is the recoverable half.**
 Escalating to the finest surface available changes nothing — the per-attempt endpoint carries both
 `actor` and `triggering_actor` on every attempt of a multi-attempt run, and both hold the shared
@@ -636,6 +658,25 @@ retrospectively **checkable**: bracket the moment the claim was written against 
 and the referent resolves, even though the author of the re-run never will. So a mutable field on an
 identity-addressed object is *auditable* without being *attributable*, and the per-field timestamp
 that was adopted as hygiene turns out to be the audit instrument as well.
+
+**Detecting that something was correspondence and recovering who sent it are two different
+recoveries, and a single census figure collapses them.** A store was reported as retaining author
+information on 184 of 7,219 turns, with the conclusion that the record is *absent rather than
+degraded* and unrecoverable in principle. The first half is right and the second is measured on one
+convention. Three near-disjoint opening forms are in use — a sender tag, a recipient tag, and a reply
+tag — at 192, 185 and 146 turns with an overlap of **2**, union 515. A fourth signal that is not a
+tag at all, a house-style sign-off phrase, adds a further 183 turns across 27 sessions that none of
+the three matched. So the detectable population is roughly four times the reported one, and the
+sessions supplying it are 27 rather than 7.
+
+But only **one** of those four carries the sender's identity; the recipient tag names the wrong end,
+and the reply tag and the sign-off name neither. So attribution really is stuck near 192 while
+detection reaches past 700. **The pessimistic claim and the optimistic one are each correct about a
+different question**, and reporting one number forces a remedy choice that fits neither: a
+detection problem is fixed retroactively by searching harder, and an attribution problem is not fixed
+at all. When a channel's record is called unrecoverable, say which recovery — the class or the
+author — because the first is usually a search that has not been widened and the second is usually
+final.
 
 **Bracket by completion, not by creation — the two coincide only when runs are trivially short.**
 The reconciliation that established this was performed against runs refused for billing, which
@@ -930,6 +971,26 @@ than on the shape of its own definition. The 143-job census earlier in this sect
 seen from the other side: it found both conjuncts doing real work precisely because it was drawn
 across runs, so stepped jobs were present for the step test to exclude. One population spans the
 failure mode and one is contained by it, and only the containment makes a conjunct decorative.
+
+**A stratified correction can still be computed over strata that the disputed predicate chose.**
+A crude comparison showed one group scoring 11.5 points below another; stratifying by session
+reversed the sign to +2.6, and a single stratum supplied more than the whole of that, so the
+association was correctly retracted as a composition artifact. The arithmetic is right and the
+retraction is right. What neither figure survives is that **membership in the strata set was decided
+by the classifier under test**: the groups were formed from turns bearing one particular opening tag,
+and two other near-disjoint tags are in equally common use. Counting all three, twelve sessions
+supply members of the smaller group rather than seven — the five missing ones use a tag the predicate
+does not look for — and one participant's count rises from 3 to 52, a seventeenfold undercount in the
+stratum that was reported as contributing almost nothing.
+
+So the correction inherits the defect it was correcting. **Stratifying removes composition bias only
+if the stratification variable is independent of the predicate**, and here the predicate determined
+which sessions existed to stratify by. The general form: when a measurement is retracted because its
+population was badly composed, check whether the replacement estimate is drawn from a population the
+same instrument selected — a subsample chosen by the thing under test cannot arbitrate it, in either
+direction. The honest report is the one that was reached anyway, *no supportable association*, but it
+should be stated over a population defined without the classifier, or the null is as
+instrument-dependent as the effect was.
 
 **The narrow claim inside a scope correction is the one least likely to be re-checked.** Widening the
 population feels like the correction, so the inner assertion rides along as if it had been verified
