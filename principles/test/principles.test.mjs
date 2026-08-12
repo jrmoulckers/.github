@@ -695,6 +695,21 @@ test('wrapped multibyte payloads decode whole-buffer, not line by line', () => {
   assert.ok(perLine.includes('\uFFFD'));
 });
 
+test('gitBlobSha agrees with git, on a payload where bytes and characters differ', () => {
+  // Every other assertion about this function builds its expected value by calling it, so both
+  // sides move together and none of them can see a wrong header. The docblock claims agreement
+  // with git; only an oracle git produced can check that.
+  const text = '— synced from jrmoulckers/.github — ω “q”\n';
+  const raw = Buffer.from(text, 'utf8');
+
+  // The header length is correct because `bytes` is a Buffer, so `.length` counts bytes. A fixture
+  // where the two units coincide certifies the wrong unit as correct, which is how this survives.
+  assert.notEqual(raw.length, text.length, 'fixture must separate bytes from characters');
+
+  // Produced independently by `git hash-object` over exactly these bytes.
+  assert.equal(gitBlobSha(raw), 'e4bcf5c62c2cd05cfff0af197d078bd229fd90f9');
+});
+
 function corpusReader(manifest, overrides = {}) {
   return (path) => {
     if (path.endsWith(join('principles', 'manifest.json'))) {

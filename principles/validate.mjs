@@ -625,6 +625,12 @@ export function validateLegacyEvolution(current, baseline) {
  * Git's object name for a blob: sha1 over the header plus the raw bytes. Verified against real
  * `gh api` responses -- this reproduces the `sha` GitHub reports for a contents fetch exactly.
  *
+ * The header length is a byte count, which holds only because `bytes` is a Buffer. Passing a
+ * string would count characters, and the two agree on ASCII -- so the wrong unit is invisible on
+ * exactly the payloads that are easiest to test with. Pinned against a `git hash-object` oracle
+ * over a multibyte fixture; every other assertion about this function builds its expected value
+ * by calling it, and so cannot see a wrong header at all.
+ *
  * @param {Buffer} bytes
  * @returns {string}
  */
