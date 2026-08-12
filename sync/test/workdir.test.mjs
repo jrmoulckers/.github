@@ -8,11 +8,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { assertMemberCheckout, assertMemberIdentity, memberIdentity } from '../lib/workdir.mjs';
+import { apply } from '../lib/copier.mjs';
+import { readLock, hashText } from '../lib/lock.mjs';
 
 const git = (args, cwd) =>
   execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
@@ -164,5 +166,59 @@ test('a matching checkout is never reported as overridden', () => {
     const v = assertMemberIdentity(dir, 'jrmoulckers/finance', { allowUnverified: true });
     assert.equal(v.status, 'match');
     assert.equal(v.overridden, false);
+  });
+});
+
+// --- line endings -----------------------------------------------------------
+//
+// `--work-dir` is the only mode that reads member bytes off a disk it did not write. The remote
+// path fetches blob bytes, which git has already normalized, so nothing there can observe a
+// checkout's line endings. A local checkout can, and on Windows it usually does.
+//
+// What makes that survivable is `hashText` normalizing before it hashes. Drift is then a question
+// about content rather than about the platform that materialized it. Both properties below held at
+// the time they were written and neither was pinned: deleting the `toLF` in `hashText` passed the
+// whole suite (336/336). The failure it lets through is silent in the direction that matters —
+// `git status` calls a CRLF-materialized file clean, so the member side shows nothing.
+
+test('hashText is line-ending agnostic', () => {
+  // The mechanism. A CRLF checkout and an LF checkout of identical content must hash alike, or
+  // every comparison downstream inherits the platform that produced the working tree.
+  assert.equal(hashText('a\r\nb\r\n'), hashText('a\nb\n'));
+  assert.equal(hashText('trailing\r\n'), hashText('trailing\n'));
+
+  // Guard the trivially-passing reading: it must be normalization, not hashing everything alike.
+  assert.notEqual(hashText('a\nb\n'), hashText('a\nc\n'));
+});
+
+test('a member file materialized with CRLF is unchanged, not drift', () => {
+  // The consequence, through the real planner. Without normalization `currentHash` never matches
+  // the rendering, `isLocallyModified` is true, and the target reports as drift — on every text
+  // file in the repo, on every run, from a checkout nobody edited. Under `--force` that same
+  // verdict overwrites instead of reporting.
+  withTmp((root) => {
+    const content = '# canon\n\nA line.\n';
+    const spec = {
+      kind: 'agents',
+      name: 'architect',
+      sourcePath: 'agents/architect.agent.md',
+      targetPath: '.github/agents/architect.agent.md',
+      sourceSha256: hashText(content),
+      content,
+      type: 'file',
+    };
+
+    const first = apply(root, [spec], readLock(root, 'jrmoulckers/.github'), { write: true });
+    assert.equal(first.report.added.length, 1, 'precondition: the target is delivered and locked');
+
+    // Re-materialize exactly as a Windows checkout would: same content, CRLF on disk.
+    const abs = join(root, '.github', 'agents', 'architect.agent.md');
+    const asCheckedOutOnWindows = readFileSync(abs, 'utf8').replace(/\n/g, '\r\n');
+    assert.match(asCheckedOutOnWindows, /\r\n/, 'precondition: the fixture really is CRLF');
+    writeFileSync(abs, asCheckedOutOnWindows, 'utf8');
+
+    const second = apply(root, [spec], readLock(root, 'jrmoulckers/.github'), { write: false });
+    assert.deepEqual(second.report.drift, [], 'a CRLF checkout is not a member edit');
+    assert.equal(second.report.unchanged.length, 1);
   });
 });
