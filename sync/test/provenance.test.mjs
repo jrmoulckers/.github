@@ -369,7 +369,8 @@ test('every file the engine plans to write is classified, so the throw is unreac
 });
 
 test('the stamp is invertible per family, which is the only audit a token member can run', () => {
-  // `sourceSha256` hashes pre-render bytes. The documented recipe renders canon forward and
+  // `sourceSha256` hashes the committed dist file itself, before the stamp -- not a prior object
+  // the member cannot obtain. The documented recipe renders canon forward and
   // compares -- unavailable for vendored @jrm/tokens, whose source repo is private, so a member
   // holding only the delivered file must strip the stamp and hash. That inverse is a contract:
   // reordering the blank line after an HTML stamp, or stamping the `none` family, breaks every

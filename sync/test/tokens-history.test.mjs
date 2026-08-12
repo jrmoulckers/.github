@@ -8,7 +8,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -67,6 +67,34 @@ function withRepos(fn) {
     rmSync(root, { recursive: true, force: true });
   }
 }
+
+test('`sourceSha256` is the committed dist file, not the delivered rendering', () => {
+  withRepos(({ studio }) => {
+    const [spec] = enumerateTokenTargets(PLAN, studio).filter((s) => s.targetPath === TARGET);
+    const onDisk = readFileSync(join(studio, ...SOURCE.split('/')), 'utf8');
+
+    // Premise: the two candidates must differ, or every assertion below passes vacuously and the
+    // test cannot express the question it exists to settle.
+    assert.notEqual(hashText(onDisk), hashText(spec.content), 'stamped and raw must differ');
+
+    // The question a token member actually asks, and the reason it is asked: the source repo is
+    // private, so "which object was hashed" decides whether a member-side audit is possible at all.
+    // If it were an object upstream of the committed tree, reproduction would be impossible in
+    // principle and the honest answer would be to stop. It is not: the hashed bytes are a file
+    // sitting in the dist tree, read verbatim.
+    assert.equal(spec.sourceSha256, hashText(onDisk), 'hashes the dist file as committed');
+    assert.notEqual(spec.sourceSha256, hashText(spec.content), 'not the stamped rendering');
+
+    // Therefore the inverse closes from the delivered artifact alone, with no studio access:
+    // css is the `block` family, so the stamp is one line.
+    const delivered = spec.content;
+    assert.equal(
+      hashText(delivered.split('\n').slice(1).join('\n')),
+      spec.sourceSha256,
+      'strip the stamp and the delivered file reproduces sourceSha256',
+    );
+  });
+});
 
 test('token targets carry a non-empty historical set rendered with the token note', () => {
   withRepos(({ studio }) => {

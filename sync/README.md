@@ -1237,8 +1237,25 @@ will all read as drift.
 The recipe above runs *forward*: render canon, compare. That needs the source in hand, which holds
 for backbone canon and **not** for vendored `@jrm/tokens` — those come from `jrmoulckers/studio`,
 which is private, so a member has the delivered file and nothing to render. The only direction
-available is the inverse: strip the stamp, then hash. `sourceSha256` is `hashText(raw)` over
-pre-render bytes, so a correct strip reproduces it exactly.
+available is the inverse: strip the stamp, then hash.
+
+That inverse terminates, and it is worth being exact about why, because the natural reading of the
+paragraph above is that the hashed object is something upstream you will never hold.
+[`enumerateTokenTargets`](lib/assets.mjs) reads studio's **committed `dist` artifact** off disk and
+hashes that file, then stamps a copy of it:
+
+```js
+const raw = readSource(studioRoot, sourcePath); // <studio>/packages/tokens/dist/<rel>, verbatim
+sourceSha256: hashText(raw),                    // the dist file itself
+content: inject(targetPath, raw, { note }),     // the same bytes, stamped
+```
+
+So `sourceSha256` and the file you were delivered differ by exactly the stamp, and by nothing else.
+There is no earlier source object in the engine — it never sees token *definitions*, only the built
+tree studio commits. Avoid describing this as a "pre-render" hash: the phrase implies a prior object
+that a member cannot obtain, which turns a one-line strip into an apparent impossibility and stops
+the audit before it starts. Pinned by *`sourceSha256` is the committed dist file, not the delivered
+rendering* in `test/tokens-history.test.mjs`.
 
 The strip is fully determined by [`commentSyntaxFor`](lib/comment-syntax.mjs) — by file *type*, not
 by content:
