@@ -280,6 +280,18 @@ counts of the same issue, and the ratio was still uninterpretable — a denomina
 corpus than the numerator makes any rate look small, and looking small is what a plausibility check
 reads as healthy.
 
+**The same defect appears one step earlier, in the formatting applied *before* a comparison.** A
+census run here compared each repository's protection result under two different branch keyings, and
+reported seven divergences. Every one was false: the two sides were truncated to thirty and
+twenty-four characters respectively for display, and the comparison ran on the truncated strings, so
+identical values differed by six characters of tail. Symmetric truncation returns zero divergences.
+Unlike the corpus case the inputs were genuinely the same population — **the asymmetry was introduced
+by the instrument, between reading and comparing**, which is a region nobody audits because it looks
+like presentation rather than measurement. And the failure was fail-open in the worst direction: it
+manufactured a finding rather than suppressing one, and a manufactured divergence is *interesting*,
+so it recruits attention and gets reported. **Compare the values you read, not the strings you
+shortened for the reader.**
+
 **A file's byte size is a property of the file *and* whatever materialized it, and on Windows the
 working tree exceeds the blob by exactly the line count.** Measured at canon HEAD, `edge-sync`'s
 `SKILL.md` is **9,647** bytes as a blob and **9,846** in a Windows checkout; `fleet-orchestration` is
@@ -920,11 +932,28 @@ Measured across the fleet, the protection endpoint returns three different answe
 mean *nothing is enforced* are not the same finding:
 
 ```sh
-gh api "repos/OWNER/REPO/branches/BRANCH/protection"
+gh api "repos/OWNER/REPO/branches/$(gh api repos/OWNER/REPO --jq .default_branch)/protection"
 # 200 -> protected; read .required_status_checks.contexts
 # 404 "Branch not protected"            -> protectable, nobody has configured it (a choice)
+# 404 "Branch not found"                -> you asked about a branch that does not exist
 # 403 "Upgrade to GitHub Pro ..."       -> not protectable on this plan (not a choice)
 ```
+
+**`404` is two states, and the status code does not separate them — only the message body does.**
+Querying a branch name the repository does not have returns `404 "Branch not found"`, which a census
+bucketing on the code alone files as *protectable, unconfigured*. The backbone demonstrates it on
+itself: `.github` is the one repository here that enforces anything, and asking it about `master`
+returns `404`. **So a census keyed on a literal branch name reports the most-protected member as
+unprotected.** Key on each repository's own `default_branch`, which costs one field and removes the
+dependency, and branch on the body rather than the code.
+
+**Measured, that hazard does not currently bite — and the reason is the finding.** Twelve of the
+thirteen repositories default to `main`; the only exception is `homelab` at `master`, and it is
+masked because the plan `403` is evaluated *before* branch existence, so all three of `master`,
+`main` and a bogus name return the same refusal. Keying on the literal and keying on `default_branch`
+therefore agree on all thirteen today. **The bucket is right by a property of the fleet rather than
+by construction**, and the single member positioned to expose it is hidden behind the very refusal
+everyone is waiting to clear — so the method would begin failing at the moment the account is fixed.
 
 At the time of writing only the backbone returned 200. A public member returned **404** and two
 private members returned **403** — so the discriminator is *not* visibility, which is the tempting
@@ -945,6 +974,16 @@ not what a sample of three suggested:
 
 The backbone is a twelfth repository at `200`. So **one member in eleven enforces anything**, and for
 six of them the enforcement state cannot be read at all from this account — which is the next rule.
+
+**Re-measured `2026-08-12` keyed on each repository's own `default_branch` — scope stated, since the
+paragraph above counts the backbone separately and this one does not: thirteen repositories, being
+twelve members plus the backbone.** `200` × 2 (`.github`, `finance`), `404` × 4 (`studio`,
+`score-king`, `jrm-recipes`, `engineering`), `403` × 7 (`homelab`, `libro`, `cartridge`, `docket`,
+`product`, `game-library`, `windows`). So *one member in twelve* enforces anything — still `finance`
+alone, the other `200` being the backbone — and `game-library` is the addition, landing in the bucket
+that cannot be read. Only one `404` body occurs naturally anywhere in the fleet — `Branch not
+protected` — which is exactly why the second body is dangerous: it is never seen until the query is
+wrong, so no census will ever have exercised the branch that distinguishes it.
 
 **A refusal is not a reading.** A `403` says the API declined to answer; it says nothing about how
 the branch is configured. A member reported one as *this repository has no protection*, reached the
