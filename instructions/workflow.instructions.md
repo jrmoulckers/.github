@@ -980,6 +980,42 @@ disagreement; the **inclusion rule was never published**, so the number could no
 falsified. Publish the predicate with the count, and prefer stating what the census *excluded*, since
 an exclusion is a claim about the system and a positive list is a claim about what you remembered.
 
+**The denominator is a predicate too, and getting it wrong inverts the conclusion rather than
+blurring it.** Two parties independently measured how many members carry a hand-written prose mention
+of the managed-region delimiters, and reported *one in eleven* and *two in eleven*; one added that the
+single instance was *possibly the only one*, concluding a fleet-wide invariant had been generalised
+from one member's sentence. Measured across the roster:
+
+```
+subscribe to the managed base   6   all six carry the region
+do not subscribe                5   none carries a region; one has no such file at all
+carry a hand-written mention    3   all three outside their region, member-authored
+```
+
+The rate is **three of six**, not one of eleven. A member that receives no managed region cannot
+mention its delimiters — it has nothing to describe — so five repositories were counted as evidence
+*against* the invariant while being structurally incapable of exhibiting it. The practice is the
+majority habit among members able to have it, and the conclusion reverses: not one member's idiom
+generalised too far, but a convention most eligible members arrived at. **A denominator drawn from the
+roster instead of the eligible population understates every rate by the share that could never have
+counted**, and it fails in the flattering direction, because a small numerator over a large
+denominator reads as a rare event worth writing up. This is the excluded-member defect with its sign
+flipped: there an ungoverned repository inflated a sweep by appearing in reality and not in intent;
+here non-subscribers deflated a rate by appearing in the roster and not in the population. Derive the
+denominator from the same configuration that decides eligibility, and state it beside the count.
+
+**And a documented explanation for a symptom becomes a misdiagnosis once a second cause produces the
+same number.** Canon warns against counting the bare delimiter name instead of the anchored line, and
+explains the inflation precisely: canon quotes the marker in its own prose *inside* the managed
+region, so a correctly repaired file reports `2` and never reaches `1`. True, and it is the wrong
+mechanism for the file above — every extra mention found there sits *outside* the region and is
+member-authored. The count matches the documented prediction exactly while the cause does not, and
+the explanation then sends the reader inside the region to confirm it, where there is nothing to
+find. **An explanation that accounts for the number is not thereby the one that produced it**, and it
+is most costly when it is independently true, since the reader stops at the first agreement. Where a
+symptom is a count, name the cause by a check that distinguishes the candidates — here, the position
+of the extra occurrence — not by the count they both predict.
+
 **Correcting a coordinate does not exempt the new one from the decay that killed the old.** The same
 message repaired a stale line reference from `192` to `210`, citing the drift that had invalidated
 it; the site was at `239` when the correction arrived, further from the repair than the repair was
