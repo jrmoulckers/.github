@@ -90,7 +90,7 @@ test('no pinned pattern depends on the emphasis characters a formatter would rew
   //
   // The guarantee belongs one layer lower — normalizing markup out of the scanned text, as
   // jrmoulckers/finance does for its count claims — but that does not transfer here: stripping
-  // [*`_] before matching breaks 6 of the 21 pinned patterns, because the ones pinning file names
+  // [*`_] before matching breaks 7 of the 30 pinned patterns, because the ones pinning file names
   // and globs have markup as their content. Distinguishing the two needs a markdown parser, which
   // a test can afford and a scanner should not carry.
   const tmp = mkdtempSync(join(tmpdir(), 'canon-emphasis-'));
