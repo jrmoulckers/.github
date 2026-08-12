@@ -101,6 +101,7 @@ function classify({ before, after, groups }) {
         GITHUB_STEP_SUMMARY: sumPath,
       },
     });
+    if (run.error) throw new Error(`detect script did not run: ${run.error.message}`);
     assert.equal(run.status, 0, `detect script failed:\n${run.stderr}`);
 
     const outputs = {};

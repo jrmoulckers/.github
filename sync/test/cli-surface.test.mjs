@@ -32,6 +32,9 @@ test('every flag the engine parses is advertised in both places that document it
   assert.ok(header.includes('// Flags:'), 'header flag block not found — this check would be vacuous');
 
   const printed = spawnSync(process.execPath, [ENTRY, '--help'], { encoding: 'utf8' });
+  // A spawn failure leaves status null and both streams null, so asserting on status alone would
+  // report "--help must exit 0, got null: null" for a process that never started.
+  assert.ok(!printed.error, `--help did not run: ${printed.error?.message}`);
   assert.equal(printed.status, 0, `--help must exit 0, got ${printed.status}: ${printed.stderr}`);
   const help = `${printed.stdout}${printed.stderr}`;
   assert.ok(help.includes('Usage:'), '--help printed no usage text');

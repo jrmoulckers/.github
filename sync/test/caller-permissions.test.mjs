@@ -490,6 +490,11 @@ function runWorkflowResolver(source, context, options = {}) {
       GITHUB_OUTPUT: output,
     },
   });
+  // A spawn failure leaves status null, which is not 0, so the resolver's refusal (a real run that
+  // declined) and a process that never started both return `sha: undefined`. Today every caller
+  // asserts a concrete SHA, so a crash still fails — but it fails claiming the resolver refused.
+  // Any future assertion that `sha` is undefined would be satisfied by the CLI never running.
+  if (run.error) throw new Error(`caller-permission resolver did not run: ${run.error.message}`);
   const sha =
     run.status === 0
       ? readFileSync(output, 'utf8').match(/^sha=([0-9a-f]{40})$/m)?.[1]

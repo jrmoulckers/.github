@@ -34,6 +34,7 @@ function run(args) {
   const env = { ...process.env };
   delete env.STUDIO_SYNC_TOKEN;
   const r = spawnSync(process.execPath, [CLI, ...args], { encoding: 'utf8', env });
+  if (r.error) throw new Error(`sync CLI did not run: ${r.error.message}`);
   return { code: r.status, out: `${r.stdout}${r.stderr}` };
 }
 

@@ -55,6 +55,10 @@ function run(args) {
   const env = { ...process.env };
   delete env.STUDIO_SYNC_TOKEN;
   const r = spawnSync(process.execPath, [CLI, ...args], { encoding: 'utf8', env });
+  // `status` is null when the process never ran — a spawn failure under load (EAGAIN) reads as
+  // "the CLI exited wrong" and prints `nullnull`, which is the absent/unreadable collapse: the
+  // diagnostic that would name the real cause is discarded before anyone sees it.
+  if (r.error) throw new Error(`sync CLI did not run: ${r.error.message}`);
   return { code: r.status, out: `${r.stdout}${r.stderr}` };
 }
 
