@@ -349,6 +349,21 @@ export function buildPrBody(report, { date, intro, waveLookup } = {}) {
         'second one. A duplicate is a merge artifact. **Delete the extra block(s), markers included, ' +
         'before merging** — the region this PR updated is the first one.',
     );
+    lines.push('');
+    lines.push('Verify the repair by counting the **delimiter line**, anchored, not the bare name:');
+    lines.push('');
+    lines.push('```sh');
+    lines.push("grep -c '^<!-- studio:base:start -->$' <file>   # AGENTS.md, copilot-instructions.md");
+    lines.push("grep -c '^# studio:base:start$'        .gitattributes");
+    lines.push('```');
+    lines.push('');
+    lines.push(
+      'Expect `1`. **Do not verify with `grep -c studio:base:start`** — canon quotes the marker in ' +
+        'its own prose, inside the managed region, so the bare name counts that mention too. A ' +
+        'correctly repaired `copilot-instructions.md` reports `2` under the bare name and never ' +
+        'reaches `1`, which reads as a failed repair. Members have reported that count as a defect ' +
+        'on files that were fine.',
+    );
   }
 
   if (report.abandoned?.length) {

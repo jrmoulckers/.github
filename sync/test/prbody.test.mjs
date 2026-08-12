@@ -193,3 +193,35 @@ test('a successful lookup finding nothing carries no uncertainty wording', () =>
   assert.doesNotMatch(body, /Could not check/);
   assert.doesNotMatch(body, /An older sync wave is still open/);
 });
+// docs/sync.md carries the marker-counting rule, and docs/ is in no canon kind — it reaches none of
+// the eleven members. The party told to resolve a sync PR is a member-side reader who has never been
+// delivered the document that explains how to verify the resolution. Two members have now reported a
+// correct count as a defect, and neither was reading the rule when they did.
+//
+// So the rule travels with the finding, in the sync PR body, which is the artifact the member does
+// receive. Whether the count it warns about is real is pinned separately in basemerge.test.mjs.
+test('the duplicate-region warning carries its own verification and forbids the bare name', () => {
+  const body = buildPrBody(
+    report({ orphaned: [{ targetPath: 'AGENTS.md', lines: [148] }] }),
+    { date: '2026-08-12' },
+  );
+
+  assert.match(body, /more than one managed region/);
+  assert.match(body, /`AGENTS\.md` — extra region\(s\) beginning at line 148/);
+
+  // The delimiter-anchored command, for both marker forms.
+  assert.match(body, /grep -c '\^<!-- studio:base:start -->\$'/);
+  assert.match(body, /grep -c '\^# studio:base:start\$'/);
+
+  // The expected value, and the matcher that cannot produce it.
+  assert.match(body, /Expect `1`/);
+  assert.match(body, /Do not verify with `grep -c studio:base:start`/);
+  assert.match(body, /reports `2` under the bare name/);
+});
+
+test('a run with no duplicated region carries none of the marker-counting wording', () => {
+  const body = buildPrBody(report({ added: paths('AGENTS.md') }), { date: '2026-08-12' });
+
+  assert.doesNotMatch(body, /more than one managed region/);
+  assert.doesNotMatch(body, /Expect `1`/);
+});
