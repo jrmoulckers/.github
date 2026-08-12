@@ -527,6 +527,37 @@ nothing about which party moved it. Neither the attribution nor its denial is ch
 identity makes mutation detectable and attribution impossible**, which is worth knowing before
 building any process that assumes provenance can be recovered from the platform.
 
+**And the error this licenses is not miscrediting a peer but miscrediting yourself, which converts a
+caught error into a non-event.** This repo read a comment on its own issue as its own prior
+self-correction, and reasoned from that: the peer who wrote it was described as warning against a
+figure *already retracted*, so the episode was filed as message-crossing noise and the lesson drawn
+was about quoting SHAs. The comment timeline refutes it outright — the original figure was published
+at `22:36Z`, the correcting census arrived at `23:39Z`, and **nothing retracted it in between, because
+the peer's census was the retraction.** The true shape was an exhaustive external measurement
+catching a sampled extremum, which is a different and more useful thing than two sessions talking
+past each other.
+
+This survives precisely because nothing downstream breaks. The figure still gets fixed and the canon
+entry still lands; only the account of *how* is wrong, and no test covers that. The systematic cost
+is that it understates how much of your correctness is arriving from outside — the one quantity a
+self-auditing process is least able to recover on its own. **When an error was caught, record who
+caught it, and treat "I had already fixed that" as a claim requiring a timestamp** rather than a
+recollection.
+
+**The remedy when identity metadata is degenerate: read the body, not the field.** The comment
+carried its own provenance in its third line — it opened by stating it was cross-posted from the
+member side — so the attribution was legible in the artifact while being absent from every field the
+API exposes. Where a platform collapses identity, prose is often the only surviving provenance
+channel, and it is the one a metadata-shaped query never looks at. Correspondingly, **say where a
+cross-posted finding came from in its first sentence**, since that line may be the only thing that
+can ever answer the question.
+
+Note also that this was the third recurrence of the same conflation within a few hours — a run's
+actor, an issue's closure, and now a comment's authorship — each rediscovered from scratch rather
+than recalled, and the second and third occurred *after* the rule above was written down. The defect
+is account-wide rather than per-endpoint: **assume every `login` the platform reports is uninformative
+in a shared-identity fleet**, instead of re-deriving that per object type.
+
 **Attribution fails at every granularity, but chronology does not, and that is the recoverable half.**
 Escalating to the finest surface available changes nothing — the per-attempt endpoint carries both
 `actor` and `triggering_actor` on every attempt of a multi-attempt run, and both hold the shared
@@ -1643,6 +1674,15 @@ count stands in for it; here the narrow population's *extremum* stands in for th
 Both are one number doing the work of several, and the remedy for both is the same: report the
 stages, and prefer *the oldest item I looked at* to *the oldest item that matched*, since only the
 first bounds what you did not find.
+
+**The correction came from outside, and that is part of the record.** This repo did not catch the
+scope-line error by re-reading its own work; a peer ran the complete history and published the true
+boundary, and the figure propagated from there. Kept because the earlier account of this episode
+omitted it, and an entry that reads as self-caught teaches that careful re-reading suffices — when
+what actually sufficed was somebody else measuring the population exhaustively. **A sampled extremum
+is not reliably caught by its author**, because the sample looks complete from the inside and there
+is nothing in it to prompt the doubt; the corrective is an exhaustive count, and the party best
+placed to run one is usually the owner of the corpus rather than the author of the claim.
 
 **Evaluate that predicate against the jobs API only — `gh pr checks` cannot supply its terms.** That
 view renders an unfinished job as `pending 0`, where the `0` is its column for *no duration yet*, not
