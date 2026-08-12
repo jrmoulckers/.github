@@ -3712,11 +3712,52 @@ so it demonstrably fires in both directions rather than accusing everything.
 **Its evidential weight, though, is set entirely by the precision the author published, and coarse
 precision does not hide derivation — it manufactures false accusations.** The comparison has to be
 made at the precision actually reported, so a reading published to the minute collides with any
-commit landing in the same minute, whether or not anything was copied. Measured against a real merge
-cadence with a median gap of about a thousand seconds: a genuine reading collides **0.03%** of the
-time at second precision and **1.52%** at minute precision, fifty times more often. At second
-precision a match is strong evidence; at minute precision it is a weak signal being read as a
-confession.
+commit landing in the same minute, whether or not anything was copied.
+
+**The rates first published here were computed under the wrong process, and the correction changes
+them by two orders of magnitude.** Measuring how often a timestamp placed *uniformly at random* on
+the timeline lands in the same second or minute as a commit answers a question nobody asks: a footer
+clock is not placed uniformly, it is read shortly after the event it reports, which is the entire
+reason it is near that event. Conditioning on the process that actually generates the observation —
+a read delay spread over about a minute, an event offset uniform within its own minute — gives a
+different picture, stated as likelihood ratios against a fabricator who copies exactly:
+
+```
+                     uniform timestamp     footer read within a minute
+same second          0.026%   LR 3831:1    1.67%   LR 60:1
+same minute          1.55%    LR   65:1    50.0%   LR  2:1
+```
+
+The uniform figures are not wrong, they are about something else, and applied to a footer they
+understate honest collisions by roughly 64x at second precision and 32x at minute precision.
+
+**And the two precisions differ in stability, not merely in strength, which is the operative
+reason to publish seconds.** The second-precision rate is pinned near `1/60` for any read delay
+spread across a minute or more; the minute-precision rate is determined almost entirely by that
+delay, which nobody measures:
+
+```
+read delay spread    P(same second)   P(same minute)    LR second   LR minute
+10 s                     5.00%            91.6%            20:1        1.1:1
+60 s                     1.69%            50.0%          59.3:1          2:1
+300 s                    1.64%            10.0%          60.9:1         10:1
+3600 s                   1.63%             0.84%         61.2:1        119:1
+```
+
+So minute precision is not uniformly the weaker instrument — it is the *unstable* one, ranging over
+two orders of magnitude, and a verdict read off it is a statement about the analyst's assumed delay
+rather than about the evidence. Second precision holds near 60:1 across the whole range. **Publish
+seconds because it makes the detector's weight independent of a nuisance parameter nobody has
+measured**, not because it lowers a false-positive rate.
+
+Two arithmetic corrections to the original passage, both self-inflicted. The coarsening cost is
+**59.4x**, not fifty — essentially the theoretical 60x, because 100 commits occupied 99 distinct
+minutes and collisions are too rare to blunt it. And a collision rate derived from a **median** gap
+is wrong by the skew of the tail; the uniform rate is `1/mean`, which on one heavily tailed window
+differed from the median-derived figure by a factor of four. That correction is real and its
+magnitude is a property of a window: re-measured later on this repository, mean `531` against
+median `525` made the two agree to within a percent, so the error is invisible on exactly the
+samples where it does no harm.
 
 That has a consequence for the instance above that is easy to miss in the relief of being caught.
 At the precision that footer actually published, the detector could not have distinguished a derived
@@ -3830,6 +3871,15 @@ both times, and it is the one the argument actually rests on. The median moved 2
 identical only because both windows still happened to contain that one element, which looks like
 stability and is coincidence of overlap. Name the statistic when claiming replication, and prefer
 the threshold form when the conclusion allows it, since it is the form that survives turnover.
+
+**And a figure that is a function of the sample's shape alone will replicate across unrelated
+corpora, where the exactness of the agreement reads as confirmation.** Two parties here independently
+reported a coarsening ratio of `59.4x` on different repositories and treated the match as mutual
+verification. It is `99 * 60 / 100` — distinct minutes times sixty, over distinct seconds — so any
+corpus of 100 events falling in 99 distinct minutes returns it, and it carries no information about
+either repository. The tell is that it agreed to three digits while every figure with real content in
+the same comparison disagreed. **Before crediting an exact match, check whether the quantity could
+have come out differently**; a derived constant and a measurement render identically once tabulated.
 
 **Report the sign of a delta; the magnitude is the part that agrees and the sign is the part that
 identifies the mechanism.** Two parties here reported a timestamp difference as `0s` or `1s` and
