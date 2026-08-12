@@ -460,7 +460,10 @@ For each affected consumer, use a focused PR and perform the cleanup atomically:
    backbone. Enumerate each candidate path explicitly; never delete by directory, wildcard, or
    recursive command.
 2. Read the candidate's existing lock entry. Normalize the current file to LF and compute SHA-256
-   using the same rule as `hashText`; it must equal that entry's `targetSha256`. A missing entry or
+   using the same rule as `hashText`; it must equal that entry's `targetSha256`. For a marker-managed
+   candidate (`AGENTS.md`, `.github/copilot-instructions.md`, `.gitattributes`) hash the extracted
+   region instead — `extractBlock` then `canonicalizeInner` — because the entry records the region
+   and a whole-file hash mismatches unconditionally. A missing entry or
    mismatch means possible local ownership/drift: stop and reconcile instead of deleting.
 3. In one commit, remove only each verified generated file and its exact lockfile entry. Preserve
    declared local files and remove a now-empty directory only after listing it and proving it empty.
@@ -778,10 +781,22 @@ Each member repo carries a lockfile at its root:
 ```
 
 - `sourceSha256` detects **upstream** changes (canon moved) → the target is rewritten.
-- `targetSha256` is the hash of the exact bytes last written; if the member's current file no
+- `targetSha256` is the hash of the content last written; if the member's current file no
   longer matches it, the file was **locally modified** → flagged `⚠️ locally modified` in the
   PR body and **left untouched** (unless `--force`). A pre-existing, unrecorded file that
   differs from canon is treated the same way, so member-authored files are never clobbered.
+  - For an ordinary target that content *is* the whole file.
+  - For the three marker-managed targets — `AGENTS.md`, `.github/copilot-instructions.md` and
+    `.gitattributes` — it is the **managed region only**, canonicalized by `canonicalizeInner`.
+    Everything outside the markers belongs to the member and is deliberately excluded, which is
+    what lets a member edit around the region without ever being reported as drift.
+
+**Reproducing a hash outside the engine.** For an ordinary target, LF-normalize the file and take
+SHA-256. For a managed target the whole file will *never* match — not even one with no local
+content, since the markers live in the file and not in the region — so extract between the markers
+first: `extractBlock` → `canonicalizeInner` → `hashText`, i.e. region → LF → strip trailing
+whitespace → SHA-256. A member check that hashes a managed target whole reports three permanent
+mismatches that no repository state can clear.
 
 Re-running with no upstream change writes nothing and opens no PR. Hashes are computed on
 LF-normalized content, so line-ending differences don't cause spurious churn.

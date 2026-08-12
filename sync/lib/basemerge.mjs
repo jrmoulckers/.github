@@ -131,7 +131,21 @@ function findBlock(lfText, markers) {
   };
 }
 
-/** Trailing-whitespace normalization applied consistently on build and extract. */
+/**
+ * Trailing-whitespace normalization applied consistently on build and extract.
+ *
+ * The returned value is not merely tidied text: for a marker-managed target it **is** the quantity
+ * the engine hashes into `targetSha256`. Drift for those targets is therefore judged on the region
+ * and never on the file, which is what allows a member to edit freely around the markers.
+ *
+ * That has a consequence worth stating here, because it is invisible from the outside and was got
+ * wrong by a member repo reading only the lockfile contract: a whole-file hash of a managed target
+ * matches nothing. Not for a file with local content, and not for one without — the markers
+ * themselves sit in the file and outside this value, so no repository state makes the two agree.
+ * Anything reproducing an engine hash externally must run `extractBlock` first, i.e. region → LF →
+ * strip trailing whitespace → SHA-256. A checker that skips it reports permanent, unclearable drift
+ * on exactly the three files a member is most likely to have edited around.
+ */
 export function canonicalizeInner(inner) {
   return toLF(inner).replace(/\s+$/, '');
 }
