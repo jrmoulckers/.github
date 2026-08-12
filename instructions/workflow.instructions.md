@@ -1048,6 +1048,39 @@ Note the direction, which is what makes this expensive rather than merely wrong:
 *simplifying* finding. It converts a heterogeneous repair into one action, so it terminates the
 investigation that would have found the other three versions.
 
+**The same trap caught a second session fifty-two minutes after this rule was written, and it could
+not have helped them.** An independent session measured the identical five members, obtained the
+identical byte count, and drew the identical inference — *identical across five, therefore no member
+has any of it*. Re-measuring all nine reproduced the four-blob spread above exactly. Two sessions
+reaching the same false conclusion from the same cohort, without contact, is much better evidence
+that the trap is structural than one session reaching it twice: the five that agree are the five most
+recently synced, so **any sampler who stops when the numbers agree stops on this cohort**, and the
+agreement is manufactured by the same process that makes the sample easy to take.
+
+The part worth carrying past this file is the timing. The rule postdated their checkout, so canon
+held the warning while the person about to need it did not — **a shared document is not a shared
+state**, and where many sessions author it concurrently, every reader is acting on a snapshot whose
+age they have no reason to suspect. Delivery latency is usually discussed as a property of what
+reaches other repositories; this is the same defect one level in, among the authors themselves, and
+it is invisible because the file is *present* and *authoritative* in every one of their working
+copies. Fetch before relying on a rule's absence, and treat *canon does not cover this* as a claim
+with a revision attached, exactly like any other measurement.
+
+**Their conclusion was nonetheless true, and reached through the one property that survived.** No
+member had received any of that day's doctrine — established by the delivery dates, the freshest of
+which predated the day entirely, not by the uniformity that was offered as its warrant and that did
+not hold. Third occurrence of that structure in a single night, which retires it as a coincidence:
+**a correct conclusion is not evidence that the reasoning behind it was sound**, and the cases where
+it is unsound are precisely the ones nobody revisits, because the finding stands and the finding is
+what gets read. Audit the warrant on claims that turned out right, or the warrants never get audited
+at all.
+
+One practical rider on the same measurement. Reporting a single deficit for the fleet — *behind by
+N* — is a statement about the sampled cohort wearing fleet clothing. Across the nine, retention
+ranged from under four percent to over nineteen, a fivefold spread, so the furthest-behind member is
+two and a half times worse off than the nearest and any remediation ordered by one number gets the
+order wrong. **Where a population is enumerable, publish the spread, not the deficit.**
+
 **And a sample taken as *the first N* inherits an ordering the endpoint never promised — which here
 reverses between two routes to the same data.** Reading the annotations on a refused run, one route
 returns the annotated failures first and the other returns the un-annotated skips first, over an
