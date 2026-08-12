@@ -415,6 +415,28 @@ mutation that cannot express disagreement can never test a claim about two thing
 a claim is about a *relationship* between components, mutating anything they now share tests the
 wrong world, and the repair itself is what makes that mutation the convenient one.
 
+**The fourth rung is a control that fires for exactly the right reason and still cannot see the
+claim, because its assertion is coarser than what was claimed.** A sibling tested the assertion
+that an old collision guard *selects `-rerun-2`* — the longest-lived and most-likely-taken name —
+by reverting the classifier and watching the suite: `18/18` shipped, `15/18` reverted, the three
+failures exactly the intended ones. Correct mutation, correct mechanism, instrument healthy, and it
+was about to be reported as confirming the claim. It cannot. `assert.throws` failing proves only
+that the old code **fails to refuse**, and it passes identically whether the old code returns
+`-rerun-2` or `-rerun-97`. The assertion is two-valued; the claim names one of many values.
+
+So the green control licensed a report strictly stronger than the evidence supported, and every
+rung above is silent here: nothing is broken, nothing fires wrongly, the mechanism is isolated.
+**A control discriminates at its own resolution, not at the claim's** — check that the assertion
+can express the claim's alternatives before reading a pass as confirmation, because a coarse
+assertion fails in the licensing direction. Reconstructing the old loop and reading the name it
+actually chose confirmed `-rerun-2` exactly, which is the evidence the suite could never have been.
+
+Note what made that reconstruction valid. Running it *sighted* first — with `-rerun-2` already
+taken on the origin — established the name was a **genuine collision** rather than merely unused,
+so the blinded run demonstrated the specific failure claimed and not just a wrong answer. Build the
+occupancy the claim presupposes before measuring the choice, or the case cannot disagree with the
+claim it validates.
+
 **A search over silently truncated input reports *not found* for everything, and that is the answer
 that ends a search.** Checking a correspondent's claim that a token appeared nowhere in an issue,
 this session ran a `gh issue view --jq` expression whose quoting was mangled by the shell; it
