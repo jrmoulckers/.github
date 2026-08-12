@@ -39,7 +39,20 @@ function markdownFiles(dir) {
   return out;
 }
 
-const LISTING = /\bgh\s+(?:pr|issue)\s+list\b[^\n`]*/g;
+const LISTING = /\bgh[\s*`]+(?:pr|issue)[\s*`]+list\b(?:\\\r?\n|[^\n])*/g;
+
+// Retained as a control, not as a spare: the emphasis-tolerant pattern above is only worth having
+// if it differs from this one on an emphasised specimen, and a test written beside its own fix
+// passes either way unless it is exercised against the version it replaced. See issue #738.
+const LISTING_BARE = /\bgh\s+(?:pr|issue)\s+list\b[^\n`]*/g;
+
+function normalizeCommand(command) {
+  return command.replace(/[`*]/g, '');
+}
+
+function findListings(text) {
+  return [...text.matchAll(LISTING)].map((match) => normalizeCommand(match[0]));
+}
 
 /**
  * A listing is bounded when it caps the page explicitly, or when a filter restricts it to a
@@ -56,9 +69,9 @@ test('every canon listing command bounds its own page size', () => {
   for (const dir of ASSET_DIRS) {
     for (const file of markdownFiles(dir)) {
       const text = readFileSync(file, 'utf8');
-      for (const match of text.matchAll(LISTING)) {
-        if (!isBounded(match[0])) {
-          unbounded.push(`${relative(REPO_ROOT, file)}: ${match[0].trim()}`);
+      for (const command of findListings(text)) {
+        if (!isBounded(command)) {
+          unbounded.push(`${relative(REPO_ROOT, file)}: ${command.trim()}`);
         }
       }
     }
@@ -84,13 +97,47 @@ test('the sweep detects an unbounded listing when one is present', () => {
   assert.equal(isBounded('gh pr list --repo o/r --head my-branch --state open --json url'), true);
 });
 
+// The emphasis-tolerant matcher must actually differ from the one it replaced, on a specimen that
+// exercises the difference -- otherwise it is the old pattern under a new name. See issue #738.
+test('the listing matcher tolerates emphasis and backticks that defeated its predecessor', () => {
+  const specimens = [
+    ['bold subcommand', 'gh **pr** list --limit 5'],
+    ['backticked command', '`gh pr list` --limit 5'],
+    ['backticked flag', 'gh pr list `--limit 5`'],
+    ['line continuation', 'gh pr list \\\n  --limit 5'],
+  ];
+
+  for (const [label, specimen] of specimens) {
+    const found = findListings(specimen);
+    assert.equal(found.length, 1, `${label}: not matched`);
+    assert.equal(isBounded(found[0]), true, `${label}: bound not seen`);
+  }
+
+  // The control: at least one specimen must be invisible to the old pattern, or the two agree and
+  // this test is asserting nothing.
+  const escapesOld = specimens.filter(
+    ([, specimen]) => !new RegExp(LISTING_BARE.source).test(specimen)
+  );
+  assert.ok(
+    escapesOld.length > 0,
+    'the retained bare pattern matches every specimen - the patterns no longer discriminate'
+  );
+});
+
+// A global regex carries lastIndex between calls, so `.test()` in a filter drops every other
+// match. This guards the vacuity check above against silently inspecting half its input.
+test('listing detection is not stateful across documents', () => {
+  const docs = ['gh pr list --limit 5', 'gh issue list --limit 5', 'gh pr list --limit 5'];
+  assert.equal(docs.filter((d) => findListings(d).length > 0).length, docs.length);
+});
+
 // The sweep is worthless if it inspects nothing, and an empty file list is the failure mode that
 // looks identical to success.
 test('the sweep actually reads the canon asset directories', () => {
   const files = ASSET_DIRS.flatMap((d) => markdownFiles(d));
   assert.ok(files.length > 0, 'no canon markdown found - the sweep would pass vacuously');
 
-  const withListings = files.filter((f) => LISTING.test(readFileSync(f, 'utf8')));
+  const withListings = files.filter((f) => findListings(readFileSync(f, 'utf8')).length > 0);
   assert.ok(
     withListings.length > 0,
     'no canon file contains a gh listing command - the sweep would pass vacuously'
