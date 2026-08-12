@@ -158,3 +158,40 @@ test('history from a shallow token checkout fails closed rather than returning n
     assert.throws(() => historicalFileVersions(shallow, [SOURCE]), /full backbone history/);
   });
 });
+
+test('a file with one published revision has empty history, so a regressed lock entry cannot recover', () => {
+  const root = mkdtempSync(join(tmpdir(), 'tokens-single-'));
+  try {
+    // Identical to studioRepo() except that dist/ is committed once rather than twice.
+    const studio = join(root, 'studio');
+    mkdirSync(studio, { recursive: true });
+    git(studio, ['init', '-q', '-b', 'main']);
+    git(studio, ['config', 'user.email', 'test@example.com']);
+    git(studio, ['config', 'user.name', 'Test']);
+    writeFile(studio, SOURCE, V1);
+    git(studio, ['add', '-A']);
+    git(studio, ['commit', '-q', '-m', 'dist']);
+
+    const [spec] = enumerateTokenTargets(PLAN, studio).filter((s) => s.targetPath === TARGET);
+    assert.ok(spec, 'the token spec must be enumerated at all');
+
+    // Both sets delete sourceSha256 and the current rendering, which for one revision are the only
+    // two values inserted. Empty is correct -- there is no prior version -- but it means the
+    // recovery isSupersededEngineOutput performs is unavailable here, and the other two predicates
+    // require !lockEntry. A recorded target in this state has no path back.
+    assert.equal(spec.historicalCanonSha256.length, 0, 'one revision leaves no canon history');
+    assert.equal(spec.historicalRenderedSha256.length, 0, 'one revision leaves no rendered history');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('the empty-history assertion is not vacuous: a second revision populates both sets', () => {
+  // Control for the test above. Without it, enumeration silently returning specs with undefined or
+  // permanently-empty arrays would satisfy the equal(0) assertions for the wrong reason.
+  withRepos(({ studio }) => {
+    const [spec] = enumerateTokenTargets(PLAN, studio).filter((s) => s.targetPath === TARGET);
+    assert.ok(spec.historicalCanonSha256.length > 0, 'two revisions must populate canon history');
+    assert.ok(spec.historicalRenderedSha256.length > 0, 'two revisions must populate rendered history');
+  });
+});
