@@ -1970,6 +1970,38 @@ The remedy is not to retract less. It is to **state which conjunct the falsifier
 the others before they go with it** — the same enumerate-then-test discipline canon applies to
 claims, applied to their withdrawal. A retraction that names no scope withdraws everything in range.
 
+## A check whose apparatus determines its outcome is not a check
+
+Both halves of the retraction problem above assume the verification step could have come out
+otherwise. Two instances from this repo where it could not, in opposite directions.
+
+**A reconciliation that solves for its own unknown.** A disputed byte census was settled with
+`23,139 + 124 = 23,263`, and the `124` was obtained as `23,263 − 23,139`. That identity holds for
+any two numbers whatever, so the arithmetic could not fail to close and the agreement carried no
+information about the split being right. It was not: the true split is `23,183 + 80`, and the
+residual absorbed a 44-byte character-versus-byte delta — the em-dashes — which is exactly the class
+of error the census existed to detect. The correct figure `23,183` had been produced and dismissed
+as *"a third number"*, because the closing sum outranked it. **A quantity derived from the target is
+not evidence about the target**; it is the target, rearranged.
+
+**A control built by reconstructing the prior state rather than reading it.** To check whether an
+existing suite already caught a defect, the current test file was sliced back to its pre-change
+form. Slicing removed a helper — `corpusReader` — defined *below* the insertion point, so the
+reconstruction did not run. Six tests failed. Six failures from a suite being asked "do you already
+catch this?" read as **yes, emphatically**, and were nearly taken as grounds to withdraw a true
+issue. **Wreckage is indistinguishable from detection**: both present as red, and the reassuring
+reading is the wrong one. The corrective is to ask the repository instead of a reconstruction of it
+— `git show origin/main:<path>` — which is the same move as verifying authorship against the forge
+rather than against a summary.
+
+The two fail in opposite directions and toward the same comfort. The circular sum manufactures a
+**confirmation**; the broken control manufactures a **withdrawal**. Neither has a state in which it
+fails for the reason being tested, which is the property to check before trusting either: *what
+would this have looked like if the thing I am testing were false?* If the answer is "the same", the
+step is ceremony. This is the mutation-control discipline pointed at verification steps rather than
+at tests, and it applies with most force to the arithmetic and the controls that settle disputes,
+because those are the ones whose output is spent on somebody else.
+
 And verifying it broke an instrument here. `git show <sha>:docs/sync.md | Measure-Object -Line`
 reported **1401** lines against the true 1684, because `Measure-Object -Line` counts lines *within*
 each string and an empty string contains none: it silently returns the **non-blank** count, short by
