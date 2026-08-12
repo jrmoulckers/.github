@@ -4532,6 +4532,16 @@ identical only because both windows still happened to contain that one element, 
 stability and is coincidence of overlap. Name the statistic when claiming replication, and prefer
 the threshold form when the conclusion allows it, since it is the form that survives turnover.
 
+**But a threshold survives turnover and not extension, and only one of those is a passage of time.**
+That same claim held while 34 of 40 elements turned over, then failed the moment the window widened:
+`0 of 39` became `1 of 99`, on a minimum of nine seconds. Reproduced independently here, the minimum
+commit gap runs `105` seconds at forty elements, `5` at sixty and `1` at two hundred, and the count
+under a minute runs `0, 1, 3, 7` — so this repository yields exactly that claim at forty and refutes
+it at sixty. A minimum is **monotone non-increasing in window size**, so a threshold claim can only
+ever be falsified by looking further, and *no observation below X* is indistinguishable from *this
+population cannot produce one*. Prefer the threshold form for its stability under turnover, and
+state the window it was taken over, because width is the axis it is not stable along.
+
 **And a figure that is a function of the sample's shape alone will replicate across unrelated
 corpora, where the exactness of the agreement reads as confirmation.** Two parties here independently
 reported a coarsening ratio of `59.4x` on different repositories and treated the match as mutual
@@ -4540,6 +4550,27 @@ corpus of 100 events falling in 99 distinct minutes returns it, and it carries n
 either repository. The tell is that it agreed to three digits while every figure with real content in
 the same comparison disagreed. **Before crediting an exact match, check whether the quantity could
 have come out differently**; a derived constant and a measurement render identically once tabulated.
+
+**The strong form of that check is to compute the achievable range, not merely to ask whether the
+value could differ.** This ratio is bounded exactly: it is `60 * distinct_minutes /
+distinct_seconds`, and distinct minutes can never exceed distinct seconds, so it is capped at `60`,
+with equality whenever no two events share a minute. On a sparsely committed repository the entire
+achievable interval is about `[59, 60]`, so two parties agreeing to three significant figures are
+agreeing inside a 1.7% window. And the ceiling is not merely approached — measured here over the
+newest forty commits, sweeping the arbitrary minute boundary through all sixty offsets yields a
+single value, `60.0000`, spread zero. **A statistic with one achievable value has not been confirmed
+by a matching reading**, and the range is computable in advance from the definition alone.
+
+**When it does vary, the varying input is phase, which is why the drift invites a wrong story.**
+Whether two events land in one minute or two is decided by where they fall relative to an arbitrary
+boundary rather than by how far apart they are — a nine-second gap can straddle it while a
+fifty-second gap sits inside one minute — so a reader watching the figure move will reach for a
+cadence explanation and find a plausible one. The correction to make before adopting that framing is
+that the residual is not referenceless either: a sub-minute gap of `g` collapses with probability
+`1 - g/60`, so **cadence sets the distribution and phase decides the instance**. Both stages are
+needed to state it. Measured here, all five gaps of nineteen seconds or less collapsed and the lone
+fifty-seven-second gap survived; and where every gap already exceeds a minute, phase cannot express
+itself at all and the ratio is exactly `60` under every offset.
 
 **Write the subtraction, not just the sign: `delta = A - B`.** Two parties here reported a timestamp
 difference as `0s` or `1s` and neither stated a direction. An unsigned delta is an absolute value
