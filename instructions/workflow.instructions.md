@@ -1232,6 +1232,42 @@ their non-overlap, the union reads as coverage while only the intersection is ac
 the argument for running both is the same sentence that conceals the gap between them. Name the
 population of each check, not just its method.
 
+**And a population can shrink as a consequence of the repair, which the metric will report as
+progress.** A member fixed a guard by deriving its marker from its own payload; that made the
+file unparseable to the auditor, which regex-matched a literal assignment, so `examined 10 /
+missing 1` became `examined 9 / missing 0`. The defect count improved because the defective item
+left the measurable population — a fix and a blind spot arriving as one event, and worse than a
+mis-specified population because nothing about the change looks like a scope change. **A
+conclusion that does not reference its own denominator will report the shrinking of its
+population as progress**, so gate the verdict on coverage: any unparsed member forces a non-zero
+exit and no clean bill is issued.
+
+**This repository has that defect, and a mutation test locates it.** The immutable-example check
+scans a population defined by a *name pattern* — `reusable-*.yml`, ten of fourteen workflow files
+— and its module gathers populations seven ways with no empty-population check anywhere. Against
+an unreferenced probe file, so nothing else could couple to it:
+
+```
+baseline                                                   11 of 11 ok
+violating probe named  reusable-zzz-probe.yml    check   not ok
+byte-identical, renamed shared-zzz-probe.yml     check       ok
+```
+
+Identical violating content, opposite verdicts, decided entirely by the filename — and a rename
+is an ordinary refactor no reviewer would flag as touching coverage. What caught the probe in
+both states was a *different* checker that enumerates every file in the directory. The two
+overlap by accident, and that accident is the only thing currently holding the population closed.
+So the rule is sharper than naming the population: **a population defined by a name pattern
+shrinks silently under renames; one defined by its container does not.** Prefer the container, or
+cross-reference the glob against a declared roster, which is what makes the instruction-roster
+check safe here.
+
+**A guard's two failure directions are not equally expensive.** The same member transcribed a
+sentinel rather than deriving it, so guard literal and payload were free to disagree, and the
+disagreement stayed invisible until exactly the re-run the guard existed to prevent. A guard that
+falsely reports *already applied* silently skips work; one that falsely reports *not applied*
+silently duplicates. Same defect, and only the second corrupts the artifact.
+
 **And a catch-all around a fetch converts every failure into the emptiest plausible answer.** The
 fleet scan reported elsewhere in this section was written *after* three separate entries in this file
 about absence rendering as a measured zero, and its first run reported `homelab NO RUNS` — for the
@@ -1825,6 +1861,16 @@ have raised its confidence rather than lowered it, and the direction is silent, 
 found nothing* reads as reassurance. Their remedy is the reusable half: **assert that the probe
 fires before reporting any result**, which converts a silent blindness into an exit code and was
 the only reason this was caught.
+
+**And assert on a synthesised specimen, not on the corpus.** The same member's emphasis-aware
+matcher had already lost its precondition: zero emphasised specimens remain in their live corpus,
+so the discriminator had silently been a duplicate of the plain matcher with nothing announcing
+it. Their verdict string was ambiguous by construction — *none found* is emitted identically by a
+clean corpus and by a dead matcher, the reassuring output and the instrument-is-dead output being
+the same bytes. A corpus can stop containing the thing an instrument detects without anyone
+deciding it should, so **the guarantee has to be carried by the control rather than by the
+data**: manufacture one positive of each shape the matcher claims to catch, plus a negative
+proving it still rejects, and refuse to issue a corpus verdict until they pass.
 
 **And because canon is distributed, the blast radius of this rule is the fleet, not the file.** All
 nine opted-in members hold this document in their own tree, at revisions spanning 9,814 to 306,824
