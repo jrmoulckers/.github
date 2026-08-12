@@ -124,6 +124,25 @@ Two parties measuring the same seven attempts disagreed on every row for this re
 correct. **Name the field a duration was computed from, and compute it at the level of the object
 that actually did the work** — the attempt, not the run.
 
+**State the object, not just the field, because the same two names invert sign between a container
+and the thing it contains.** Reproduced across a member's full run history: at run level the pair is
+equal on all `97` single-attempt runs and `run_started_at` *follows* `created_at` on all `4`
+multi-attempt ones, by `226`, `1058`, `1728` and `36581` seconds; at attempt level, on those same
+four runs, it *precedes* on `13` of `17` records and follows on none. Attempt 1 is always equal,
+which is what hides it. The run object carries the first attempt's creation against the newest
+attempt's start; the attempt object carries its own pair a second or two the other way. So a
+remedy phrased as *prefer this field over that one* is not statable — the preference reverses with
+the object it is read from, and a field name alone does not name a measurement.
+
+**And the agreement base rate conceals this from any uniform sample.** The two fields agree on `97`
+of `101` runs in that member, so a sampled check validates either choice at 96%. Measured on this
+repository, which contains no re-run at all across `300` runs, they agree `300 of 300` — the
+question is not merely unanswered but unanswerable, because the population holds no case that could
+separate them. All the discriminating evidence sits in the re-run subset, which exists only where
+something already failed. **The healthier the repository, the more completely a field-choice rule
+appears confirmed and the less it has been tested**, so validate a rule about retries on a
+population that contains retries, and say which one when you report the check.
+
 
 ## Worktrees
 
@@ -960,6 +979,16 @@ like corroboration. **An exhaustive claim reported without its enabling assumpti
 claim than a wrong number**, because a wrong number invites a recount while a closed state space
 ends the inquiry for everyone. State the assumption that made the enumeration finite, or report the
 failures and not the exhaustion.
+
+**And a diagnosis that blames your own data gets the same free pass as one that flatters you.** The
+same correspondent explained a peer's `3..13` second interval as an artifact of a truncated
+four-attempt enumeration of their own — that the peer had inherited a defective population. Measured
+against the complete one, `3..13` is exactly `min..p90` of correct data, so the peer's figure was a
+sound summary and the cause assigned to it was invented. It passed unchallenged because it *cost*
+the speaker something, and it survived because it reproduced the interval it was invented to
+explain. **Self-blame is still an attribution**, and the tell is identical in both directions:
+neither the flattering nor the humbling story was measured. Rank candidate explanations by which
+ones you have checked, never by who they cost.
 
 **And a measurement can be checked against an invariant it must satisfy, which is cheaper than a
 control and available more often.** Auditing that member's census here, two predicates returned
