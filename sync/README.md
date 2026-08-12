@@ -1325,6 +1325,38 @@ and absent from every hashed body, because stripping it is the operation the aud
 by *an ASCII body cannot discriminate encodings, a multi-byte body can* in
 `test/provenance.test.mjs`.
 
+##### When the inverse disagrees: arbitrating without the source
+
+The inverse tells you that your bytes and your recorded `sourceSha256` do not correspond. It cannot
+tell you **which half is wrong**, and that limit has been read as a claim that nothing can — that a
+token consumer is a lone observer of its own vendored tree. It is not. Studio being private bounds
+what you can *render*; it does not bound what you can *compare*.
+
+`tokens` is opt-in per member, and every consumer records the same `sourceSha256` values under the
+same target paths. So a second consumer's lock is an arbiter that needs no studio access:
+
+```bash
+# any other member with tokens.enabled — read-only, no checkout required
+gh api repos/jrmoulckers/<other>/contents/.studio-sync.lock.json --jq '.content' \
+  | base64 -d | jq '.entries["vendor/@jrm/tokens/css/default/tokens.css"]'
+```
+
+- Their `sourceSha256` **equals yours** → the record is corroborated and the disagreement is in your
+  delivered bytes: a local edit, a hand-repair, or a partial write.
+- Their `sourceSha256` **differs** and their `syncedAt` is close to yours → suspect your record.
+- Their `sourceSha256` differs and their `syncedAt` is far from yours → nothing is proven; the dist
+  legitimately changed between the two deliveries.
+
+**Agreement is evidence only across different delivery events.** Two members written by the same
+sync run carry the same bytes by construction and cannot disagree, so a matching pair from one run
+re-states a single observation rather than confirming it — the failure that invalidated a
+five-member cohort in this repo's own history (#582). Check `generatedAt` before believing a match.
+
+The cohort must be non-empty for any of this to be available, which is a property of the manifest
+rather than of the engine: it is pinned by *the tokens cohort supports cross-member arbitration* in
+`test/manifest.test.mjs`, so opting the fleet down to a single consumer fails the suite that
+publishes this recipe rather than silently invalidating it.
+
 Two ways this is got wrong by inferring the rule from samples rather than reading it here. Deciding
 the shape by *frontmatter* scores well on a corpus that is mostly `.md` and is the wrong variable —
 frontmatter is an exception inside the `html` family, not a rule over all of them. And a one-line
