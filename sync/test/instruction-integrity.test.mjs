@@ -120,6 +120,83 @@ test('no pinned pattern depends on the emphasis characters a formatter would rew
   }
 });
 
+function reflowProse(text, width = 44) {
+  // Mimics what a prose-wrapping formatter does: rewrap running text, leave fenced code, tables and
+  // frontmatter alone. Narrower than any real printWidth so a break lands inside essentially every
+  // pinned phrase rather than the three that `prettier --prose-wrap always` happens to hit today.
+  const out = [];
+  let fenced = false;
+  const lines = text.split('\n');
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (/^\s*```/.test(line)) fenced = !fenced;
+    const frontmatter = i < 6 && /^(---|applyTo:|description:)/.test(line);
+    if (fenced || frontmatter || /^\s*```/.test(line) || /^\s*#/.test(line) || /^\s*\|/.test(line)) {
+      out.push(line);
+      continue;
+    }
+    const indent = line.match(/^[\s>*\-+]*/)[0];
+    const body = line.slice(indent.length);
+    if (!body.includes(' ') || indent.length >= width) {
+      out.push(line);
+      continue;
+    }
+    let current = indent;
+    let first = true;
+    for (const word of body.split(' ')) {
+      if (!first && current.length + 1 + word.length > width) {
+        out.push(current);
+        current = ' '.repeat(indent.length) + word;
+      } else {
+        current = first ? current + word : `${current} ${word}`;
+      }
+      first = false;
+    }
+    out.push(current);
+  }
+  return out.join('\n');
+}
+
+test('no pinned pattern depends on where the corpus happens to be hard-wrapped', () => {
+  // Every pinned pattern spells a phrase with literal spaces and used to be matched against raw
+  // bytes, so each one silently depended on canon's line breaks never falling inside it. Measured
+  // with `prettier --prose-wrap always`: 7 of 7 files reflow and 3 patterns then report guidance as
+  // missing from text that still states the rule exactly.
+  //
+  // This was already known one instance at a time, which is why it is worth a corpus-wide guard.
+  // Two `infrastructure-operations` patterns are hand-written `second\s+access\s+path` and
+  // `canonical repository\s+state`, and both of those `\s+` sites sit on a real newline in the
+  // source — the author hit the failure twice while authoring, patched the two phrases their own
+  // wrap straddled, and left the rest resting on wrap positions holding still. A test built from
+  // those three phrases would pass for every pattern that straddles a different break, so this one
+  // reflows the whole corpus and asserts through validateInstructionIntegrity.
+  const tmp = mkdtempSync(join(tmpdir(), 'canon-reflow-'));
+  try {
+    cpSync(REPO_ROOT, tmp, {
+      recursive: true,
+      filter: (src) => !src.includes(`${sep}.git${sep}`) && !src.endsWith(`${sep}.git`),
+    });
+
+    const dir = join(tmp, 'instructions');
+    let rewritten = 0;
+    for (const file of readdirSync(dir).filter((name) => name.endsWith('.instructions.md'))) {
+      const path = join(dir, file);
+      const original = readFileSync(path, 'utf8');
+      const reflowed = reflowProse(original);
+      if (reflowed === original) continue;
+      writeFileSync(path, reflowed);
+      rewritten += 1;
+    }
+    assert.ok(rewritten > 0, 'no file reflowed; the rewrite matched nothing and proves nothing');
+
+    const manifest = loadManifest(tmp);
+    const records = validateInstructionIntegrity(tmp, manifest);
+    assert.ok(records.some((record) => record.name === 'workflow'));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test('workflow and documentation surfaces use immutable reusable workflow examples', () => {
   for (const relativePath of [
     'README.md',
