@@ -6,6 +6,8 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { validateInstructionIntegrity } from '../lib/instruction-integrity.mjs';
 import { loadManifest } from '../lib/manifest.mjs';
+import { enumerateTargets } from '../lib/assets.mjs';
+import { resolveAll } from '../lib/resolve.mjs';
 
 const REPO_ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 
@@ -335,16 +337,108 @@ test('every heading citation in canon resolves to a real heading', () => {
 // reach no member, and docs/sync.md is where the rule itself is argued -- it has to be able to quote
 // the bad form as an example. That is the same hazard as canon quoting `studio:base:start` in prose
 // while the marker check counts only the delimiter form.
+//
+// The detector below used to enumerate extensions -- `mjs|js|json|ya?ml` -- which gave the rule a
+// durable half and a fragile half that decay independently. "Cite by name, not by position" stays
+// true forever; the list of file types it can see rots every time canon delivers a new one. Measured
+// against the delivery surface, the two had gone fully disjoint: 653 writes across `.md`,
+// `.agent.md`, `.prompt.md`, `.instructions.md`, `.toml` and `.gitattributes`, and the detector
+// could see *none* of them. A member-facing instruction citing `AGENTS.md:120` or `agency.toml:14`
+// -- both delivered targets, and the likeliest things such a file would point at -- was invisible.
+//
+// The rule's expected count is zero, so nothing about that was observable: a detector that matches
+// nothing and a corpus that contains nothing report the identical `pass`. The old control probed two
+// `.mjs` citations, which demonstrates the pattern can return non-empty for the extensions it was
+// born with and says nothing about the claim, which is about coordinate citations as such.
+//
+// So the extension is no longer enumerated, and the control's population is derived from the
+// delivery surface rather than transcribed -- the same reasoning as the `requirePatterns` count
+// check below. A future canon kind shipping `.kt` or `.swift` widens this control automatically.
 test('member-facing instructions cite code by name, not by line number', () => {
   const dir = join(REPO_ROOT, 'instructions');
   const files = readdirSync(dir).filter((name) => name.endsWith('.instructions.md'));
 
-  // A citation is a backticked source file followed by a line or line range.
-  const CITATION = /`[A-Za-z0-9_./-]+\.(?:mjs|js|json|ya?ml)*:\d+(?:-\d+)?`/g;
+  // A citation is a backticked path-like token followed by a line or line range. "Path-like" is
+  // required to hold a letter and a `.` or `/`, which is what separates `AGENTS.md:120` from a
+  // clock reading (`10:30`) or an image tag (`ubuntu:22`) without naming any file type.
+  const COORDINATE = /`[A-Za-z0-9_./-]+:\d+(?:-\d+)?`/g;
+  const citations = (text) =>
+    (text.match(COORDINATE) ?? []).filter((hit) => {
+      const token = hit.slice(1, hit.lastIndexOf(':'));
+      return /[A-Za-z]/.test(token) && /[./]/.test(token);
+    });
 
   // The expected count is zero, so the detector has to be shown capable of returning the other
   // answer. A pattern that matches nothing passes this test perfectly while checking nothing.
-  assert.deepEqual('see `copier.mjs:217-218` and `assets.mjs:131`'.match(CITATION), [
+  //
+  // The population is every extension canon actually delivers, read from the engine, so this cannot
+  // silently narrow to the file types that happened to exist when it was written.
+  const extensionOf = (targetPath) => {
+    const base = targetPath.split('/').pop();
+    return base.includes('.') ? base.slice(base.indexOf('.')) : base;
+  };
+
+  const writes = [];
+  for (const member of resolveAll(loadManifest(REPO_ROOT))) {
+    writes.push(...enumerateTargets(member, REPO_ROOT).writes);
+  }
+  assert.ok(writes.length > 0, 'no delivered writes discovered — this control would be vacuous');
+
+  const delivered = new Set();
+  for (const write of writes) delivered.add(extensionOf(write.targetPath));
+
+  // A non-empty population is not a complete one. Emptying the set above trips the vacuity guard,
+  // but *narrowing* it -- collecting one extension and dropping the rest -- leaves a set that still
+  // probes successfully while covering less than it claims, and nothing observes the difference.
+  // That is the same fragile half this test was rewritten to remove, one level up in its own
+  // control, so the coverage relation is checked through an independent aggregation: every
+  // extension every write-producing canon kind delivers must appear among the probes.
+  //
+  // It is a named function rather than an inline loop because an inline guard is only ever run
+  // against a corpus that satisfies it, which is indistinguishable from no guard. Below it is
+  // called on a deliberately narrowed probe set, so the failing direction is exercised too.
+  const uncoveredKinds = (delivery, probes) => {
+    const byKind = new Map();
+    for (const write of delivery) {
+      if (!byKind.has(write.kind)) byKind.set(write.kind, new Set());
+      byKind.get(write.kind).add(extensionOf(write.targetPath));
+    }
+    if (byKind.size === 0) throw new Error('no write-producing kinds — this cross-check would be vacuous');
+    const missing = [];
+    for (const [kind, extensions] of byKind) {
+      for (const extension of extensions) {
+        if (!probes.has(extension)) missing.push(`${kind} delivers ${extension}`);
+      }
+    }
+    return missing;
+  };
+
+  assert.deepEqual(
+    uncoveredKinds(writes, delivered),
+    [],
+    'the probe population must cover every extension every canon kind delivers',
+  );
+
+  // The guard's failing state, constructed: a probe set narrowed to one extension must be reported
+  // as uncovering the kinds it dropped, or the assertion above is decorative.
+  const narrowed = uncoveredKinds(writes, new Set(['.toml']));
+  assert.ok(
+    narrowed.length > 0 && narrowed.some((entry) => entry.includes('.md')),
+    `a narrowed probe set must be reported as uncovered, got: ${JSON.stringify(narrowed)}`,
+  );
+
+  for (const extension of delivered) {
+    const probe = `see \`docs/example${extension}:120\` for the rule`;
+    assert.deepEqual(
+      citations(probe),
+      [`\`docs/example${extension}:120\``],
+      `a coordinate citing a delivered ${extension} target must be detectable`,
+    );
+  }
+
+  // Both directions, so the filter above is pinned as a filter and not merely as a pass-through.
+  assert.deepEqual(citations('at `10:30` we pulled `ubuntu:22`'), [], 'non-paths are not coordinates');
+  assert.deepEqual(citations('see `copier.mjs:217-218` and `assets.mjs:131`'), [
     '`copier.mjs:217-218`',
     '`assets.mjs:131`',
   ]);
@@ -366,7 +460,7 @@ test('member-facing instructions cite code by name, not by line number', () => {
       if (!inFence) prose.push(line);
     }
 
-    const found = prose.join('\n').match(CITATION) ?? [];
+    const found = citations(prose.join('\n'));
     assert.deepEqual(
       found,
       [],
