@@ -3078,7 +3078,12 @@ If you build a coverage check for this, three traps are known to be live:
   the ratio and not the operands: subtraction cancels a constant offset exactly, a ratio cancels it
   to within its own magnitude, and only the bare count carries it undiminished. Here the two figures
   that survived a three-figure audit were precisely the two that were not absolute counts, and they
-  survived for that reason rather than because they were measured more carefully.
+  survived for that reason rather than because they were measured more carefully. **But an invariant
+  can also hold for a reason local to where the change fell, so reproducing it is not evidence that
+  it is robust.** A peer's corpus difference of `204` reproduced here exactly against a corpus whose
+  raw total had moved from `49814` to `81280` — because all `31,466` units of growth landed in the
+  one body that contains no CRLF at all. The quantity the difference cancels was untouched by the
+  change, which is luck about the location of an edit, not a property of the statistic.
 - **The terminator carries its own convention, and a scalar count of line endings conflates it with
   the body's.** Sweeping all 57 issue and pull-request bodies in one member, 12 are "mixed" by a
   CRLF count — but in 10 of those the single CRLF sits at exactly `len - 2`, so the body is pure LF
@@ -3716,6 +3721,30 @@ Note also that edit provenance cannot separate actors under a single identity �
 across this corpus is the same account, so a session cannot exclude its own influence on a
 revision-history sample by avoiding its own documents. Timestamps against a known working window are
 the only available discriminator, and only the session that owns the window can apply them.
+
+**A second discriminator was proposed to close that gap, and it cannot.** Line-ending composition
+fingerprints the *authoring path* rather than the identity, and the two come apart exactly where the
+login is degenerate, since one account drives several tools — so it looks like the missing channel.
+Measured across a member's complete corpus of 57 bodies, all 57 under one login, it sorts into four
+classes and not two: 31 pure LF, 14 pure CRLF, 10 pure LF closed by a lone CRLF terminator, and 2
+mixed throughout. The proposal had been read off nine hand-picked objects, which excluded every one
+of the fourteen pure-CRLF ones.
+
+**And the mixture records editing, not authorship.** Both mixed bodies were *created* pure CRLF by
+that same account and became mixed on a later edit — one going from `75` CRLF and `0` LF to `75` and
+`38` thirteen minutes later, the other frozen at `42` CRLF across five successive edits while its LF
+count climbed `17, 56, 89, 125, 158`. The creating client's endings survive untouched while the
+editor's accrete beside them, so composition measures **how many paths have touched a body**, never
+which agent wrote it: sequential provenance, not identity provenance. At creation both mixed objects
+were indistinguishable from fourteen others.
+
+The reason it fails is structural rather than a matter of accuracy, and it generalises. **A channel
+that only fires when two paths differ cannot support a negative claim.** An unmixed body is the
+expected result whenever the writing and editing paths agree, which is 45 of these 57, so absence of
+mixing is not evidence of non-interference — it is evidence of nothing. A discriminator is usable
+for *exclusion* only if its silent state is rare; where silence is the majority state it can confirm
+interference and can never rule it out, and offering it for the second purpose inverts what it
+knows.
 
 **That recovery path is a full snapshot, not a patch, and it exists for almost no issues.** The
 `diff` field is named misleadingly: measured here, the newest node is byte-identical to the current
