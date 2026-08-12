@@ -809,6 +809,34 @@ discriminator is re-measurement, not shape: a convention survives re-measuring b
 same named revision, and a lag vanishes. Reach for the definitional explanation last, because *we
 were using different definitions* is the reconciliation that lets both parties keep their numbers.
 
+**A sample cannot establish that a population is uniform, because uniformity is the one property the
+sampling rule has to be cleared of first.** A session measuring how far members lag canon sampled
+five, found byte-identical files, and concluded *this is not per-member drift — it is fleet-wide*.
+Extending the same measurement to all nine members that receive the file:
+
+```
+9,834 bytes   one member
+12,537        two members
+23,263        five members   <- the sampled cohort
+48,840        one member
+```
+
+**Four distinct blobs, spanning a fivefold range.** The five that agreed are exactly one cohort, and
+the four never sampled hold the three other versions. Drift is per-member; the sample could not have
+shown it. This is not a small-sample complaint — the numbers were right and the file identity was
+right. The inference *identical, therefore uniform* requires the sample to have been drawn
+independently of the thing that determines the value, and here that value is the last delivery, which
+also determines which members look alike. **Members that synced together agree with each other for a
+reason that has nothing to do with the fleet.**
+
+The practical remedy is cheap and the epistemic one is not. Cheap: where a population is enumerable —
+and a manifest of eleven is — measure all of it and skip sampling entirely. Otherwise **publish how
+the sample was chosen alongside what it showed**, since homogeneity is uninterpretable without it: an
+unstated selection rule cannot be audited, and agreement is the result it most easily manufactures.
+Note the direction, which is what makes this expensive rather than merely wrong: uniformity is the
+*simplifying* finding. It converts a heterogeneous repair into one action, so it terminates the
+investigation that would have found the other three versions.
+
 **And never write an unresolvable citation, even as an example.** There is no markup for
 use-versus-mention, so a document exhibiting a broken locator to illustrate the defect is
 indistinguishable from a document containing one — to a checker and to a skimming reader alike. This
