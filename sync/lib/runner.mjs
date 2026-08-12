@@ -188,6 +188,19 @@ export function summarizeCheck(results) {
 }
 
 /**
+ * The scope of a run, as one phrase.
+ *
+ * Shared by the step summary and the console tally so the two cannot drift: the console line is
+ * the one a reader tails, and for a long time it stated a tally without the population it was
+ * drawn from. See `renderRunSummary` for why a scoped tally is the only honest one.
+ */
+export function formatScope(members = [], fleetSize = null, fallbackSize = null) {
+  return members.length
+    ? `${members.length} of ${fleetSize ?? '?'} member(s): ${members.join(', ')}`
+    : `all ${fleetSize ?? fallbackSize ?? '?'} member(s)`;
+}
+
+/**
  * The run summary written to GITHUB_STEP_SUMMARY.
  *
  * A run's published result is one bit wide, and a red bit says only "something went wrong" —
@@ -201,14 +214,16 @@ export function summarizeCheck(results) {
  * concluded from exactly that entry that the transport was healthy. So the summary states mode
  * and scope first: an outcome tally means nothing without knowing what was attempted.
  *
+ * This surface is not enough on its own. The same tally prints to stdout, which is what
+ * `gh run view --log` shows, and a scope stated only here is absent from the surface people read
+ * — a member-filtered run reads `1 of 1 target(s) succeeded` in the log and looks fleet-wide.
+ *
  * Failures lead, because a summary is read top-down and the failing rows are the actionable ones.
  */
 export function renderRunSummary(outcomes, { mode = 'sync', members = [], fleetSize = null } = {}) {
   const failed = outcomes.filter((o) => o.status === 'failed');
   const succeeded = outcomes.filter((o) => o.status !== 'failed');
-  const scope = members.length
-    ? `${members.length} of ${fleetSize ?? '?'} member(s): ${members.join(', ')}`
-    : `all ${fleetSize ?? outcomes.length} member(s)`;
+  const scope = formatScope(members, fleetSize, outcomes.length);
   const lines = [
     `### Studio sync — ${MODE_LABELS[mode] ?? mode}`,
     '',

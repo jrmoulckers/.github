@@ -7,7 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { formatDriftWarning, partitionFailures, renderRunSummary, summarizeCheck, syncMembers } from '../lib/runner.mjs';
+import { formatDriftWarning, formatScope, partitionFailures, renderRunSummary, summarizeCheck, syncMembers } from '../lib/runner.mjs';
 
 const plan = (repo) => ({ resolved: { repo }, targets: { writes: [] } });
 const ctx = { token: 'x', date: '2026-08-03', backbone: 'jrmoulckers/.github' };
@@ -146,6 +146,38 @@ test('the summary is actually wired to the CI surface', () => {
   assert.match(source, /renderRunSummary/, 'index.mjs must render the summary');
   assert.match(source, /GITHUB_STEP_SUMMARY/, 'index.mjs must write it where Actions surfaces it');
   assert.match(source, /publishRunSummary\(outcomes, opts, manifest, 'sync'\)/, 'runSync must publish before returning');
+});
+
+test('the console tally states its scope, not only the step summary', () => {
+  // Observed in run 31606860225: a member-filtered sync ended `1 of 1 target(s) succeeded.` in the
+  // log — true, green, and silent about the fleet being 11 with 10 never attempted. The scope rule
+  // was implemented in renderRunSummary and reached only GITHUB_STEP_SUMMARY, which
+  // publishRunSummary skips outright when the variable is unset. stdout is the surface
+  // `gh run view --log` shows and the one a reader tails, so a fix that stops at the reported
+  // surface leaves the read surface unfixed.
+  const source = readFileSync(new URL('../index.mjs', import.meta.url), 'utf8');
+  const flat = source.replace(/\s+/g, ' ');
+  const tallies = flat.match(/target\(s\) succeeded.{0,140}/g) ?? [];
+  assert.ok(tallies.length > 0, 'index.mjs must print a tally');
+  for (const line of tallies) {
+    assert.match(line, /scope/i, `every console tally must state its scope: ${line}`);
+  }
+  // One formatter, not two: the step summary and the console must not be able to disagree.
+  assert.match(
+    flat,
+    /formatScope\(opts\.members, manifest\.members\.length/,
+    'the console scope must come from the shared formatter rather than a second copy',
+  );
+});
+
+test('formatScope names the fleet in both branches', () => {
+  // The filtered branch is the one that bit us, but the unfiltered branch is the one that must not
+  // silently report a filtered population as the whole fleet.
+  assert.equal(formatScope(['o/studio'], 11, 1), '1 of 11 member(s): o/studio');
+  assert.equal(formatScope([], 11, 11), 'all 11 member(s)');
+  // A missing fleet size must degrade to an explicit unknown, never to the sample's own size —
+  // that substitution is what makes a filtered tally read as complete.
+  assert.equal(formatScope(['o/a'], null, 1), '1 of ? member(s): o/a');
 });
 
 test('a dry run says so, so a green badge cannot read as delivery', () => {
