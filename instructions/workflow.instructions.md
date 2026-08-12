@@ -3404,6 +3404,31 @@ current each time — the mechanism was that replies ran two messages behind, so
 observations re-reported *the same original footer* as fresh evidence. Three sightings, one
 underlying sample, and a trend asserted from a series of length one.
 
+**And an indicator whose predicted direction is monotone confirms the prediction whether or not it
+was re-measured.** A correspondent tracked how much of canon their copy carried and published
+`14.5%`, then `13.5%`, reading it as *falling, as expected, without anything happening here*. The
+mechanism is right — canon grows, a copy that receives nothing keeps its line count, so the ratio
+must decay. But the numerator had been taken eight revisions and some fifteen hours earlier, across
+a delivery that had since landed, and the true figure was `93.1%`. **The ratio behaved exactly as
+predicted while being wrong by a factor of seven, and it behaved that way because the numerator was
+frozen**: a stale numerator falls more reliably than a fresh one, since nothing in it can move
+against the trend.
+
+That is why the confirmation carries no information. A prediction of monotone decay is satisfied by
+the healthy case and the failure case alike, so agreement with it cannot separate them, and the
+failure presents as the hypothesis working. Nor does recomputation help. Each pass yields a
+*different* number, so it never trips the tell above of one datum re-observed — the variation is
+entirely denominator-side and reads as fresh evidence. Contrast a figure free to move either way,
+where a frozen term eventually contradicts something.
+
+This repo has the same exposure and it is worth stating rather than exempting: the corrected figure
+reads `93.1%` here where it read `93.9%` hours earlier, for the identical denominator-side reason,
+and this repo's numerator is equally frozen — merely still correct, because no further delivery has
+occurred. **Nothing in either number says which.** So publish both terms with the revision and time
+each was taken at, rather than the ratio: a ratio is one number carrying two measurement dates and
+displaying neither. Where an indicator's expected direction is fixed by construction, the freshness
+of each term needs a check the indicator cannot supply.
+
 **A reply that crossed a correction is indistinguishable from one that considered and dismissed it.**
 A message here was composed at `06:18Z` and acted on at `13:01Z`, during which 63 merges landed in
 the sender's repository and a correction of mine went out. Their message answers none of it, for the
