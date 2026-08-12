@@ -82,19 +82,21 @@ test('the documented audit check is line-ending agnostic on the member side', ()
 // artifacts. Neither extension was classified, so both were written as broken files. The `dist/`
 // contract table in docs/sync.md described a web-only distribution, which is why the gap was not
 // obvious from the docs either.
-test('every vendored @jrm/tokens file type gets a header its own compiler accepts', () => {
-  const cases = [
-    ['native/compose/JrmTokens.kt', 'block'],
-    ['native/swift/JRMTokens.swift', 'block'],
-    ['css/default/tokens.css', 'block'],
-    ['js/default/tokens.high-contrast-dark.js', 'block'],
-    ['js/default/tokens.high-contrast-dark.d.ts', 'block'],
-    ['tailwind/default.cjs', 'block'],
-    ['js/default/tokens.js.map', 'none'],
-    ['tokens.json', 'none'],
-  ];
+// Shared with the contract-table test below, so the exercised set and the set checked against canon
+// cannot drift apart — a second transcription would reintroduce exactly the gap being closed.
+const VENDORED_TOKEN_CASES = [
+  ['native/compose/JrmTokens.kt', 'block'],
+  ['native/swift/JRMTokens.swift', 'block'],
+  ['css/default/tokens.css', 'block'],
+  ['js/default/tokens.high-contrast-dark.js', 'block'],
+  ['js/default/tokens.high-contrast-dark.d.ts', 'block'],
+  ['tailwind/default.cjs', 'block'],
+  ['js/default/tokens.js.map', 'none'],
+  ['tokens.json', 'none'],
+];
 
-  for (const [path, expected] of cases) {
+test('every vendored @jrm/tokens file type gets a header its own compiler accepts', () => {
+  for (const [path, expected] of VENDORED_TOKEN_CASES) {
     const out = inject(path, 'CONTENT\n', { note: 'vendored' });
     assert.ok(!out.startsWith('<!--'), `${path}: an HTML comment here is not a comment`);
 
@@ -103,6 +105,64 @@ test('every vendored @jrm/tokens file type gets a header its own compiler accept
     } else {
       assert.equal(out, '/* vendored */\nCONTENT\n', `${path}: needs a block comment`);
     }
+  }
+});
+
+// The case list above is transcribed, and the incident it commemorates was a *table* that fell
+// behind reality: canon described a web-only distribution while studio shipped native output, so
+// neither the docs nor this list showed the gap. Transcription can drift in both directions, and
+// nothing here would notice a row added to canon's contract that no one classified.
+//
+// This binds the two together. The contract table in docs/sync.md is the studio-side interface, and
+// it is the artifact a person edits when the distribution grows. Parsing it means the next row added
+// must classify, or this fails — the failure mode that actually occurred, caught at the moment the
+// table changes rather than mid-sync in a member repo.
+test('canon\u2019s declared dist/ contract is classifiable and matches the cases above', () => {
+  const doc = readFileSync(join(ROOT, 'docs', 'sync.md'), 'utf8');
+  const heading = doc.indexOf('### The `dist/` path contract');
+  assert.notEqual(heading, -1, 'the dist/ contract heading moved; this test locates the table by it');
+  const table = doc
+    .slice(heading)
+    .split('\n\n')
+    .find((block) => block.includes('| Path under'));
+  assert.ok(table, 'the dist/ contract table is no longer under its heading');
+
+  const rows = table
+    .split('\n')
+    .filter((line) => line.startsWith('| `'))
+    .map((line) => line.split('|').slice(1, -1));
+  // A parser that silently matches nothing reports a clean result, which is the defect this file
+  // exists to catch. Require the population before asserting anything about it.
+  assert.ok(rows.length >= 8, `parsed ${rows.length} contract rows; the table has more than that`);
+
+  const extensionOf = (path) => path.slice(path.lastIndexOf('.'));
+  const declared = new Set();
+  for (const cells of rows) {
+    const path = /`([^`]+)`/.exec(cells[0])?.[1];
+    assert.ok(path, `a contract row has no backticked path: ${cells[0]}`);
+    if (path.includes('*')) {
+      // A glob row cannot be classified directly, so it contributes the concrete extensions its
+      // own description names. A glob that names none would contribute nothing while looking
+      // inspected, so require at least one.
+      const globbed = [...cells.join('|').matchAll(/`\*(\.[a-z.]+)`/g)].map((match) => match[1]);
+      assert.ok(globbed.length > 0, `${path}: a glob row names no concrete extension to classify`);
+      for (const extension of globbed) declared.add(extension);
+      continue;
+    }
+    declared.add(extensionOf(path));
+    assert.doesNotThrow(
+      () => commentSyntaxFor(path),
+      `${path} is promised by canon's dist/ contract but has no comment syntax`,
+    );
+  }
+
+  // Suffix, not equality: canon writes `*.d.ts` where `extensionOf` yields `.ts`, and both name the
+  // same artifact. The relation being asserted is "some exercised case is of this type".
+  for (const extension of declared) {
+    assert.ok(
+      VENDORED_TOKEN_CASES.some(([path]) => path.endsWith(extension)),
+      `canon's dist/ contract declares ${extension}, but no case above exercises it`,
+    );
   }
 });
 
@@ -352,11 +412,27 @@ test('an unclassified type is refused by the stamper rather than given HTML', ()
   assert.equal(inject('dist/map.json', '{}\n'), '{}\n');
 });
 
-test('every file the engine plans to write is classified, so the throw is unreachable today', () => {
+// The scope in the title is load-bearing. `enumerateTargets` partitions into three buckets and this
+// walks one: `writes` carries the rendered canon files, while `native` (health, workflows) and
+// `external` (the vendored @jrm/tokens dist) are excluded by construction — token specs cannot be
+// enumerated at all without a studio checkout. The walked corpus is Markdown, TOML and a few
+// extensionless files; not one of the seven types canon's dist/ contract promises appears in it.
+//
+// That matters because the count is large and reads as thorough. `checked` in the hundreds looks
+// like coverage of everything the engine writes, and the throw it declares unreachable is reached
+// through `enumerateTokenTargets`, on exactly the population this cannot see. The token side is
+// covered by the two dist/-contract tests above; this names its own boundary so the two are not
+// mistaken for one.
+test('every rendered file the engine plans to write is classified — token and native kinds are walked above', () => {
   const members = resolveAll(loadManifest(ROOT));
   let checked = 0;
+  let unobserved = 0;
+  const buckets = new Set();
   for (const member of members) {
-    for (const spec of enumerateTargets(member, ROOT).writes) {
+    const targets = enumerateTargets(member, ROOT);
+    for (const bucket of Object.keys(targets)) buckets.add(bucket);
+    unobserved += (targets.native?.length ?? 0) + (targets.external?.length ?? 0);
+    for (const spec of targets.writes) {
       if (spec.type !== 'file') continue;
       assert.doesNotThrow(
         () => commentSyntaxFor(spec.targetPath),
@@ -366,6 +442,14 @@ test('every file the engine plans to write is classified, so the throw is unreac
     }
   }
   assert.ok(checked > 0, 'no planned writes inspected: this test would assert nothing');
+  // A fourth bucket would be silently unwalked and silently undisclosed, which is how a partial walk
+  // comes to be read as a total one. Fail instead, so the choice is made deliberately.
+  assert.deepEqual(
+    [...buckets].sort(),
+    ['external', 'native', 'writes'],
+    'enumerateTargets grew a bucket this walk neither inspects nor declares',
+  );
+  assert.ok(unobserved > 0, 'nothing is excluded, so the scope in this test\u2019s name is describing nothing');
 });
 
 test('the encoding caveat is two-sided: some delivered bodies are ASCII, some are not', () => {
