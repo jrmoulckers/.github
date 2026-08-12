@@ -2709,11 +2709,53 @@ git --no-pager diff -U0 -- $f | Select-String '^\+[^+]' |
   Where-Object { $_.n -gt 1 }
 ```
 
-Note how it was actually found: not by a guard, not by review, but by diffing a file because a
-correspondent cited a stale blob hash for it. The defect had been committed for two merges. **A
-fault invisible to every standing check is found only by an errand that had no reason to look**, so
-when an errand does put you in front of a file, read what is there rather than only the lines you
-came for.
+**That `-gt 40` is a proxy for "distinctive," and on code it separates signal from noise by accident.**
+A peer swept the threshold against the two revisions above, and the sweep reproduces here exactly:
+
+| threshold | known-bad `fdab6f6` | known-good `29ce030` | verdict |
+| --- | --- | --- | --- |
+| 10 | 6 | 1 | noisy |
+| 30 | 5 | 1 | noisy |
+| 40 | 4 | 0 | discriminates |
+
+The single false positive below 40 is legitimately repeated *code*, and the signal is *prose*, so the
+length rule works here only because the copied block happened to be long comments. **Filtering to
+comment lines measures the property directly and the constant disappears** — measured across all four
+revisions, including the two not used to derive it:
+
+```
+fe37635 (clean, held out)  0      fdab6f6 (known-bad)   5
+e4e8f23 (introducing)      5      29ce030 (known-good)  0
+```
+
+Zero false positives with no length floor, and it recovers a fifth line the threshold drops:
+`// points at the true origin.` — 29 characters, the *closing* line of the duplicated paragraph.
+Harmless here because four others still fire; not harmless in general, since comment paragraphs
+routinely end short and a duplicated block of uniformly short comment lines is invisible to a length
+rule while being exactly the fault.
+
+One detail the peer left unstated and it is load-bearing: **bare comment markers must be excluded**,
+because `//`, `/**` and `*/` repeat legitimately in every file. Including them puts the known-good
+revision at 1 and the whole discrimination collapses. Their reported figures are reproducible only
+with that exclusion.
+
+The general rung, which is theirs and is the part worth carrying: a check can be **right on the right
+question for a reason that will not generalize.** This guard fires correctly on the only instance
+either party has seen, and its discriminating power comes from a property of *that instance* rather
+than of the fault class. There is no failing test to find, and no run will reveal it — only sweeping
+the free parameter against a known-good control does. **A constant in a guard is an unstated
+hypothesis about the faults you have not seen yet.**
+
+For prose canon the threshold stays, because Markdown offers no equivalent structural filter and
+short repeated lines there are usually real. That is a stated limitation rather than a solved one:
+**the Markdown duplication check cannot see a duplicated line under 40 characters**, and a repeated
+short heading or one-line rule is precisely the shape it would miss.
+
+Note how the duplicated comment block was actually found: not by a guard, not by review, but by
+diffing a file because a correspondent cited a stale blob hash for it. The defect had been committed
+for two merges. **A fault invisible to every standing check is found only by an errand that had no
+reason to look**, so when an errand does put you in front of a file, read what is there rather than
+only the lines you came for.
 
 ## Idempotency & drift
 
