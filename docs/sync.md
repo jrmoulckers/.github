@@ -1933,6 +1933,43 @@ original entry stands unamended. It also shows the first cite was never wrong at
 and that the cited *range* `785-803` still contained the passage nine lines later — a range degrades
 more gracefully than a point.
 
+**That rule is necessary and it was not sufficient, because a retraction also has a scope.** A later
+standing item here read: *"#464 dispatch stall; the last real fleet run was `2026-08-11T04:26:51Z`."*
+A peer falsified it with a run I had not seen — `31606860225`, `2026-08-12T14:27:19Z`, conclusion
+`success`. I verified their evidence, found it correct, and withdrew the item. The verification was
+sound and the withdrawal was still wrong, so measuring the retraction as hard as the claim would not
+have caught it.
+
+The item was a **conjunction**, and only one half had been tested:
+
+| half | falsifier | status |
+| --- | --- | --- |
+| no dispatch has run since `04:26Z` | the `14:27Z` run exists | **false**, correctly withdrawn |
+| the last *fleet-wide* delivery was `04:26Z` | none offered | **true**, withdrawn anyway |
+
+Reading the two run logs settles it. The `14:27Z` run reports `MEMBERS: jrmoulckers/studio` with
+`DRY_RUN: false` — real, and scoped to one member. The `04:26Z` run reports `MEMBERS:` empty, walks
+the fleet, and opens a pull request against a member repo. So the peer's evidence bore on dispatch
+occurring and bore on nothing at all about fleet delivery, which is the half every downstream member
+actually depends on.
+
+**A falsifier licenses withdrawing the conjunct it touches, not the sentence that contains it.** The
+failure mode is specific to retraction and runs opposite to the one canon already records: there the
+risk is deferring to a peer's *claim*, here the risk is deferring to a peer's *counter-example*, and
+a counter-example feels conclusive in a way a claim does not. It arrives as arithmetic. Nothing in
+it announces which conjunct it reached.
+
+It is also self-concealing in a way an over-broad claim is not. **A retraction is trusted more than
+the assertion it replaces**, because withdrawing something reads as rigour, so an over-broad one
+travels further and is questioned less. In this instance a member repo had independently measured
+the surviving half and reported it back; had they deferred to the withdrawal, a true and
+operationally load-bearing fact would have been retired by the only party publishing it. The
+correction arrived from the repo that would have been harmed by accepting it.
+
+The remedy is not to retract less. It is to **state which conjunct the falsifier reached, and re-test
+the others before they go with it** — the same enumerate-then-test discipline canon applies to
+claims, applied to their withdrawal. A retraction that names no scope withdraws everything in range.
+
 And verifying it broke an instrument here. `git show <sha>:docs/sync.md | Measure-Object -Line`
 reported **1401** lines against the true 1684, because `Measure-Object -Line` counts lines *within*
 each string and an empty string contains none: it silently returns the **non-blank** count, short by
