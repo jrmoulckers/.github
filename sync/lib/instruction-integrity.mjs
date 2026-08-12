@@ -279,24 +279,31 @@ function validateImmutableWorkflowExamples(repoRoot, errors) {
  * Each delimiter is matched against its own character class, not against both. A description is a
  * sentence of English, so possessives and contractions are the ordinary case rather than the exotic
  * one; a class excluding both quote characters rejected `"a session's own file"`, which is valid
- * YAML and the natural way to write it. The single-line restriction is deliberate and stays — it is
- * what keeps the block unambiguous — but YAML offers folded scalars, `skills/*\/SKILL.md` uses them,
- * and this parser cites that surface as its precedent, so an author will reach for one. Both limits
- * are therefore named in the failure rather than left to be inferred from a rejected line that looks
- * correct.
+ * YAML and the natural way to write it.
+ *
+ * The single-line restriction is deliberate and stays, and the precedent does not argue against it.
+ * `skills/*\/SKILL.md` is cited above as evidence that a description is worth *requiring* — 17 of 17
+ * carry one and a consumer indexes them by it — but that is an argument about the field, not about
+ * how its value is written. On style the two surfaces diverge on purpose: every one of those 17 uses
+ * a folded block scalar, and none is accepted here, because a block scalar ends where its indentation
+ * ends, so knowing where the value stops means parsing YAML rather than matching a shape. The
+ * anchored two-scalar form is what proves this block holds exactly `applyTo` and `description` and
+ * nothing else. An author who reaches for `description: >` because every neighbouring file uses one
+ * is therefore refused by design; the failure says so, rather than leaving a correct-looking line to
+ * read as an oversight.
  */
 function parseFrontmatter(relativePath, text, errors) {
- const match = text.match(
-   /^---\napplyTo:\s*(?:'([^'\n]+)'|"([^"\n]+)")\ndescription:\s*(?:'([^'\n]+)'|"([^"\n]+)")\n---(?:\n|$)/,
- );
- if (!match) {
-   errors.push(
-     `${relativePath}: requires frontmatter of exactly two single-line quoted scalars, applyTo then description ` +
-       `(a value may contain the quote character it is not delimited by; folded and literal block scalars are not accepted)`,
-   );
-   return { applyTo: '', description: '' };
- }
- return { applyTo: match[1] ?? match[2], description: match[3] ?? match[4] };
+  const match = text.match(
+    /^---\napplyTo:\s*(?:'([^'\n]+)'|"([^"\n]+)")\ndescription:\s*(?:'([^'\n]+)'|"([^"\n]+)")\n---(?:\n|$)/,
+  );
+  if (!match) {
+    errors.push(
+      `${relativePath}: requires frontmatter of exactly two single-line quoted scalars, applyTo then description ` +
+        `(a value may contain the quote character it is not delimited by; folded and literal block scalars are not accepted)`,
+    );
+    return { applyTo: '', description: '' };
+  }
+  return { applyTo: match[1] ?? match[2], description: match[3] ?? match[4] };
 }
 
 function requirePatterns(record, requirements, errors) {
