@@ -921,6 +921,22 @@ the comment body, a trailer, or the action's own description. A useful habit is 
 or merging anything states what it did and why in a comment first, which is what made the misread
 recoverable here: the close was one second after a comment no drive-by would have written.
 
+**The field is constant, not missing, and that is why it keeps being used.** Measured across one
+issue's eight comments: one distinct `user.login`, one distinct `user.type`, one distinct
+`author_association`. Three identity fields, zero discriminating power, none of them empty. A field
+that returned nothing would prompt a search for another source; a field that returns `OWNER` on
+every row answers the question asked of it and closes it.
+
+**And the rule governs recall as much as reading.** Reading the body is only half the discipline, because
+the attribution has to survive being written down. This repo read a member's cross-posted correction
+correctly, recorded the fact without its origin, reasoned later from its own record, and told that
+member their warning had been superseded — by the comment they themselves had written. Returning a
+correspondent's own work to them as evidence that their contribution was redundant is the
+characteristic harm here, and it is self-concealing: the identity field agrees with whoever is
+claiming the work. So **carry the origin into the note, not just into the read.** An attribution
+dropped at record time cannot be recovered at reuse time, and in a fleet on one account nothing
+downstream will flag its absence.
+
 **A second session confirming your number is not a second measurement.** Several sessions work these
 repositories at once and cross-check each other constantly, which is valuable for judgement and
 nearly worthless as verification when both run the same command. A line count taken by splitting on
