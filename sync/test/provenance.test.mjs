@@ -23,7 +23,7 @@ import { enumerateTargets } from '../lib/assets.mjs';
 import { inject, toLF, PROVENANCE_NOTE, hasFrontmatter } from '../lib/provenance.mjs';
 import { buildFile, canonicalizeInner, extractBlock, markersFor } from '../lib/basemerge.mjs';
 import { commentSyntaxFor, CLASSIFIED_TYPES } from '../lib/comment-syntax.mjs';
-import { hashText } from '../lib/lock.mjs';
+import { hashText, sha256 } from '../lib/lock.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const manifest = loadManifest(ROOT);
@@ -366,6 +366,36 @@ test('every file the engine plans to write is classified, so the throw is unreac
     }
   }
   assert.ok(checked > 0, 'no planned writes inspected: this test would assert nothing');
+});
+
+test('an ASCII body cannot discriminate encodings, a multi-byte body can', () => {
+  // The documented inverse audit strips the provenance line, then hashes what is left. The note is
+  // the only multi-byte content most delivered files are guaranteed to carry, so the strip removes
+  // exactly the bytes that would expose a wrong encoding. What survives into the hashed quantity is
+  // the body -- and for a pure-ASCII body every single-byte encoding agrees, so the audit passes
+  // under a broken hasher. A property of the payload is only a control if it survives the operation
+  // under test.
+  const asciiBody = 'plain ascii body\nsecond line\n';
+  assert.equal(
+    sha256(Buffer.from(asciiBody, 'latin1')),
+    sha256(Buffer.from(asciiBody, 'utf8')),
+    'ASCII body: latin1 and utf8 agree, so a green audit says nothing about the hasher',
+  );
+
+  const body = 'first body line — the em dash makes bytes differ from characters\nsecond body line\n';
+  assert.notEqual(Buffer.byteLength(body, 'utf8'), body.length, 'premise: bytes must differ');
+  assert.notEqual(
+    sha256(Buffer.from(body, 'latin1')),
+    sha256(Buffer.from(body, 'utf8')),
+    'multi-byte body: the encoding is load-bearing and a wrong one is caught',
+  );
+
+  // The strip must return the body unchanged, or the hash below is of the wrong object.
+  const injected = inject('vendor/@jrm/tokens/css/default/tokens.css', body, { note: 'n' });
+  assert.equal(injected.split('\n').slice(1).join('\n'), body, 'block family drops one line');
+
+  // Oracle frozen as a literal: recomputing it with `hashText` would move with the code it checks.
+  assert.equal(hashText(body), '92594b75f43f3aab72f63eb1ade923c6816c85e5f598125578a601e9e9b8e3f1');
 });
 
 test('the stamp is invertible per family, which is the only audit a token member can run', () => {
