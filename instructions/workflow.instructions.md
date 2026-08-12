@@ -3779,6 +3779,38 @@ second — a member was missing a rule that had been repaired, and I attributed 
 landing in a surface the member does not receive. Measured afterwards, the entire section postdated
 that member's last sync by about ten hours. **They had never held the refuted rule at all.**
 
+**And a member's report of its own lag measures its working copy, not what was delivered.** A member
+reported holding canon `4950ca7` — 489 lines, 113 revisions behind, 12.5% coverage — and asked that
+delivery be treated as blocked. Reading the destination repository instead of the report:
+
+```
+member .github/instructions/workflow.instructions.md   308,013 B   4,143 lines
+canon  d13f39a                                         307,933 B   4,143 lines
+delta 80 B = the "synced from" header the distributor prepends
+lock entry syncedAt   3m56s after that commit
+```
+
+Nineteen revisions behind, not 139; **89.0% coverage, not 12.5%**. Both objects are real and the
+member was honest about the one it measured, but only one of them is the delivery. Before accepting
+any staleness claim, fetch the file from the member's default branch and reconcile it against a
+revision — a byte delta that resolves to the distributor's own header is proof of delivery, and it
+costs one request.
+
+I then repeated the member's figure as fact in a message where I had deliberately re-derived my own
+byte count, suite count, PR count and tree state rather than carrying them forward. **A claim quoted
+next to instrument output inherits the instrument's freshness without ever touching it**, and
+re-deriving the surrounding figures is precisely what made the borrowed one look derived. A standing
+block is the worst place to put a number you are not re-measuring, because its whole function is to
+assert that everything in it is current.
+
+**Beware a per-item field that is constant across items.** The distribution lock appears to record
+delivery per file, each entry carrying its own `syncedAt`. Across all eleven members every entry's
+`syncedAt` equals the lock's `generatedAt`, so the field carries exactly the information of the
+aggregate above it while advertising resolution it does not have — the same shape as an authorship
+column that reads identically for every row. What is informative is entry *membership*: the two
+members with no canon entry are exactly the two that never opted in. **The lock's real signal is
+presence, not time**, which is the opposite of what its shape suggests.
+
 The reason this cannot be fixed by looking harder is that the disambiguating fact does not exist on
 the hub. Canon knows what it shipped and when it fixed something; it does not know when any given
 member last took delivery. That is recorded only in the member's own `.studio-sync.lock.json`, as
