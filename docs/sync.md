@@ -2685,6 +2685,22 @@ the mechanism behind the fabricated instance corrected earlier tonight — not c
 authoring, but an instance whose source expired while the entry stayed, leaving nothing that could
 ever contradict it.
 
+**A record that asserts a defect is live decays the same way, and worse, because it reads as
+current.** "That incident is not closed" is a status claim, and nothing about a comment can notice
+the incident closing — so the entry keeps asserting a live defect for however long it takes someone
+to re-check by hand, and a later reader inherits a false premise from a document that was accurate
+when written. This is the prose form of a suppression that outlives its cause: an exemption pinned
+to a defect keeps downgrading a whole class after the defect is gone, and a defect record keeps
+warning about a state that has been repaired. Both fail silently and in the reassuring direction.
+
+The remedy is the same in both layers: **state the closing condition, not the status.** Give the one
+command whose output distinguishes open from closed, say which output means which, and say to delete
+the record rather than update it. Applied at `lib/lock.mjs` for the #4062 incident, where the
+condition is a single `gh api` read of the member's lock entry. Where the mechanism can be made to
+fire, better still: an exemption that becomes a *blocking finding* once its entry starts passing
+converts an undelivered fix into something that announces its own arrival, which is the form
+`jrmoulckers/finance` adopted for the consumer side of the same incident.
+
 So when landing an entry drawn from correspondence: **cite the artifact, not the conversation.** A
 `repo@sha`, a run id, an API path and its response — anything a later reader can resolve without the
 messages. Where the instance is *only* a conversational fact, say so in the entry, so a future reader
