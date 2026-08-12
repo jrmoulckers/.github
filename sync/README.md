@@ -1280,24 +1280,37 @@ re-derive it rather than trusting a figure printed here — the predicate is *th
 after the strip, contains no byte above 0x7F*:
 
 ```js
-// from the backbone root; the denominator is whatever the engine actually delivers
+// from the backbone root; the denominator is every target this enumeration returns
 import { loadManifest } from './sync/lib/manifest.mjs';
 import { resolveAll } from './sync/lib/resolve.mjs';
 import { enumerateTargets } from './sync/lib/assets.mjs';
 import { PROVENANCE_NOTE } from './sync/lib/provenance.mjs';
 const root = process.cwd();
 const seen = new Map(); // targetPath -> delivered content, deduped across members
-for (const m of resolveAll(loadManifest(root)))
-  for (const w of enumerateTargets(m, root).writes) seen.set(w.targetPath, w.content);
+const skipped = new Set();
+for (const m of resolveAll(loadManifest(root))) {
+  const { writes, native, external } = enumerateTargets(m, root);
+  for (const w of writes) seen.set(w.targetPath, w.content);
+  for (const g of [...native, ...external]) skipped.add(g.kind);
+}
 // Measure the BODY, not the delivered file: the stamp itself carries an em dash, so every
 // delivered file is multi-byte and the unstripped count is uniformly zero -- which looks like
 // a clean "no hazard here" rather than like the wrong question.
 const body = (c) => c.split('\n').filter((l) => !l.includes(PROVENANCE_NOTE)).join('\n');
 const ascii = [...seen.values()].filter((c) => !/[^\x00-\x7F]/.test(body(c))).length;
 console.log(`${ascii} of ${seen.size} delivered bodies are pure ASCII`);
+console.log(`not measured: ${[...skipped].join(', ')}`);
 ```
 
-At the time of writing that reported a single-digit count against a corpus in the sixties,
+**That denominator is a sub-population, and the command says so.** `enumerateTargets` returns
+`writes` plus two classes it does not render: `native` kinds, which GitHub inherits and the engine
+never writes, and `external` kinds — the `@jrm/tokens` distribution, vendored from studio and
+enumerated by `enumerateTokenTargets(studioRoot)` instead. The token tree is delivered to real
+members and is exactly the corpus a member audits, so a count taken over `writes` alone understates
+by a whole class. Print what you skipped; a recipe that silently measures part of a population and
+reports it as the whole is the failure this section exists to prevent.
+
+At the time of writing the command reported a single-digit count against a corpus in the sixties,
 `agency.toml` and several `instructions/*.instructions.md` among them. A member measuring its own
 delivered corpus by the same predicate found 10 of 64 reproducing under `latin1` as well as `utf8`,
 and could not predict which ten by name, kind, or size.

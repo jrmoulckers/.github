@@ -22,21 +22,32 @@ const FILE_SUFFIX = {
 };
 
 /**
- * @returns {{ writes: TargetSpec[], native: Array<{kind, names}> }}
+ * @returns {{ writes: TargetSpec[], native: Array<{kind, names}>, external: Array<{kind, names}> }}
  * TargetSpec = { kind, name, sourcePath, targetPath, targetBase, sourceSha256, content, type }
  *   type: 'file' | 'managed'
  *   targetBase: the group's target root, carried so the lock reconciler can recover the
  *   plan-relative path and follow entries when a member's base moves (see rekey.mjs).
+ *
+ * The three buckets are a partition: every resolved group lands in exactly one, with `native`
+ * taking precedence if a kind is somehow flagged both. `external` is returned rather than merely
+ * skipped so a caller can disclose what it did not measure -- the token distribution is delivered
+ * to real members and enumerated by enumerateTokenTargets(studioRoot), so a caller that reports
+ * `writes` as though it were the whole delivery is understating by an entire class and has nothing
+ * in this value to warn it.
  */
 export function enumerateTargets(resolved, backboneRoot) {
   const writes = [];
   const native = [];
+  const external = [];
 
   for (const group of resolved.groups) {
     if (group.native || group.external) {
       // Native kinds are inherited by GitHub; external kinds (tokens) are vendored from a
       // different repo and enumerated separately via enumerateTokenTargets(studioRoot).
+      // Both are recorded rather than merely skipped: a bare `continue` here removed the
+      // external class from this function's own accounting, so no caller could discover it.
       if (group.native) native.push({ kind: group.kind, names: group.names });
+      else external.push({ kind: group.kind, names: group.names });
       continue;
     }
     if (group.mode === 'managed' || group.mode === 'literal') {
@@ -49,7 +60,7 @@ export function enumerateTargets(resolved, backboneRoot) {
   }
 
   attachCanonHistory(writes, backboneRoot);
-  return { writes, native };
+  return { writes, native, external };
 }
 
 /**
