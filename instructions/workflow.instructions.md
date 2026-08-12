@@ -1043,12 +1043,63 @@ Note that the procedure documented later in this file is immune by construction,
 foresight: it takes the check-run id out of the `log not found` message and fetches that one
 annotation directly, so it never enumerates and never sorts. **An instruction can be accidentally
 safe, which means its safety does not transfer to the obvious alternative route a reader invents.**
+
+**And never write an unresolvable citation, even as an example.** There is no markup for
 use-versus-mention, so a document exhibiting a broken locator to illustrate the defect is
 indistinguishable from a document containing one — to a checker and to a skimming reader alike. This
 generalizes past citations: **any document that carries a counter-example in the same notation as
 the real thing has made itself uncheckable.** It bites hardest where the temptation is strongest, in
 the docstring of the very guard that detects the pattern, since a verbatim bad example there poisons
 every later search of the tree. Name the broken form in prose instead.
+
+**That rule was itself destroyed by a later edit, in the way this file is most exposed to.** A commit
+adding a new paragraph replaced the *opening line* of the one above — `**And never write an
+unresolvable citation, even as an example.** There is no markup for` — and left the remaining nine
+lines attached to the previous paragraph. The result began mid-sentence, with no subject, and
+survived four merges before a reader tripped over it. Recovered by `git log -G` on the orphaned text
+and restored from the introducing commit.
+
+Three properties make this class expensive. **The damage is invisible to every structural check**:
+fence parity, line-count, and non-latin sweeps all pass, because nothing is malformed — a paragraph
+simply lost its head. **It reads as prose**, since a fragment beginning `use-versus-mention, so ...`
+looks like a continuation to a skimming reader and is only obviously broken if you are looking for
+the claim it was making. And **the deletion was a side effect of an insertion**, so the author's
+attention was entirely on text that was correct; nobody reviews the far edge of a hunk they did not
+mean to touch.
+
+The remedy is the one already stated for seams, aimed at the other end: **after an in-place
+amendment, read the line before and the line after the hunk as a sentence.** A diff-scoped check
+that inspects only added lines cannot see this, because the defect is in what an addition
+*displaced*. Where an edit replaces rather than appends, the removed text is the thing to audit.
+
+**A search for an unused name whose availability test fails toward *unused* selects the candidate
+most likely to be taken.** The engine picks a non-colliding branch by probing `-rerun-2`,
+`-rerun-3`, ... and stopping at the first that does not exist, where "does not exist" is a fetch
+returning false. That fetch returns false for a network failure exactly as it does for a genuine
+absence, so under failure *every* candidate reads free and the loop terminates on its **first**
+iteration — the lowest-numbered, longest-lived, most likely to already exist. **The failure mode
+inverts the loop's purpose**: a guard written to avoid collision picks, when blinded, the maximally
+colliding name. The sibling call site is milder but wrong in the same direction, reporting that a
+branch *disappeared* when the truth is that the lookup failed — a confident diagnosis of the one
+hypothesis the evidence cannot support.
+
+Two mitigations happen to hold here and neither was chosen for this: the push is a plain
+non-forcing push, so a diverged remote branch rejects it loudly, and a fetch failure usually
+predicts a push failure. Both are accidental, and the first leaves a real hole — a remote branch
+whose tip is an *ancestor* fast-forwards cleanly, silently reusing a retained branch from a merged
+PR, which is precisely the reuse the surrounding documentation forbids. **Count a boolean
+availability probe as unsafe wherever the negative answer authorises an action**, and give it the
+third state before reasoning about whether today's callers happen to survive it.
+
+**A summarising invocation discards exactly the field that matters when the summary is bad news.**
+Running the suite through a filter for the pass and fail tallies is right almost always, and on the
+one run in six where a test genuinely failed it printed `fail 1` and *nothing identifying the test* —
+the filter had dropped the failure block. Five clean re-runs then made the observation unrecoverable:
+real, seen once, unnamed, and now indistinguishable from a misreading. **A filter tuned to the
+expected outcome is an instrument that degrades precisely when it becomes useful**, which is the same
+direction as a check that fails toward `CLEAN`. Capture the full output and filter the copy, never
+the stream; and treat an unreproduced failure as an open observation with its identity lost, not as
+noise resolved by the reruns that failed to reproduce it.
 
 **Finally, a probe can be healthy and still be aimed at the wrong proposition.** Every failure above
 is an instrument that *cannot* return the other answer. This one returns it readily — about a
