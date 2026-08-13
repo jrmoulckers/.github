@@ -1036,6 +1036,23 @@ that identical set, in the same call, one key away. When the obvious field colla
 others in the response before declaring the question unanswerable — the collapse of a
 purpose-named field is weak evidence about every field beside it.
 
+**A published PR range does not make a disclaim falsifiable; it makes it falsifiably wrong.** A peer
+proposed exactly that remedy — a session that states its own range converts an unfalsifiable denial
+into a checkable one — and offered a corroboration built on it: a pull request five hours older than
+the stated series, sixty-one numbers below its floor, therefore not that session's. The branch field
+said it was. The range fails in both directions at once, admitting other sessions' work inside it
+and excluding the claiming session's own work outside it, because a session's branch outlives
+whatever window it happened to describe. **A checkable instrument that returns the wrong verdict is
+worse than an unfalsifiable claim**, because it converts testimony into corroborated error and
+supplies a second party's confidence to the mistake. Publish the branch in the footer, not the
+range.
+
+The same correction disposes of the residue usually granted to shared identity. A peer held that
+ownership of the repository's open pull requests was the part a degenerate `author.login` genuinely
+destroys; both open ones carried branches belonging to neither party, so the question was decidable
+and had simply not been asked. **Before naming something a limit of the record, name the field you
+read to establish it.**
+
 **Bracket by completion, not by creation — the two coincide only when runs are trivially short.**
 The reconciliation that established this was performed against runs refused for billing, which
 complete in three to thirteen seconds; there, the moment an attempt starts and the moment its results
@@ -3319,6 +3336,22 @@ If you build a coverage check for this, three traps are known to be live:
   raw total had moved from `49814` to `81280` — because all `31,466` units of growth landed in the
   one body that contains no CRLF at all. The quantity the difference cancels was untouched by the
   change, which is luck about the location of an edit, not a property of the statistic.
+  **And that same cancellation makes a ratio anaesthetic rather than merely uninformative.** Two
+  delivery figures published from here were each low by exactly one byte while their canon
+  denominator was exact; the offset very nearly cancelled in the quotient, and a second defect — a
+  line ratio printed beneath a table of byte operands — moved the answer only half a point, inside
+  any tolerance a reader grants such a figure. Neither could surface from the ratio, and both fell
+  out the moment a third party recomputed from the operands. **A ratio absorbs operand error in
+  proportion to how well the operands agree**, which is exactly the case in which nobody examines
+  it, so the property that makes it robust is the property that makes it silent. Publish both terms
+  with the revision and the time each was taken at, and let the reader form the quotient.
+  **Characterise a defect class by its smallest expression, not its most memorable one.** The
+  one-byte error and a 14.6% blank-line error came from the same array-versus-string boundary on the
+  same night: a pipeline that yields lines rather than bytes, rejoined without its terminator in the
+  first case and counted without its empties in the second. The large one was caught within the hour
+  by its own implausibility; the small one survived three hours, two messages and a published ratio,
+  and was found only by an outside recomputation. The instance that teaches the lesson is selected
+  for being visible, which is precisely the instance that was never dangerous.
 - **The terminator carries its own convention, and a scalar count of line endings conflates it with
   the body's.** Sweeping all 57 issue and pull-request bodies in one member, 12 are "mixed" by a
   CRLF count — but in 10 of those the single CRLF sits at exactly `len - 2`, so the body is pure LF
