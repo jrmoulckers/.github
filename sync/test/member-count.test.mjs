@@ -356,32 +356,103 @@ const MEMBER_RUN = (names) =>
 const HEDGE = /and more|and others|among (?:them|others)|for example|such as|e\.g\./i;
 
 /**
- * The enumeration tier is still hand-listed, deliberately and temporarily. See #844.
+ * A run of names is a fragment; the claim it belongs to is the block.
  *
- * The count tier widened cleanly because it compares against a derived number. This one applies
- * a *heuristic about intent* — an unhedged run of names asserts the population — and running it
- * over the discovered set returns seven hits, four in `instructions/workflow.instructions.md`
- * and three in ADRs. The ADR hits are the hard ones: an ADR is an immutable record, its lists
- * are exhaustive as of the decision date on purpose, and hedging them with "and more" would
- * make them false. That needs a second discriminator for historical records, not a wider loop.
+ * The line was the wrong unit and it produced seven false positives (#844). A markdown table
+ * puts each arm of a partition on its own row, and ordinary line-wrapping splits a prose
+ * partition mid-sentence — so a paragraph that accounts for every member reaches the line-level
+ * guard as several separate lists, each of which looks like a stale subset. Six of the seven
+ * measured hits were fragments of a partition that named the whole fleet correctly.
  *
- * Widening this now would either fail CI on accurate prose or force seven prose edits under
- * cover of a guard change. The measured hits are in #844 so the gap is recorded rather than
- * carried silently — this list is known-partial, which is the thing #842 was about.
+ * A block is a maximal run of non-blank lines, which is a paragraph, a list, or a table.
  */
-const ENUMERATION_SURFACES = ['sync/README.md', 'sync/index.mjs', 'docs/sync.md', '.github/workflows/studio-sync.yml', 'README.md'];
+function proseBlocks(text) {
+  const blocks = [];
+  let current = null;
+  text.split('\n').forEach((line, index) => {
+    if (line.trim() === '') {
+      if (current) blocks.push(current);
+      current = null;
+      return;
+    }
+    current ??= { line: index + 1, lines: [] };
+    current.lines.push(line);
+  });
+  if (current) blocks.push(current);
+  return blocks.map((b) => ({ line: b.line, text: b.lines.join('\n') }));
+}
+
+/**
+ * A complete enumeration is stronger than a hedge, and the guard used to reject it.
+ *
+ * The rule accepted "and more" and failed a block that named every member — backwards on its own
+ * stated purpose. A hedge is **unfalsifiable**: it stays true after the twelfth member arrives,
+ * so it is invisible to the drift this file exists to catch. A block naming the whole fleet
+ * breaks the moment a member is added — coverage drops, and the guard fires carrying the new
+ * name. That is the property worth requiring, so covering the fleet is a legitimizer and not
+ * merely a tolerated case.
+ *
+ * Deliberately a coverage test, not a partition test: whether the arms are disjoint is not
+ * checkable from names alone, and asserting only what is derivable is the point.
+ */
+function coversFleet(blockText, memberNames) {
+  const named = new Set(
+    [...blockText.matchAll(/`([^`]+)`/g)].map((m) => m[1]).filter((n) => memberNames.includes(n)),
+  );
+  return named.size === memberNames.length;
+}
+
+/**
+ * The third legitimizer: a run that states its own size is bounded to that size.
+ *
+ * "Three members (`a`, `b`, `c`)" never implicitly claims the fleet, because the cardinality
+ * says how far the list reaches. It is the count tier's discipline applied to a list — the same
+ * reason a tally must carry its denominator — and it stays falsifiable in the direction that
+ * matters: adding a fourth name without updating the word fires this guard.
+ *
+ * Required to *equal* the run length rather than merely be present, or any nearby number would
+ * launder any list.
+ */
+function boundedByOwnCount(blockText, match, memberNames) {
+  const listed = [...match[0].matchAll(/`([^`]+)`/g)].filter((m) => memberNames.includes(m[1]));
+  const preceding = blockText.slice(Math.max(0, match.index - 80), match.index);
+  const tokens = [...preceding.matchAll(CARDINALITY)];
+  const last = tokens.at(-1);
+  return last !== undefined && toNumber(last[1]) === listed.length;
+}
+
+const CARDINALITY = new RegExp(
+  String.raw`\b(\d+|${[...WORD_NUMBERS.keys()].join('|')})\b`,
+  'gi',
+);
+
+/**
+ * One predicate, called by the sweep and by the fixtures below.
+ *
+ * The count tier learned this in #842: a fixture test that reimplements the rule tests a copy,
+ * and a mutant unwiring the real one survives. The enumeration tier kept its fixtures wired to
+ * `MEMBER_RUN` and `HEDGE` directly, so it held the same defect one test lower in the same file
+ * — the transcription class again, and again inside the guard written against it.
+ *
+ * Returns the runs in this block that assert the fleet without standing behind the claim.
+ */
+function unboundedRuns(blockText, memberNames) {
+  if (HEDGE.test(blockText) || coversFleet(blockText, memberNames)) return [];
+  const names = memberNames.map((n) => n.replaceAll('.', String.raw`\.`)).join('|');
+  return [...blockText.matchAll(MEMBER_RUN(names))]
+    .filter((match) => !boundedByOwnCount(blockText, match, memberNames))
+    .map((match) => match[0].trim().replaceAll('\n', ' '));
+}
 
 test('no prose enumerates the fleet without marking the list as partial', () => {
-  const names = loadManifest(REPO_ROOT)
-    .members.map((m) => m.repo.split('/')[1].replaceAll('.', String.raw`\.`))
-    .join('|');
+  const memberNames = loadManifest(REPO_ROOT).members.map((m) => m.repo.split('/')[1]);
   const offenders = [];
 
-  for (const relativePath of ENUMERATION_SURFACES) {
+  for (const relativePath of proseSurfaces()) {
     const text = readFileSync(join(REPO_ROOT, ...relativePath.split('/')), 'utf8');
-    for (const line of text.split('\n')) {
-      for (const match of line.matchAll(MEMBER_RUN(names))) {
-        if (!HEDGE.test(line)) offenders.push(`${relativePath}: "${match[0].trim()}"`);
+    for (const block of proseBlocks(text)) {
+      for (const run of unboundedRuns(block.text, memberNames)) {
+        offenders.push(`${relativePath}:${block.line}: "${run}"`);
       }
     }
   }
@@ -389,26 +460,77 @@ test('no prose enumerates the fleet without marking the list as partial', () => 
   assert.deepEqual(
     offenders,
     [],
-    `Derive the list from studio.config.json, or mark it partial ("and more"):\n  - ${offenders.join('\n  - ')}`,
+    `Name the whole fleet, state the list's own size, or mark it partial ("and more"):\n  - ${offenders.join('\n  - ')}`,
   );
 });
 
-test('the enumeration guard fires on the list #374 removed and spares the one it kept', () => {
-  // Non-vacuity, using the real removed text rather than a synthetic fixture: these two lines
-  // stood in docs/sync.md, and the third stands in README.md today.
-  const names = loadManifest(REPO_ROOT)
-    .members.map((m) => m.repo.split('/')[1].replaceAll('.', String.raw`\.`))
-    .join('|');
+test('the enumeration guard fires on the list it removed and spares the one it kept', () => {
+  // Non-vacuity, through the predicate the sweep runs rather than a copy of it, and using the
+  // real removed text rather than a synthetic fixture: these two lines stood in docs/sync.md,
+  // and the third stands in README.md today.
+  const memberNames = loadManifest(REPO_ROOT).members.map((m) => m.repo.split('/')[1]);
 
   for (const removed of [
     'Public (immune, useless as evidence): `.github`, `studio`, `finance`, `score-king`.',
     'Private (exposed): `homelab`, `libro`, `docket`, `windows`.',
   ]) {
-    assert.equal([...removed.matchAll(MEMBER_RUN(names))].length, 1, `must fire on: ${removed}`);
-    assert.equal(HEDGE.test(removed), false, `and must not read as hedged: ${removed}`);
+    assert.equal(unboundedRuns(removed, memberNames).length, 1, `must fire on: ${removed}`);
   }
 
   const kept = 'Product repos (`jrm-recipes`, `score-king`, `finance`, and more) share DNA from';
-  assert.equal([...kept.matchAll(MEMBER_RUN(names))].length, 1, 'the pattern does reach the README line');
-  assert.equal(HEDGE.test(kept), true, 'but the hedge is what makes it legitimate, so it must be seen');
+  assert.equal(unboundedRuns(kept, memberNames).length, 0, 'the hedge is what makes it legitimate');
+});
+
+test('a block naming the whole fleet stands, and stops standing when the fleet grows', () => {
+  // The inversion in #844: a hedge is unfalsifiable and was accepted, a complete enumeration is
+  // falsifiable and was rejected. Both directions are pinned here, because accepting coverage
+  // is only safe if losing coverage is what makes it fail.
+  const memberNames = loadManifest(REPO_ROOT).members.map((m) => m.repo.split('/')[1]);
+  const partition = `Some: ${memberNames
+    .slice(0, 3)
+    .map((n) => `\`${n}\``)
+    .join(', ')}.\nThe rest: ${memberNames
+    .slice(3)
+    .map((n) => `\`${n}\``)
+    .join(', ')}.`;
+
+  assert.equal(unboundedRuns(partition, memberNames).length, 0, 'a complete partition is the strongest form, not a tolerated one');
+  assert.ok(
+    unboundedRuns(partition, [...memberNames, 'twelfth-member']).length > 0,
+    'and it must fail the moment a member it does not name exists',
+  );
+});
+
+test('a run stands on its own stated size, and only on the size it actually has', () => {
+  // The ADR form: "Three members (`a`, `b`, `c`)" bounds itself and never implies the fleet.
+  // The cardinality must equal the run, or any nearby number launders any list.
+  const memberNames = loadManifest(REPO_ROOT).members.map((m) => m.repo.split('/')[1]);
+  const [a, b, c, d] = memberNames;
+
+  assert.equal(
+    unboundedRuns(`Three members (\`${a}\`, \`${b}\`, \`${c}\`) were in that position.`, memberNames).length,
+    0,
+    'a list that states its own size is bounded by it',
+  );
+  assert.equal(
+    unboundedRuns(`Three members (\`${a}\`, \`${b}\`, \`${c}\`, \`${d}\`) were in that position.`, memberNames).length,
+    1,
+    'and a fourth name added without updating the word is exactly what must fire',
+  );
+  assert.equal(
+    unboundedRuns(`Rejected in 2019: \`${a}\`, \`${b}\`, \`${c}\`.`, memberNames).length,
+    1,
+    'an unrelated number nearby is not a statement of the list size',
+  );
+});
+
+test('the block is the unit, so a partition survives the line breaks that split it', () => {
+  // The seven false positives in #844 were all fragments: table rows and wrapped prose. If the
+  // sweep ever reverts to per-line evaluation this fails, which is the regression that matters.
+  const memberNames = loadManifest(REPO_ROOT).members.map((m) => m.repo.split('/')[1]);
+  const wrapped = memberNames.map((n) => `| row | \`${n}\` |`).join('\n');
+
+  assert.equal(unboundedRuns(wrapped, memberNames).length, 0, 'a table naming every member is complete');
+  assert.equal(proseBlocks('a\nb\n\n\nc\n').length, 2, 'blank lines separate blocks and runs of them do not make empty ones');
+  assert.equal(proseBlocks('a\nb\n\nc').at(-1).line, 4, 'and a block reports the line it starts on');
 });
