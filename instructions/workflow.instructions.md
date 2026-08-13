@@ -2957,6 +2957,61 @@ could not have.**
 The general form is the one to carry: **ask what your instrument cannot express, not only what it
 reports.** An all-green control table invites the question *of what decisions?* — and a method that
 only varies decisions will answer every question as though it were one.
+### Exhaustiveness over the whole claim, not reachability, is what keeps a document true
+
+It is tempting to sort documentation by whether anything reads it, and to treat the read surfaces
+as safe. That ordering is wrong. A help text printed by the front door, executed by a test, and
+seen by users every day rots just as quietly as a comment nobody opens — provided the test is
+exhaustive over only *part* of what the text asserts.
+
+The measured instance: one `--help` output carried two enumerations. The flag list was pinned in
+both directions, per flag, against the parser, by a test that *executed* the CLI rather than
+importing a constant — and whose own comment argued that a guard must discriminate at the
+resolution of the claim. The paragraph immediately below the flags, introduced by `Env:` — a label
+that asserts completeness — named **one of the three** variables the engine actually consults.
+Nothing read that paragraph at all. Same file, same string literal, same author, one clause
+rigorous and the next unguarded.
+
+So the question to ask of any guarded document is not *is this surface reached?* but **which
+clauses of it are under the guard, and which merely sit next to one?** A neighbouring rigorous
+check is the strongest available disguise for an unchecked claim, because the diligence is visible
+and its scope is not.
+
+Two consequences worth keeping:
+
+- **A completeness label is a testable assertion.** `Env:`, `Validators:`, `Contents`, "the
+  following" — each promises a closed set, and each can be compared against a derived one.
+- **Both directions need a positive control, and the reverse direction needs it more.** A healthy
+  tree usually contains no advertised-but-nonexistent item, so the reverse half has nothing keeping
+  it honest and can be weakened to a no-op without any test changing colour. Construct the
+  violating state rather than waiting for one.
+
+### A mutation must be shown to reach the surface under test, not merely to change the file
+
+The known rule is that a mutation harness must confirm the mutation applied, because an anchor that
+fails to match reports as a survivor and a survivor reads as coverage. That rule is not strong
+enough. **A file can change and the surface under test can be untouched.**
+
+The instance, found by disagreeing with a harness rather than by reading it: a mutant meant to
+corrupt a printed help string was applied with a first-occurrence string replacement, and the
+anchor appeared **twice** — once in the header comment and once in the printed literal. The edit
+landed in the comment. The file changed, the character count moved, the harness printed
+`applied: TRUE`, the printed output was byte-identical, the test passed, and the mutant was
+recorded as a survivor. Run by hand with an all-occurrence replacement, the same mutant dies
+immediately.
+
+The failure has the shape that makes it expensive: it reports **in the verdict column**, and a
+false survivor does not merely fail to inform — it actively recruits work to fix a gap that does
+not exist, and casts doubt on a guard that is functioning.
+
+So the precondition is: **capture the surface, mutate, capture again, and require the surface to
+have moved before the run counts as a result.** For a printed one that means executing the command
+and comparing its output. Anything short of that scores a mutation whose effect never left the file
+it was written into.
+
+There is a second-order lesson in which duplicate swallowed the edit. It was the transcribed
+header comment — the very surface whose independent decay motivated the guard in that file in the
+first place. **A duplicated claim does not only rot; it absorbs the probes aimed at the original.**
 ## Calling reusable workflows
 
 Studio product repos call the backbone's reusable workflows at a reviewed immutable commit SHA:

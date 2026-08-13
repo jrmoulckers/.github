@@ -574,7 +574,11 @@ Usage: node sync/index.mjs [options]
 
 Env: STUDIO_SYNC_TOKEN — fine-grained PAT: Contents + Pull requests read/write on every repo
 in studio.config.json "members", plus the profile destination. Studio is both a member and token
-source. No workflow scope, no blanket repo scope. See docs/sync.md.`);
+source. No workflow scope, no blanket repo scope. See docs/sync.md.
+     GITHUB_STEP_SUMMARY — set by GitHub Actions. When present the run summary is appended to
+that file instead of being printed; unset locally, so a local run shows the summary on stdout.
+     NO_COLOR — any non-empty value disables ANSI colour. Colour is also off whenever stderr is
+not a TTY, so piped and redirected output is already plain without it.`);
   return 0;
 }
 
