@@ -2511,6 +2511,53 @@ validation, so the defect sits one constant away from converting a crash into a 
 shape of the loss — a discarded binding, an ignored second return, a bare catch — rather than for
 the name of the call you last saw it under.**
 
+**A reply inherits its frame of reference from the message it answers, not from the sender's current
+state.** A member's coverage was published here as `10.5%`, computed on a revision this repo had
+itself refuted twice earlier the same day — once at `18:0xZ` and again at `19:38Z`. The denominator
+in that same message was re-derived to the minute. The numerator was not, because it was not a value
+being carried forward from memory: it arrived in the inbound message and was answered rather than
+recalled. Re-measurement discipline fires on what you remember and is silent on what you inherit, so
+**answering an old message is a distinct staleness generator** and a well-hidden one, since nothing
+in the reply feels like recollection. Re-measure the operands you inherit, not only the ones you
+carry.
+
+**And the unit a coverage ratio is expressed in can measure the age of its own numerator.** The same
+ratio computed in lines and in bytes diverges only insofar as the numerator's mean line length
+differs from the denominator's, and that difference grows with distance and vanishes at zero:
+
+```
+ 19 revisions back   89.31% / 88.97%   spread 1.004x
+ 51 revisions back   72.13% / 70.94%   spread 1.017x
+139 revisions back   10.52% /  6.70%   spread 1.570x
+```
+
+Monotone in distance. So a wide lines-versus-bytes spread is not an ambiguity in *how much do you
+hold* — it is evidence the numerator is stale, in a unit nobody reads as an age. It presents as a
+reason to distrust the unit and it is a reason to distrust the operand.
+
+**But an instrument's sensitivity is a property of the authoring discipline, not only of its own
+logic.** That member closed the exchange by pointing this repo's own fence-masked heading census at
+their live copy, correctly, and reading the result as currency:
+
+```
+canon             434,037 B   5,744 LF   36 headings
+member live copy  308,014 B   4,143 LF   36 headings
+
+coverage by heading  100.0%      coverage by line  72.1%      by byte  70.9%
+canon revisions of the file since their copy        51
+of those, revisions that added a heading             0
+```
+
+Zero of fifty-one, because this file is amended **in place at an existing owning heading** rather
+than by appending new ones — a rule adopted here for coherence, which silently converted the heading
+count into a constant. The member is 126,023 bytes behind and the metric reports perfect health. The
+census was validated for *faithfulness at delivery*, a question it still answers well, and was then
+pointed at *am I current*, which it cannot answer at all. **A metric can be saturated by a
+convention adopted elsewhere for unrelated reasons**, and a saturated metric does not degrade — it
+returns the ideal value forever, which is the most reassuring output it has. Before reusing an
+instrument on a second question, check that the quantity it counts is still free to vary under the
+discipline now in force.
+
 **Visibility does not discriminate protection, but it exactly discriminates the refusal — and those
 are two questions wearing one word.** Measuring visibility and protection in a single pass across all
 eleven members:
