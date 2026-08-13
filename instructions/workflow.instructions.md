@@ -2105,6 +2105,39 @@ flipped: there an ungoverned repository inflated a sweep by appearing in reality
 here non-subscribers deflated a rate by appearing in the roster and not in the population. Derive the
 denominator from the same configuration that decides eligibility, and state it beside the count.
 
+**The long-running dispute over this fleet's own denominator resolves the same way, and both counts
+were right.** Run logs report `12 target(s)`; `studio.config.json` `members` holds `11`. The engine
+also writes to `profileTarget(owner)` -- the owner's profile repository -- which is not a member and
+never was, so `11 + 1 = 12`. `members` enumerates *governed repositories*; the run total enumerates
+*write destinations*. **Two counts disagreeing by exactly one are more often two predicates than one
+error**, and the reconciling entity is usually the one that is structurally unlike the others, which
+is also why it stayed unexamined for days.
+
+**And the reason it stayed unexamined is a defect worth naming: a population keyed on a line's shape
+silently omits any target whose reporter uses a different shape.** The same run prints ten
+`OK owner/member: opened <url>` lines, one `ERROR: owner/windows: ...`, and one
+`profile mirror: owner/owner already up to date`. Selecting outcomes with the pattern
+`owner/<name>:`
+returns 11, because the profile line puts its colon after `profile mirror` rather than after the
+repository -- and 11 against a stated 12 reads as a silent target rather than as a missed line. A
+peer dropped the same line by keying on the `OK` prefix, in a message whose opening paragraph warned
+about this exact class, having just found that keying sync pull requests on title gives `2` and on
+branch gives `4`. **Unlike a wrong filter, a shape-keyed miss leaves no gap in the output** -- every
+line it matched is real, and the omission is invisible in the result. The tell was free and already
+printed: the tool reported its own total, and the difference between that and the matched count was
+exactly the omitted class. **When a tool states a total, reconcile against it before believing an
+enumeration of its output**, and treat a shortfall as a defect in the pattern until shown otherwise.
+
+**Two live facts follow from reading that log rather than a summary of it.** The `windows` failure
+is `git clone` returning `403` -- read access -- not the missing workflow-write grant it has been
+recorded as; a token that cannot clone never reaches the question of writing, so notes naming the
+narrower permission understate the remedy. And the scheduled-dispatch path is not broken: that run
+delivered to ten members and the profile mirror and failed solely on `windows`, which means a
+complete cross-tab showing every scheduled run red and every success manual is a true count of a
+field reporting *target-set composition*, not trigger reliability. **Completeness is no defence when
+the population is right and the field is confounded** -- an exhaustive census of the wrong column is
+merely a confident version of the same error.
+
 **That remedy is insufficient, and it stops one step short in the same direction as the defect it
 repairs.** Non-subscribers are excluded because they have no region to describe. A second exclusion
 exists with the opposite structural cause: a file whose managed region *is* the whole file has
@@ -5099,12 +5132,24 @@ otherwise unreachable.
 measured semantics above, `syncedAt` dates the last *modification* of that path and `generatedAt`
 dates the last run that changed *something*, so neither answers "when did you last take delivery"
 and both answer it plausibly — an old timestamp on a perfectly current file is the normal case, not
-a symptom. `targetSha256` is a hash rather than a clock: it is rewritten whenever the bytes are, it
-can be compared directly against canon's rendering, and it cannot go stale while remaining correct.
-**When an artifact offers both a timestamp and a digest for the same question, the digest is the
-one that cannot be right and misleading at once.** Asking for the field whose shape suggests
-recency, over the field that actually carries it, is the same misreading as the one corrected
-above, arriving one section later in the advice rather than in the description.
+a symptom. `targetSha256` is a hash rather than a clock: it is rewritten whenever the bytes are, and
+it cannot go stale while remaining correct. **When an artifact offers both a timestamp and a digest
+for the same question, the digest is the one that cannot be right and misleading at once.** Asking
+for the field whose shape suggests recency, over the field that actually carries it, is the same
+misreading as the one corrected above, arriving one section later in the advice rather than in the
+description.
+
+**But `targetSha256` cannot be compared against canon, and an earlier revision of this passage said
+it could.** It hashes the *rendered member file*, which is the source blob plus the 80-byte
+provenance header, so its reference is the engine's own output. Checking it against canon requires
+reproducing the header insertion -- reimplementing the renderer, which this file forbids elsewhere
+for exactly the reason that a reimplementation agreeing with itself proves nothing. What it does
+detect is a member drifting from what the engine produced, and it is structurally blind to the
+engine producing the wrong thing. A member raised this, and a second party's independent validator
+in the same repository reads `targetSha256` only, so the conformance reading is the one in use and
+`sourceSha256` is consumed by nobody. **A digest is only as good as what it is a digest of** -- the
+timestamp-versus-digest rule is sound and selected the wrong digest, which is instrument-output-as-
+reference appearing inside the remedy for a different defect.
 
 **And `sourceSha256` answers a stronger question than either: which canon revision the member
 holds.** It is the hash of the source blob, so it is an exact key into the hub's own history, and
