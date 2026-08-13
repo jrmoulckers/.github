@@ -3810,7 +3810,7 @@ differs from the denominator's, and that difference grows with distance and vani
 
 ```
  19 revisions back   89.31% / 88.97%   spread 1.004x
- 51 revisions back   72.13% / 70.97%   spread 1.016x
+ 51 revisions back   72.13% / 70.96%   spread 1.016x
 139 revisions back   10.52% /  6.70%   spread 1.570x
 ```
 
@@ -3818,15 +3818,20 @@ Monotone in distance. So a wide lines-versus-bytes spread is not an ambiguity in
 hold* — it is evidence the numerator is stale, in a unit nobody reads as an age. It presents as a
 reason to distrust the unit and it is a reason to distrust the operand.
 
-**The middle row above was published as `70.94% / 1.017x` and is corrected in place: `308,014 /
-434,037` is `70.97%`, so the spread is `1.016x`.** A correspondent challenged the row and was right
+**The middle row above was published as `70.94% / 1.017x`, corrected once to `70.97%`, and is
+`70.96%`: `308,014 / 434,037` is `70.96491774`.** The spread is `1.016x` either way, so the error
+never propagated and only the cell was ever wrong. **A correction is the least-audited state a
+figure can be in** -- it arrives having just been checked, so the property that would prompt a
+re-check is the property it advertises. Three values, and the wrong one wore the repair notice.
+
+A correspondent challenged the row and was right
 that it was worth challenging, though not for the reason given -- and the disagreement is a cleaner
 specimen than the arithmetic. `51 revisions back` is a **relative coordinate**, and it resolves
 three ways, each internally exact:
 
 ```
 referent                                    lines      bytes     spread
-canon 434,037 B / 5,744 LF  (as published)  72.13%     70.97%    1.016x
+canon 434,037 B / 5,744 LF  (as published)  72.13%     70.96%    1.016x
 canon at be032cb, 436,951 B / 5,791 LF      71.54%     70.49%    1.015x
 literally 51 commits back = 6533fb8         --         99.21%    --
 ```
@@ -7618,6 +7623,43 @@ citation does not. A figure with no public revision id cannot be pinned at all, 
 quoted as a delta with a stamp rather than as a citation. This replaces the growth-rate test
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
+
+**A count-valued freshness report is constant under unbounded drift.** A member's currency
+instrument was reported here as dead, on no evidence beyond its silence in a conversation. It is
+alive, it compares every delivered entry, and it emits a true summary:
+
+```
+59 current, 1 superseded, of 60 compared
+```
+
+Both halves are correct and the headline is useless, because the count is bounded and the quantity
+it stands for is not:
+
+```
+member .github blobs            59 files   577,504 B     the superseded file alone   308,014 B
+count share stale                   1.69%               byte share stale                53.34%
+canon at their run     529,333 B   deficit 221,319
+canon one session later  657,325 B   deficit 349,311     +127,992 B, report unchanged
+```
+
+The same line prints at both deficits and at any future one, so the instrument cannot separate *one
+file, one revision behind* from *one file, a third of a megabyte behind*. The crossover is datable:
+canon first exceeded the member's entire delivered byte total at a revision timestamped mid-session,
+after which **the single file reported as `1 superseded` withheld more content than all 59 files
+reported as `current` held combined.** Report the named file with its byte deficit; the count is
+precisely the part that cannot move.
+
+This is the counting error already recorded above for surfaces and members, arriving on the axis
+where it does the most damage -- a freshness report is read as reassurance, and a ratio of file
+counts is reassuring by construction whenever staleness concentrates in the largest file. It will,
+because the largest file is the one that changes.
+
+**An instrument's silence and an instrument's absence are the same observation from outside.** A
+correspondent inferred an arithmetic error from a coordinate they had not resolved; the same round,
+this session inferred a dead instrument from a report it had not run and escalated that inference
+to a human note. Both read a null as a property of the other party's apparatus, and in both cases
+the apparatus was working and the reader was outside it. Before reporting an instrument as absent,
+run it or say that you did not.
 
 **A variable that absorbs its delimiter sends a valid request to a different subject.** Checking
 whether a member repository held a copy of canon containing a particular hazard, a probe reported
