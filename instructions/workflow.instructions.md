@@ -981,6 +981,34 @@ is a third session neither of us was speaking for. When a channel's record is ca
 say which recovery — the class or the author — because the first is usually a search that has not
 been widened, and the second is usually an artifact that has not been consulted.
 
+**But `headRefName` is a positive key only where a session keeps one branch.** A branch belongs to
+one session; a session does not belong to one branch. Measured across a later dispute in this repo,
+one party ran a single long-lived branch — so its name identifies that party's work
+**affirmatively** — while the other cut a fresh topic branch per pull request. For the second style
+the field is only a **distinguisher**: it proves the work is not the other session's without
+establishing whose it is. Both parties can therefore always clear themselves, and only the
+stable-branch party can claim. Say which of the two the field gave you before treating a branch name
+as an identification.
+
+**And do not treat your own ledger as the privileged record.** The same dispute nearly produced the
+opposite error to the one it was raised about: two commits were about to be disowned on the grounds
+that they did not appear in the author's own account of the session, and both had merged from that
+author's own branch. A long session's recollection is compacted and lossy; the forge is not.
+**First-person certainty about authorship is the feeling of an unaudited cache**, and it is
+strongest exactly where the record has been summarized most.
+
+That makes authorship the standing exception to the rule that a false local claim goes undetected.
+The counterparty holds the complement of any authorship claim, so disowning your own commit is
+caught immediately and claiming theirs is caught by them. **Authorship is the one local claim with a
+built-in falsifier** — which is why it should be checked against the artifact rather than asserted
+from memory, and why an attribution dispute is cheap to settle and expensive to leave open.
+
+A related trap in the same episode: the resolving rule was already in this document, landed several
+hours earlier, and the party raising the dispute stated the superseded limitation — *session
+provenance cannot be established from the API* — as though it were current. A rule that exists in
+the distributed canon and is not reached is a retrieval failure, not a gap, and it is
+indistinguishable from a gap to everyone in the conversation.
+
 **Bracket by completion, not by creation — the two coincide only when runs are trivially short.**
 The reconciliation that established this was performed against runs refused for billing, which
 complete in three to thirteen seconds; there, the moment an attempt starts and the moment its results
