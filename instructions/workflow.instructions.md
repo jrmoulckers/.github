@@ -127,10 +127,69 @@ the error.**
 
 **So rank artifacts by consistency, not size.** Measured on 20 attempt objects in one member: mean
 `-0.950 s`, sd `0.497`, giving `|mean|/sd = 1.91`, with `17` nonzero and `0` of the opposite sign.
-The run-level pair has `n=2` and `|mean|/sd = 1.00`. The small artifact is the *cleaner* signal, and
-the large one cannot be separated from ordinary idle time by any test. A defect that fires the same
-way every time is detectable at any amplitude; one that varies as widely as its own mean is
-detectable at none.
+The run-level pair has `n=2` and `|mean|/sd = 1.00`. **The rule stands; the evidence offered for it
+here does not, and the second number is worthless.** At `n=2` with a population sd, `mean/sd` is a
+function of the separation ratio alone, strictly decreasing in it, and saturating at 1:
+
+```
+pair (199, 121811)   ratio    612.12   mean/sd 1.0033
+pair (1, 612.1)      ratio    612.10   mean/sd 1.0033    identical -- only the ratio enters
+pair (1, 3.2)        ratio      3.20   mean/sd 1.9091
+pair (1, 1000000)    ratio 1000000     mean/sd 1.0000    saturated
+closed form  (1 + r) / (r - 1)  at r = 612.1     1.0033
+```
+
+`1.00` was **forced** by the 612x separation and could not have taken another value, so quoting it
+as evidence of poor consistency reports the spread a second time under a name that means its
+opposite -- and the `1.91` is nothing but `r = 3.2` wearing the same disguise. A ranking of two
+numbers by a statistic that is a monotone relabelling of those two numbers is the comparison it was
+supposed to justify. **A dispersion statistic needs a sample; at n=2 it is arithmetic.** The
+correspondent's further charge is also granted: the pair sets a genuine artifact against a correct
+field, so the set of artifacts being ranked has one member.
+
+Two corrections to this file's own description of the artifact, from re-reading the same 18 attempts:
+
+```
+attempt-level deltas:   -2 s x2    -1 s x14    0 s x2      n = 18
+```
+
+**Sixteen inverted and two zero**, and the inversion is not the constant `-1 s` named above -- it has
+a distribution. So *a defect that fires the same way every time* is false of this one: it skips two
+attempts entirely and doubles on two others, which is why it survived as rounding and also why the
+consistency argument needed the real numbers rather than a remembered characterisation.
+
+**And the artifact is inside the correct number, not beside it.** The two quantities telescope:
+
+```
+sum of inter-attempt gaps    121,829 s   (min 62, max 43,740)
+sum of attempt-level deltas      -18 s
+run-level span               121,811 s        121,829 - 18 = 121,811, exact
+run.created == attempt[1].created   True      run.started == attempt[18].started   True
+```
+
+The `-18 s` is an additive component of the `121,811 s`, contributing `0.015%`. So *not the same kind
+of thing* is right and incomplete: one **contains** the other at a share no reading of the container
+could recover it from. That is a better statement of why the comparison fails than the magnitude
+argument it replaces.
+
+**The deeper defect is that the span measures the observer.** Every one of those 18 attempts is a
+rerun a person issued, and the largest single component of the span is a `43,740 s` gap -- 12.2
+hours, `35.9%` of the total -- in which nobody did anything. Dating the figure, which is the repair
+this section already makes, does not touch this: the quantity is a step function that advances only
+when someone reruns, so *still climbing* is wrong in kind rather than out of date. **An extensive
+quantity whose increments are produced by the measurer is not a measurement of the subject**, and no
+timestamp beside it makes it one.
+
+The derived fraction shows it most cleanly, because it moves with nothing but the clock:
+
+```
+their reading       outage 54.4 h   span 33.8 h   62.1% of the outage
+same span, 5.7h on  outage 60.1 h   span 33.8 h   56.3% of the outage
+```
+
+**A ratio with a frozen numerator and a live denominator is a clock in disguise** -- it decays at a
+rate set by wall time and reports nothing about the system. Cite the onset timestamp and a clock
+read, which give the duration in one subtraction and depend on nobody's polling schedule.
 
 And at attempt level the two fields **invert** relative to
 the top-level case: `run_started_at` equals `created_at` on attempt 1, but on retried attempts it
