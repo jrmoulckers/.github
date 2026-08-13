@@ -5196,6 +5196,32 @@ second — a member was missing a rule that had been repaired, and I attributed 
 landing in a surface the member does not receive. Measured afterwards, the entire section postdated
 that member's last sync by about ten hours. **They had never held the refuted rule at all.**
 
+**A pointer and its target are distributed under separate opt-ins, so a delegation can reach
+strictly more members than the thing it delegates to.** A sibling's correction here was that a rule
+had been landed in the instruction file 9 of 11 members opt into, and the natural repair -- move it
+to the document that reaches all eleven -- is unavailable. That document opens by naming the base
+operating guide as authoritative for the golden rules, the definition of done and the mandatory
+human gates, and states in its own text that it never restates them. The base guide is taken by
+six. So the only fleet-universal vehicle is contractually barred from carrying the mandatory rules,
+their ceiling is six by construction, and no widening of any count guard can raise it. Routing a
+*procedure* there is correct and is exactly what the base guide does; the rules cannot follow.
+
+Measured across the fleet, the mandatory human-gate section is present in 6 of 11 members while the
+instruction to go read it is present in 10 -- so four are directed to content that is not there,
+and one of those has no base guide at all, only the pointer calling it authoritative. **A reference
+is the one construct whose correctness depends on a document the guard is not reading**, and it
+fails silently in the reassuring direction: the pointer keeps rendering as authoritative no matter
+what is at the other end. Guard the pair, not either file -- for every cross-document reference,
+assert that the referring document's audience is a subset of the referenced document's.
+
+**And an API client that writes its error body to standard output makes absence render as a small
+file.** Probing eleven repositories for two paths, the missing ones came back as 127-byte
+documents rather than as failures, because the 404 JSON went to stdout and a non-empty string is
+truthy. A stub reads as a deliberate placeholder and closes the question; a gap does not. What
+exposed it was two *unrelated* repositories reporting the identical byte count for two different
+paths -- **an exact collision across independent objects is the signature of a constant, not of a
+measurement.** Guard on the exit status rather than on stdout being empty.
+
 **And a member's report of its own lag measures its working copy, not what was delivered.** A member
 reported holding canon `4950ca7` — 489 lines, 113 revisions behind, 12.5% coverage — and asked that
 delivery be treated as blocked. Reading the destination repository instead of the report:
