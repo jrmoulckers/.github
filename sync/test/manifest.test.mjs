@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { readdirSync, existsSync } from 'node:fs';
+import { readdirSync, existsSync, readFileSync } from 'node:fs';
 import {
   engineErrorFragments,
   engineSourcesByGit,
@@ -29,6 +29,52 @@ const manifest = loadManifest(REPO_ROOT);
 
 test('studio.config.json validates', () => {
   assert.doesNotThrow(() => validateManifest(manifest));
+});
+
+// The validators below are each tested directly and thoroughly, and until now nothing tested that
+// the loader still CALLS them. Measured: deleting any one dispatch line from `loadManifest` leaves
+// the suite at 441/441 green, while a manifest corrupted so only that validator objects loads
+// cleanly with the line gone and throws with it present. The wiring was load-bearing in production
+// and unpinned by the suite -- the validators are reachable in a test only by direct invocation,
+// because `validateManifest` throws first and a fixture never gets past it.
+//
+// This is deliberately a two-way equality with no count floor. A floor would pass any partial
+// narrowing that stayed above it, which is the failure mode it looks most like coverage for. The
+// named anchor keeps the comparison from succeeding vacuously if both derivations break at once.
+test('every integrity validator the loader imports is one the loader dispatches', () => {
+  const source = readFileSync(join(REPO_ROOT, 'sync', 'lib', 'manifest.mjs'), 'utf8');
+
+  const imported = [...source.matchAll(/import \{ (\w+) \} from '\.\/[\w-]+-integrity\.mjs';/g)]
+    .map((match) => match[1])
+    .sort();
+  assert.ok(
+    imported.includes('validateWorkflowIntegrity'),
+    `discovery must reach a validator it can name; found ${imported.length}: ${imported.join(', ')}`,
+  );
+
+  const open = source.indexOf('export function loadManifest');
+  const close = source.indexOf('export function applyManifestDefaults');
+  assert.ok(open >= 0 && close > open, 'the loader body must be locatable for this check to mean anything');
+  const body = source.slice(open, close);
+
+  const dispatched = imported.filter((name) => new RegExp(`\\b${name}\\(`).test(body)).sort();
+  assert.deepEqual(
+    dispatched,
+    imported,
+    'an integrity validator imported by the loader but never called is dead in production while every direct-invocation test still passes',
+  );
+
+  // The locally-defined pair sits in the same blind spot and is not reachable by the import sweep
+  // above. Measured the hard way: the first firing control for this test deleted
+  // `validateManifest(parsed)` from the loader and the suite stayed green at 441/441, which read as
+  // a broken harness and was not one. A control drawn from inside the seam under test cannot fire.
+  for (const local of ['applyManifestDefaults', 'validateManifest']) {
+    assert.match(
+      body,
+      new RegExp(`\\b${local}\\(`),
+      `the loader must dispatch ${local}; deleting that call leaves every direct-invocation test passing`,
+    );
+  }
 });
 
 // The corpus sweeps across this suite open with `assert.ok(x.length > 0, ...)`, and that guard
