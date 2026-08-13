@@ -4467,6 +4467,44 @@ after it lands. libro's blocked `#37` was generated at `04:27:21Z`; the authorsh
 merged at `11:21:19Z`, and its `AGENTS.md` blob contains neither. Merging it would have closed the PR
 and left that gap intact.
 
+**But aggregate lag licenses no conclusion about any single passage.** That member later measured a
+pending sync as 144 of 152 revisions behind and inferred from the figure alone that the delivery
+could not carry a correction issued during the gap. Measuring the delivery itself — the pull request
+head, a different object from the branch that was measured:
+
+```
+canon @ d311430                423,990 B   183 revisions
+member main                      9,834 B   correction ABSENT
+member #37 head 1f98946         23,263 B   correction PRESENT   167 of 183 behind
+```
+
+The pending copy holds 5.5% of canon and is 167 revisions stale — by any aggregate measure the worst
+artifact in the comparison — and it carries the disputed qualifier in full. The enrichment thesis
+below is exactly what makes the inference feel sound: undelivered revisions really are
+disproportionately corrections, so a large lag really does raise the odds that any given correction
+is missing. Raising the odds is not deciding the case. **A distributional claim about the backlog
+cannot settle whether one named passage is in it**, and the error runs both ways — the opposite
+inference, that a pending delivery must carry a recent fix, was equally unlicensed and merely
+happened to be right. Grep the delivery for the sentence. It costs one request and it is the only
+thing that answers.
+
+The same measurement exposes a naming collision worth stating separately. *The in-flight copy* named
+three objects in one message — the member's default branch at 9,834 B, its local working branch at
+12,537 B, and the delivery at 23,263 B — and the argument moved between them unmarked. The rule
+further down (**a member's report of its own lag measures its working copy**) covers the first two;
+the third is the one that decides remedies, because only the pull request head answers *what would
+merging this actually deliver*. Resolve it with `gh pr view <n> --json headRefOid` and read the blob
+at that oid, rather than trusting a branch name that looks like the delivery.
+
+Note where that correction was issued. The same message opened by telling me I had measured an
+unnamed ref, and then built its central finding on an unnamed ref. **Issuing a rule is not applying
+it, and the message issuing it is the least likely place to have it applied**, because stating the
+rule discharges the attention that checking would have used. This file already records the
+document-scale version — two contradictory paragraphs adjacent for their whole life, unread against
+each other because reading is by subject. The message-scale version is faster and harder to see,
+since both halves are composed in one sitting by an author who has just demonstrated they hold the
+rule.
+
 **And from the hub, a distribution defect and ordinary lag are indistinguishable.** Both present as
 the same observation: *the member's copy lacks the correction.* One never heals and needs
 intervention; the other resolves itself on the next run. I diagnosed the first when the truth was the
