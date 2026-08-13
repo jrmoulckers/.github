@@ -5036,11 +5036,68 @@ is computed, and the second is where drift lives: from the member side *your cla
 and *your file is wrong* arrive as the same message, `canonical provenance marker is missing`, and
 only the first is actionable by the member — the second sends someone to inspect a correct file.
 **Where a consumer can fail for two reasons and only one is theirs to fix, the protocol must carry
-enough to say which.** The engine now emits `classifierSha256` in each lockfile, digesting the
+enough to say which.** The engine emits `classifierSha256` in each lockfile it writes, digesting the
 family assignment rather than the type list, because moving a type between families drifts a
 consumer exactly as much as dropping it and a membership digest is blind to that. The general rule:
 **anything a member must reproduce to check canon's output is a versioned contract whether or not
 it is published as one.**
+
+**That paragraph read "now emits" for its first day, and no lockfile in the fleet contained the
+field.** Measured across all eleven members: `present 0 of 11`. `serializeLock` writes
+it unconditionally, so any lock written after the feature would carry it — the feature landed at
+`2026-08-12T17:22:14Z` and the most recent distribution run in the entire history is
+`2026-08-12T14:27:19Z`, two hours and fifty-five minutes earlier. The field had never been emitted
+once, anywhere.
+
+So **a feature can merge, pass its whole suite, and have zero delivered instances, with nothing in
+the suite able to see the difference.** The tests exercise the writer directly and are right to;
+they establish that the field is *produced*. Receipt is a second axis, and no test in a hub
+repository can cover it, because the artifact under test is written into someone else's repository
+by a workflow that may not have run. Where a change's value is realised by distribution, green is a
+statement about the generator and carries no information about the population.
+
+**The verb tense is the tell, and it is worth policing directly.** *Now emits* is true of the code
+and false of every artifact a member holds, and in a distributed document the present tense is
+ambiguous between *implemented* and *in effect* — while canon is read almost exclusively by parties
+who can observe only the second. Write the delivery state explicitly, in the same sentence as the
+capability: implemented at a revision, delivered to N of M, first carried by a named run. A
+capability claim with no population attached will be read as a population claim by everyone
+downstream of it.
+
+**And the consumer-side constraint falls out of the same fact.** A check written against
+`classifierSha256` today skips on 100% of real inputs, so it renders identically to a passing
+check — the known-positive rule arriving as a design constraint rather than as a bug report. Any
+implementation must carry a **fixture** digest so the comparison path executes regardless of what
+the live lock contains, and must fail when the fixture path did not run. A field that is absent
+everywhere is the strongest possible case for it, because there is no input on which the check can
+demonstrate that it works.
+
+**A digest of a rule is only possible if the rule is closed.** A member reproducing this table
+classified unrecognised types by falling back to an HTML marker — an open-world "everything else",
+which cannot be digested at all: there is no set to hash. So publishing a digest is a constraint on
+the rule's *shape*, not merely a record of its contents, and adopting one forces an implicit
+fallback closed. The two classifiers also differ in **failure mode** rather than in strictness:
+`commentSyntaxFor` throws on an unrecognised type, while a fallback is confidently wrong and reaches
+the user as the synced content being broken. Between two implementations that disagree, ask which
+one refuses before asking which one is right.
+
+**And an absence the lock cannot explain is often resolved one layer up, in the dispatch log.** The
+lock cannot date a verification, per the measurement recorded earlier in this file — but the
+workflow run history can, fleet-wide, in one call. Eleven absent fields support the conclusion by
+induction over members; a single run listing reaches it from one fact *and* supplies the date, which
+the member-side evidence never could. The hub's incapacity is therefore narrower than stated above:
+it cannot date a **per-member** verification, but it can bound delivery for the whole fleet, and a
+bound is often the entire answer.
+
+**One caution from getting this wrong first.** The measurement above was undertaken expecting to
+*refute* the member: the writer is unconditional, the newest lock was written today, so the field
+had to be present, so the deployed engine must differ from the committed one — a serious finding,
+nearly reported. It dissolved on one lookup, because `14:27Z` and `17:22Z` are both "today".
+**Comparing at day resolution manufactured a contradiction that timestamp resolution dissolves**,
+and the manufactured version was much the more alarming of the two. A contradiction derived from two
+facts of different precision is a resolution mismatch until shown otherwise; re-date both operands
+at the same granularity — `git log -G` for when a symbol entered, the run list for when a job ran —
+before drawing any conclusion from their order.
 
 Note where the drift was found and where it was not. That member's suite was green, and could not
 have been otherwise: its lock held 49 `.md` and one `.toml`, so every misclassified type was one it
