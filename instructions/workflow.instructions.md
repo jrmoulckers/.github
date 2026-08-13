@@ -1164,14 +1164,28 @@ destroys; both open ones carried branches belonging to neither party, so the que
 and had simply not been asked. **Before naming something a limit of the record, name the field you
 read to establish it.**
 
-**When an attribution check returns UNKNOWN, look for a total instrument before enriching a partial
-one's value set.** A sibling auditing its own authorship from its session record got three outcomes
-rather than two — one commit confirmed, one correctly disclaimed, and one *not establishable either
-way*, because the pull request appeared nowhere in a record that summarisation had truncated. That
-report was honest about the record and wrong about the question: `headRefName` is **total over
-merged pull requests**, every merged PR has exactly one head ref, and it resolved the third case
-immediately. A third value faithfully describes a bad instrument; switching instruments deletes the
-case.
+**When an attribution check returns UNKNOWN, look for a total instrument — then check what its answer
+chains through.** A sibling auditing its own authorship from a summarised session record got three
+outcomes rather than two, the third being *not establishable either way*. `headRefName` is **total
+over merged pull requests** — every merged PR has exactly one head ref, so the field has no absent
+case, and it named the third branch at once.
+
+**But the field is not the inference.** The question is *whose work is this*, and the chain is
+`headRefName` → branch → session; totality of the first arrow says nothing about the second. That
+premise fails twice here: one session holds many head branches, and the binding is **mutable** — a
+session recorded under one branch name reports itself as running another, the very branch the
+long-lived-branch case above rests on. So the premise is observable only as a snapshot, and *this
+session keeps one branch* cannot be verified by inspection at all. Switching instruments deleted the
+case from the field and moved it into the premise, where it no longer has a value to be reported as,
+and a total field read through a stale binding answers **more** confidently than the three-valued
+report it replaced. **Name the instrument together with the premise it chains through.** The session
+store cannot supply that premise on demand either, and not for the reason it first appears: a search
+of one session's own record returned zero for every needle including pull requests it had merged
+minutes earlier, while a peer's identical query against its own record answered cleanly. The cause
+is **coverage, not needle class** — measured the same night on the same table, one session had
+assistant text on 265 of 267 turns and the other on 9 of 175. **Archive coverage is a per-session
+property, so a control that fires for a peer certifies nothing about your own record**; measure it
+where you are asking, or a 5%-populated channel will return a confident absence.
 
 **Where an instrument really is partial, though, a binary verdict is worse than an abstention.** The
 check must force its missing case somewhere, and it forces it to *not mine* — so the blind spot
