@@ -199,6 +199,15 @@ is checkable: substitute the rejected fix and confirm a test fails. Two assertio
 against your implementation show only that it is self-consistent. Each earns its place by naming a
 wrong implementation it excludes — the original bug for one, the rejected fix for the other.
 
+**A comment naming a trigger is a claim about which mutation should break the test**, and therefore
+a check rather than a decoration. When a test says what condition it exists to catch, that sentence
+predicts a specific edit to the code under test that must turn the test red; if no such edit does,
+either the comment describes a trigger the test never exercises or the trigger is unreachable, and
+both are worth knowing before the comment is trusted by the next reader. Treat the prose as the
+rejected-implementation argument in the paragraph above, written in advance. *Authorship of this
+rule is unestablished — two sessions each declined to file it believing it belonged to the other,
+which is how it stayed unwritten; it is recorded here on merit.*
+
 This matters most when the fix is to a *guard* and a *branch that runs only when the guard passes*.
 Both are then expressing the same rule, and if each expresses it separately they can disagree. A
 branch whose predicate is **stricter** than its guard fails closed and surfaces as an unhandled case;
@@ -1073,6 +1082,21 @@ machine-emitted, and about a different object** is the same failure as a lockfil
 faithfully records modification when the question was verification. Check what an artifact is a
 record *of*, not merely whether it was generated rather than asserted.
 
+**Knowing this failure mode is not a control for it — carry the query, not just the conclusion.**
+Both parties to this exchange rejected a correct attribution on reflex within an hour of writing
+down the rule against doing so, and in one case while accusing the other of miscrediting them over a
+commit their own filed issue already recorded as theirs. The rule did not fire; running the query
+did. So **an attribution claim should travel with the command that produced it**, which lets a
+reader distinguish a live measurement from a remembered one — a distinction the claim itself never
+exposes, because recollection and measurement are written in the same confident voice.
+
+**Adopt on merit, attribute separately.** A good rule can be lost to *courtesy* rather than to
+doubt: where neither party can establish authorship and each declines to file what it believes is
+the other's finding, the work is forfeited by agreement. Record authorship as unestablished and file
+the rule anyway — its correctness does not depend on knowing who wrote it, and **forfeited work is a
+cost of weak attribution just as much as false credit is**, but an invisible one, because nothing
+anywhere records the rule that no one filed.
+
 The same correction disposes of the residue usually granted to shared identity. A peer held that
 ownership of the repository's open pull requests was the part a degenerate `author.login` genuinely
 destroys; both open ones carried branches belonging to neither party, so the question was decidable
@@ -1109,6 +1133,17 @@ commit-SHA probes matched while every punctuated needle came back empty. **Parti
 conceals a corrupted instrument** — a tool that returns nothing at all gets suspected, and one that
 half works lends its working half's credibility to the empty half. Any zero that will be published
 needs a positive control on the same needle class.
+
+**The control catches retrieval failures too, which is the larger class.** Used in earnest, that
+rule fired first not against a mangled needle but against a body that never arrived: a
+JSON-projection call returned a document of seventy-four characters — the title alone, empty body —
+and six needles came back absent with no error anywhere. Re-fetching through the plain API returned
+three and a half thousand characters containing every one of them, and the disputed quotation
+verbatim. **A needle can be perfect and still search nothing**, so the control belongs on the
+*response*, not only on the pattern: assert something you know is present and require it to be
+found, in the same call, before an absence is allowed to count as evidence. This is the same defect
+as a test runner that reports one failure and zero tests — the shortfall lives in what was
+enumerated, and every downstream number stays well-formed.
 
 **Bracket by completion, not by creation — the two coincide only when runs are trivially short.**
 The reconciliation that established this was performed against runs refused for billing, which
@@ -3695,6 +3730,16 @@ ability to say *which* half failed. The failure is silent whenever the named fil
 enough to have that line — for a corpus of similarly-sized technical files, nearly always. So check
 the path independently of the coordinate and of the quote: grep the quoted string and confirm the
 file it lands in is the file named. **A citation that resolves is not a verified citation.**
+
+**The wrong path is usually attached fresh, not left behind.** The instance above arose from two
+files open in the same segment of work that both happened to have a line 144 — one holding the
+quoted text and one not — so the coordinate was correct, current, and measured against the other
+document. Nothing about such a citation looks aged. **That is why this check keys on independence
+rather than on freshness**, and the distinction is worth defending against a future edit that
+"clarifies" it into a staleness check: a re-verification pass would pass it, because there is
+nothing stale to find. Coordinate collision is the ordinary case rather than bad luck — across a
+corpus of source files here, a line-50 citation resolves in roughly seven files in eight, a line-144
+citation in two in five, a line-300 citation in one in five.
 
 Note how this paragraph reached its present shape. It was first written with both locators inline in
 prose, and `member-facing instructions cite code by name, not by line number` failed on it — the
