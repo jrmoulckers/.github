@@ -366,8 +366,24 @@ test('the source pattern catches the claim the prose pattern let through', () =>
 // count guard keeps "three members were in that group" writable. An unhedged run of names is
 // asserting the population, and an asserted population goes stale the next time one is added.
 
+/**
+ * A member name, backticked or not.
+ *
+ * Every predicate in this tier — the run detector, the fleet-coverage legitimizer, and the
+ * own-count legitimizer — must agree on what counts as a name. When only the run detector required
+ * backticks the tier had a second population nobody had chosen: 145 documents were walked, 5,232
+ * blocks were split, and **six** blocks decided every verdict, selected by an authoring convention
+ * no test asserted. Let backticking drift and the document floor still passes at 145, every fixture
+ * still passes, every mutant still dies, and the sweep evaluates nothing.
+ *
+ * Widening one predicate alone is worse than widening none: matching a plain-text run while
+ * `coversFleet` still needed backticks turned a table that correctly named all eleven members into
+ * an offender. The detector and its legitimizers share this token for that reason.
+ */
+const NAME_TOKEN = (names) => String.raw`\`?(?<![\w-])(?:${names})(?![\w-])\`?`;
+
 const MEMBER_RUN = (names) =>
-  new RegExp(String.raw`(\`(?:${names})\`[,;]?\s+(?:and\s+|or\s+)?){2,}\`(?:${names})\``, 'g');
+  new RegExp(String.raw`(${NAME_TOKEN(names)}[,;]?\s+(?:and\s+|or\s+)?){2,}${NAME_TOKEN(names)}`, 'g');
 
 /** Marks the list as illustrative. Anything else is a claim about the whole fleet. */
 const HEDGE = /and more|and others|among (?:them|others)|for example|such as|e\.g\./i;
@@ -413,8 +429,11 @@ function proseBlocks(text) {
  * checkable from names alone, and asserting only what is derivable is the point.
  */
 function coversFleet(blockText, memberNames) {
+  const escaped = memberNames.map((n) => n.replaceAll('.', String.raw`\.`)).join('|');
   const named = new Set(
-    [...blockText.matchAll(/`([^`]+)`/g)].map((m) => m[1]).filter((n) => memberNames.includes(n)),
+    [...blockText.matchAll(new RegExp(NAME_TOKEN(escaped), 'g'))].map((m) =>
+      m[0].replaceAll('`', ''),
+    ),
   );
   return named.size === memberNames.length;
 }
@@ -431,7 +450,8 @@ function coversFleet(blockText, memberNames) {
  * launder any list.
  */
 function boundedByOwnCount(blockText, match, memberNames) {
-  const listed = [...match[0].matchAll(/`([^`]+)`/g)].filter((m) => memberNames.includes(m[1]));
+  const escaped = memberNames.map((n) => n.replaceAll('.', String.raw`\.`)).join('|');
+  const listed = [...match[0].matchAll(new RegExp(NAME_TOKEN(escaped), 'g'))];
   const preceding = blockText.slice(Math.max(0, match.index - 80), match.index);
   const tokens = [...preceding.matchAll(CARDINALITY)];
   const last = tokens.at(-1);
@@ -460,6 +480,67 @@ function unboundedRuns(blockText, memberNames) {
     .filter((match) => !boundedByOwnCount(blockText, match, memberNames))
     .map((match) => match[0].trim().replaceAll('\n', ' '));
 }
+
+/**
+ * The documents that enumerate the fleet today, pinned by name.
+ *
+ * `SURFACE_FLOOR` guards the population that is **walked**. It cannot see the population that is
+ * **evaluated**: strip the backticks out of canon and the walk still finds 145 documents, the floor
+ * still passes, every fixture and every mutant still behaves — and the rule fires on nothing. A
+ * walked corpus and an evaluated corpus are different numbers, and only the second is the
+ * instrument.
+ *
+ * Pinned by name rather than by count because a count chosen from today's output ratifies whatever
+ * today's output happens to be; each entry below is checkable by opening the file and finding the
+ * enumeration. The floor is derived from this list for the same reason — a separately-tuned number
+ * would be free to drift away from the names it is supposed to summarize.
+ */
+const ENUMERATING_DOCS = [
+  'AGENTS.md',
+  'README.md',
+  'docs/sync.md',
+  'docs/architecture/0006-runtime-and-copilot-canon-kinds.md',
+  'docs/architecture/0009-canonical-line-ending-normalization.md',
+  'instructions/workflow.instructions.md',
+];
+
+test('the enumeration rule reaches a named population, not whatever the authoring convention admits', () => {
+  const memberNames = loadManifest(REPO_ROOT).members.map((m) => m.repo.split('/')[1]);
+  const names = memberNames.map((n) => n.replaceAll('.', String.raw`\.`)).join('|');
+  const evaluated = new Set();
+  let plainTextRuns = 0;
+
+  for (const relativePath of proseSurfaces()) {
+    const text = readFileSync(join(REPO_ROOT, ...relativePath.split('/')), 'utf8');
+    for (const block of proseBlocks(text)) {
+      for (const match of block.text.matchAll(MEMBER_RUN(names))) {
+        evaluated.add(relativePath);
+        if (!match[0].includes('`')) plainTextRuns += 1;
+      }
+    }
+  }
+
+  for (const doc of ENUMERATING_DOCS) {
+    assert.ok(
+      evaluated.has(doc),
+      `${doc} enumerates the fleet, but no block in it reaches the rule — the rule has narrowed`,
+    );
+  }
+
+  assert.ok(
+    evaluated.size >= ENUMERATING_DOCS.length,
+    `the rule reaches ${evaluated.size} documents, below the ${ENUMERATING_DOCS.length} it is pinned to`,
+  );
+
+  // The property the backtick gate destroyed, stated directly: two of the live enumerations —
+  // `docs/sync.md` and `instructions/workflow.instructions.md` — name the fleet in plain text, and
+  // were invisible to this rule while it required backticks. A guard that only sees the convention
+  // it happens to be written in is checking the convention.
+  assert.ok(
+    plainTextRuns >= 1,
+    'no run without backticks reaches the rule — the population is gated by an authoring convention again',
+  );
+});
 
 test('no prose enumerates the fleet without marking the list as partial', () => {
   const memberNames = loadManifest(REPO_ROOT).members.map((m) => m.repo.split('/')[1]);
@@ -538,6 +619,15 @@ test('a run stands on its own stated size, and only on the size it actually has'
     unboundedRuns(`Rejected in 2019: \`${a}\`, \`${b}\`, \`${c}\`.`, memberNames).length,
     1,
     'an unrelated number nearby is not a statement of the list size',
+  );
+
+  // Written without backticks, and it must still bound. Every predicate in this tier shares one
+  // name token, so a legitimizer left on the old convention would reject a plain-text list that
+  // states its own size — the same one-sided widening that turns complete tables into offenders.
+  assert.equal(
+    unboundedRuns(`Three members (${a}, ${b}, ${c}) were in that position.`, memberNames).length,
+    0,
+    'a plain-text list that states its own size is bounded by it too',
   );
 });
 
