@@ -7624,6 +7624,49 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**A completeness control that compares an enumeration against a reported total passes exactly when
+that total is a ceiling.** Enumerating a paginated collection and checking the count against the
+API's own `total_count` is a sound control for every collection below the service's limit, and
+vacuous at or above it: the listing hard-stops after page 400 and reports the total as exactly
+40,000, so the check compares 40,000 against 40,000 and reports a complete census over an unknown
+population. The control is silently weakest on the largest collection, which is the one whose
+truncation costs most. The discriminator is the **shape** of the number rather than its agreement
+with anything -- a round figure repeated identically on every page is a cap, an unrounded one is a
+count. **Validate a total against the pattern a real count would have, not only against a second
+reading of the same field.**
+
+**Coverage is a scalar computed over the whole population and cannot license a claim made over a
+stratum.** A window retaining 100 of 101 records looks 99% complete, but the excluded record is
+necessarily the oldest, so a rate conditioned on age loses it from the denominator and moves --
+here from 5/47 to 5/48. **The error a window induces is not proportional to the fraction it
+excludes; it is determined by where the excluded records fall relative to the subpopulation being
+tested.** For any recency-bounded query feeding a time-conditioned rate, the truncation is
+perfectly correlated with the conditioning variable, and coverage cannot distinguish a window that
+is 99% complete everywhere from one that is 0% complete on the oldest stratum.
+
+**Coverage by count and coverage by time are different measurements and neither bounds the other.**
+Measured across eleven repositories enumerated to exhaustion, the two diverge on 8 of 9 measurable
+members across a 34.6-point range, and **the sign varies** -- positive where a window spans many
+records over little time, negative where the excluded records are clustered in age. A single column
+carrying both headings therefore overstates completeness for some members and understates it for
+others, which is worse than a naming error because no direction of correction is available. Note
+also that coverage bounds the **bias** a window introduces and says nothing about the **precision**
+of a rate, so a coverage-only table makes a 26-record census look like its most trustworthy row.
+
+**A limit demonstrated on its weakest instance gets priced as unproven.** The divergence above was
+first noticed on the member whose divergence is 1.0 point, the smallest non-zero value in the
+fleet, and was offered as true in principle and unproven in practice for exactly that reason. The
+same property measured 16.4 points elsewhere. **When a newly noticed effect looks marginal, measure
+it where it should be largest before pricing further work on it** -- the instance that revealed an
+effect is not evidence about the effect's size.
+
+**A guard belonging to the instrument must never be reported in a column reserved for the data.**
+An enumeration loop carrying a thirty-page cap stopped at 3,000 of 40,000 records, and the result
+table printed the shortfall as a mismatch attributable to the repository. The cap was disproved in
+one call by requesting a later page directly and receiving a full one. **Every limit written into a
+measurement script is a finding about the script, and belongs in a separate column from findings
+about the subject.**
+
 **Monotone is not the same property as adequate, and a sweep that crosses the reference point
 proves the weaker one.** A measure rising steadily across a swept parameter establishes
 monotonicity. It does not establish that the measure clears its own baseline, because a sweep
