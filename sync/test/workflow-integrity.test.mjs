@@ -472,3 +472,130 @@ test('a workflow with no gate at all is rejected', () => {
   const errors = validateCiGateCoverage(ciSource().replace('    name: CI gate', '    name: Something else'));
   assert.ok(errors.some((error) => error.includes('no job named "CI gate"')));
 });
+
+// Each contract validator is invoked from validateWorkflowIntegrity's dispatch and from nowhere
+// else in production. Every test above calls the exported validator directly, which pins its logic
+// precisely and says nothing about whether production reaches it: deleting a call site leaves the
+// validator defined, exported and green. Six of the seven dispatch calls survived exactly that
+// mutation before this test existed, and the seventh died only because it already had a test that
+// drove the entry point rather than the function. Wiring and behaviour are separate properties.
+//
+// Each row corrupts the real workflow inside a throwaway root and drives it through the production
+// entry point, so the assertion fails when a validator stops being reached, not only when its logic
+// breaks. The needles are strings only the named validator emits.
+//
+// The corruption marker goes in the middle of the anchor, not on the end. Several of these patterns
+// are unanchored substring tests, so appending to the anchor leaves the original as a prefix and the
+// pattern still matches -- a mutation that applies to the file, changes nothing the validator sees,
+// and reports as "validator not reached". Two rows were written that way and this test caught them.
+const CONTRACT_DISPATCH = [
+  {
+    validator: 'validateArtifactContracts',
+    file: 'reusable-ci-web.yml',
+    from: 'artifact-retention-days:',
+    to: 'artifact-retention-daysZZ:',
+    needle: 'incomplete build-artifact producer contract',
+  },
+  {
+    validator: 'validatePagesAuthority',
+    file: 'reusable-deploy-pages.yml',
+    from: 'upload-pages-artifact@',
+    to: 'upload-pages-artifactZZ@',
+    needle: 'build job must hand off the fixed Pages artifact',
+  },
+  {
+    validator: 'validateSecurityContract',
+    file: 'reusable-security-ci.yml',
+    from: '--fail-on-scan-errors',
+    to: '--fail-on-scanZZ-errors',
+    needle: 'incomplete secret, dependency, or package audit contract',
+  },
+  {
+    validator: 'validateChangeDetectionContract',
+    file: 'reusable-change-detection.yml',
+    from: 'matched no path group',
+    to: 'matched noZZ path group',
+    needle: 'unclassified changed files must be reported',
+  },
+  {
+    validator: 'validateCallerPermissionLintContract',
+    file: 'caller-permissions-harness.yml',
+    from: 'uses: ./.github/workflows/reusable-caller-permissions.yml',
+    to: 'uses: ./.github/workflows/reusable-caller-permissionsZZ.yml',
+    needle: 'must call the local reusable lint workflow',
+  },
+  {
+    validator: 'validateNativeSmokeContract',
+    file: 'reusable-native-smoke-test.yml',
+    from: 'cache-read-only: true',
+    to: 'cache-read-only: false',
+    needle: 'Gradle caching must stay read-only',
+  },
+  {
+    validator: 'validateCiGateCoverage',
+    file: 'ci.yml',
+    from: '    name: CI gate',
+    to: '    name: Something else',
+    needle: 'no job named "CI gate"',
+  },
+];
+
+test('every workflow contract validator is reached from the integrity entry point', () => {
+  const manifest = loadManifest(REPO_ROOT);
+  for (const row of CONTRACT_DISPATCH) {
+    const root = mkdtempSync(join(tmpdir(), 'workflow-dispatch-'));
+    try {
+      cpSync(join(REPO_ROOT, '.github'), join(root, '.github'), { recursive: true });
+      const target = join(root, '.github', 'workflows', row.file);
+      const original = readFileSync(target, 'utf8').replace(/\r\n?/g, '\n');
+      // An anchor that no longer matches produces a mutant that was never applied, which reports as
+      // a covered defect rather than as a skip. Assert the corruption landed before reading a verdict.
+      assert.ok(
+        original.includes(row.from),
+        `${row.file}: anchor ${JSON.stringify(row.from)} is absent, so the ${row.validator} probe would not apply`,
+      );
+      const mutated = original.split(row.from).join(row.to);
+      assert.notEqual(mutated, original, `${row.file}: corruption for ${row.validator} changed nothing`);
+      writeFileSync(target, mutated);
+
+      let message = null;
+      try {
+        validateWorkflowIntegrity(root, manifest);
+      } catch (error) {
+        message = error.message;
+      }
+      assert.ok(message, `corrupting ${row.file} must be reported by the integrity run`);
+      assert.ok(
+        message.includes(row.needle),
+        `${row.validator} must be reached from validateWorkflowIntegrity: corrupting ${row.file} produced no ${JSON.stringify(row.needle)}`,
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
+// The table above is a list of validators to check, maintained by hand, in the same repository as
+// the dispatch it mirrors -- which is the shape the test exists to catch, one level up. Deriving
+// the population from the entry point's own source means a validator added to the dispatch without
+// a row here fails rather than passing unnoticed.
+test('the contract dispatch table covers every validator the entry point calls', () => {
+  const source = readFileSync(join(REPO_ROOT, 'sync', 'lib', 'workflow-integrity.mjs'), 'utf8');
+  const start = source.indexOf('export function validateWorkflowIntegrity');
+  const end = source.indexOf('export function inspectWorkflowSource');
+  assert.ok(start >= 0 && end > start, 'the entry point must be locatable in its own source');
+  const called = [...source.slice(start, end).matchAll(/^\s*(validate[A-Za-z]+)\(/gm)].map(
+    (match) => match[1],
+  );
+  const dispatched = [...new Set(called)].sort();
+  assert.ok(dispatched.length >= 7, `expected the dispatch to call several validators, saw ${dispatched.length}`);
+
+  // validateTriggerCoverage is reached through the per-file loop and already has a production-path
+  // test above, so it is covered without a corruption row of its own.
+  const covered = new Set([...CONTRACT_DISPATCH.map((row) => row.validator), 'validateTriggerCoverage']);
+  assert.deepEqual(
+    dispatched.filter((name) => !covered.has(name)),
+    [],
+    'a validator is dispatched but no production-path probe proves it is reached',
+  );
+});
