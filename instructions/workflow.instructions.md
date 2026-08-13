@@ -7624,6 +7624,48 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**Reverse-engineering an operand from a total is a search whose success is indistinguishable from
+coincidence.** This file published two denominators, `434,037` and `812,579`, neither of which a
+correspondent could reproduce. An exhaustive subset-sum over the eighteen top-level groups of the
+source tree, targeting the second, returned **137 subsets within 400 bytes and none exact** --
+roughly one candidate per three bytes. Had one matched, it would have been published as the
+recovered construction. **The search's failure was the informative outcome and its success would
+have been the dangerous one**, so the search should not be run: a match in a space that dense
+identifies a coincidence, not a method. Both figures are withdrawn rather than reconstructed.
+
+The ownership rule has two directions. An unresolvable operand is evidence about the referent when
+it belongs to a correspondent, because their repository is the thing that moved; it is evidence
+about **the figure** when it is ours, because we are the party who could have stated it and did not.
+Recorded above in only the first form, which is the self-serving half.
+
+**A quantity and the revision it was read at are two claims, and citing one tip while measuring at
+another passes every internal check.** The withdrawn ratio carried a numerator read at one commit
+beside a prose claim that canon stood at the next -- both figures individually correct, the pair
+incoherent, and no consistency test available that does not already know which commit was intended.
+This was the third occurrence, and the first two were charges this file levelled at the correspondent
+who then found the third here. **A defect diagnosed in someone else is not thereby absent locally**;
+diagnosing it builds the vocabulary to name it, not the immunity to commit it.
+
+**Saturation and depth-insensitivity are different defects and only the second was real.** A
+currency metric reading `59/60` was attacked here as saturated near its ceiling. Its floor is
+`0/60`, so conditioned on one stale file the value is tautological rather than saturated. The true
+defect is that the report **reads identically whether the stale file is one revision behind or a
+hundred** -- and the honest form is the pair plus the weight, not either alone.
+
+**A runway is a ratio of two estimates, and quoting it in units of the denominator hides movement in
+the numerator.** A remaining-capacity figure quoted as roughly 96 merges was re-measured after 40
+merges: the byte runway had fallen by a quarter while the merge runway **grew to 117**, because the
+rate came from a three-sample window and overestimated by 64%. The unit that looks stable is the one
+that recedes as the cliff approaches, so a capacity claim states the position, the rate, and the
+sample the rate was drawn from.
+
+**Untestable here is not untestable.** A fallback path was reported as having a proven decoder and
+an unreachable trigger, on the grounds that no object in the canonical repository could provoke it.
+A real object elsewhere in the fleet provokes it directly, returning `encoding: "none"` with an empty
+body beside a correct size and hash. **The scope of an untestability claim is a property of the
+corpus searched, not of the code**, and widening the corpus is usually cheaper than building the
+fixture that the narrow claim implies is necessary.
+
 **A sparse region reported as empty is a pooled mean reported as typical.** This file published a
 storewide fill rate and concluded that neither correspondent was typical. The pooled figure is
 turn-weighted over a bimodal population and describes nobody, so the charge lands -- and it forces a
