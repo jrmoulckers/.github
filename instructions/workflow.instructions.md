@@ -6351,7 +6351,7 @@ blob      bytes     members
 2cf4679   12,537    cartridge, product
 50c3b25    9,834    libro (default branch)
 dd37364   48,840    docket
-28c236a  308,014    studio (canon source)
+28c236a  308,014    studio (largest member holding)
 --            --    homelab, windows -- not retrievable, non-zero exit
 ```
 
@@ -7627,6 +7627,29 @@ citation does not. A figure with no public revision id cannot be pinned at all, 
 quoted as a delta with a stamp rather than as a citation. This replaces the growth-rate test
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
+
+**A reconciliation that succeeds has not proved it found the only discrepancy.** The entry below was
+demonstrated on a pair of `549` against `243`, attributed entirely to population. Measured, the pair
+differs on two axes: at a fixed instant the counts are `504` and `243`, and eleven hours later they
+are `549` and `281`. Correcting the population alone leaves `281` against `243` -- a residual of
+`38` that reads exactly like a peer being short. Correcting the instant alone leaves `261`. Only
+both together give exact agreement. The published reconciliation was right because every reading in
+it was timestamp-bounded, but **exact agreement after a single correction is evidence that the
+corrected axis mattered, not evidence the others were aligned**, and the failure is silent because
+agreement is the signal used to stop searching. Enumerate the live axes -- population, instant, ref,
+path -- before reconciling on any of them, and when a correction leaves a residual, do not read the
+residual as the peer's error until the remaining axes are fixed too.
+
+**A repository that holds the biggest copy is not thereby the origin of the copies.** A table of
+member holdings in this file annotated its largest row as the canonical source, and the annotation
+was never derived -- it was inferred from rank, and stood for weeks in a document that instructs
+against exactly that inference. The canonical path is `jrmoulckers/.github` at `instructions/`; the
+member holding that outweighs every other member is still a member. **A size-ordered map cannot
+produce the contradiction that would expose a wrong origin, because it never asks where a file came
+from.** The instrument that settles it is blob identity, which costs the same request as a size:
+equal byte counts across repositories are evidence, equal blob ids are proof. The same substitution
+appears one layer up when a figure that agrees with a fresh reading is treated as confirming where
+the figure came from -- agreement of two numbers is not provenance of either.
 
 **Before charging a peer's figure as wrong, find the population it would be right for.** A count of
 `243` was read against a locally measured `549` and was one step from being published as an error.
