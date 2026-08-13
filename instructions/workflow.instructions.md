@@ -1784,6 +1784,27 @@ filtering the roster to types the formatter currently handles. On the same branc
 not formatted today. **A count of what will break later must not be filtered by a property that can
 change**, because those members are precisely the ones whose risk is that it does.
 
+**And a check that runs on the branch being changed cannot see a gap, or a fix, that exists only on
+the merge result.** Measured across four live branches of one member, coverage read against each
+branch's own sync roster: the default branch shows `0` gaps, and merging the sync branch takes it to
+`1` while changing no line of the ignore file, because that branch is the only one raising the
+roster from `72` to `83` and so the only one delivering the file at issue. The reciprocal is
+sharper and is the half worth keeping: the branch carrying the *fix* holds the `72` roster too, so
+its ignore entry covers a file that is not there, and it emits the same clean output as a branch
+with nothing to fix. **Neither the defect nor its repair is observable on the branch that
+introduces it** -- each is a property of the pair. So the ordering claim, that the fix must land
+first, is precisely the proposition no per-branch run can confirm, and it is the one being relied
+on. **Run coverage on the merge result**, and treat a remedy that its own branch cannot exhibit as
+untested rather than as passing.
+
+**A population identical across every branch of a comparison is an instrument reading, not a
+finding.** The first extraction above returned a roster of `1` on all four branches: the lock's
+`entries` is an object keyed by path, and wrapping it in an array collected the container once. It
+was not the constant that was suspicious, it was that the constant survived branches known to
+differ -- the same uniform-exceptions tell recorded elsewhere in this file, moved from the
+exceptions to the denominator. **Before reading a per-branch result, check the branches disagree
+about something.**
+
 **The graded form is a test that fails to reject and does not publish what it could have rejected.**
 A model proposed here — that a sub-minute gap survives minute-truncation with probability `g/60` —
 was tested by a peer and replicated independently here, 10 observed against 8.20 expected on their
