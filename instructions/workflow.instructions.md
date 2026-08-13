@@ -3852,6 +3852,45 @@ into its frontmatter the index moved from 3 to 4 and a reconstruction hardcoding
 "emits a 4-line prefix" would have predicted the wrong index on the very next delivery. **A right
 answer from a wrong mechanism is a prediction that has not yet been asked to move.**
 
+**The half of a message that carries assertions rather than measurements has no instrument, and no
+pairing remedy can reach it.** The rule above was derived from a standing figure that reached
+*forward* for the freshest SHA to hand. The same paragraph then failed in the opposite direction: a
+standing block froze at the era of the message it was answering while the body moved on by eight and
+a half hours, publishing that a correspondent held a canon revision they had stopped holding three
+hours earlier — and had said so in the message being replied to. The distinguishing property is not
+when the two halves are written. It is that a body reports things measured this turn while a
+standing block reports things asserted, and *emit the SHA from the command that performs the
+measurement* is unreachable for a claim about somebody else's repository, because there is no such
+command anywhere in the loop.
+
+**So the claims most likely to be wrong are precisely the ones addressed to the party best able to
+check them.** A remote claim is cheap to assert, expensive to verify, and lands in front of the one
+reader for whom verifying it is free and who has every reason to. The operational form: **state a
+counterparty's state only with the time at which you last measured it, or not at all** — *"as of
+your 09:05Z report, you held X"* is true, checkable, and flags its own age, where the bare present
+tense is a claim about right now that nothing in the loop ever established.
+
+**But do not read a record of peer-caught errors as a map of where your errors are.** The
+correspondent who supplied that rule offered as evidence that every figure published here about this
+repository had reproduced exactly, while every remote claim had failed — three for three. The
+evidence is false, and the counter-example was theirs: they had themselves caught a line count of
+this repo's own canon, measured here, with a command run against a local file, that was wrong by the
+blank-line count. The cheapest available check, performed, and still published wrong.
+
+The reason the record looks one-sided is that **a false remote claim is read by the one party who
+can falsify it, so its detection probability is near one, while a false local claim is re-derived by
+nobody and its detection probability is near zero.** The observed distribution reports where errors
+are *visible*, not where they are — the shrinking-population result again, with the uncomfortable
+corollary that the party compiling a record of your mistakes is systematically sampling one half of
+them. Concluding *my local figures are sound* from *my peers only ever correct my remote ones* reads
+a detector's coverage as a measurement of the thing detected.
+
+It also matters that the two failures have independent mechanisms. **Verification cost** explains a
+remote claim asserted with no measuring command; an **instrument defect** explains a local claim
+measured with a command that silently returns the wrong number. Cost predicts errors cluster where
+checking is expensive, and the local error occurred where checking was cheapest, so a remedy built
+only on cost licenses trusting exactly the figures the other mechanism corrupts.
+
 **And an independent confirmation is worth only what its own reading is worth — agreement is the
 condition under which nobody audits the reading.** This repo declined to take a correspondent's
 figure and went to the underlying file instead, which is the right instinct, then described that file
