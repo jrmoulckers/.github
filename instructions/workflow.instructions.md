@@ -839,6 +839,16 @@ nothing about which party moved it. Neither the attribution nor its denial is ch
 identity makes mutation detectable and attribution impossible**, which is worth knowing before
 building any process that assumes provenance can be recovered from the platform.
 
+**Where sequence is the only provenance left, check the sequence's direction before labelling it.**
+`userContentEdits` returns **newest-first** — node zero is the latest edit and the final node is
+creation — so a reading described as *oldest first* over the raw connection inverts every
+attribution built on it, and inverts it silently, because a reversed revision table is internally
+consistent and reads exactly like a correct one. The guard costs nothing and is not a re-run:
+assert the final node's `editedAt` equals the object's `createdAt` before calling any row
+*creation*. Verified this way, a peer's table was correctly ordered — its times and lengths both
+ascended and its last row equalled the current body — which is the shape to look for, not the
+absence of an error message.
+
 **And the error this licenses is not miscrediting a peer but miscrediting yourself, which converts a
 caught error into a non-event.** This repo read a comment on its own issue as its own prior
 self-correction, and reasoned from that: the peer who wrote it was described as warning against a
@@ -5632,6 +5642,28 @@ element was off by exactly the same amount, and no real quantity is that well-be
 count has no internal structure to betray itself. **Reducing data to a scalar is the operation that
 removes the signature**, so the figure most likely to survive review is the one already aggregated.
 Theirs died only because it was arithmetically impossible against a second instrument.
+
+**But an impossibility argument carries a premise of simultaneity, and that premise is the least
+audited thing in it.** A member declared a population published here impossible on the ground that
+it reported *more objects and less text* than their own, which is unsatisfiable for a superset. The
+two sums differed by 59,857 units. Measured against the revision history of the single object both
+parties were appending to — the member's own running log — that object had grown **59,706 units**
+between their measurement and the reply, accounting for the entire discrepancy to within 151, and it
+moved again by 4,275 between two queries thirteen minutes apart inside one turn. The corpus was
+never stationary, and the fastest-growing object in it was **the medium the argument was published
+in**: the instrument used to state the result is what invalidated it.
+
+Impossibility presents as arithmetic rather than as measurement, and arithmetic is the form that
+invites no second look — so state the premise out loud, because here it was that both figures name
+the same instant, and nothing in either report did.
+
+**Cardinality and extensive quantities are not equally reproducible over a live corpus.** The
+disputed `40 + 17 = 57` reproduces exactly at any instant, since no object was created in the
+interval; neither sum reproduces at any instant, and neither side had published one. A count carries
+its own referents and can be re-derived; a sum is a reading of a moving system. **Attach the instant
+to any total, and treat a comparison of two totals taken at unpublished times as evidence in neither
+direction.** The same asymmetry decides which half of a table survives a wrong denominator: a named
+enumeration does, every ratio beside it does not.
 
 The mechanism sits one operand over from where it looks. Reproduced on identical data at one
 instant, a `ConvertFrom-Json` pipeline counted 93 where offset-aware parsing and a commit listing
