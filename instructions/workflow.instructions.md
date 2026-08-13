@@ -3241,6 +3241,34 @@ returns the ideal value forever, which is the most reassuring output it has. Bef
 instrument on a second question, check that the quantity it counts is still free to vary under the
 discipline now in force.
 
+A guard saturates the same way, and the saturation hides one level below its own floor. The
+fleet-enumeration sweep in `sync/test/member-count.test.mjs` walks 145 documents against a floor of
+40, and that floor exists because a walk that narrows to nothing passes forever. Measured against
+the live corpus at `e470426`, the blocks that reach a legitimizer at all number **six**:
+
+| arm | blocks | where |
+| --- | --- | --- |
+| hedge | 2 | `AGENTS.md`, `README.md` |
+| covers the fleet | 3 | ADR 0009, and two blocks in this file |
+| bounded by its own count | 1 | ADR 0006 |
+| offender | 0 | -- |
+
+Every arm is load-bearing, so the arms that were kept survive the standard that deleted the
+historical one. What is unguarded is the six. The detector matches member names **in backticks**, so
+the population deciding every verdict is an authoring convention that no test asserts. Let
+backticking drift and the document floor still passes at 145, every arm still passes its fixtures,
+and the sweep evaluates zero blocks -- the exact failure the floor was built against, surviving one
+level below where the floor was placed. **Put the floor on the population that decides, not on the
+population that is walked.** A walked corpus and an evaluated corpus are different numbers, and only
+the second one is the instrument.
+
+The live corpus already holds the specimen. `docs/sync.md` names all eleven members in a plain
+unbackticked table; the guard sees nothing there. It is correct today and it is not protected: when
+a twelfth member lands, the two backticked blocks in this file fire and that one stays silent. So
+the falsifiability that makes a complete enumeration stronger than a hedge is delivered by the
+backticks, not by the completeness. **An unbackticked complete list has a hedge's safety profile
+while reading as the strong form** -- the same inversion, in the guise the fix did not cover.
+
 **Visibility does not discriminate protection, but it exactly discriminates the refusal — and those
 are two questions wearing one word.** Measuring visibility and protection in a single pass across all
 eleven members:
