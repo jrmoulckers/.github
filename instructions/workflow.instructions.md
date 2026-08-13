@@ -7031,15 +7031,45 @@ returns 1 and `'ISO literal' -lt field` returns 0; on 5.1 the two swap. Advice o
 field on the left* is runtime-specific and inverts.
 
 **And across the type boundary the relation is not antisymmetric, so it is not an order at all**:
-an ISO string and a `[datetime]` can each report strictly greater than the other. Recorded against
-the prediction it falsified — `Sort-Object` was expected to become input-order dependent as a
-result and did not, since the comparer is still reached consistently.
+an ISO string and a `[datetime]` can each report strictly greater than the other. Measured on both
+runtimes from one machine, so this is a two-runtime result rather than a property of whichever type
+the field happens to take -- it is a property of comparing across the boundary at all.
+
+The prediction that accompanied it was retracted too broadly. `Sort-Object` over such a set was
+expected to become input-order dependent; on **7.6.4** it does not, and that negative was published
+here with no version stamp, eleven lines below the sentence saying a behaviour claim about a runtime
+is uninterpretable without one. On **5.1.26100.8875** it *is* order dependent, and not subtly:
+
+```
+input order 1 -> first element  2026-08-12T06:18:00Z
+input order 2 -> first element  08/12/2026 16:00:00
+```
+
+The comparer keys off the first element's type, so the input order selects the semantics for the
+whole sort. **A retraction inherits the scope of the measurement that prompted it**, and this one
+was issued in the general voice from a single runtime, inside a correction of exactly that error.
 
 **On 7.x the deserialized `Kind` is a function of the producer's spelling, which no reader
-controls.** `...:00Z` yields `Kind=Utc`; `...:00+00:00` — the same instant, equally legal — yields
-`Kind=Local`, and the two compare unequal by the local offset. This hazard cannot appear on 5.1,
-where everything is a string, so a fleet split across runtimes will see it reported by some members
-and denied by others.
+controls.** `...:00Z` yields `Kind=Utc`; `...:00+00:00`, the same instant and equally legal, yields
+`Kind=Local`, and the two compare unequal by the local offset.
+
+**The claim recorded here that this cannot appear on 5.1 was wrong, and wrong in the worse
+direction.** Measured on both runtimes, same inputs, one command:
+
+```
+                     5.1.26100.8875         7.6.4 Core
+field type           String                 DateTime
+Z -eq +00:00         False                  False
+Z -gt +00:00         True                   True
+mechanism            0x5A > 0x2B, lexical   ticks compared, Kind ignored
+error                unbounded              exactly one local offset
+```
+
+**Same verdict, different mechanism, both wrong.** So a 5.1 reader running the reproduction gets the
+predicted `False`, reports *confirmed*, and has confirmed a different defect. That is worse than the
+fleet split predicted here, because a split announces itself and a false confirmation does not.
+**A reproduction that checks only the verdict cannot detect that it reproduced a different bug** --
+reproduce the mechanism, or at minimum the magnitude, which is where these two visibly diverge.
 
 **And the discriminator proposed to settle it is subject to the same defect.** A member closed this
 argument with *the discriminator is one line: `$row.created_at.GetType().FullName`* -- correct, and
@@ -7069,12 +7099,50 @@ dispute -- the second is unavailable exactly when the disagreement is real.
 comparison uses ticks and ignores `Kind`. Printed, they read `04:27:48` and `21:27:48`, with nothing
 attached to either accounting for a 7-hour gap between two spellings of one moment.
 
-Two members hit the halves of this in the same hour and neither could join them. One disclosed a
+Two members hit the halves of this in the same hour and neither joined them. One disclosed a
 uniform 420-minute error across four rows, from `[datetime]` parsing a `Z` string as local; the
 other characterised the `DateTime`-left cell as *shifted by one local offset*. 420 minutes **is**
-that offset here. **The join was unavailable to both, because each holds exactly one runtime and
-this reads as one defect only from a machine that can produce both halves** -- so in a fleet split
-across runtimes, the party best placed to diagnose is the one with no symptom to report.
+that offset here.
+
+This was recorded as *the join was unavailable to both, because each holds exactly one runtime*.
+**That was false, and it is the most instructive error in this section.** Both runtimes were
+installed on the same machine the entire time:
+
+```
+pwsh                                             7.6.4  Core
+%SystemRoot%\System32\WindowsPowerShell\v1.0\    5.1.26100.8875  Desktop
+```
+
+Every disputed cell was then settled in one command against both, and all of the far runtime's
+reported results reproduced exactly. **Nobody checked whether the split was real, because the split
+was the frame of the argument rather than a claim inside it.** Each party's readings were consistent
+with their own runtime, so the two-runtime hypothesis was confirmed by every observation and tested
+by none. **A hypothesis that explains every observation is thereby never tested by any of them**,
+and it accrues confidence for exactly as long as it goes unchallenged. So before accepting that a
+disagreement is irreducible, measure the irreducibility: it is a claim like any other, and it is the
+one claim in a dispute that neither party is assigned to check.
+
+This is the standing-block finding one level up. There the least-audited sentence was the one not
+under dispute; here it is the assumption the dispute is conducted inside. **Audit the frame, not
+only the figures** -- two independent instances of it turned up in one night, in different repos,
+by different routes.
+
+**And on a shared ref store, measuring your own standing writes to your neighbours'.** A member
+established that `refs/remotes` lives in the common directory rather than per worktree, then watched
+`origin/main` move under them without issuing a command: a sibling worktree merged, fetched, and 27
+seconds later the shared ref carried the sibling's value into their session. The same holds here --
+`git-common-dir` is the main checkout's `.git`, five worktrees share it, and both
+`refs/remotes/origin/main` and `packed-refs` live in it. So *measure before you claim* is itself a
+mutation of every sibling's reference point.
+
+Their conclusion -- **nothing fixes the writer except not fetching** -- does not survive, because
+not fetching is the stale-cache defect recorded earlier in this file, so the two remedies exclude
+each other. The sign is wrong too: a fetch only advances a remote-tracking ref toward the true
+remote value, so a neighbour's fetch makes your reading **more** accurate and your earlier reading
+**less** reproducible. Accuracy and reproducibility are the pair that trade here, not accuracy and
+courtesy. The resolution is the one this file already reaches from two other directions: **stop
+citing the ref and cite the object.** A resolved SHA is immune to every neighbour; a branch name is
+a query whose answer depends on who runs it and when.
 
 **`DateTimeOffset` remains the repair, and it is the operand-order-independent one**: cast from
 either spelling it recovers identical `UtcTicks`, and it returns the correct count in both operand
