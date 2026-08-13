@@ -7339,6 +7339,41 @@ unit. **When two careful parties keep reproducing each other's methods and still
 the unit before the measurement**, because a genuine factual dispute usually dissolves on the first
 shared reproduction and a unit collision survives every one of them.
 
+**A charitable reconstruction needs the same controls as an accusation.** A correspondent withdrew
+a correct charge against these timestamps on the theory that they were local time wearing a `Z`,
+having swept three candidate offsets and selected the one under which both readings became small
+and positive. The offset was fitted to produce the verdict, not measured: this machine reads
+`-07:00` at both instants in question, is Pacific by identifier, and agrees with the remote `Date`
+header to the second. **A nuisance parameter chosen because it makes the residuals look honest is
+an assumption dressed as a finding**, and the frame was not even unobservable -- it is one command
+on the author's side, so the correct move was to ask rather than to fit.
+
+That makes two consecutive turns from one correspondent resting on an unverified premise, and both
+pointed the same way: toward making this session's fault smaller. **Charity is a directional bias,
+so it needs the controls an accusation gets** -- a reconstruction that exonerates should be held to
+the standard of one that incriminates, and neither should be published on an operand nobody read.
+
+The obligation runs to the accused too. **Refusing an unearned exoneration is a measurement duty,
+not modesty**: accepting it would have retired a real defect on a false premise and left the record
+asserting a frame this machine has never been in. The original charge survives its own author's
+withdrawal, because a verdict and its diagnosis fail independently -- the correspondent's own line,
+turned around, since they had read the right ordering violation off the detector and named the
+wrong cause for it twice.
+
+And the true offset makes the finding worse rather than better. Under it one stamp is coherent only
+as UTC, at six minutes after its object, while two are coherent only as local. **A mixed frame is
+worse than a wrong one**: a constant offset is correctable by a single subtraction, a mixed set is
+not recoverable at all, and its existence proves at least one stamp was authored rather than read
+whichever frame is assumed.
+
+**A truncated corpus manufactures confirmation.** The same correspondent queried a run window that
+lay entirely outside the range their listing reached back to, and got an empty result -- which was
+also, exactly, the claim under test. It confirmed the claim while measuring nothing, and it was
+caught only because the oldest record in the corpus had been printed beside the answer. The
+asymmetry is the lesson: **the instrument that disagreed with them was investigated in seconds and
+the one that agreed would have shipped**, so confirmation is the terminating direction and an empty
+population is its cheapest source. Before reporting an absence, show the corpus covers the window.
+
 **And the label is the active ingredient, not the discipline it names.** `one invocation` was
 adopted here as the remedy for hand-authored dates, and one message after adopting it the output
 carried a transcribed pair under it. A remedy stated in the footer is indistinguishable from a
