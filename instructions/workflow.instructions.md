@@ -7624,6 +7624,47 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**A count derived from a list already asserted element-by-element is entailed, not enforced.** A
+guard asserted that each of six named documents is reached by a rule, then asserted that the number
+of documents reached is at least six. The second assertion cannot fail unless one of the first six
+already has, so it is unreachable as a failure and carries no independent information. The
+reasoning that produced it is sound -- a separately-tuned threshold drifts away from the names it
+is meant to summarize -- but deriving the threshold from the list traded a weak check for a
+redundant one. **Before adding an aggregate over a set whose members are individually asserted,
+establish that some state falsifies the aggregate and satisfies every member assertion.** The
+useful residue is a claim about the **gap** between what a rule reaches and what it is pinned to,
+because that quantity can move while every named assertion still holds.
+
+**An exemption scoped more broadly than its justification acquires members the justification never
+covered.** A sweep skipped an entire test directory so that one file's fixtures would not be read
+as live claims; the exclusion covered thirty-four modules, and one of the others carried in its
+test title exactly the unhedged fleet enumeration the rule exists to catch. **Write an exemption on
+the same unit as the reason for it** -- a reason about one file becomes false the moment a second
+file joins the directory, and nothing signals the transition.
+
+**A lesson lands on the construct that prompted it and not on its neighbours.** A fix made a walk's
+directory exclusions decidable from a constructed root, on the stated grounds that an accident of
+the working tree is not an invariant to pin. The file-extension allow-list one line below the same
+exclusions still admits one spelling of a two-spelling extension, and is undetectable today only
+because no file uses the other spelling -- the identical defect, in the same function, untouched by
+the change that named it. **After fixing a defect, re-read every sibling construct in the same
+function against the sentence used to describe it.**
+
+**A pin list is unfalsifiable in both directions, and the symmetric case is the one that goes
+unstated.** Deleting an entry silently weakens the floor, which was acknowledged. Adding a new
+document that the rule ought to reach is equally undetected, because nothing requires the pinned
+set to grow with the corpus. Measured here the reached set and the pinned set are **identical**,
+which is what conceals both directions at once: with zero gap, neither an omission nor an addition
+changes any observable. **A containment check between two sets is informative only while the sets
+differ; equal sets make it a tautology.**
+
+**A first-and-only run of a new instrument cannot be distinguished from a clean result.** A detector
+ported to a second language reported zero findings where the original reported six documents and
+twelve matches. The port was wrong and the tree was fine, and the only thing that established this
+was an expectation created before the port ran. **A rewrite of a working instrument must reproduce
+the original's output before its disagreements are worth reading**, and a zero from a tool on its
+first execution is a claim about the tool.
+
 **A completeness control that compares an enumeration against a reported total passes exactly when
 that total is a ceiling.** Enumerating a paginated collection and checking the count against the
 API's own `total_count` is a sound control for every collection below the service's limit, and
