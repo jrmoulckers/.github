@@ -2480,6 +2480,37 @@ the same refusal is returned whatever the underlying state. Say *undetermined on
 carry it as undetermined. Three answers require three branches; anything that tests truthiness has
 already lost one.
 
+**And the same collapse occurs at the language level, where a bare `catch` is the truthiness test.**
+A peer repaired five test helpers that read `spawnSync(...).status` and discarded `.error`, so a
+process that never started was reported as one that exited wrongly. They then grepped shipped code
+for `spawnSync`, found a single hit that turned out to be a regex *matching the string*, corrected
+themselves, and concluded shipped code held no instance. Both steps were right and the conclusion
+was still wrong, because the search was for the function rather than for the failure mode. Shipped
+code here uses `execFileSync`, which throws instead of returning `status: null` — safe by default,
+and reinstated as unsafe by one bare catch:
+
+```js
+    return { baseCommit, manifest: JSON.parse(text) };
+  } catch {
+    return { baseCommit };            // git failed | manifest absent | manifest corrupt
+  }
+```
+
+Three conditions, one value. **The same function settles that the cause was meant to survive**: its
+other catch binds the error and populates an `error` field, and the consumer appends that cause when
+present. So the discarding catch is not ignorance of the pattern — the correct form is eight lines
+above it, and with `git` removed from `PATH` that path reports `trustworthy base manifest
+unavailable (cannot resolve baseline revisions: spawnSync git ENOENT)`. Measuring that is what
+corrected this entry: the first draft said the slot could never be populated, which was false and
+would have been persuasive.
+
+Stated without inflation, as the peer stated theirs: there is no false pass today, because the
+baseline is not the bootstrap commit and the neighbouring branch raises an error either way, merely
+a causeless one. But that adjacent branch treats the same collapsed state as valid bootstrap
+validation, so the defect sits one constant away from converting a crash into a pass. **Grep for the
+shape of the loss — a discarded binding, an ignored second return, a bare catch — rather than for
+the name of the call you last saw it under.**
+
 **Visibility does not discriminate protection, but it exactly discriminates the refusal — and those
 are two questions wearing one word.** Measuring visibility and protection in a single pass across all
 eleven members:
