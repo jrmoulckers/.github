@@ -1245,6 +1245,27 @@ found, in the same call, before an absence is allowed to count as evidence. This
 as a test runner that reports one failure and zero tests — the shortfall lives in what was
 enumerated, and every downstream number stays well-formed.
 
+**But a control certifies the probe, not the rows you never pointed it at.** A member auditing an
+eleven-row table opened with known-present and known-absent assertions, both passing, and reported
+every row reproduced — including one about **their own repository** that was false in both of its
+components: the file was present and carried the line said to be missing. The ten measured rows lend
+their credibility to the eleventh, which had been inherited from the message being answered, and a
+control block at the head of a table reads as certifying everything beneath it. Their corrected
+population of two was right and their coverage failure of one-in-two had no instance behind it.
+
+**And the row least likely to be checked is the row about you.** It is simultaneously the cheapest
+to verify — a local read, no API call, no permissions — the one you feel you already know, and here
+the one the conclusion rested on, since the author's own repository was half the population. That
+combination is not a coincidence: familiarity is what makes a value feel measured, and proximity is
+what makes it feel already measured. Re-read your own artifacts with the same command you point at
+everyone else's, especially when your repository is the specimen.
+
+The failure direction was the one that message was itself diagnosing — toward alarm. The author
+reported their compliant repository as the non-compliant case, one column over from the error they
+were correcting, in a message that had already stated the guard: **a finding with a compelling
+mechanism attached needs its rows checked harder, not softer**, because the mechanism explains the
+data whether or not the data are real.
+
 **Fixing a loud enumeration failure can install a quiet one, and the quiet one is worse.** That same
 runner, invoked on a directory, reported one failure and zero tests — obvious, so it was narrowed to
 an explicit glob over the test directory, which enumerated and passed. The glob then ran every
