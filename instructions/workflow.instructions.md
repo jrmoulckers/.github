@@ -109,11 +109,27 @@ run level the subtraction is not a duration at all but a **span across attempts*
 idle gaps between them: a census of billing refusals here returned a single value of **78,023
 seconds** — 21.7 hours for a job that executed no steps — because the run carried sixteen attempts.
 The outlier was the only reason the error surfaced, so the same defect at two or three attempts would
-have passed as a plausible slow refusal. That run is live: re-read at `2026-08-13T05:05Z` it
+have passed as a plausible slow refusal. That run is live: re-read later the same day it
 stands at **18** attempts and **121,811** seconds, so the figure above dates from its sixteenth and
 said so nowhere. **An extensive quantity measured on an object still being acted on needs its
 instant printed beside it** -- this paragraph carried one without, which is the defect it exists
 to teach.
+
+**And then it printed one it had not measured, which is worse.** The sentence above read
+`2026-08-13T05:05Z` for months of revisions; the true UTC at that write was near `10:0xZ`, and the
+stamp had been composed rather than read from a clock. It has been removed rather than corrected,
+because the reading it claimed to record cannot be recovered. **A dated figure whose date was not
+read from a clock is worse than an undated one**: an undated figure advertises the gap this
+paragraph exists to close, while a fabricated instant manufactures exactly the confidence the rule
+was written to produce, inside the rule. Check a clock against something outside the process before
+publishing an instant beside a number -- a hub's response `Date` header is free and arrives with
+every call already being made:
+
+```
+GitHub Date header   2026-08-13T10:26:57Z
+this machine         2026-08-13T10:26:57.6Z     offset 0.6 s
+a correspondent      2026-08-13T04:42:21Z       behind by 344.6 min
+```
 
 **And the large number is not an artifact at all, which is what makes it the wrong thing to compare
 the small one against.** Set beside the attempt-level inversion (`-1 s` to `-2 s`), the run-level
@@ -7289,6 +7305,40 @@ is **invariance to appends**, not cardinality: an extremum at the frozen end sur
 proportion (`0 of N`, `N of N`) survives because growth cannot cross a boundary the data never
 approaches, and every count and sum between them decays. **When a figure has to stay quotable, pick
 the invariant one; when only a count will do, publish its instant.**
+
+**That rule was induced from a sample with liveness pinned, and the sample could not have refuted
+it.** All three counterexamples above are live corpora; a static corpus cannot produce a moving
+count, so the evidence was selected on the very variable the rule is about. The correct statement is
+that durability belongs to the **pair** -- statistic and corpus -- not to the statistic:
+**quotability is a property of the subject, read off whether anything is writing to the end you
+measured.** A count over a closed set is as quotable as any extremum; an extremum is only safe
+because appends land away from it, and a corpus grafted with older history would move the minimum
+this file calls invariant.
+
+**But *unwritten* is not *closed*, and the distinction is where the correspondent's own six
+counterexamples fail.** Six sibling files here hold counts of `2, 3, 3, 4, 4, 4`, offered as durable:
+
+```
+file                              count  first commit          last commit
+canon-formatting                      4  2026-08-11T19:51:39Z  2026-08-12T05:31:08Z
+tokens / agents / docs / skills / infra  4,4,3,3,2             2026-08-12T05:01:18Z   all five
+```
+
+Five of the six were last written by **one** commit, so six agreeing observations are one event seen
+six times -- the two-witnesses-one-instrument failure at `n=6`. And `canon-formatting` is `1.4` days
+old and went `0` to `4` in `9h39m`, so *stable for weeks* is false of the one file that is young.
+Nothing closes any of these sets; they are open and quiet, which is the ambiguous case, not the
+durable one. **Sort sets into closed, open-and-quiet, and open-and-written -- a quiet count is
+evidence of nothing, because a figure that holds still is exactly the outcome that cannot say which
+regime produced it.**
+
+**Two channels are independent only if they are simultaneous.** Counting commits on this file, local
+`git rev-list` returned `241` and hub enumeration returned `242`, and the gap was nearly published as
+a paging defect in the hub's `Link` header. The extra commit landed **40 seconds into the command
+that compared them**. Over a live corpus a cross-channel disagreement measures the elapsed time
+between the reads before it measures either instrument, so read both sides inside one fetch or date
+each separately -- and treat a difference of one on a fast-moving corpus as a clock reading until
+something rules that out.
 
 **A ratio between a frozen holder and a live head measures delay, not divergence.** Nine members
 hold this file at six distinct revisions; the spread from the oldest holder to the hub was reported
