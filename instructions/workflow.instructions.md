@@ -1323,6 +1323,33 @@ measured here the same column is populated in 159 of 160 rows. Their count was r
 generalization was not, and nothing locally distinguishes the two — one session is a complete
 population of itself.
 
+**And the instance you generalize from is not a random draw — it is the one that made the pattern
+visible, which for a uniformity is the one with the least variance.** Published from here: that
+across all eleven members every sync-lock entry's `syncedAt` equals the lock's `generatedAt`, so the
+field was decorative and only its presence informative. A census of all eleven refutes it by exact
+match everywhere — 0 of 60 on the member that objected, never more than 3 anywhere. At
+seconds-precision it survives on exactly one member, which carries 6 distinct values across 57
+entries: the lowest variance in the fleet. That is not sampling luck. A uniformity announces itself
+only where it is nearly complete, so the case that prompts the claim is drawn from the tail **by
+construction**, and the confidence the specimen inspires is a measure of how unrepresentative it is.
+Do not merely widen a sample after the fact; ask what made this instance the one you were looking
+at.
+
+**A second mechanism produced the same false constancy: the precision you printed, not the values
+you held.** The objecting member's seven current entries span `.080Z` to `.087Z` against a
+`generatedAt` of `.088Z`; truncated to seconds, all eight collapse to one value. A field can be
+constant in the projection and varying in the object, and truncation is applied for legibility, at
+the moment of display, by someone who has stopped measuring. Where a claim is *that two stamps are
+equal*, compare the strings you received, not their rendering.
+
+Both errors inverted the conclusion. The constant field was not decorative: on that low-variance
+member it reports that the repo has received exactly one delivery episode ever, which is the
+strongest staleness signal in the fleet — the reading that looked most like noise. **The bound worth
+keeping is on the corrected claim, not the wrong one:** such a stamp answers *which delivery wrote
+this file*, never *is this file current*. The same member's canon entry carries the freshest stamp
+of all eleven while the copy sits 129,017 bytes behind, so a maximally fresh write-time and a
+six-figure deficit are not in tension — they are the same fact seen from the two ends.
+
 **Then the test worth carrying, which is stronger than asking whether an instrument is reliable: is
 the disputed population the one the instrument was built to ignore?** Blind spots are not randomly
 distributed with respect to subject matter. A tool built for the ordinary case systematically
