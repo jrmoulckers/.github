@@ -69,7 +69,7 @@ function proseSurfaces(dir = REPO_ROOT, found = [], root = dir) {
     const rel = relative(root, full).split('\\').join('/');
     if (rel === 'sync/test') continue;
     if (entry.isDirectory()) proseSurfaces(full, found, root);
-    else if (/\.(md|mjs|yml)$/.test(entry.name)) found.push(rel);
+    else if (/\.(md|mjs|yml|json)$/.test(entry.name)) found.push(rel);
   }
   return found;
 }
@@ -188,6 +188,53 @@ function engineSources(dir = join(REPO_ROOT, 'sync'), found = []) {
   }
   return found;
 }
+
+/**
+ * Totality claims about a *derived* population, which `all N members` cannot express.
+ *
+ * #246 dropped the `all` anchor for engine source and left prose narrow, on the correct reasoning
+ * that a guard firing on subset sentences gets deleted. The residual blind spot is neither
+ * totality nor subset: "the remaining eleven members" is a claim about the fleet minus its
+ * failures, so it names the unit, states a fleet-derived size, and contains no `all`.
+ *
+ * Two live instances were found in it, both saying `eleven` where the member figure is ten --
+ * the run's *target* count wearing the *member* noun. One of them was inside
+ * `studio.config.json`, the very artifact every other surface is told to point at.
+ *
+ * The guard cannot compute the right value: it knows the fleet size, not how many failed on the
+ * run being described. That is precisely why the phrasing has to go rather than be corrected --
+ * a number nobody can check is worse than one that is merely wrong.
+ */
+const DERIVED_COUNT_PHRASE = new RegExp(
+  String.raw`\b(?:remaining|other|surviving)\s+(?:\d+|${[...WORD_NUMBERS.keys()].join('|')})\s+member(?:s|\s+repos?|\s+repositories)\b`,
+  'gi',
+);
+
+test('no surface sizes the fleet minus its failures', () => {
+  const wrong = [];
+
+  for (const relativePath of proseSurfaces()) {
+    const text = readFileSync(join(REPO_ROOT, ...relativePath.split('/')), 'utf8');
+    for (const match of text.matchAll(DERIVED_COUNT_PHRASE)) {
+      wrong.push(`${relativePath}: "${match[0].trim()}"`);
+    }
+  }
+
+  assert.deepEqual(
+    wrong,
+    [],
+    'A count of the fleet minus its failures is unverifiable here -- this guard knows the manifest ' +
+      'length, not how many targets failed on the run being described. Say "every other member" ' +
+      `instead of sizing the remainder:\n  - ${wrong.join('\n  - ')}`,
+  );
+
+  // The sweep must actually reach the manifest: it is the one surface whose own prose can
+  // contradict the list it publishes, and it was unreachable while the walk filtered to markdown.
+  assert.ok(
+    proseSurfaces().includes('studio.config.json'),
+    'the prose sweep must reach studio.config.json',
+  );
+});
 
 test('no surface states a member count that disagrees with the manifest', () => {
   const expected = loadManifest(REPO_ROOT).members.length;

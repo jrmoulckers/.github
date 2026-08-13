@@ -135,7 +135,7 @@
       "repo": "jrmoulckers/windows",
       "signature": "The requested URL returned error: 403",
       "issue": "https://github.com/jrmoulckers/.github/issues/739",
-      "reason": "STUDIO_SYNC_TOKEN carries no write access to this repository, so `git clone` 403s before any canon is read. Every scheduled run has exited 1 on this one target since 2026-07-13 while the other eleven members synced normally, which left the run list unable to distinguish a healthy fleet from an outage. Pinned to the 403 signature rather than to the repository: any other failure here is still unexpected and still fails the run. Delete this entry the moment the grant lands — a run in which this repository is attempted and does not fail is a blocking error, not a pass.",
+      "reason": "STUDIO_SYNC_TOKEN carries no write access to this repository, so `git clone` 403s before any canon is read. Every scheduled run has exited 1 on this one target since 2026-07-13 while every other member synced normally, which left the run list unable to distinguish a healthy fleet from an outage. Pinned to the 403 signature rather than to the repository: any other failure here is still unexpected and still fails the run. Delete this entry the moment the grant lands — a run in which this repository is attempted and does not fail is a blocking error, not a pass.",
       "decided": "2026-08-12"
     }
   ],

@@ -10,7 +10,7 @@ The sync run publishes one bit. That bit has been red on every scheduled run sin
 
 `jrmoulckers/windows` is a governed member whose clone 403s: `STUDIO_SYNC_TOKEN` carries no write
 access to it, so the engine cannot read the repository at all. The engine handles this exactly as
-designed — it isolates the failure, warns, syncs the remaining eleven members normally, and exits 1
+designed — it isolates the failure, warns, syncs every other member normally, and exits 1
 naming the target that failed. Nothing about the delivery path is broken.
 
 The alarm is what broke. Five consecutive scheduled runs failed for one owner-gated reason that no

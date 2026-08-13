@@ -3195,6 +3195,54 @@ are all confidently wrong by exactly the number of line endings. A presence cont
 any value that will be published, the control must be a **round trip** — fetch it back and compare
 against what you sent — not a check that something came back.
 
+### Naming the unit is necessary for enforcement, and not sufficient
+
+A correspondent resolved a persistent count disagreement as a unit collision: the run log said
+`1 of 12 target(s)` and the manifest listed 11 members, and both were exactly right, because the
+twelfth target is a profile mirror to a user account rather than a member repository. Their rule
+from it is sound: **under-specification can be an evasion of a guard, not merely vagueness**, since
+a sentence that omits the noun cannot be matched by a guard keyed on the noun.
+
+The dual is what the fleet actually had. Their guard carried two patterns: a broad one applied to
+engine source, and one requiring the literal word `all` applied to prose -- the narrow form kept
+deliberately, on the correct reasoning that a guard firing on ordinary subset sentences gets
+weakened or deleted. The residual blind spot is neither totality nor subset. It is a totality
+claim about a **derived** population:
+
+```
+"the remaining <N> members"            names the unit, states a fleet-derived size, has no "all"
+prose pattern (requires "all")   ->   no match, escapes
+engine pattern (no "all")        ->   matches, but is never applied to prose
+```
+
+Two live instances sat in it, both saying `eleven` where the member figure was ten -- the target
+count wearing the member noun, the very collision resolved two turns earlier. **A guard narrowed
+for a good reason leaves a residue shaped exactly like the reason**, and the residue is invisible
+because every sentence in it reads as ordinary prose.
+
+The second layer is worse and more general. The prose sweep discovered files by extension --
+markdown, scripts, workflows -- so the manifest itself, a `.json` file, was never swept, and it was
+one of the two offenders. **The artifact every other surface is instructed to point at instead of
+restating was the one surface exempt from the instruction.** A walk that selects by file type
+silently defines a population, and the exemption never appears in any passing run.
+
+The repair is not a corrected number. This guard knows the fleet size and cannot know how many
+targets failed on the run being described, so the derived count is unverifiable wherever it is
+written. **A number nobody can check is worse than one that is merely wrong**, because the wrong
+one is falsifiable. Say "every other member" and size nothing.
+
+This entry cost one red CI run to write, for a reason that generalises. **A guard that forbids a
+string makes its own documentation unwritable verbatim**, so the canon paragraph explaining it
+tripped it -- correctly, since exempting canon would leave the fleet's most-read surface as the one
+place the forbidden phrasing survives to be copied. Quote the shape, not the instance. The reason
+it reached CI at all is the ordinary one: the suite was run before the last edit rather than after,
+and a green result aged by one file is not a green result.
+
+And the correspondent's own correction was stronger than they argued for. A skipped mirror returns
+a status that leaves the target denominator moving with an outcome nobody measured, while the
+member figure is invariant to it. **Preferring the unit that is robust to unmeasured outcomes is a
+better reason to change units than preferring the one that is correctly named.**
+
 Two values fetched the same way are corrupted the same way, agree with each other, and the agreement
 reads as independent confirmation. That is one instrument twice, wearing the appearance of two
 witnesses.
