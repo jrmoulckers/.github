@@ -638,6 +638,42 @@ test('the sweep stays inside bases the lockfile proves were abandoned', () => {
   });
 });
 
+// The sweep walks a vacated base wholesale, so it can reach a file the current plan writes:
+// `abandonedBases` declines only the new base of the same rekey pair, and nothing excludes a base
+// another kind still targets. Without the `!planned.has(found)` filter, that file is offered to a
+// human for deletion on the very run that writes it — and as untracked, so the documented cleanup
+// carries no hash to verify the deletion against. The filter shipped untested: deleting it left the
+// whole suite green (#1056).
+test('a planned target under a vacated base is written, not offered for deletion', () => {
+  withTmp((root) => {
+    const OLD = 'apps/web/vendor/@jrm/tokens';
+    const NEW = 'vendor/@jrm/tokens';
+
+    // A second kind writing under the base that tokens is about to vacate. It carries no targetBase,
+    // so reconciliation never relocates it: the same path stays planned across both runs.
+    const keep = { ...spec('# still canon\n'), kind: 'agents', name: 'keep', targetPath: `${OLD}/keep.md` };
+
+    apply(root, [tokenSpec('css/tokens.css', OLD), keep], readLock(root, BACKBONE), { write: true });
+    seed(root, `${OLD}/native/JrmTokens.kt`, '/* stranded */\n');
+
+    const { report } = apply(root, [tokenSpec('css/tokens.css', NEW), keep], readLock(root, BACKBONE), {
+      write: true,
+    });
+
+    const abandoned = report.abandoned.map((item) => item.targetPath);
+    // Without this the absence below would also hold for a sweep that had stopped working entirely.
+    assert.ok(
+      abandoned.includes(`${OLD}/native/JrmTokens.kt`),
+      'precondition: the vacated base is still swept, so the absence below means something',
+    );
+    assert.ok(!abandoned.includes(keep.targetPath), 'a file this very run writes is not abandoned');
+    assert.ok(
+      existsSync(join(root, ...keep.targetPath.split('/'))),
+      'and it is on disk, so the report would have been pointing a human at live canon',
+    );
+  });
+});
+
 test('no rekey means no identified base, and the limit is reported honestly as silence', () => {
   withTmp((root) => {
     const OLD = 'apps/web/vendor/@jrm/tokens';
