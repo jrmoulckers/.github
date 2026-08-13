@@ -4265,6 +4265,65 @@ exactly what a reader reasons from: the figure turned a three-week episode into 
 the three-day version was then used to argue about whether the current outage needed intervention or
 a wait.
 
+**And the window itself is not one window.** `last 100 runs` reads like a fixed instrument and is
+not: measured across the whole roster in one pass, its span varies by a factor of six hundred and
+its coverage of the subject's history by a factor of five hundred.
+
+```
+member         total runs   100-run span   coverage of history
+finance             40000       0.06 d        0.2%      <- 86 minutes
+.github              1525       0.18 d        6.6%
+docket               1008       0.22 d        9.9%
+engineering           717       0.35 d       13.9%
+jrm-recipes          1876       0.87 d        5.3%
+product                26       3.21 d        100%      <- a census
+studio                364       3.32 d       27.5%
+cartridge              95       9.12 d        100%      <- a census
+libro                 101       9.20 d       99.0%
+score-king            173      34.50 d       57.8%
+homelab               105      36.84 d       95.2%
+windows                 0          --           --      no runs at all
+```
+
+The narrow-where-busy effect is the small half. The large half is that **at the low-volume end the
+window stops being a sample and becomes a complete enumeration** -- for `product` and `cartridge`
+there is nothing outside it, so the figure has no left edge and no sampling error, while the same
+column for `finance` is an eighty-six-minute snapshot of a forty-thousand-run history. A fleet table
+with a `last 100 runs` heading is therefore reporting censuses and snapshots in one column, and a
+cross-member comparison of those rates is not a weak comparison but a void one. **Publish the
+coverage beside the count**, since the count alone cannot distinguish the two kinds.
+
+Note `windows` at zero: not a thin window but no measurement of any kind, which is the same absent
+stratum the rest of this section is about, at its limit.
+
+**A reciprocal that returned null, recorded because the null is the result.** The purpose of the
+measurement above was to show that the correspondent's corrected failure rate was itself truncated
+by the hundred-run bound -- their own correction turned on their own number. It is not: their
+repository's entire history is 101 runs, so their left edge is repository inception rather than a
+query limit, and the figure is a census statistic rather than a windowed one. The attempt made their
+number **stronger** than they had claimed. A reciprocal test is worth publishing when it fails, both
+because the peer's figure is then established rather than merely unchallenged, and because the
+temptation not to send a null is exactly the selection pressure that fills a record with
+confirmations.
+
+**And a hypothesis withdrawn after a test whose population excludes its predicted domain has not
+been falsified, it has been unasked.** The window effect above was predicted here, tested against
+four members, not found, and withdrawn -- and all four were high-volume, which is the half of the
+range where the effect is smallest by construction. The test population was selected on the inverse
+of the variable under test. That is the missing-column defect and the missing-bucket defect one
+level up: not an absent state in a classifier but an absent stratum in a sample, and it produces a
+retraction rather than a wrong answer, which is harder to notice because retracting feels rigorous.
+Before withdrawing on a negative, **check that the sample contains the case the hypothesis names.**
+
+Two further rules from the same exchange, both about rates over a changed regime. **A rate computed
+over a window containing a regime change measures where the boundary falls in the window**, not any
+property of the subject: a member's 58% failure rate resolved to 53 refusals plus 5 genuine red
+builds, a true rate of `5/47 = 10.6%` and a 5.5x overstatement, every unit of it the outage.
+Conditioning on the zero-step signature fixes the numerator; only splitting the window fixes the
+question. And **sorting by recency and sampling the head is a filter on the property under test** --
+the twelve most recent failures were 12/12 refusals *by the ordering of the query*, a result that
+carried no information and read as a decisive one.
+
 This is the inverse of the vacuity failure. There the narrow population goes unreported and a corpus
 count stands in for it; here the narrow population's *extremum* stands in for the corpus's reach.
 Both are one number doing the work of several, and the remedy for both is the same: report the
