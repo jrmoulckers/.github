@@ -7628,6 +7628,38 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**A population derived from a program's text is satisfiable by editing the text.** A guard scraped
+the entry point's source for its list of dispatched validators, deliberately, to avoid transcribing
+a hand-written list -- and the derivation was sound. What it did not buy was the property the guard
+existed for. Mutation showed the scrape holds under a loop refactor and fails loudly, contrary to
+its author's own disclosure; but the mutation that succeeded needed **no production edit at all**,
+only the deletion of rows from the test's own table, which restored green and dropped the corruption
+fixtures behind it from six to four. A derivation from text is only as strong as the edit distance
+to changing that text, and test files are the cheapest text in the repository. Derive the population
+from the program's **value** -- an exported registry the entry point iterates -- so that shrinking
+the asserted set requires deleting a validator from production, where it is a reviewable diff
+against the thing that actually runs.
+
+**A guard that fails loudly is not thereby safe; price the cheapest repair of its failure.** Loudness
+was treated as the safety property, and it is the wrong one: the question is what the next author
+does when the alarm sounds. Here the alarm's cheapest silencer was a test-only deletion that removed
+coverage without moving the test count, because the deleted rows were iterated inside a single test
+rather than generating one each. **A guard whose loud failure has a cheap silent repair points the
+next author at the edit that removes coverage.** Two guards were needed and neither sufficed alone:
+one that fails when the asserted set shrinks, and a set of fixtures that call the entry point for
+real so a member added to the registry and never iterated is still caught.
+
+**A fixture that strips the environment reports environment faults in the vocabulary of the defect it
+tests.** A helper copied the repository while filtering out `.git`, on the reasonable assumption that
+it names a directory; in a worktree it names a **file**, so the copy had no git at all and every
+git-dependent path threw. Each row asserted through a matcher on the expected corruption message, so
+the environment fault surfaced as *"its corruption did not reach the entry point"* -- precisely the
+defect the fixtures were built to detect, reported by a fixture that never got far enough to look.
+The obvious correction is also wrong in a second way: a copy tool that excludes directories only will
+copy the gitlink, and the copy silently re-attaches to the original working tree. Two copy methods,
+two different wrong answers, neither an independent repository, and both green-looking. When a
+fixture constructs its own environment, assert the environment before asserting the defect.
+
 **Two names for one object are one carrier, not two.** A repair was reported as more robustly
 attested because it was reachable through both a branch ref and a pull-request ref; both resolved to
 the same commit. **Redundancy in the naming layer is not redundancy in the thing named.** Two refs
