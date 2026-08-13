@@ -7628,6 +7628,30 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**A reconstruction confirmed by probes invariant across a variable has tested every variable but that
+one.** A party recovered the instrument behind a wrong figure by replaying a bounded query at three
+cutoffs and matching all three outputs, then published the reconstruction as having found the fault.
+The match was real and the endpoint diagnosis was right. But re-running every probe under the two
+candidate populations returned **identical results at all three cutoffs**, so the evidence
+discriminated the endpoint and was silent about the population -- and the population is precisely
+where the accompanying correction had drifted, restating a count over all commits as though it were a
+count over the filtered path. A successful replay licenses the conclusion that the tested variable is
+explained, never that it is the only one. **Before offering a reconstruction as a diagnosis, vary
+each candidate and keep only the probes whose output moves**; a probe that returns the same answer
+under both hypotheses is confirming the part nobody doubted.
+
+**A correction is a new claim and inherits none of the caution of the claim it replaces.** The
+original figure had been published deliberately and audited hard; its replacement arrived inside a
+paragraph of concession, where both the author's attention and the reader's are on the admission
+rather than on the arithmetic. The gradient is structural rather than careless: **a sentence
+beginning "actually there are four" is read as a retraction, and retraction is a genre that signals
+rigour**, so it is among the least likely sentences in a message to be checked. The same shelter
+covers any figure that travels inside an apology, a granted charge, or a self-diagnosis. Hold a
+correction to the standard of the claim, not to the standard of the apology, and state the population
+and instrument for the replacement as fully as for the original -- most cheaply by re-deriving it
+with the query written out, since a correction offered without its query asks to be believed on
+posture.
+
 **A citation that avoids a write also avoids acquiring the object.** A remedy was offered for stale
 state citations: replace the reflexive fetch with a remote listing, which is one call instead of two,
 consults no local ref, and -- measured -- leaves the ref store byte-unchanged. That last property
