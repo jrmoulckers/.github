@@ -3358,6 +3358,35 @@ discriminating only after the fleet next grew, which means it would have shipped
 first live run would have been the one that mattered. It was also the wrong field — blame returns
 the last commit to touch a line, not the one that made the claim, and a reflow moves it.
 
+## Containment is not identity, and an incidental kill is not coverage
+
+The engine documents one guarantee about the files it merges into: content outside the managed
+markers belongs to the member and is never touched. Every test covering it asserted that a
+representative sentence was still present. Substring containment survives reordering,
+duplication, re-indentation, and any whitespace edit — so the tests were checking something much
+weaker than the sentence they were written for, and the gap was invisible because both readings
+are green on correct code.
+
+Measured by mutation, the guarantee had one live hole and two false floors. Stripping trailing
+whitespace from every line outside the region passed the entire suite; two coarser corruptions
+were caught, but by a test that counts marker pairs rather than one that checks preservation.
+**An incidental kill is not coverage.** It certifies only that the mutation happened to disturb
+something else that was being watched, so the next corruption that leaves marker offsets intact
+is invisible again — and reading a mutation score without reading *which* test failed cannot tell
+the two apart.
+
+The whitespace case is the one worth stating plainly, because it looks cosmetic and is not: two
+trailing spaces are a hard line break in Markdown, and the two managed targets whose outside
+content is prose are the two documents the fleet reads for instructions.
+
+The check is a postcondition inside the function rather than a test beside it, because this
+failure mode is defined by its own silence: a bad edit outside the markers produces no conflict
+marker, no diff noise, and no failing run, and surfaces later as a stranded member region. It
+throws rather than warns — by the time a warning is legible the file has already been written,
+and nobody reads the output that describes it. Its one permitted difference, trailing-newline
+normalization, is written as an explicit exception; comparing both sides trimmed would have been
+shorter and would have cancelled the assertion on exactly the class it exists to catch.
+
 ## Idempotency & drift
 
 - The tool is **idempotent**: once a member carries a lockfile, re-running with no upstream change
