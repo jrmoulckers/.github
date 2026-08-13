@@ -1030,9 +1030,47 @@ grows with the effort spent looking. The investigator writes the false positives
 **A superstring can be clean while the substring inside it is contaminated, in the very same rows.**
 Every one of those two hundred and eighty-eight `project_session_id` rows also contains
 `session_id`, which over-matches by seventeen. Contamination is therefore not monotone in
-specificity in the direction intuition suggests: **lengthening a pattern is a real remedy**, because
-each added word must also be idiomatic for the collision to survive, and idiomaticity fails fast as
-phrases get longer. Prefer the longest identifier that still answers the question.
+specificity in the direction intuition suggests. **An earlier form of this entry drew the remedy
+*prefer the longest identifier* from that, and a peer falsified it from this file's own table.**
+Re-measured on a larger corpus, with rates rather than raw extras:
+
+```
+term                     len   LIKE   literal   extra      pct
+cross_session_message     21    627        52     575   1105.8%
+session_id                10   1741      1456     285     19.6%
+created_at                10    254       224      30     13.4%
+from_project_session_id   23     62        58       4      6.9%
+project_session_id        18    504       490      14      2.9%
+run_started_at            14     79        79       0        0
+```
+
+`cross_session_message` is twenty-one characters and is the worst row by an order of magnitude,
+because `cross-session message` is ordinary prose. The rule above already said so; the length
+remedy was read off the *raw extras* column, where that row is small, instead of the rate. **A
+remedy inferred from a table sorted by the wrong column can contradict the mechanism stated one
+paragraph above it and still look supported.**
+
+The ordering also inverts: the twenty-three-character term contaminates at 6.9% and the
+eighteen-character subset at 2.9%, so risk is not monotone in length even in sign. The reason is
+visible in the residue -- all four extras are `from project_session_id`, where only the *leading*
+separator was substituted. **Risk attaches per added word, not per identifier, and a word that is a
+function word raises it**, because prose breaks after prepositions. `from_` is the worst possible
+addition and `run_started_at` is 0 at fourteen characters. Lengthen with domain words; a leading
+`from_`, `to_` or `in_` buys nothing.
+
+**Those zeros were true when recorded and are not true now, which this entry predicted and did not
+act on.** The paragraph above states that the corpus acquires prose variants as a term is
+investigated; the two figures it then cites as zero are now 14 and 4. **A number published beside
+its own decay rate still needs re-measuring; naming the mechanism does not exempt the instance.**
+
+**And the separator substitution is independent per underscore, so it must be enumerated, not
+applied uniformly.** Testing `cross_session_message` with all underscores mapped to space, then all
+to hyphen, left **571 of 575** extras unexplained and invited a novel mechanism. The actual variant
+is `cross-session message` -- hyphen at the first position, space at the second -- and enumerating
+all nine combinations closes the gap to **zero**. A k-underscore identifier has one variant per
+assignment, not one per separator. This is the one-factor-at-a-time defect a peer had described in
+the very message being verified, committed inside the query written to check it: **a false residual
+is the characteristic output, and a residual is what makes an investigator reach for a new cause.**
 
 The `session_id` row is the one to keep. Its absolute contamination is **14**, identical to
 `cross_session_message`, and it is invisible: `836` against `822` is a 1.7% discrepancy where `16`
@@ -5371,8 +5409,8 @@ never opted in.
 
 The claim held here until a member disputed it was that every entry's `syncedAt` equals the lock's
 `generatedAt` across all eleven members, making the per-item field a constant column. Measured
-across all eleven locks — extracting with a regex, because `ConvertFrom-Json` coerces ISO strings
-to local-time `DateTime` and silently shifts them:
+across all eleven locks -- extracting with a regex, because `ConvertFrom-Json` on 7.x returns a
+`DateTime` whose `Kind` follows the producer's spelling and can shift the rendered value:
 
 ```
 distinct syncedAt cohorts per member   6 6 7 4 5 6 2 1 4 3 4
