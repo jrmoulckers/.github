@@ -5982,6 +5982,72 @@ the shell collapsed both forms before either ran. **A redundancy the transport c
 is not a redundancy.** Single-quote every literal needle, or hand it to a runtime that will not
 reparse it; a doubled backtick survives, which is why the failure is intermittent rather than total.
 
+**The same shell corrupts in the other direction too, and the boundary is wider than the report of
+it.** A sibling found that `gh api <issue> --jq .body` in PowerShell yields not a string but an
+array of lines with every carriage return deleted. It reproduces here exactly, three times:
+
+```
+issue   reference len   CR    --jq .body -> elems   rejoined with LF   loss
+#770         3373        72            73                 3301          72
+#461         3718        66            67                 3652          66
+#582         3142        45            46                 3097          45
+```
+
+Loss equals the CR count in every case, and every length, hash and byte-equality computed downstream
+is wrong by the line count while remaining perfectly well-formed. **But the diagnosis attached to it
+-- that a `--jq` scalar is not a string -- is false, and the true boundary is much wider:**
+
+```
+cmd /c type <a CRLF file>     Object[]  3 elems   CR kept 0      no gh, no jq
+git show HEAD --stat          Object[]  8 elems   CR kept 0      no gh, no jq
+gh api ... --jq .title        String    1 elem                   a --jq scalar, uncorrupted
+gh api ... | ConvertFrom-Json                     CR kept 72     lossless
+```
+
+PowerShell converts **any** native command's stdout into an array of lines and discards the
+terminators. The value is a `String` only when the output happens to be one line, so the array-ness
+tracks the line count and never the flag. `--json` survives not because it returns a different kind
+of value but because JSON escaping puts the whole payload on a single line and smuggles the CR
+across as the two-character sequence `\r` -- **the escape is what crosses the boundary, not the
+character**, which is why parsing restores it and rejoining never can.
+
+Two consequences the original report did not reach. First, **the trailing terminator is lost even
+when there is no CR at all**: the twenty-byte reference above rejoins to sixteen, three CRs and the
+final LF, so this is not a CRLF-platform defect and an LF-only corpus is not safe from it. Second,
+the scope bound was produced by grepping the workflow directory for `gh ... --jq` and `-q .`, and
+that is the wrong predicate -- the right one is *any multi-line native stdout captured into a
+variable*, which takes in every `git`, `node` and `pnpm` invocation in the tree. The conclusion
+survives, because CI runs bash and bash does not split; but it survives for a reason that was not
+given, and **a right conclusion drawn from a wrong predicate is the most durable kind of error,
+since a correct answer is what stops anyone looking again.** Check the bound, not just the verdict.
+
+The remedy is a round trip rather than a presence check, and the reason is worth stating: a presence
+check passes here and must, because the response *did* arrive, complete and correct in content. What
+failed is fidelity, not delivery. **The corpus never arrived and the corpus arrived and was rewritten
+in transit both present as well-formed confident numbers**, and only the first is visible to a
+control that asks whether anything came back. Verify a published body against its source through a
+channel that did not cross the same boundary.
+
+**And two values fetched the same way are corrupted identically, so they agree, and the agreement
+reads as confirmation of both.** That is the doubled-probe failure above with the sign reversed:
+there, writing the probe twice was the standard defence and the shell collapsed both forms; here,
+reading the value twice is the standard defence and the same transport damages both readings
+equally. **A check that appears to have two witnesses may have one instrument twice**, and the way
+to tell is not to repeat the reading but to change the boundary it crosses.
+
+**A non-reproduction is not a refutation when the fingerprint matches.** The sibling ran an earlier
+class of mine against five issues on their `gh` build, got agreement across three channels on all
+five, and still recorded it as a null *about the rate rather than about the defect* -- because the
+74 characters I had reported for one body is exactly that issue's title length, confirmed here to
+the character. A failed replication that reproduces the signature while missing the symptom is
+evidence about frequency, and filing it as a refutation discards a real finding on the strength of a
+sample of five.
+
+**And your own writing is the weakest evidence you hold about yourself.** The correct answer to a
+question I got wrong six times was sitting in a document I wrote, unqueried, because authorship
+feels like having already read it. A record you produced is the one you are least likely to look up,
+which is the compacted-session problem applied to documents instead of to memory.
+
 The same measurement exposes a naming collision worth stating separately. *The in-flight copy* named
 three objects in one message — the member's default branch at 9,834 B, its local working branch at
 12,537 B, and the delivery at 23,263 B — and the argument moved between them unmarked. The rule
