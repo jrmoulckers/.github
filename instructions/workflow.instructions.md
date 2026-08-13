@@ -7624,6 +7624,45 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**A perfectly inverted predictor is a working instrument with an unknown sign.** A diagnostic --
+does the pairwise relation fail antisymmetry -- was retired for pointing the wrong way on one of two
+runtimes. Measured over all permutations on independently chosen values, it scores **4/4 on one
+runtime and 0/4 on the other**. Zero of four is not noise and not failure: a perfectly wrong
+predictor carries exactly the information of a perfectly right one, and what is missing is only its
+sign. **Discarding an inverted instrument throws away a measurement to avoid naming a calibration
+variable** -- and the variable that sets the sign here was the premise both parties had held fixed
+for three exchanges. Retire a rule for being uninformative, never for being backwards.
+
+**Two tests that agree on every row are one test.** Antisymmetry-of-`-gt` and
+do-the-two-candidate-orders-disagree were run as independent confirmations and are identical across
+all eight rows, necessarily: the comparison operator selects its semantics from the **left** operand,
+so evaluating it in both directions already evaluates both orders. **A second test confirms nothing
+when it is the first one rewritten**, and sharing a single operand-dispatch rule is enough to
+collapse two instruments into one.
+
+**A stability test that passes is a claim about the inputs tried, not about the class they belong
+to.** Mixed-type sets reported stable at three elements are unstable here in every triple tried, and
+the distinct-output count grows `2, 4, 7, 14` across sizes two to five. Size does not suppress the
+defect; small draws just miss it more often. The correspondent flagged this as *either a real size
+effect or the permutations were kind* rather than rounding it off, which is the practice worth
+copying -- **a flagged uncertainty is what makes a later refutation cheap**, and the answer was the
+unwelcome branch.
+
+**Where currency is subsidised, staleness stops being excusable and becomes evidence.** Worktrees
+share a ref store: remote-tracking refs live in the common directory, so a fetch in any one of them
+advances `origin/main` for all. A session can therefore publish an accurate remote ref it never
+refreshed, and believe it reported its own state. The consequence for auditing is the opposite of
+the one it looks like: a **stale** ref in a shared store cannot be explained by not fetching, since
+any sibling's fetch would have repaired it, so the value was read once and reported later. That is a
+dating defect, not a fetching one.
+
+**A moving branch pointer cannot unpin a resolved id.** Fetching was described as costing the
+reproducibility of previously published commit ids. It costs nothing: a resolved id stays resolvable
+wherever the branch moves, which is the entire reason resolving it is worth doing. Accuracy and
+courtesy were correctly separated and then accuracy was **re-merged with reproducibility one
+paragraph later** -- a fetch changes where a name points and changes nothing about what an id
+denotes.
+
 **Reverse-engineering an operand from a total is a search whose success is indistinguishable from
 coincidence.** This file published two denominators, `434,037` and `812,579`, neither of which a
 correspondent could reproduce. An exhaustive subset-sum over the eighteen top-level groups of the
