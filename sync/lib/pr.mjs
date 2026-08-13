@@ -153,13 +153,34 @@ export function refreshLockAgainstDefault(dest, defaultBranch, lock, touchedKeys
   if (!restored.length) return;
 
   writeLock(dest, { ...lock, backbone, entries });
-  log.warn(
+  for (const line of formatOverlapWarning(repo, defaultBranch, restored)) log.warn(line);
+}
+
+/**
+ * The warning lines that go to the run log when an overlapping run's entries are kept.
+ *
+ * Extracted from `refreshLockAgainstDefault` because inline was the reason it went unobserved: the
+ * five tests that drive that function all assert lockfile bytes, so the sentence could decay to a
+ * bare list of paths with the whole suite green. Every other warning in the engine is a pure
+ * formatter for the same reason.
+ *
+ * Each line carries both sides. "Kept" alone says a decision happened and withholds the one thing
+ * that makes it checkable — what this run had instead — and an entry this run never held is spelled
+ * out rather than rendered as an empty gap, since a blank reads as a value that failed to print.
+ *
+ * The values are timestamps because `syncedAt` is what decided the outcome. That ordering is a
+ * proxy for canon freshness and a known-imperfect one: a later run can carry older canon. The line
+ * therefore reports what was compared, not that the survivor is newer canon.
+ */
+export function formatOverlapWarning(repo, defaultBranch, restored) {
+  if (!restored?.length) return [];
+  return [
     `${repo}: ${restored.length} lock entr(ies) were newer on ${defaultBranch} than in this run's ` +
       'snapshot and were kept — another sync run merged while this one was in flight:',
-  );
-  for (const item of restored) {
-    log.warn(`    ${item.targetPath} (kept ${item.to}, this run had ${item.from ?? 'no entry'})`);
-  }
+    ...restored.map(
+      (item) => `    ${item.targetPath} (kept ${item.to}, this run had ${item.from ?? 'no entry'})`,
+    ),
+  ];
 }
 
 export function syncMemberRepo(  { repo, member, writes, token, date, force, forcePaths, backbone },

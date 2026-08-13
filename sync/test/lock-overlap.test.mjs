@@ -161,6 +161,25 @@ test('a newer base entry that moved only the canon source is restored, not skipp
   );
 });
 
+test('an equal timestamp does not hand the entry to the base', () => {
+  // `outranks` documents that the base wins only when it is *strictly* newer, and the word doing
+  // all the work is "strictly". Every other case here uses 08-07 against 08-09, where `>` and `>=`
+  // return the same answer for every input, so the rule was asserted only where it is untestable.
+  // Verified by mutant: relaxing `>` to `>=` left all 454 tests green.
+  //
+  // A tie means neither side can show it observed the other, and the entry beside ours is the one
+  // this run can still account for. Deferring to the base on a tie would revert an untouched entry
+  // on the strength of no evidence at all -- the #418 regression, reached from the other direction.
+  const stamp = '2026-08-09T00:00:00.000Z';
+  const ours = { 'a.md': entry('mine', stamp) };
+  const base = { 'a.md': entry('theirs', stamp) };
+
+  const { entries, restored } = mergeNewerBaseEntries(ours, base, new Set());
+
+  assert.equal(entries['a.md'].targetSha256, 'mine', 'a tie is not evidence that the base is newer');
+  assert.equal(restored.length, 0, 'nothing was displaced, so nothing may be reported as restored');
+});
+
 test('the fold does not mutate the entries it was given', () => {
   // `apply` has already written this object to disk; a caller that folds and then decides not to
   // commit must not have altered the run's own record as a side effect.
@@ -305,4 +324,67 @@ test('an absent lockfile is still the empty lock, not an error', () => {
   const lock = readLock(root, 'jrmoulckers/.github');
   assert.deepEqual(lock.entries, {});
   assert.equal(lock.generatedAt, null);
+});
+
+// --- the sentence: what the operator is actually told ---
+//
+// Every test above drives `refreshLockAgainstDefault` and asserts the lockfile bytes it leaves on
+// disk. None reads its output, and that is the whole gap: reducing the per-entry line to a bare
+// `${item.targetPath}` -- dropping both timestamps -- left all 454 tests green. The docblock says
+// "Reported, never silent", and the reporting was the part with no test.
+//
+// This is `runner.test.mjs`'s recorded lesson one module over. There it was a report computed and
+// never published; here it is a report published and never observed, which decays the same way and
+// looks identical from CI.
+
+import { formatOverlapWarning } from '../lib/pr.mjs';
+
+test('the overlap warning names every restored path and both sides of each decision', () => {
+  const lines = formatOverlapWarning('o/finance', 'main', [
+    { targetPath: 'tokens.css', from: '2026-08-07T15:35:03.616Z', to: '2026-08-09T22:23:00.000Z' },
+    { targetPath: 'AGENTS.md', from: null, to: '2026-08-09T22:23:00.000Z' },
+  ]);
+
+  const body = lines.join('\n');
+  assert.match(body, /2 lock entr\(ies\)/, 'the count is the reader\'s first signal of scale');
+  assert.match(body, /newer on main/, 'which branch was compared is not inferable from the paths');
+
+  // Both paths named. A count with no names tells a reader an overlap happened and leaves them
+  // unable to check whether the frozen file they are looking at is one of them.
+  assert.match(body, /tokens\.css/);
+  assert.match(body, /AGENTS\.md/);
+
+  // Both sides of every decision. "Kept X" alone is the failure this test exists to prevent: it
+  // reports that a choice was made and withholds the only value that makes it checkable.
+  assert.match(body, /kept 2026-08-09T22:23:00\.000Z, this run had 2026-08-07T15:35:03\.616Z/);
+
+  // An entry this run never held is spelled out. Rendering `null` or an empty gap reads as a value
+  // that failed to print, which is indistinguishable from a formatting bug at exactly the moment a
+  // reader is deciding whether to trust the line.
+  assert.match(body, /AGENTS\.md \(kept 2026-08-09T22:23:00\.000Z, this run had no entry\)/);
+  assert.doesNotMatch(body, /null/);
+});
+
+test('a fold that restored nothing produces no warning at all', () => {
+  // The overlap warning fires only on the runs where something was displaced. A line emitted every
+  // run -- "0 entries were newer" -- is one a reader learns to skip, and this is the warning that
+  // most needs reading when it does appear.
+  assert.deepEqual(formatOverlapWarning('o/a', 'main', []), []);
+  assert.deepEqual(formatOverlapWarning('o/a', 'main', undefined), []);
+});
+
+test('the overlap warning is actually wired to the run log', () => {
+  // A pure formatter proves nothing about whether anything calls it, and this formatter was
+  // extracted precisely because being inline is what kept it unobserved. Following
+  // runner.test.mjs, the wiring is asserted at the source: `refreshLockAgainstDefault` writes its
+  // own bytes and returns early on every path that reports nothing, so no behavioural assertion
+  // here distinguishes "warned" from "warned into a void".
+  const source = readFileSync(new URL('../lib/pr.mjs', import.meta.url), 'utf8');
+  assert.match(source, /formatOverlapWarning\(repo, defaultBranch, restored\)/, 'the fold must call the formatter');
+  assert.match(source, /log\.warn\(line\)/, 'and every line it returns must reach the log');
+
+  // One formatter, not two: a second inline copy would drift from the tested one and the tests
+  // would stay green while the operator read the untested sentence.
+  const inlineKept = source.match(/log\.warn\(\s*`[^`]*kept /g) ?? [];
+  assert.deepEqual(inlineKept, [], 'the warning text must exist only in the formatter');
 });
