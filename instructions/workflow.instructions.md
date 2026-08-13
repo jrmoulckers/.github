@@ -3149,7 +3149,44 @@ found*, and a named positive control naming a specific known member pins *what c
 Assert that a particular entry point is in the corpus, by name, so that narrowing the predicate
 fails a test that says which file went missing. A tally cannot do this; only a name can.
 
+### A benchmark run second measures the cache, not the change
+
+An optimization is justified by a number, and the number is usually obtained by running the old
+path and the new one in the same process, in that order. Everything the old path warmed — a git
+object cache, a filesystem cache, a JIT's inline caches — is still warm when the new path runs, and
+the difference includes all of it. The measurement does not distinguish "this work is unnecessary"
+from "this work has already been done".
+
+The correction is cheap: run each candidate cold, in its own process, and run the pair in **both
+orders**. If the ordering changes the verdict, the verdict was about the cache. A saving that
+survives both orders is real, and it is routinely a fraction of the one the naive comparison
+reports — thirty percent where the in-process figure claimed a factor of twenty-five.
+
+This matters beyond the number, because the size of the claimed saving is what licenses the
+complexity spent to obtain it. A shortcut that appears to remove nearly all of a cost will be
+allowed subtle logic, and a shortcut worth a tenth of that will not. An inflated benchmark
+therefore buys a design decision as well as a wrong figure, and the design outlives the correction.
+When the measurement is redone honestly, re-ask the design question rather than only editing the
+comment.
+
+### A floor written after the break certifies the break
+
+A coverage floor — `found.length >= N`, `map.size >= N` — is chosen by running the code and picking
+a number a little under what it printed. If the code was already wrong when the number was chosen,
+the floor is now pinned to the broken output and will report healthy forever. It cannot do anything
+else: it was derived from the very value it is supposed to falsify.
+
+This is the same defect as a test that re-implements production, arriving through arithmetic instead
+of through code. Both take their expectation from the thing under test. A floor is worth keeping as
+a coarse backstop against a walk collapsing to nothing, but it must be treated as evidence about
+*nothing in particular*, and the real coverage claim has to name specific members of the population.
+When a whole class disappears — every file of one kind, every document under one root — a total is
+the one instrument guaranteed not to notice, because a class going missing looks exactly like a
+class that was never there.
+
 ## Calling reusable workflows
+
+
 
 
 

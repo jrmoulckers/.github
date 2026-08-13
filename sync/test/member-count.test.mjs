@@ -27,6 +27,7 @@ import { dirname, join, relative } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { loadManifest } from '../lib/manifest.mjs';
+import { canonAudience, audienceOf } from './canon-audience.mjs';
 
 const REPO_ROOT = join(dirname(dirname(dirname(fileURLToPath(import.meta.url)))));
 
@@ -638,4 +639,272 @@ test('the engine-source walk skips fixtures and dependencies, and both exclusion
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+/*
+ * ---------------------------------------------------------------------------------------------
+ * #958 — a fleet size stated as a fraction, which the pattern above cannot see.
+ *
+ * `COUNT_PHRASE` requires the word `all`. `AGENTS.md` says "this file is distributed to six of
+ * the eleven members", which states the fleet's size just as flatly and matches nothing. This is
+ * #246 again — *"requiring `all` bought nothing and cost exactly the blind spot"* — recurring in
+ * the sibling pattern rather than in the one that was widened, which is the part worth recording:
+ * widening a pattern fixes the pattern, not the reasoning that made it narrow.
+ *
+ * The definite article is what makes the fraction form tractable. `the M members` names the whole
+ * population; `M members` names some M. The tree holds roughly thirty fraction-shaped sentences
+ * -- "three of six", "one of nine members holds a", "Twelve of the thirteen repositories" -- and
+ * they are historical narrative and subset claims that are correct as written. Requiring `of the`
+ * leaves every one of them alone. A guard that failed them would be weakened or deleted, which
+ * this file has already said twice and is the reason it is said a third time here.
+ *
+ * `none of the eleven members` is included on purpose: a numeral-only pattern misses it, and it
+ * is as much a claim about the fleet's size as any other.
+ * ---------------------------------------------------------------------------------------------
+ */
+
+/**
+ * Zero-words, kept local rather than added to `WORD_NUMBERS` above.
+ *
+ * Adding them there would silently widen `ANY_COUNT_PHRASE`, which has no `all` requirement, so
+ * an engine comment reading "no members" would start failing as a fleet-size claim. The shared
+ * map is load-bearing for two other patterns; a third caller's needs do not get to edit it.
+ */
+const FRACTION_WORDS = new Map([...WORD_NUMBERS, ['no', 0], ['none', 0], ['zero', 0]]);
+
+const FRACTION_TOKENS = [...FRACTION_WORDS.keys()].join('|');
+
+const FLEET_FRACTION = new RegExp(
+  String.raw`\b(\d+|${FRACTION_TOKENS})\s+of\s+the\s+(\d+|${FRACTION_TOKENS})\s+member(?:s|\s+repos?|\s+repositories)\b`,
+  'gi',
+);
+
+const toFraction = (token) => FRACTION_WORDS.get(token.toLowerCase()) ?? Number(token);
+
+/** How far back to look for the document a reach claim is about. */
+const SUBJECT_WINDOW = 300;
+
+/**
+ * The document a reach claim is about: the nearest mention preceding it.
+ *
+ * `this file` counts as a mention of the containing document, which is how `AGENTS.md`'s own
+ * sentence resolves — it names `.github/copilot-instructions.md` earlier in the same sentence, so
+ * nearest-wins is doing real work rather than picking the only candidate.
+ *
+ * Returns `null` when nothing is named, and the caller treats that as a fault rather than as a
+ * pass. A reach claim that names no document cannot be checked against anything, and an
+ * unverifiable claim is the shape that decays quietly — exempting it here would be an exemption
+ * scoped by "the guard found this one hard", which is not a property of the prose.
+ */
+function subjectOf(before, names, alias, containingDoc) {
+  let subject = null;
+  let at = -1;
+  for (const name of names) {
+    const i = before.lastIndexOf(name);
+    if (i > at) {
+      at = i;
+      subject = alias.get(name);
+    }
+  }
+  for (const self of ['this file', 'this document']) {
+    const i = before.toLowerCase().lastIndexOf(self);
+    if (i > at) {
+      at = i;
+      subject = containingDoc;
+    }
+  }
+  return subject;
+}
+
+/**
+ * One predicate, called by the sweep and by the fixtures below.
+ *
+ * Written this way from the start because of the mutant recorded at `countClaimFault`: a fixture
+ * exercising its own copy certifies the copy. Returns the reason a claim is wrong, or `null`.
+ */
+function reachFault({ numerator, denominator, subject, audience, fleet }) {
+  if (subject === null) {
+    return 'names no document, so its reach cannot be checked against what the engine delivers';
+  }
+  if (denominator !== fleet) {
+    return `states a fleet of ${denominator}, but the manifest has ${fleet} members`;
+  }
+  return numerator === audience
+    ? null
+    : `but the engine delivers ${subject} to ${audience} of the ${fleet} members`;
+}
+
+/**
+ * Every fraction claim on a surface, resolved and judged. Shared by the sweep and its controls so
+ * neither can drift from the other.
+ */
+function fractionClaims(text, containingDoc, mentions, audienceMap, fleet) {
+  const flat = text.replace(/\s+/g, ' ');
+  const claims = [];
+  for (const match of flat.matchAll(FLEET_FRACTION)) {
+    const before = flat.slice(Math.max(0, match.index - SUBJECT_WINDOW), match.index);
+    const subject = subjectOf(before, mentions.names, mentions.alias, containingDoc);
+    claims.push({
+      phrase: match[0],
+      numerator: toFraction(match[1]),
+      denominator: toFraction(match[2]),
+      subject,
+      audience: subject === null ? 0 : audienceOf(audienceMap, subject),
+      fleet,
+    });
+  }
+  return claims;
+}
+
+/**
+ * Document names as they can appear in prose, including surfaces that are delivered to nobody.
+ *
+ * Sorted longest-first once, here, rather than per match: `.github/instructions/x.instructions.md`
+ * must win over `instructions/x.instructions.md` when both occur at the same place, and re-sorting
+ * several hundred names inside the scan loop dominated the sweep's runtime.
+ */
+function mentionable(audienceMap, surfaces) {
+  const alias = new Map(audienceMap.alias);
+  for (const surface of surfaces) if (!alias.has(surface)) alias.set(surface, surface);
+  return { alias, names: [...alias.keys()].sort((a, b) => b.length - a.length) };
+}
+
+function sweepFractions() {
+  const audienceMap = canonAudience(REPO_ROOT);
+  const surfaces = proseSurfaces();
+  const mentions = mentionable(audienceMap, surfaces);
+  const claims = [];
+  for (const relativePath of surfaces) {
+    const text = readFileSync(join(REPO_ROOT, ...relativePath.split('/')), 'utf8');
+    for (const claim of fractionClaims(text, relativePath, mentions, audienceMap, audienceMap.fleet)) {
+      claims.push({ ...claim, surface: relativePath });
+    }
+  }
+  return { audienceMap, claims };
+}
+
+test('a reach stated as a fraction of the fleet matches the audience the engine computes', () => {
+  const { claims } = sweepFractions();
+  const wrong = [];
+
+  for (const claim of claims) {
+    const fault = reachFault(claim);
+    if (fault) wrong.push(`${claim.surface}: "${claim.phrase}" ${fault}`);
+  }
+
+  assert.deepEqual(
+    wrong,
+    [],
+    `A document's reach is computable from studio.config.json — state the number the engine delivers, or name the document so it can be checked:\n  - ${wrong.join('\n  - ')}`,
+  );
+});
+
+test('the fraction sweep finds the claims that are actually written, and resolves each to a document', () => {
+  // The half that keeps the test above from passing over an empty match set forever. These are
+  // the whole population as of #958, and each exercises a different branch of the resolver: a
+  // self-reference, a document delivered to nobody, and a named document other than the writer.
+  const { claims } = sweepFractions();
+  const found = claims.map((c) => `${c.surface} -> ${c.subject} (${c.numerator}/${c.denominator})`);
+
+  assert.ok(
+    found.includes('AGENTS.md -> AGENTS.md (6/11)'),
+    `AGENTS.md's self-reach is the claim #958 was filed for and must resolve to itself; found:\n  ${found.join('\n  ')}`,
+  );
+  assert.ok(
+    found.includes('docs/sync.md -> docs/sync.md (0/11)'),
+    'a document in no canon kind has an audience of zero, and "none of the eleven members" is a fleet claim a numeral-only pattern misses',
+  );
+  assert.ok(
+    found.some((entry) => entry.endsWith('-> instructions/workflow.instructions.md (9/11)')),
+    'a claim about another document resolves to that document, not to the file making it',
+  );
+  assert.ok(
+    found.length >= 4,
+    `the sweep resolved ${found.length} fraction claims — below the population #958 measured, so the pattern or the walk has narrowed`,
+  );
+});
+
+test('the fraction guard fires on a wrong numerator, a wrong fleet, and an unattributed claim', () => {
+  // Both directions, because a healthy tree keeps every claim true and so the sweep above stays
+  // silent whatever the predicate does. Each case goes through `reachFault`, the function the
+  // sweep itself calls.
+  const fleet = 11;
+
+  assert.equal(
+    reachFault({ numerator: 6, denominator: 11, subject: 'AGENTS.md', audience: 6, fleet }),
+    null,
+    'the real sentence stands',
+  );
+  assert.ok(
+    reachFault({ numerator: 7, denominator: 11, subject: 'AGENTS.md', audience: 6, fleet }),
+    'a numerator one off the computed audience is the decay this guard exists for',
+  );
+  assert.ok(
+    reachFault({ numerator: 6, denominator: 12, subject: 'AGENTS.md', audience: 6, fleet }),
+    'and the denominator is a fleet-size claim, which is the half the `all N members` pattern could not see here',
+  );
+  assert.ok(
+    reachFault({ numerator: 6, denominator: 11, subject: null, audience: 0, fleet }),
+    'a claim naming no document cannot be verified, so it is a fault rather than a pass',
+  );
+});
+
+test('the audience map is derived from the engine, and is pinned by documents named one at a time', () => {
+  // The lesson from #944, applied before it bites: `canonAudience` and `proseSurfaces` are both
+  // derivations, so comparing them would only confirm they agree. What pins them is naming
+  // documents whose audiences are known independently — read out of studio.config.json's optIn by
+  // a human — and asserting the engine reports those numbers.
+  const audienceMap = canonAudience(REPO_ROOT);
+
+  assert.equal(
+    audienceOf(audienceMap, 'AGENTS.md'),
+    6,
+    'base is opted into by six members, so the operating guide reaches six',
+  );
+  assert.equal(
+    audienceOf(audienceMap, 'copilot-instructions.md'),
+    11,
+    'copilot is opted into by every member, so it is the one fleet-universal document',
+  );
+  assert.equal(
+    audienceOf(audienceMap, 'instructions/workflow.instructions.md'),
+    9,
+    'the workflow instructions reach nine, which is the number two other surfaces state',
+  );
+  assert.equal(
+    audienceOf(audienceMap, 'docs/sync.md'),
+    0,
+    'docs/ is in no canon kind, and a document delivered to nobody must report zero rather than undefined',
+  );
+
+  assert.ok(
+    audienceMap.audience.size >= 60,
+    `the audience map covers ${audienceMap.audience.size} documents — the enumeration has narrowed to a corner of canon`,
+  );
+  assert.ok(
+    audienceMap.alias.has('.github/instructions/workflow.instructions.md'),
+    'a sentence naming the member-side path must resolve to the same document as one naming the source path',
+  );
+});
+
+test('a dir kind reaches the map through the group name, not the spec name', () => {
+  // Kept as a coverage control after the shortcut it guarded was withdrawn (see the note in
+  // canon-audience.mjs). The class of document the shortcut silently lost was the dir kind, whose
+  // specs are named `<skill>/<file>` rather than after the group — so that is the class named here
+  // rather than left to a total.
+  const audienceMap = canonAudience(REPO_ROOT);
+  const skills = [...audienceMap.audience.keys()].filter((doc) => doc.startsWith('skills/'));
+
+  assert.ok(
+    skills.length >= 20,
+    `a dir kind expands to files beneath the group name, and the map reached only ${skills.length} of them`,
+  );
+  assert.ok(
+    audienceOf(audienceMap, 'skills/fleet-orchestration/SKILL.md') === 11,
+    'a skill opted into by every member reaches every member, named rather than counted',
+  );
+  assert.ok(
+    audienceMap.alias.has('.github/skills/fleet-orchestration/SKILL.md'),
+    'and its member-side path resolves back to the source path a sentence would name',
+  );
 });
