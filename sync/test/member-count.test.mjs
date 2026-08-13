@@ -29,14 +29,78 @@ import { loadManifest } from '../lib/manifest.mjs';
 
 const REPO_ROOT = join(dirname(dirname(dirname(fileURLToPath(import.meta.url)))));
 
-/** Prose that describes the fleet to a human who is about to grant something. */
-const SURFACES = [
-  'sync/README.md',
-  'sync/index.mjs',
-  'docs/sync.md',
-  '.github/workflows/studio-sync.yml',
-  'README.md',
-];
+/**
+ * Prose that describes the fleet to a human who is about to grant something.
+ *
+ * Enumerated by hand until #842, and the list was exactly "the files someone remembered" —
+ * the conclusion this file had already reached for `engineSources()` below and applied in only
+ * one of the two places it holds. `instructions/workflow.instructions.md` carried six claims of
+ * the guarded form and sat outside the list; it is delivered to nine of the eleven members, so
+ * it is the document most likely to state a fleet size *to an agent* and it was the one the
+ * guard could not see.
+ *
+ * Discovered, never enumerated, for the same reason given at `engineSources()`: a new document
+ * is covered the moment it exists.
+ *
+ * `sync/test/**` stays excluded on the original grounds — the counts there are quoted regression
+ * fixtures, and a test asserting a wrong count fails on its own.
+ */
+function proseSurfaces(dir = REPO_ROOT, found = []) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === '.git' || entry.name === 'node_modules') continue;
+    const full = join(dir, entry.name);
+    const rel = relative(REPO_ROOT, full).split('\\').join('/');
+    if (rel === 'sync/test') continue;
+    if (entry.isDirectory()) proseSurfaces(full, found);
+    else if (/\.(md|mjs|yml)$/.test(entry.name)) found.push(rel);
+  }
+  return found;
+}
+
+/**
+ * The discovered set must stay broad enough to be worth sweeping.
+ *
+ * A walk that silently narrows to nothing passes forever (#834): the guard would report a clean
+ * fleet-count sweep computed over zero documents. A floor is falsifiable in both directions,
+ * where an exact count of today's markdown would break on the next document and get deleted.
+ */
+const SURFACE_FLOOR = 40;
+
+/**
+ * `all N members` is a claim about the fleet. `all N members that receive the file` is not.
+ *
+ * Reach and fleet size are different quantities that read identically up to the qualifier, and
+ * pinning one to the manifest misfires on the other. `workflow.instructions.md` says "all nine
+ * members that receive the file" above a tally summing to nine — true, and independently
+ * confirmed against `studio.config.json`, which puts that file in nine members' `optIn`.
+ * Widening the sweep without this discriminator would have failed CI on a correct sentence,
+ * which is how a guard gets weakened or deleted.
+ *
+ * The exemption is bounded rather than total: a subset cannot exceed its population, so a
+ * qualified claim is still checked against the manifest, just with `<=` instead of `===`. That
+ * keeps `all twelve members that receive the file` failing, and stops the qualifier from being
+ * an escape hatch for a stale grant instruction.
+ */
+const REACH_QUALIFIER = /^\s*(?:that|which|who|whose|receiving|carrying|with|without|in|on|under|opted)\b/i;
+
+/**
+ * One predicate, called by the sweep and by the fixtures below.
+ *
+ * Written inline first, with the fixture test reimplementing it. A mutant that deleted the
+ * bounds arm outright survived: the sweep had nothing out-of-bounds on disk to catch it, and
+ * the fixtures were exercising a copy. Two implementations agreeing proves nothing about the
+ * one that runs — the same content-versus-reachability split as #826.
+ *
+ * Returns the reason a claim is wrong, or `null` if it stands.
+ */
+function countClaimFault(stated, qualified, expected) {
+  if (qualified) {
+    return stated > expected || stated < 1
+      ? `is a subset of a fleet of ${expected}, so it cannot be ${stated}`
+      : null;
+  }
+  return stated === expected ? null : `but the manifest has ${expected} members`;
+}
 
 const WORD_NUMBERS = new Map([
   ['one', 1],
@@ -112,13 +176,14 @@ test('no surface states a member count that disagrees with the manifest', () => 
   const expected = loadManifest(REPO_ROOT).members.length;
   const wrong = [];
 
-  for (const relativePath of SURFACES) {
+  for (const relativePath of proseSurfaces()) {
     const text = readFileSync(join(REPO_ROOT, ...relativePath.split('/')), 'utf8');
     for (const match of text.matchAll(COUNT_PHRASE)) {
       const stated = toNumber(match[1]);
-      if (stated !== expected) {
-        wrong.push(`${relativePath}: "${match[0].trim()}" but the manifest has ${expected} members`);
-      }
+      const qualified = REACH_QUALIFIER.test(text.slice(match.index + match[0].length));
+      const fault = countClaimFault(stated, qualified, expected);
+
+      if (fault) wrong.push(`${relativePath}: "${match[0].trim()}" ${fault}`);
     }
   }
 
@@ -127,6 +192,69 @@ test('no surface states a member count that disagrees with the manifest', () => 
     [],
     `Point at studio.config.json's members list instead of restating its length:\n  - ${wrong.join('\n  - ')}`,
   );
+});
+
+test('the prose sweep reaches the documents it claims to cover', () => {
+  // Same reason as the engine-source sweep below: a walk that silently returns nothing passes
+  // the test above forever. Pin the file #842 was found in, one document per canon surface,
+  // and the fixture exclusion.
+  const found = proseSurfaces();
+
+  for (const expected of [
+    'instructions/workflow.instructions.md',
+    'AGENTS.md',
+    'README.md',
+    'docs/sync.md',
+    'sync/README.md',
+    '.github/workflows/studio-sync.yml',
+  ]) {
+    assert.ok(found.includes(expected), `discovery must reach ${expected}; found ${found.length} documents`);
+  }
+
+  assert.ok(
+    SURFACE_FLOOR >= 1,
+    'a floor of zero is not a floor — `found.length >= 0` holds for a walk that returns nothing',
+  );
+
+  assert.ok(
+    found.length >= SURFACE_FLOOR,
+    `the sweep covers ${found.length} documents, below the floor of ${SURFACE_FLOOR} — the walk has narrowed`,
+  );
+
+  assert.deepEqual(
+    found.filter((file) => file.startsWith('sync/test/')),
+    [],
+    'regression fixtures live in sync/test and must stay out of the sweep',
+  );
+});
+
+test('a reach claim is bounded by the fleet, not equal to it', () => {
+  // The discriminator that let the sweep widen at all. Both halves matter: exempting the
+  // qualified form is what stops a true sentence failing CI, and keeping it bounded is what
+  // stops the qualifier becoming an escape hatch for a stale grant instruction.
+  const expected = loadManifest(REPO_ROOT).members.length;
+  const bounded = (line) => {
+    const match = [...line.matchAll(COUNT_PHRASE)][0];
+    assert.ok(match, `pattern must fire on: ${line}`);
+    const stated = toNumber(match[1]);
+    const qualified = REACH_QUALIFIER.test(line.slice(match.index + match[0].length));
+    return { stated, qualified, ok: countClaimFault(stated, qualified, expected) === null };
+  };
+
+  // The real sentence, from the file this issue was found in.
+  const real = bounded('Extending the same measurement to all nine members that receive the file:');
+  assert.equal(real.qualified, true, 'a restrictive clause marks a reach claim');
+  assert.equal(real.ok, true, 'and nine of eleven is a legal reach');
+
+  // A reach cannot exceed its population.
+  assert.equal(bounded('all twelve members that receive the file').ok, false);
+
+  // Dropping the qualifier makes the same number a fleet-size claim, and a wrong one.
+  assert.equal(bounded('all nine members').qualified, false);
+  assert.equal(bounded('all nine members').ok, false);
+
+  // The qualifier does not excuse the grant instructions the guard was built for.
+  assert.equal(bounded('the token must cover all nine member repositories').ok, false);
 });
 
 test('the count phrases this guard looks for are the ones that actually appear', () => {
@@ -195,8 +323,10 @@ test('the engine-source sweep reaches the modules it claims to cover', () => {
 
 test('the source pattern catches the claim the prose pattern let through', () => {
   // #246 in one assertion. This exact line sat in sync/lib/runner.mjs against a manifest of
-  // eleven. It is why the two tiers are not the same pattern: adding runner.mjs to SURFACES
-  // would have left it passing, because it never says "all".
+  // eleven. It is why the two tiers are not the same pattern: sweeping runner.mjs with the
+  // prose pattern would have left it passing, because it never says "all". #842 widened which
+  // documents the prose tier reaches and changed nothing about this — a wider sweep with the
+  // weaker pattern still cannot see a claim that omits the totality word.
   const line = 'The engine talks to nine member repos plus the profile destination';
 
   assert.deepEqual([...line.matchAll(COUNT_PHRASE)].map((m) => m[0]), [], 'prose pattern misses it — that was the gap');
@@ -225,13 +355,29 @@ const MEMBER_RUN = (names) =>
 /** Marks the list as illustrative. Anything else is a claim about the whole fleet. */
 const HEDGE = /and more|and others|among (?:them|others)|for example|such as|e\.g\./i;
 
+/**
+ * The enumeration tier is still hand-listed, deliberately and temporarily. See #844.
+ *
+ * The count tier widened cleanly because it compares against a derived number. This one applies
+ * a *heuristic about intent* — an unhedged run of names asserts the population — and running it
+ * over the discovered set returns seven hits, four in `instructions/workflow.instructions.md`
+ * and three in ADRs. The ADR hits are the hard ones: an ADR is an immutable record, its lists
+ * are exhaustive as of the decision date on purpose, and hedging them with "and more" would
+ * make them false. That needs a second discriminator for historical records, not a wider loop.
+ *
+ * Widening this now would either fail CI on accurate prose or force seven prose edits under
+ * cover of a guard change. The measured hits are in #844 so the gap is recorded rather than
+ * carried silently — this list is known-partial, which is the thing #842 was about.
+ */
+const ENUMERATION_SURFACES = ['sync/README.md', 'sync/index.mjs', 'docs/sync.md', '.github/workflows/studio-sync.yml', 'README.md'];
+
 test('no prose enumerates the fleet without marking the list as partial', () => {
   const names = loadManifest(REPO_ROOT)
     .members.map((m) => m.repo.split('/')[1].replaceAll('.', String.raw`\.`))
     .join('|');
   const offenders = [];
 
-  for (const relativePath of SURFACES) {
+  for (const relativePath of ENUMERATION_SURFACES) {
     const text = readFileSync(join(REPO_ROOT, ...relativePath.split('/')), 'utf8');
     for (const line of text.split('\n')) {
       for (const match of line.matchAll(MEMBER_RUN(names))) {

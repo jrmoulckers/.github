@@ -3278,6 +3278,61 @@ so the floor asserts no governance decision that the manifest does not already e
 
 The `BREADTH_FLOOR` shape is finance's, arrived at from the same five-of-five result on their side.
 
+## A guard's scope is a claim, and a hand-written scope is an unchecked one
+
+`member-count.test.mjs` exists because five documents said "nine members" against a manifest of
+eleven, the `STUDIO_SYNC_TOKEN` grant was enumerated by hand from them, and one member returned 403
+for five consecutive weeks while every other member synced. The guard that grew from it swept a
+**hand-written list of five files**.
+
+Applying its own pattern to the whole tree found `instructions/workflow.instructions.md` carrying
+**six claims of exactly the guarded form** and sitting outside the list -- the document with the
+most fleet-count claims in the repository, delivered to nine of the eleven members, and therefore
+the one most likely to state a fleet size *to an agent*. The guard could not see it.
+
+The file had already reached this conclusion once and applied it in only one of the two places it
+holds. Above its engine-source walk it says: *a hardcoded surface list is the same wrong-unit error
+one level up; it protects the files someone remembered.* That reasoning was applied to the engine
+tier and not to the prose tier in the same file. **A lesson recorded next to one call site does not
+travel to the call site below it**, which is the fourth instance of this class here after the flag
+roster, the permission ceilings and the trigger paths.
+
+### The widening had to distinguish two quantities that read alike
+
+The sweep, widened, immediately flagged a nine-against-eleven claim in that document -- in the exact
+form of the original incident. It was **not** stale. The full sentence qualifies the count with a
+restrictive clause, *…that receive the file*, and nine is the correct **reach** of that document,
+confirmed independently from `optIn` in `studio.config.json`.
+
+Fleet size and document reach are different quantities that are identical in prose up to a
+restrictive clause, and a guard pinned to one misfires on the other. Landing the widening without
+that discriminator would have failed CI on a true sentence -- which is how a guard that fires on
+ordinary sentences gets weakened or deleted, and then protects nothing.
+
+The exemption is bounded, not total: a subset cannot exceed its population, so a qualified claim is
+still checked against the manifest with `<=` rather than `===`. A qualified claim of *twelve*
+receivers against a fleet of eleven still fails. Otherwise the qualifier is an escape hatch for the
+stale grant instruction the guard was built to catch.
+
+A note on where that example is not written out. This document is inside the sweep, so it cannot
+quote the guard's own failing inputs -- the first draft of this section did, and failed CI twice on
+its own prose. That is the reason `sync/test/**` was excluded from the sweep from the beginning, met
+here from the other direction: **a document a guard reads cannot carry the guard's counter-examples
+verbatim**, and describing them is not a stylistic preference but the only option that terminates.
+
+### Two mutants survived, both from lessons already in this document
+
+- **Deleting the bounds arm outright survived.** Nothing on disk is out of bounds, so the sweep had
+  nothing to catch it with, and the fixture test was exercising a **reimplementation** of the
+  predicate rather than the predicate. Two implementations agreeing proves nothing about the one
+  that runs. One named function, called by both, kills it.
+- **Lowering the floor to zero survived**, because `found.length >= 0` holds for a walk that returns
+  nothing. A floor needs its own floor. The breadth floor from the manifest work had the same shape
+  and the same hole.
+
+Both were caught by running the mutants and neither by reading the code, in a change whose entire
+subject is that a guard's scope goes unchecked.
+
 ## Idempotency & drift
 
 - The tool is **idempotent**: once a member carries a lockfile, re-running with no upstream change
