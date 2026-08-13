@@ -274,6 +274,40 @@ Use {{{ scope }}}.
   );
 });
 
+// The same two generic field validators are blind here as in agent-integrity: each can be given a
+// `return;` and the full suite stays green. Every prompt-specific validator above has a test that
+// feeds it something to reject; these two never did.
+test('prompt frontmatter field shapes are rejected: empty description and bad lists', () => {
+  const clean = validPrompt('alpha');
+  withFixture({ 'alpha.prompt.md': clean }, { prompts: ['alpha'], agents: [], members: [] }, (root, manifest) => {
+    assert.doesNotThrow(
+      () => validatePromptIntegrity(root, manifest),
+      'PREMISE: the baseline fixture must pass, or every case below could fail for another reason',
+    );
+  });
+
+  const cases = [
+    ['description', clean.replace('description: Test prompt.', "description: '  '"), /"description" must be a non-empty string/],
+    ['built_ins unsupported', clean.replace('built_ins: []', 'built_ins:\n  - telepathy'), /"built_ins" contains unsupported value "telepathy"/],
+    ['agent_dependencies duplicated', clean.replace('agent_dependencies: []', 'agent_dependencies:\n  - qa-tester\n  - qa-tester'), /"agent_dependencies" contains duplicate "qa-tester"/],
+  ];
+  // The `must be a list` arm of validateStringList is deliberately absent: the frontmatter parser
+  // rejects a non-list first ("must use a YAML list or []"), so that branch is latent through this
+  // entry point rather than untested. Pinning it here would freeze a claim about a state the parser
+  // makes unreachable, and would pass on the parser's message rather than the validator's.
+
+  for (const [label, content, expected] of cases) {
+    assert.notEqual(content, clean, `${label}: the fixture edit changed nothing, so it tests nothing`);
+    withFixture(
+      { 'alpha.prompt.md': content },
+      { prompts: ['alpha'], agents: ['qa-tester'], members: [] },
+      (root, manifest) => {
+        assert.throws(() => validatePromptIntegrity(root, manifest), expected, `${label} must be rejected`);
+      },
+    );
+  }
+});
+
 // Reaching a validator directly proves the validator works. Only reaching it THROUGH the entry
 // point proves the entry point still calls it -- deleting `validateRoster(records, declared, errors)`
 // from validatePromptIntegrity left the whole suite green, because every test that covers rostering

@@ -112,6 +112,40 @@ test('explicit member rosters require declared skills while prompt mentions rema
   });
 });
 
+// These three field-shape validators can each be blinded with the whole suite green: no fixture in
+// this file ever gave them a value to reject. Every domain validator here -- rosters, references,
+// closures -- has a violating-state test because some past defect forced one to be written. The
+// generic helpers are blind in agent-integrity and prompt-integrity alike, which is the signature of
+// coverage accumulated from incidents rather than designed.
+test('frontmatter field shapes are rejected: empty strings, unknown enums, and bad lists', () => {
+  const clean = validAgent('alpha');
+  withFixture({ 'alpha.agent.md': clean }, ['alpha'], (root, manifest) => {
+    assert.doesNotThrow(
+      () => validateAgentIntegrity(root, manifest),
+      'PREMISE: the baseline fixture must pass, or every case below could fail for another reason',
+    );
+  });
+
+  const cases = [
+    ['description', clean.replace('description: Test agent.', "description: '   '"), /"description" must be a non-empty string/],
+    ['when_to_use', clean.replace("when_to_use: 'Testing integrity validation.'", "when_to_use: ''"), /"when_to_use" must be a non-empty string/],
+    ['model', clean.replace('model: standard', 'model: not-a-real-model'), /"model" must be one of standard, strong-reasoning/],
+    ['write_scope', clean.replace('write_scope: full', 'write_scope: everything'), /"write_scope" must be one of read-only, scoped-write, full/],
+    ['risk_level', clean.replace('risk_level: low', 'risk_level: catastrophic'), /"risk_level" must be one of low, medium, high/],
+    ['tools empty', clean.replace('tools:\n  - read\n  - edit', 'tools: []'), /"tools" must be a non-empty list/],
+    ['tools unknown', clean.replace('tools:\n  - read\n  - edit', 'tools:\n  - read\n  - telepathy'), /"tools" contains unsupported value "telepathy"/],
+    ['tools duplicated', clean.replace('tools:\n  - read\n  - edit', 'tools:\n  - read\n  - read'), /"tools" must not contain duplicates/],
+    ['primary_paths', clean.replace("primary_paths:\n  - 'src/**'", 'primary_paths: []'), /"primary_paths" must be a non-empty list/],
+  ];
+
+  for (const [label, content, expected] of cases) {
+    assert.notEqual(content, clean, `${label}: the fixture edit changed nothing, so it tests nothing`);
+    withFixture({ 'alpha.agent.md': content }, ['alpha'], (root, manifest) => {
+      assert.throws(() => validateAgentIntegrity(root, manifest), expected, `${label} must be rejected`);
+    });
+  }
+});
+
 function withFixture(files, canonAgents, run) {
   const root = mkdtempSync(join(tmpdir(), 'studio-agent-integrity-'));
   try {
