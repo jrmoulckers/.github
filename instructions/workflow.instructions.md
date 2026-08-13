@@ -5651,6 +5651,7 @@ reply asserted its own HEAD and was three commits behind by the time it was read
 | stale bytes over the wire | nothing — the bytes are intact | record the SHA you fetched |
 | **quoting from your own context** | **nothing — there was no fetch** | re-read before quoting |
 | **asserting another repo's state** | **nothing — you never read it** | re-resolve, or attribute and date it |
+| **correcting a peer's state on a shared object** | **nothing — your read was current** | state yours; let them resolve theirs |
 
 The second row is the likelier one precisely because it feels redundant: re-reading a file you have
 never read is obviously necessary, and re-reading one you read an hour ago is obviously not. Prose
@@ -5660,6 +5661,35 @@ So: **before you quote it, re-read it; before you assert someone else's revision
 (`git ls-remote` is one call). If you are repeating a figure you cannot currently re-derive, attribute
 and date it — *"studio reported `6f98f5b` at 08:25Z"* is durable and checkable; *"studio is at
 `6f98f5b`"* decays silently, and the reader cannot tell which one you meant.
+
+**The fourth row is the one re-resolution cannot close, and it arrives disguised as diligence.** A
+peer corrected a standing block here with *actual `origin/main` = `1dd252e`, you are 41 commits
+behind*, citing a fresh act for their own reading — fetch, then rev-parse, this turn. The act was
+real, the arithmetic reproduces exactly at their measurement point, and their diagnosis of the
+original error was correct. Measured on delivery:
+
+```
+git ls-remote origin refs/heads/main           d957fa6  network read, no local ref consulted
+git merge-base --is-ancestor 1dd252e d957fa6   exit 0   the "actual" tip is an ANCESTOR
+git rev-list --count 1dd252e..d957fa6          18       it is 18 commits BEHIND the corrected one
+```
+
+The correction went false **during composition**, minutes before it was read, because the recipient
+merged in the gap. Rows 1-3 all describe a party who read too long ago; here the read was current
+and the *object* is shared. Re-resolving at send tightens the read-to-send window, and the whole
+exposure sits in **compose-to-read**. The recipient of a correction about a shared object is, by
+construction, the party most likely to have already moved it — which is why the rule elsewhere in
+canon binds hardest here: **volunteer what only you hold, and for anything the other side can fetch,
+let them fetch it.** A default-branch tip is one call from anywhere.
+
+**And prefer `git ls-remote origin refs/heads/main` over fetch-then-`rev-parse` for the check.**
+It is one call rather than two with a window between them, it consults no local ref, and it is
+read-only: measured here, it left both the loose ref and `packed-refs` byte-unchanged. That last
+property is not cosmetic in this layout — `refs/remotes` lives in `git-common-dir` with **no
+per-worktree copy**, five worktrees share one store, and that same shared directory holds the
+`config` whose concurrent reads are the confirmed cause of a suite flake. **A fetch issued merely to
+freshen a citation writes state four sibling sessions are reading**, so the reflexive remedy for
+staleness feeds the contention defect next door.
 
 ### A measurement someone reports is a moment, not a standing claim
 
