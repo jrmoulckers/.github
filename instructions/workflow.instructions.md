@@ -5284,6 +5284,16 @@ produced 171 distinct line counts, zero collisions. That is a contingent propert
 grows monotonically, not a guarantee, so measure the collision rate on the corpus before trusting a
 fingerprint on it.
 
+**And the sharper version of that came from the party who owned the key: an exact identifier used
+once as an equality test never becomes a lookup key.** The member had established the mapping
+thirty-two hours before it was needed, published it, and used it -- as a boolean, `sourceSha256 ==
+hash(HEAD)`, which answers *am I current*. The identical field resolves *which revision* against
+history, and that query was never made; they built a 171-revision line-count fingerprint instead.
+So the rule is not *check whether an identifier exists before fingerprinting*. It is that **having
+answered the cheap question about a field marks the field as handled**, and a prior correct use is
+the strongest available reason not to re-examine an object. The failure is not ignorance of the
+key -- it is ownership of it.
+
 **There is a third state, and it is the one that most resembles a block: never dispatched.** A
 scheduled or manually dispatched distribution that simply has not run leaves exactly the artifact a
 blocked one leaves — a member whose copy lacks the correction — and if the *last* run is red, the
@@ -5385,6 +5395,41 @@ dispatch problem and dispatch harder, producing exactly the stack observed.
 carries a lock with 58 entries and four instruction paths, and no entry for this file at all.
 Presence of the artifact says the engine visited; only presence of the *entry* says the member is
 subscribed to what you are asking about.
+
+**Scoping is the norm rather than the exception, and no status field records it.** Enumerating
+`--members` across every run of the distributor: of the thirteen that reached the sync step, **six
+were scoped** to a subset and one was scoped to a single member, whose output reads `1 of 1
+target(s) succeeded` -- a complete success and a fleet-wide non-event. The last unscoped dispatch
+precedes the most recent run by more than a day. So *how many members did this run deliver to* is
+answerable only from the run's own log text, and a reader consulting `conclusion` cannot tell a
+fleet-wide delivery from a one-member retry. That is the third distinct instance recorded here of a
+status field reporting target-set composition rather than outcome.
+
+**But scoping is not itself the defect, and the hypothesis that it is was falsified here.** I
+expected a retry following a partial failure to have omitted members that had just failed. The
+opposite held: the failing run lost exactly eight of twelve targets and the retry twenty-five
+minutes later was scoped to exactly those eight. Precise operation. **The defect is only that the
+resulting success carries no record of its target set**, so competent narrow work and neglect leave
+identical traces.
+
+**And a stale member is not evidence that no run was aimed at it.** A peer explained fleet staleness
+that way; for the four members that matter it is false, and their own two-gate finding is what
+refutes it. The last unscoped run reached all four and opened pull requests within seventy seconds
+of starting -- those pull requests are still open, which is why the locks read two days older. **The
+dispatch gate and the merge gate produce the same lock timestamp**, so an old lock is equally
+consistent with never being sent and with being sent and never merged, and only the member's open
+pull requests separate them.
+
+**A log holds both the command that prints and the line it printed, and a substring match finds the
+generator first.** My scope detector reported *unscoped* for every run, including the one whose own
+output says `1 of 1`. It matched `Running: node sync/index.mjs`, which occurs twice: once inside
+the shell fragment `echo "Running: ... ${args[*]}"` and once in that command's output. **A template
+by construction never contains the interpolated values**, so matching it yields a uniform,
+value-free column that looks like a finding about the runs. Behind it sat a second fault -- with a
+single match, indexing `[0]` on a scalar string returns its first character rather than its first
+line. Both were caught by one control: requiring that at least one scoped *and* one unscoped run be
+observed before printing. A uniform result was impossible given evidence already in hand, and
+asserting that in advance turned a plausible column into a loud failure.
 
 **And the deeper fault is that canon is filed by topic while defect classes are not topical.** The
 excluded members take `infrastructure-operations` instead, which is a defensible topical judgement.
