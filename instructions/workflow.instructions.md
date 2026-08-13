@@ -2869,6 +2869,56 @@ The durable remedy is not a better search, because nothing can make a name searc
 It is an **inventory**: enumerate the seams in one place and pin it, so a new one has to be declared
 rather than discovered by whoever next audits reachability. Pin it with the reachability premise
 attached, so a seam that later gains a direct call site is retired rather than kept out of habit.
+### A detector has two hand-written scopes, and they fail separately
+
+Every detector carries a **pattern** — what counts as a hit — and a **population** — what it runs
+over. Attention goes to the pattern, because that is where the thinking is. The population usually
+gets picked by reaching for the directory the known instances happened to sit in, and it is never
+revisited, because a detector that finds its known instances looks finished.
+
+The measured instance, in a suite written to close a blindness and landed twenty minutes earlier:
+the pattern was derived carefully — parsing declarations rather than eyeballing them, an initial
+fourteen matches corrected down to four — and the population was one directory holding 24 of 30
+shipped sources. A real violation was then injected into the entry point the tool itself starts
+from, and the suite reported a clean match. **Correct and blind at once**, and the fix to the
+pattern would never have touched it.
+
+The trap is that this usually presents as a **null**. There were no live violations outside the
+narrow corpus, so widening it changed no result and looked like wasted motion. A zero from a
+detector that could not have returned anything else is not evidence about the code; it is evidence
+about the detector, and it reads as the former.
+
+Two remedies, and only the second is reliable:
+
+- **Derive the population from the property that makes something subject to the rule**, not from
+  where today's examples live. If the rule is about shipped source, the corpus is shipped source.
+- **Cross-check the derived population against an enumeration that shares none of its logic** — a
+  walk against the version-control index, say. Checking a corpus against itself, with a size floor
+  or a subset assertion, passes under exactly the narrowing that matters, because a smaller corpus
+  is still internally consistent. A premise that the corpus is non-empty does not catch a corpus
+  reduced to one file.
+
+Then construct the narrowed state and confirm it fails, rather than asserting the corpus is wide.
+
+### A mutation sweep cannot see a defect whose failure mode is a schedule
+
+Mutation testing varies a decision and asks whether anything notices. It is silent, by
+construction, about defects that are not decisions. A check-then-use race is the clearest case:
+both orderings are the same source, there is nothing to flip, and every mutant runs on a quiescent
+tree where the race never fires.
+
+So a sweep can be genuinely exhaustive — every mutant dead, each by a distinct failing test name —
+and have said nothing whatsoever about a whole class of defect sitting in the code it just scored.
+The table is true. Its silence is not coverage.
+
+The instance that makes this concrete: a peer landed a fix for a detector's blind scope, with seven
+mutants dead and no survivors, and the change introduced two high-severity file-system-race alerts
+that a static analyser found and the sweep structurally could not. **The tool caught it; the method
+could not have.**
+
+The general form is the one to carry: **ask what your instrument cannot express, not only what it
+reports.** An all-green control table invites the question *of what decisions?* — and a method that
+only varies decisions will answer every question as though it were one.
 ## Calling reusable workflows
 
 Studio product repos call the backbone's reusable workflows at a reviewed immutable commit SHA:
