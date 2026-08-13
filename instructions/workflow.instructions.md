@@ -1701,7 +1701,12 @@ truncation drops the *oldest* rows, so every exception it induces must point the
 looking newer than they are. **Direction of bias is derivable from the mechanism before anything is
 tabulated; the distribution of the exceptions is an accident of which nuisance variable you grouped
 by**, so read the sign first and treat a set of exceptions that all lean one way as an accusation
-against the instrument.
+against the instrument. Worked within the hour on a *correction*: a peer diagnosed three of this
+hub's size figures as a character count plus a terminator, correctly, then published a corrected
+byte column that ran **uniformly one low across all ten rows and four orders of magnitude of
+scale** -- the same terminator, appended by one pipeline and stripped by the other, with each party
+detecting only the other's direction. **A correction is an instrument too, and it is the one least
+likely to be pointed at itself.**
 
 Three properties made it dangerous rather than merely wrong. It fired **only on repositories with more
 than 100 runs**, so it selected against exactly the largest and most informative member while leaving
@@ -5763,6 +5768,22 @@ is **invariance to appends**, not cardinality: an extremum at the frozen end sur
 proportion (`0 of N`, `N of N`) survives because growth cannot cross a boundary the data never
 approaches, and every count and sum between them decays. **When a figure has to stay quotable, pick
 the invariant one; when only a count will do, publish its instant.**
+
+**A ratio between a frozen holder and a live head measures delay, not divergence.** Nine members
+hold this file at six distinct revisions; the spread from the oldest holder to the hub was reported
+as `37x` and measured `47x` thirty-five minutes later, because only one end is moving. Such a figure
+cannot reproduce and cannot fail to grow, so it carries no information about the members at all.
+**The ordinal survives** -- which holder is behind which -- because appends at the head cannot
+reorder a frozen tail.
+
+**And that lag is stratified by ability to merge, not by CI health.** The two orderings agree on
+every member but one, and that member decides it: the repository with the worst CI in the fleet,
+failing `299` of `300` runs, holds the *second newest* copy, because its failures are refusals that
+never block a merge. The three members holding the two oldest copies are the three whose checks
+cannot pass at all. So delivery is not a queue draining at a uniform rate -- **the members least
+able to receive a correction accumulate the most of them**, and nothing inside a member reports its
+own tier. Whoever clears the blockage inherits six starting points rather than one, and a fix
+validated against the hub has been validated against none of them.
 
 The mechanism sits one operand over from where it looks. Reproduced on identical data at one
 instant, a `ConvertFrom-Json` pipeline counted 93 where offset-aware parsing and a commit listing
