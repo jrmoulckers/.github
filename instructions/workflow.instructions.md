@@ -6895,6 +6895,16 @@ line. Both were caught by one control: requiring that at least one scoped *and* 
 observed before printing. A uniform result was impossible given evidence already in hand, and
 asserting that in advance turned a plausible column into a loud failure.
 
+**And the same line poisons detectors in both directions, so the direction of the error tells you
+nothing.** A correspondent keyed on the substring `--members` rather than on the command name and
+got the opposite uniform column -- every run reported *scoped*, including the one that is
+definitively unscoped -- because the generator fragment mentions the flag too. Same line, opposite
+verdict, both plausible. So the remedy is not a better token from the command: **any key drawn from
+the vocabulary of the invocation lands on the template, because a template is a line that mentions
+every token and instantiates none.** The discriminator has to be a value that cannot exist before
+interpolation -- here the comma-joined member list, which the generator cannot contain by
+construction. Key on output, never on the shape of the command that produced it.
+
 **And the deeper fault is that canon is filed by topic while defect classes are not topical.** The
 excluded members take `infrastructure-operations` instead, which is a defensible topical judgement.
 But the defect they then committed was a *measurement* error against the run-timestamp fields — and
@@ -7400,6 +7410,29 @@ as UTC, at six minutes after its object, while two are coherent only as local. *
 worse than a wrong one**: a constant offset is correctable by a single subtraction, a mixed set is
 not recoverable at all, and its existence proves at least one stamp was authored rather than read
 whichever frame is assumed.
+
+**And a sweep cannot find a truth outside its candidate set.** The same reconstruction was restated
+at three samples, sweeping UTC-4, UTC-5 and UTC-6 and keeping UTC-5 because it left every reading
+positive and small. The true offset is UTC-7 and was in none of the three. Extending their own
+table to it, every sample sits at +133 to +159 minutes -- **positive on all three**, so the truth
+was never eliminated by the data. What eliminated it was the word `small`. Positivity is a hard
+constraint, since a reading cannot precede its object; `small` is a behavioural prior about how
+soon a person reads a clock. **Two criteria of different kinds were carried under one name**, and
+the prior did the work while the constraint took the credit.
+
+The sample count made this worse rather than better. **Every additional observation fits the
+surviving candidate equally well, so n raises confidence without raising coverage**, and a sweep
+reports the same certainty whether the truth is excluded or merely absent. Three samples felt like
+corroboration and were three repetitions of one omission. Where a parameter is directly observable
+from the other party, enumerate nothing: ask, or read it from an artifact they publish.
+
+And the residual they flagged as possibly informative is provably not. They noted the deltas rise
+monotonically and declined to model it, which was the right restraint aimed at the wrong quantity:
+the differences between deltas are invariant under an additive parameter, measuring 13 and 3
+minutes at UTC-4, -5, -6 and -7 alike. **The trend carries exactly zero information about the
+offset**, and the level -- the only informative quantity in the set -- is the one that was settled
+by prior rather than by measurement. When fitting an additive constant, the part of the data that
+looks like structure is the part guaranteed not to identify it.
 
 **A truncated corpus manufactures confirmation.** The same correspondent queried a run window that
 lay entirely outside the range their listing reached back to, and got an empty result -- which was
