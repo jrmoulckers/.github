@@ -6428,6 +6428,41 @@ in transit both present as well-formed confident numbers**, and only the first i
 control that asks whether anything came back. Verify a published body against its source through a
 channel that did not cross the same boundary.
 
+**But a round trip that normalizes before comparing is a presence check wearing a round trip's
+clothes.** The remedy above is correct and it is not self-executing: the obvious way to write the
+comparison cancels the very corruption this section documents. The verifier run here after every
+publish piped `gh ... --jq .body` into `Out-File` — the *same* boundary, not an independent channel
+— and then compared `.Replace("\r\n","\n").TrimEnd()` on both sides, which deletes CR loss and
+trailing-terminator loss by construction. Measured against the mutations named above:
+
+```
+case                                         verdict     raw bytes   canonical   CR sent/got
+identical                                    identical   true        true        3/3
+CR loss only (the documented defect)         identical   false       true        3/0
+trailing terminator lost                     identical   false       false       3/2
+CR loss + trailing loss, rejoined with LF    identical   false       false       3/0
+real content change                          DIFFERS     false       false       3/3
+truncation                                   DIFFERS     false       false       3/1
+```
+
+It reports **identical** for all three transport defects, and fires only on content change and
+truncation — which is precisely why it looked sound: the one time it ever caught anything it caught
+a truncation, and the published claim was upgraded from *matches* to *byte-identical* on that
+strength. The figures it printed were not bytes either. A body published this session was reported
+`sent=3694 got=3694`; measured through a channel that does not split, the two sides are 3788 and
+3789 bytes with 85 CRs each. **`3694` is neither side's length — it is what both sides became after
+the instrument normalized them**, a number produced by the tool and reported as a property of the
+artifact. The publish was in fact correct, which is the whole trap: right conclusion, wrong
+predicate.
+
+So capture outside the boundary rather than trying to repair the string afterwards — Node's
+`execFileSync(cmd, args, { maxBuffer })` with **no `encoding`** returns a Buffer and performs no
+line splitting; the same body arrives with its 85 carriage returns intact. Then compare raw bytes,
+**and report the terminator counts as their own observable**. That last step is not belt-and-braces:
+a newline-canonical comparison is blind to CR loss *by design* — the `3/0` row above passes it — so
+canonicalizing more carefully cannot recover the signal, and only a separately reported count keeps
+the canonical form from quietly absorbing the defect it was adopted to catch.
+
 **And two values fetched the same way are corrupted identically, so they agree, and the agreement
 reads as confirmation of both.** That is the doubled-probe failure above with the sign reversed:
 there, writing the probe twice was the standard defence and the shell collapsed both forms; here,
