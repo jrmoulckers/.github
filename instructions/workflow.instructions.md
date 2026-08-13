@@ -3234,7 +3234,49 @@ When a whole class disappears — every file of one kind, every document under o
 the one instrument guaranteed not to notice, because a class going missing looks exactly like a
 class that was never there.
 
+### Calling a validator is not evidence that anything calls it
+
+A test that invokes a validator directly measures its logic and nothing else. Whether production
+reaches that validator is a separate property, carried by a call site the test never executes, and
+a call site is one line that costs nothing to delete. So a validator can be defined, exported,
+thoroughly unit-tested and completely unreached, and every one of its tests still passes.
+
+The failure is quiet in the direction that matters: an unreached validator reports no errors, which
+is indistinguishable from a codebase that satisfies it. Coverage tools do not help, because the
+validator's own lines are covered — by the tests.
+
+Mutate the **call site**, not only the callee. If deleting the dispatch line leaves the suite green,
+the check is decorative. The repair is a probe that constructs a violating state and drives it
+through the production entry point, so the assertion depends on the wiring rather than assuming it.
+The same applies to a validator that stays wired but stops returning findings: wiring intact,
+behaviour gone, and only an end-to-end probe can tell the two apart.
+
+### A list of things to check is the thing it checks
+
+Once a suite pins each item in a population, the list of items becomes a second population, kept by
+hand, in the same repository, updated by the same edit that forgets to update the first. A guard
+built this way inherits the defect it was built to catch, one level up, and it inherits it silently:
+the missing row does not fail, it simply is not examined.
+
+Derive the population from its producer — the dispatch's own source, a directory walk, a manifest —
+so that adding a member without a corresponding check fails. When the derived and transcribed sets
+must coexist, make each report against **its own denominator**: a small uncovered count read against
+an inflated population is reassuring and wrong.
+
+### A mutation that leaves the original as a prefix is not a mutation
+
+Corrupting an anchor by appending to it is the reflex, and it does not work against unanchored
+substring tests: `foo` still matches `fooZZ`. The edit lands on disk, the file genuinely changed,
+and the predicate sees exactly what it saw before. The mutant then reports as a survivor, which
+reads as a gap in the guard rather than as a broken probe — an accusation against working code.
+
+Put the marker in the middle of the anchor, and assert the mutation reached the predicate rather
+than only that the file changed. The stronger habit is to require a mutant to fail *for the reason
+claimed*: read the named failing test, not the count.
+
 ## Calling reusable workflows
+
+
 
 
 
