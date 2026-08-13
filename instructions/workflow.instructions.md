@@ -7434,6 +7434,58 @@ offset**, and the level -- the only informative quantity in the set -- is the on
 by prior rather than by measurement. When fitting an additive constant, the part of the data that
 looks like structure is the part guaranteed not to identify it.
 
+**And where the record is silent, a claim and its refutation are both testimony.** An attribution
+was made here about which sibling session authored two commits, and refused. Measured, every
+candidate is identical in every field the artifact records -- same author, same committer, same PR
+author, one branch-naming convention, one file -- because sessions in a repository commit under one
+identity and squash merges rewrite the committer besides. So the claim was not read from the record,
+which could not have supplied it, and the correction cannot be checked against the record either.
+**An attribution claim about an artifact class that records no author is unfalsifiable in both
+directions**, and the honest move is to grant the denial: the author has direct knowledge of their
+own work that no observer holds, while the accuser has only inference dressed as observation.
+
+Two asymmetries make this worse than the ordinary unverifiable claim. **A false credit costs the
+actual author their work, where a false denial costs only the accused** -- so the crediting
+direction, which feels generous, is the more damaging one and attracts the least scrutiny. And a
+remedy already in canon, that an attribution travels with the command that produced it, was present
+and unreached at the moment it was needed. Attribute by something observable -- a branch, a PR
+number, a timestamp band, a subject convention -- or attribute nothing.
+
+**And a measurement of a moving repository is a function of two arguments, only one of which gets
+published.** Two sessions reported the same suite as `421/421` and `441/441` and both were exact:
+421 declarations at one revision, 441 at another, with eleven commits touching the test tree in
+between. Same unit, same method, same repository, different vantage. This is a different species
+from the unit collisions above -- there the label was wrong, here both labels are right and
+incomplete -- and it resolved in one command **only because the correspondent published the SHA
+beside the figure**. A count without a revision is not a measurement of a repository under active
+change; it is a measurement of a moment nobody else can return to. Bind the figure to the revision
+in the same breath, and treat a bare total from a peer as a reading whose vantage you must ask for.
+
+**And relocating a stranded rule is a rewrite, not a move.** A sibling found four of their own
+entries in a hub-local design document that no member repository receives, and declined to ship
+them intact: each had a general half and a hub-local half, and moving them whole would have put one
+repository's internal census and base-SHA variable into eleven product repos -- trading unreadable
+for unreadable-because-irrelevant. **The reason a rule landed in the wrong document is usually that
+it was written with its instance fused to it, and that fusion is exactly what disqualifies it at
+the destination.** So distil the general half and leave the instance behind; a relocation that
+preserves the text has not answered the question that stranded it.
+
+Their guard for it is the shape to copy. The document had never stated that it was undistributed --
+the fact needed to prevent the error was absent from the place the error is made -- but adding the
+notice alone would only reproduce the failure one layer up, since a rule present and unreached is
+indistinguishable from a gap. So it is checked against the manifest in **both** directions: the
+notice is required while the directory is undistributed and forbidden the moment it becomes a
+distributed kind, with a non-vacuity premise, because an empty source list would satisfy the claim
+while reading nothing.
+
+**And a defect you cannot have is not a defect you avoided.** The same correspondent, asked whether
+they shared an under-enumeration fault, answered that they did not and then refused the credit:
+their harness runs two suites as two commands, so there was never a single total for an omission to
+hide inside. That is immunity by circumstance, not by design -- the same structure as a mutant that
+dies for a reason unrelated to the assertion under test. **Report the mechanism of an escape, not
+just the escape**, because a fault avoided by accident recurs the moment the accident does not
+hold, and a clean result claimed as discipline conceals exactly that.
+
 **A truncated corpus manufactures confirmation.** The same correspondent queried a run window that
 lay entirely outside the range their listing reached back to, and got an empty result -- which was
 also, exactly, the claim under test. It confirmed the claim while measuring nothing, and it was
