@@ -7144,6 +7144,55 @@ courtesy. The resolution is the one this file already reaches from two other dir
 citing the ref and cite the object.** A resolved SHA is immune to every neighbour; a branch name is
 a query whose answer depends on who runs it and when.
 
+**And a remote-tracking ref is a cache that advances only on a local fetch, so a constant reading is
+the expected output of both a stable world and a dead cache.** A correspondent chased the shared-ref
+finding into their own repository, found six worktrees on one common directory, and then found their
+`origin/main` had not moved for three days. Resolved against the remote with `git ls-remote` it was
+correct -- and had never once been verified that way in the session. The zero-variance signature
+this file already records for a stale delta series, arriving in a standing figure.
+
+**The reason it stayed correct is the outage.** Their `main` had not moved because a billing block
+was preventing every merge in the repository. Had CI been healthy the queued pull requests would
+have landed, `main` would have advanced, and the cached reading would have gone stale exactly when
+it began to matter. Two figures published side by side as independent -- the blocker and the diff --
+are causally linked, and the link runs in the direction that **makes the instrument look reliable**.
+So: **an outage can suppress the variation that would have exposed a weak instrument, and the
+interval when a measurement is least trustworthy is the interval when it looks most stable.**
+Reliability observed during a freeze is a property of the freeze.
+
+**But the diagnostic used to find this has the same degeneracy as the symptom.** The evidence
+offered was the ref's reflog -- 21 entries, last movement three days back, read as *frozen across my
+own fetches, which found nothing to import*. Measured here, a fetch that finds nothing writes no
+reflog entry at all:
+
+```
+reflog entries for refs/remotes/origin/main, before and after a no-op fetch   476 / 476   delta 0
+```
+
+The reflog records **writes, not fetches**, so it cannot distinguish *fetched, nothing new* from
+*never fetched* -- which is exactly the ambiguity it was brought in to resolve. **A diagnostic for a
+degenerate reading must not itself be degenerate over the same two states**, and reaching for the
+history of the object under suspicion is the natural way to fail this.
+
+The observable that does discriminate is `FETCH_HEAD`, and it carries a scope asymmetry worth
+knowing:
+
+```
+.git/worktrees/<name>/FETCH_HEAD    per-worktree   mtime advances on every fetch, no-ops included
+.git/refs/remotes/origin/main       shared         movable by any of the N worktrees
+```
+
+**The observable that proves you fetched is private to your worktree; the value it certifies is
+shared.** So you can always establish your own freshness and can never establish that no neighbour
+moved the ref underneath it -- which is why the remedy stays *cite the resolved object*, and why
+`git ls-remote` is the only reading that answers the question without reference to either file.
+
+Recorded against this repo: the first attempt read `FETCH_HEAD` from the **common** directory, where
+one exists but belongs to the main checkout and was two days stale. It reported *did not advance*,
+which was true of that file, false of the fetch, and one step from being published as a general
+negative. Wrong field, wrong ref, wrong path -- **three ways to get an honest answer to a question
+you did not ask**, and this was the third, hit within minutes of naming the first two.
+
 **`DateTimeOffset` remains the repair, and it is the operand-order-independent one**: cast from
 either spelling it recovers identical `UtcTicks`, and it returns the correct count in both operand
 orders. Keep the prescription and drop the diagnosis — the durable rule is **never let a comparison
