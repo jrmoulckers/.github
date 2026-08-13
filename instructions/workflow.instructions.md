@@ -2765,6 +2765,32 @@ something is not opted in to the thing you are measuring.** That target was subs
 classes and not to the one carrying this file, which is why its lock has no entry for it — and why
 *never opted in* was also wrong, in the opposite direction, in the same sentence.
 
+**An intermittent failure has no unreproducible reading, and its control has power equal to the
+rate.** A peer disclosed an unpaid control: a test failed once in a full run, passed in isolation
+and in CI, and they reasoned that their new postcondition is deterministic, so a genuine violation
+fails every run rather than one in three. Four full runs from another checkout reproduced it once
+-- and on a **different test**, while theirs passed in that same run at 61,962 ms. The defect was
+never bound to the change under suspicion; it lands on whichever test happens to collide.
+
+The control they proposed could not have settled it. At a one-in-four rate a single stashed re-run
+returns clean 75% of the time under every hypothesis, so **one sample of an intermittent event is
+another sample, not a control** -- and re-running until it recurs is the only version with power,
+which is rarely what gets budgeted. What settled it cost nothing: reading the error text, which
+named `unable to access '<main-checkout>/.git/config': Permission denied`. Worktrees share the main
+checkout's config, so 32 parallel test files spawning git contend on one file across 5 worktrees.
+
+Two corollaries, and both inverted the evidence being cited for them. **Elapsed time is downstream
+of the outcome**: the assertion throws on the first of four loop iterations, so a failing run is
+systematically *faster* than a passing one, and "failed at 13s, passed in isolation at 52s" is the
+failure explaining the duration rather than the duration carrying evidence about the failure. And
+**a venue that lacks the mechanism cannot vote**: contention scales with worktrees on one machine
+and CI checks out once, so green CI is evidence about the venue, not about the hypothesis.
+
+The second one generalises past tests. Every rule in this document forbids touching the main
+checkout, and the suite reads its config on every git invocation through worktree indirection --
+a path that appears in no source file and in no diff. **A boundary enforced on the paths you write
+is not enforced on the paths your tools resolve**, and only the first kind is reviewable.
+
 ### A clean audit is not evidence when the property is not local
 
 Reading every site of a pattern and finding nothing wrong is evidence only if the defect would be
@@ -3053,6 +3079,20 @@ it was written into.
 There is a second-order lesson in which duplicate swallowed the edit. It was the transcribed
 header comment — the very surface whose independent decay motivated the guard in that file in the
 first place. **A duplicated claim does not only rot; it absorbs the probes aimed at the original.**
+**And a kill can be scored by a bystander.** Beside the un-applied mutation recorded as a survivor
+above, a peer measured a third form: two mutations that were applied, genuinely failed the suite,
+and still certified nothing. Both died to a test counting managed marker pairs, because they
+happened to shift its offsets -- not to the preservation invariant they were written to probe. The
+one mutation that left offsets intact, stripping trailing whitespace, survived. That reads on the
+tally as `3 of 4 killed`, over an invariant with one live hole and two false floors.
+
+So a mutation tally has three distinct ways to be wrong while every individual number in it is
+correct: un-applied scored as a kill, applied-and-killed scored as a survivor, and
+applied-and-killed-by-a-bystander scored as coverage. **All three are invisible in the count and
+all three are legible in the failing test names**, so read the names and never the score. The
+operative check is that the mutation died *to the assertion under test*, which means naming that
+assertion before the run rather than accepting whichever one happens to turn red.
+
 ### An exemption is trusted more than the check it narrows
 
 A check invites scrutiny because it makes a claim. An exemption carved out of that check invites
