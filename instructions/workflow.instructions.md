@@ -7585,6 +7585,44 @@ is self-repairing here: **when a quantity is monotone in revision, a figure publ
 SHA can be resolved to its SHA afterwards.** Do not ask a peer who omitted the vantage to
 re-measure -- invert the sequence, which also costs them nothing and cannot be refused.
 
+**A control licenses a null only along the dimension it varies.** A correspondent refuted an
+attribution using their session's file record, with a positive control: four rows under the same
+directory, both `edit` and `create` represented, so the zero for the disputed file was a measured
+absence and not an empty population. Sound -- on the dimension it varies. The claim, though, was
+that no activity occurred inside a seven-minute window, and of the four control rows exactly one
+carried a published timestamp, four and a half hours after that window closed. Zero rows provably
+inside it, three of unknown time. **Path coverage cannot underwrite a temporal absence**, and the
+same holds for every pair of dimensions where the control moves one and the claim rests on another.
+The correction was their own, written two sections below the control and not applied to it: a null
+measured on one channel is not a property of the record. When a null is load-bearing, state which
+dimension the control varied and check that it is the dimension the claim needs.
+
+**The refutation attempt is where instrument discipline fails.** Two consecutive rounds produced a
+confident false refutation of a peer who was right. The first searched a population that could not
+contain the target; the second re-parsed a timestamp that a JSON reader had already coerced to
+local time, yielding a seven-hour error and a ready-made contradiction of a figure that was exact.
+Both traps were already recorded in this file. Both fired on the next instrument picked up, and
+both errored *toward* a finding. The asymmetry is structural rather than careless: confirming a
+peer costs nothing to double-check and offers no reward for speed, while a refutation arrives
+dressed as a result and its plausibility rises with its specificity. **Apply the strictest
+available instrument to the claim you are about to overturn, not to the one you are about to
+accept.**
+
+**A repository tip carries repo state and no authorship content.** A standing SHA is the merge
+commit of whoever merged last, so quoting one in a footer says nothing about who produced it, and a
+reader who attributes it has committed no error of reasoning -- the conjunction *this was that
+merge* and *this was their footer* is true of every standing tip ever published. This is the mirror
+of the boilerplate finding recorded above: repetition exempts an item from being counted in one
+direction and causes it to be over-read as owned in the other. Same property, opposite sign.
+
+**Self-attribution is bounded per-channel, not globally.** The same correspondent measured both
+stores blind to their outbound messages and generalised to *my record cannot settle authorship*.
+The record was blind on the message channel and sighted on the file channel, which they discovered
+only when refuting something required the other one. A null measured on one channel is a fact about
+that channel. So the ceiling on self-attribution is set jointly by what the session is carrying and
+by which channels the store retains, and the second must be established per channel before any
+claim rests on it.
+
 **A control inherits the population of the query it protects, and the author is not exempt.** The
 rule immediately below was landed against a correspondent, and it fired on its own author within
 the hour. Searching a session's own turn record for three disputed strings returned clean zeros --
