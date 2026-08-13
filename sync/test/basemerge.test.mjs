@@ -19,10 +19,13 @@ import {
   buildFile,
   canonicalizeInner,
   orphanedRegions,
+  outsideRegion,
+  markersFor,
   MARKERS,
   START_MARKER,
   END_MARKER,
 } from '../lib/basemerge.mjs';
+import { MANAGED_MERGE_TARGETS } from '../lib/manifest.mjs';
 import { apply } from '../lib/copier.mjs';
 import { hashText } from '../lib/lock.mjs';
 import { inject, PROVENANCE_NOTE, hasFrontmatter } from '../lib/provenance.mjs';
@@ -565,4 +568,73 @@ test('a managed region body beginning with whitespace is significant, and .trim(
     assert.equal(extracted, body.replace(/\s+$/, ''), 'buildFile -> extractBlock round-trips it');
     assert.notEqual(hashText(extracted), trimRule(extracted));
   }
+});
+
+// #174: the preservation guarantee, asserted rather than described.
+//
+// `README.md` says member content outside the markers is never touched, and every test that
+// covered it used `includes('a sentence')`. Substring containment survives reordering,
+// duplication, re-indentation and whitespace edits — so it is a much weaker claim than the one
+// being made. Measured before these tests were written: a mutation stripping trailing whitespace
+// from every line outside the region passed the entire suite, and two coarser mutations (
+// duplicating the prefix, collapsing blank runs) were caught only *incidentally*, by a test that
+// counts marker pairs. Incidental kills are not coverage: the next mutation that leaves marker
+// offsets alone is invisible again.
+//
+// Driven off MANAGED_MERGE_TARGETS rather than a filename list, per #174 — a hand-listed set
+// beside a code path that enumerates the same thing is what produced the two-versus-three
+// classification error the issue opens with.
+
+test('every managed target preserves the bytes outside its region, exactly', () => {
+  assert.ok(MANAGED_MERGE_TARGETS.size >= 2, 'the guarantee is worth nothing over an empty set');
+
+  for (const [kind, targetPath] of MANAGED_MERGE_TARGETS) {
+    const markers = markersFor(targetPath);
+    // Trailing spaces are a hard line break in Markdown, so this is content, not formatting.
+    const above = `member line  \n\n\n  indented\t\n`;
+    const below = `\ntail  \n\n  more\n`;
+    const existing = `${above}${markers.start}\nold\n${markers.end}${below}`;
+
+    const rebuilt = buildFile(existing, 'new canon', markers);
+    const before = outsideRegion(existing, markers);
+    const after = outsideRegion(rebuilt, markers);
+
+    assert.equal(after.before, before.before, `${kind}: content above ${targetPath} must be byte-identical`);
+    assert.equal(
+      after.after.replace(/\n+$/, '\n'),
+      before.after.replace(/\n+$/, '\n'),
+      `${kind}: content below ${targetPath} must be byte-identical up to the final newline`,
+    );
+    assert.equal(extractBlock(rebuilt, markers), 'new canon', `${kind}: and the region is still updated`);
+  }
+});
+
+test('the preservation check is a postcondition, so it fires on the engine and not only on inputs', () => {
+  // Non-vacuity in the direction that matters. The three assertions above pass for a `buildFile`
+  // that never edits outside content *and* for one whose damage happens to be undetectable by
+  // them, which is why the guarantee is also enforced inside `buildFile`. Reaching that arm needs
+  // a file whose region cannot be re-located in the output, so it is exercised through the
+  // exported locator on a deliberately broken result rather than by mutating the engine here.
+  const markers = MARKERS.html;
+  const intact = `above\n${markers.start}\nx\n${markers.end}\nbelow\n`;
+
+  assert.deepEqual(outsideRegion(intact, markers), { before: 'above\n', after: '\nbelow\n' });
+  assert.equal(outsideRegion('no markers here\n', markers), null, 'no region is the insertion path, not a violation');
+  assert.equal(
+    outsideRegion(`${markers.start}\nx\n${markers.end}`, markers).before,
+    '',
+    'a region occupying the whole file leaves nothing outside it, which is not a loss',
+  );
+});
+
+test('trailing whitespace outside the region survives, because the member owns it', () => {
+  // The exact mutation that survived the pre-#174 suite: strip trailing spaces outside the
+  // markers. Pinned on its own so the regression has a name rather than being one clause of a
+  // loop, and so it fails loudly if the check is ever relaxed to a trimmed comparison.
+  const markers = MARKERS.html;
+  const existing = `hard break  \n${markers.start}\nold\n${markers.end}\ntrailing  \n`;
+  const rebuilt = buildFile(existing, 'new', markers);
+
+  assert.ok(rebuilt.startsWith('hard break  \n'), 'two trailing spaces above the region are a Markdown line break');
+  assert.ok(rebuilt.includes('\ntrailing  \n'), 'and below it as well');
 });

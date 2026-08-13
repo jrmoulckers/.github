@@ -227,6 +227,30 @@ function renderBlock(inner, markers) {
 }
 
 /**
+ * The bytes on either side of the managed region — the member's own content.
+ *
+ * Named and exported so the preservation guarantee can be *asserted* rather than described.
+ * `README.md` says member content outside the markers is never touched, and the suite checked
+ * that with `includes('...')` on a representative sentence. Substring containment is a much
+ * weaker claim than byte-identity: it survives reordering, re-indentation, duplication, and
+ * whitespace edits to the member's own text. Measured (#174), a mutation stripping trailing
+ * whitespace from every line outside the region passed the whole suite, and two coarser
+ * mutations were caught only incidentally, by a test that counts markers.
+ *
+ * Trailing whitespace is not cosmetic in the files this runs on: two trailing spaces are a hard
+ * line break in Markdown, and `AGENTS.md` and `copilot-instructions.md` are the two managed
+ * targets whose outside content is prose.
+ *
+ * Returns `null` when there is no region, which is the insertion path rather than this one.
+ */
+export function outsideRegion(fileContent, markers) {
+  requireMarkers(markers, 'outsideRegion(fileContent, markers)');
+  const text = toLF(fileContent ?? '');
+  const found = findBlock(text, markers);
+  return found ? { before: text.slice(0, found.start), after: text.slice(found.end) } : null;
+}
+
+/**
  * Return new file content with the managed block set to `inner`.
  *   - existing content with markers -> replace the region in place
  *   - empty/whitespace-only content -> the block becomes the whole file
@@ -244,6 +268,13 @@ function renderBlock(inner, markers) {
  * silently downgrades every member rule the canonical `*` outranks. Branches generated before
  * jrmoulckers/.github#125 append the region instead of prepending it, so merging one is not merely
  * stale — it is unrecoverable without a human edit. Regenerate such a branch rather than merging it.
+ *
+ * The replacement path checks its own postcondition, because this is the failure mode defined by
+ * its own silence (#174): a bad edit outside the markers produces no conflict marker, no diff
+ * noise and no failing sync, and surfaces later as a stranded member region. The one legitimate
+ * difference is trailing-newline normalization on the suffix, so that is what the check allows —
+ * stated as an exception rather than absorbed by comparing both sides trimmed, which would cancel
+ * the assertion on the very edits it exists to catch.
  */
 export function buildFile(existingContent, inner, markers) {
   requireMarkers(markers, 'buildFile(existing, inner, markers)');
@@ -253,7 +284,9 @@ export function buildFile(existingContent, inner, markers) {
   const found = findBlock(existing, markers);
   if (found) {
     const replaced = existing.slice(0, found.start) + block + existing.slice(found.end);
-    return `${replaced}\n`.replace(/\n+$/, '\n');
+    const result = `${replaced}\n`.replace(/\n+$/, '\n');
+    assertOutsidePreserved(existing, result, markers);
+    return result;
   }
   if (existing.trim() === '') {
     return `${block}\n`;
@@ -262,5 +295,36 @@ export function buildFile(existingContent, inner, markers) {
     return `${block}\n\n${existing.replace(/^\n+/, '').replace(/\n+$/, '')}\n`;
   }
   return `${existing.replace(/\n+$/, '')}\n\n${block}\n`;
+}
+
+/**
+ * The postcondition of an in-place replacement: the member's bytes are the member's bytes.
+ *
+ * Deliberately compares the *prefix exactly* and allows exactly one difference in the suffix —
+ * the trailing-newline normalization `buildFile` applies to the whole file. Writing this as a
+ * trimmed comparison on both sides would be shorter and would cancel the assertion on precisely
+ * the class it exists to catch, since the surviving mutant in #174 was a whitespace edit.
+ *
+ * Throws rather than warns. A warning is the wrong severity for a postcondition on content the
+ * engine does not own: by the time it is observable the file has already been written, and the
+ * whole point of this failure mode is that nobody reads the output that describes it.
+ */
+function assertOutsidePreserved(existing, result, markers) {
+  const before = outsideRegion(existing, markers);
+  const after = outsideRegion(result, markers);
+  if (!before || !after) {
+    throw new Error('buildFile: in-place replacement lost the managed region it was replacing');
+  }
+  const normalize = (text) => text.replace(/\n+$/, '\n');
+  if (before.before !== after.before) {
+    throw new Error(
+      'buildFile: content above the managed region was modified; it belongs to the member',
+    );
+  }
+  if (normalize(before.after) !== normalize(after.after)) {
+    throw new Error(
+      'buildFile: content below the managed region was modified; it belongs to the member',
+    );
+  }
 }
 
