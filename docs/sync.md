@@ -3460,6 +3460,37 @@ Scope, stated rather than implied: no canonical workflow uses that channel, and 
 and LF throughout, so this does not reach CI. It is bounded to local measurement on Windows — which
 is where the claims in these cross-session reports are computed, so the bound does not make it
 harmless.
+## A run counts targets and the manifest counts members
+
+A fleet-wide run's log says `ERROR: 1 of 12 target(s) failed`. `studio.config.json` has **eleven**
+members. Two sessions spent an exchange treating that as a roster discrepancy, and it is not one.
+
+The twelfth target is `jrmoulckers/jrmoulckers`, the **profile mirror**. It is absent from
+`members`, `profile` is not an `optIn` kind at all, and a mirror failure is a warning that never
+fails the run. Both numbers are correct about different populations, and the log says `target(s)`.
+
+The distinction was already written down, in `runner.mjs`, in this file's own regression fixtures,
+and in the profile-mirror caveat. It was not reached. A rule that is present and unreached is a
+retrieval failure rather than a gap, and it is indistinguishable from a gap to everyone involved.
+
+**The operational figure follows the member unit, not the target unit.** That run delivered to
+eleven of twelve *targets*, which is ten of eleven *members*, because one of the successes is a
+README on an account page. The two sentences differ in what they imply about product repositories,
+and only the second answers "did canon land".
+
+`member-count.test.mjs` is structurally blind to target counts — it keys on the literal noun
+`member`, verified by running the predicate rather than reading it. That blindness had a live
+instance in the one file whose count claims caused #246: `runner.mjs` described a fleet run as
+having "wrote to eleven repos", ambiguous between exactly the two units in dispute, and **invisible
+to the guard because of the ambiguity**. Naming the population is what brings the sentence under the
+guard, so the under-specification was an evasion of it rather than a vagueness.
+
+No target-count guard was added, and the refusal was measured rather than assumed. Sweeping for
+unqualified count claims over `target|destination|repositor(y|ies)|repos?` returns 42 hits spanning
+at least four populations: members (11), delivery targets (12), members plus profile plus backbone
+(13), and many correct subsets. **A guard keyed on a noun that ranges over four populations
+manufactures offences out of correct sentences**, and a guard that fails correct sentences gets
+weakened or deleted. The countable thing here is not the noun.
 ## Idempotency & drift
 
 - The tool is **idempotent**: once a member carries a lockfile, re-running with no upstream change
