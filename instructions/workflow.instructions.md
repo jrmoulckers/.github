@@ -2710,6 +2710,82 @@ looking.
 The remedy is cheap and belongs in the write-up itself: **state what you did not re-examine.** A
 self-correction that names its own boundary stops functioning as a certificate.
 
+### A red cleared by rebasing is evidence about the base
+
+A pull request reported failures, was rebased, and reported none. Same diff, no retry, nothing
+fixed. The cause was a validator declining to check against a baseline it could not trust while the
+branch was behind — a refusal that is correct, and a failure that had nothing to do with the change.
+The changed files did not include a single file the failing check reads.
+
+A status rollup renders this identically to a genuine content failure. Nothing in it separates *your
+change is broken* from *your base is stale*, and the two clear differently: one needs a fix, the
+other needs a rebase.
+
+The hazard is the learned remedy rather than the refusal. Where canon lands every few minutes,
+branches go behind constantly, and a member sees red then rebase then green often enough to learn
+**rebase until green**. That rule is correct for this cause and dangerous for every other: it turns
+a real failure into something retried past, and it never prompts a log read *because the recovery
+keeps confirming it*.
+
+Note what makes it dangerous — the **success rate**, not the accuracy. This is the same property
+that makes a well-evidenced recommendation the one most likely to slip a gate, and a control that
+agrees with the right answer on every case the one that supplies nothing.
+
+So the diagnosis is the log line and never the recovery. **A rebase that clears a red has
+established something about the base and nothing whatsoever about the change**, and reading the
+green as a verdict on the change is reading a measurement of one thing as a measurement of another.
+
+### A surviving mutant is three findings, and only one is a gap
+
+Mutating one operand at a time and scoring the total treats every survivor alike. Survivors are not
+alike, and the aggregate cannot distinguish them:
+
+- a **gap** — the operand is reachable and untested; enrich the assertions;
+- a **latent guard** — dead only because the corpus is impoverished, such as an exclusion for a
+  directory that this checkout happens not to contain; enrich the **corpus**;
+- an **equivalent arm** — dead by a true invariant, deciding nothing today.
+
+The remedies are opposite, which is why merging them is not conservative. Pinning a latent guard's
+deadness freezes an accident of the working tree and invites deleting a guard that would matter the
+moment the corpus grows. Enriching an equivalent arm is impossible, so the honest move is to **pin
+the invariant that makes it dead** — then the day the invariant breaks, a named test fires and
+announces that the operand just became load-bearing.
+
+A tally is wrong in four ways while every number in it is correct: an un-applied mutation scores as
+a kill, an applied-and-killed one scores as a survivor when the harness misreports, a kill by a
+bystander test scores as coverage of the thing you meant, and an equivalence scores as a gap. All
+four are invisible in the total and visible in the failing test **names**. So read kills off names.
+
+The self-inflicted case worth knowing: a round-trip test iterated the entries of what it assumed was
+an object and was in fact a map, so it quantified over the empty set and **passed while the
+invariant under test was deliberately broken**. A green test and an empty test are the same
+observation. Before citing a new assertion as why something is safe, break the thing and watch that
+assertion fail by name.
+
+### An instrument's presence is not its fidelity
+
+Checking that a response arrived catches an instrument that returned nothing. It cannot catch one
+that returned something **rewritten in transit** — the response is present, well-formed and wrong,
+and every downstream number computed from it is well-formed too.
+
+The measured instance: a command-line JSON filter, on one shell, yields not a string but an array of
+lines with every carriage return deleted. Length comparisons, hashes and byte counts taken from it
+are all confidently wrong by exactly the number of line endings. A presence control passes. So for
+any value that will be published, the control must be a **round trip** — fetch it back and compare
+against what you sent — not a check that something came back.
+
+Two values fetched the same way are corrupted the same way, agree with each other, and the agreement
+reads as independent confirmation. That is one instrument twice, wearing the appearance of two
+witnesses.
+
+The neighbouring failure is an aggregate whose **population** is unstated. A run counts one thing and
+a manifest counts another; both numbers are right and they disagree, and measuring harder returns the
+same disagreement because the defect is in the unit. Naming the population is also what brings a
+sentence under a check that keys on that noun — so under-specification can be an **evasion** of a
+guard rather than mere vagueness. And where a count is already published somewhere authoritative,
+restating it is a violation even when the restatement is *correct*: the rule is about there being one
+source, not about accuracy. A guard that only rejects wrong values leaves the duplication in place
+and calls it fixed.
 ## Calling reusable workflows
 
 Studio product repos call the backbone's reusable workflows at a reviewed immutable commit SHA:

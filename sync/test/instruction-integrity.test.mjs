@@ -521,3 +521,29 @@ test('the pattern counts cited above requirePatterns are derived, not transcribe
   }
 });
 
+
+test('a hub-local canon surface states that it is undistributed, and the claim tracks the manifest', () => {
+  const manifest = loadManifest(REPO_ROOT);
+  const sourceDirs = new Set(Object.values(manifest.sourcePaths));
+
+  // Guard the notice in both directions. The premise is that these kinds exist at all: an empty
+  // sourcePaths would make the "not distributed" half vacuously true and the test would pass
+  // without reading anything.
+  assert.ok(sourceDirs.size >= 2, 'sourcePaths must be populated for this test to mean anything');
+
+  const HUB_LOCAL_NOTICE = 'Hub-local: this file is never distributed.';
+  const distributed = sourceDirs.has('docs') || sourceDirs.has('./docs');
+  const text = readFileSync(join(REPO_ROOT, 'docs', 'sync.md'), 'utf8');
+
+  if (distributed) {
+    assert.ok(
+      !text.includes(HUB_LOCAL_NOTICE),
+      'docs/ became a source path, so docs/sync.md must stop claiming it is undistributed',
+    );
+  } else {
+    assert.ok(
+      text.includes(HUB_LOCAL_NOTICE),
+      'docs/ is not a source path, so docs/sync.md must say so where a rule would be written',
+    );
+  }
+});

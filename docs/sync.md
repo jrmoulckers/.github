@@ -4,6 +4,13 @@
 > [`sync/README.md`](../sync/README.md)) and consumes the manifest
 > [`studio.config.json`](../studio.config.json). This document is the design and rationale;
 > the README is the operational reference.
+>
+> **Hub-local: this file is never distributed.** `docs/` is not a source path for any kind in
+> [`studio.config.json`](../studio.config.json), so every member repo returns 404 for this path. A
+> rule written here is authored, reviewed, merged — and unread by the repos it was written for, and
+> nothing in that chain can catch it, because each step is satisfied by a correct edit to the wrong
+> file. Member-facing rules belong under [`instructions/`](../instructions/); what belongs here is
+> the engine's own design, rationale and hub-only operational detail.
 
 ## Why a sync tool
 
