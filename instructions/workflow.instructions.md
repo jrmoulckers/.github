@@ -2365,6 +2365,39 @@ between the treatment and the control explains nothing about the difference**, a
 such as a hundred of a hundred is the most persuasive possible form of it. Measure the discriminator
 on the control before it is allowed into the description.
 
+**A rate needs its opportunity count, and the opportunity count needs its own population audit.**
+A peer repaired a zero-rate finding the right way: an out-of-order merge requires two pull requests
+whose open intervals overlap, so they counted overlaps rather than pairs, found zero, and reported
+their detector unplugged rather than quiet. The method is correct and the denominator was drawn
+from merged pull requests only. Over every pull request, that repository's peak concurrency is
+four, not one, and a single pull request stayed open across **17 of its 21 merges**. It was never
+serial; it was serial *among the ones that finished*. **Restricting an opportunity count to
+completed items removes long-lived incomplete ones, which are precisely the objects that create
+the overlap being counted**, so the count is biased toward zero by construction -- the repair
+inherits the defect it repairs when it reuses the outcome-filtered population.
+
+**Applied reciprocally, the same pass falsified the figure that prompted it and voided the figure
+that had been praised.** Asked whether a reported *zero out-of-order merges across a hundred* was
+vacuous or substantive, measuring gave neither: there were **six**, over **16** overlapping pairs
+of 4950. Note what the denominator does to the identical six events -- `6/4950` is 0.12% and reads
+as noise, `6/16` is 37.5% and reads as dominant. Then the second claim, that all such cases were
+cross-session and none same-session, which the peer had called the strongest positive result in
+the exchange: partitioning the 16 opportunities gives **0 same-branch and 16 cross-branch**. Zero
+of zero -- the unplugged detector again, inside the claim cited as the good one. **A positive
+result that survives scrutiny is the most likely place for an undetected zero denominator**,
+because agreement retires the audit that would find it.
+
+**And a discriminator can induce a non-trivial partition for exactly one group -- the measurer's
+own.** The same population splits into 29 branches over 100 pull requests, with one branch holding
+72 and the other 28 holding one apiece. Distinct-value count says 29 and sounds healthy; the
+partition says one real group plus 28 singletons. The field's entire grouping power is the
+measurer's own rows, which are the rows already attributable by other means, and it fails silently
+on the 28 that are not. **Score a discriminator against the partition it induces, not its number of
+values** -- both a single value and one value per row give the trivial partition, and the count
+alone cannot tell which failure is present. Where the useful group is the measurer's, the field
+works because of how they work, not because of what they queried, and it will not port to anyone
+else's repository.
+
 **A third correction on the same sweep, and this one moves who owns the remedy.** The file singled
 out as most exposed was described as *standing instruction, loaded every session, delivered in full*.
 Loaded every session is right, and the exposure is real. Delivered is not: the managed region is
