@@ -143,6 +143,38 @@ test('a base move leaves every planned target tracked and no entry dangling', ()
   });
 });
 
+// `rekeyed` is a mapping, and until #1053 this file only ever asserted one of its two properties at
+// a time. Every exact-match assertion on it sits at zero or one entry — where a permutation cannot
+// be represented, so matching exactly and counting are the same assertion — and every assertion at
+// two or more entries is a length. Rotating each entry's `from` onto its neighbour's, which holds
+// the count exactly, survived the entire suite; dropping one entry was caught six ways over.
+//
+// The pair mapping is load-bearing rather than decorative. `findAbandoned` recovers the vacated
+// directory by stripping from `from` the plan-relative tail it shares with `targetPath`, so a
+// mispaired entry fails that suffix test, no base is identified, and the sweep silently reports
+// nothing — measured as one stranded file becoming zero, with an unchanged lockfile and an
+// unchanged rekey count.
+test('a rekey names the entry it actually moved, not merely the right number of them', () => {
+  withTmp((root) => {
+    const { lock, writes } = relocatedMember(root);
+
+    // What makes the assertion below able to fail: a permutation needs two entries to exist at all.
+    // Derived from the fixture rather than chosen, so it tracks the fixture if it ever shrinks.
+    assert.ok(
+      RELOCATED.length >= 2,
+      'fixture precondition: a mapping cannot be mispaired at fewer than two entries',
+    );
+
+    const res = reconcileLockKeys(root, writes, lock.entries);
+
+    assert.deepEqual(
+      res.rekeyed.map((r) => `${r.from} -> ${r.targetPath}`).sort(),
+      RELOCATED.map((rel) => `${OLD_BASE}/${rel} -> ${NEW_BASE}/${rel}`).sort(),
+      'each entry must land on its own path, keeping its plan-relative tail across the base move',
+    );
+  });
+});
+
 test('rekeying preserves the recorded baseline, so real drift is still caught', () => {
   withTmp((root) => {
     const { lock, writes } = relocatedMember(root);
