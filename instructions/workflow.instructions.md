@@ -7624,6 +7624,61 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**An audience is a set, and a count of it is invariant to its members differing.** A guard here
+checks that `AGENTS.md` reaches six of the eleven members by resolving each member through the
+engine. The numerator is correct and it is correct at the members, not merely in the plan:
+
+```
+five members   region  8,307 B   body  8,199 B   canon 85fda85e  2026-08-08T22:36:26Z
+one member     region 11,899 B   body 11,791 B   canon b73f8bf1  2026-08-11T11:21:19Z
+four members   AGENTS.md present, no canonical region
+one member     no AGENTS.md at all
+```
+
+Six carry it, the membership matches, and the companion claim that four of the five unserved
+members hold the file without the region reproduces exactly. **And the six do not carry the same
+document** -- two revisions, 3,592 bytes and two and a half days apart. Cardinality is the one
+property of a set that survives its contents disagreeing, so a reach claim validated by counting is
+true and silent about whether the document is the same document at the far end. The count is the
+cheapest thing to guard and the last thing to rot.
+
+**Held content is not a function of the delivering pull request.** The member holding the *newest*
+copy is the one whose sync PR was closed, and its content resolves to a revision seven hours after
+the fan-out that served everyone else. So the line in this file naming a single revision as the
+fleet pin is wrong: the fleet holds at least two, and the freshest sits behind a rejected PR. A
+fleet's shared coordinate is the dispatch instant, not any revision -- each document then resolves
+to whatever was current at that instant, so two documents delivered together differ in age by how
+long each had been stable, and that difference is not evidence of separate delivery.
+
+**A presence test cannot date a copy above the age of its own newest probe.** Six salient phrases
+were probed against a held copy; all six returned present, and all six predated that copy by days.
+Probes get chosen for salience, salience tracks how load-bearing a line is, and load-bearing lines
+are the ones that have been in the file longest. **Selecting probes by memorability selects for
+age**, so the test reports freshness it never measured -- the same shape as a disclosure directing
+attention away from the operand its author was confident in.
+
+**An instrument limit is reported in the grammar of a subject property.** Three failures here, all
+silent, all mine:
+
+```
+?ref=main against a member whose default branch is master   "no commit found"   file exists, 13,246 B
+contents API on a blob over 1 MB    content:"" alongside a correct size:1,585,443     read as 0 bytes
+404 on a genuinely absent file                              true, and confirmed unqualified
+```
+
+Two rendered as absence and one as emptiness; only the third was about the repository. A hardcoded
+ref names a real subject and a coordinate that subject does not have, which is the delimiter-absorbing
+variable arriving through a different mechanism -- the request is well formed and the server answers
+it honestly.
+
+**And an invertibility result above does not generalize across documents.** The canonical
+instructions file has zero size decreases across 262 samples, so size identifies revision there.
+`AGENTS.md` has a decrease, and one member holds a superseded revision *larger* than current canon.
+Both identifications above survive only because they were made by distance-with-margin -- 1 against
+a next-nearest 607, and 2 against 1,024 -- rather than by assuming monotonicity. **A property
+measured on one file is a property of that file**, and the safe form of the inference is the one
+that never needed it.
+
 **A correction must be made on the axis of the claim it replaces.** This file recorded four members
 as having no sync PR at all. A correspondent recovered two of them and published the remaining
 three as `none at/after lock` -- a *joinability* result standing in for an *existence* claim.
