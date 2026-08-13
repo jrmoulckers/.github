@@ -4722,6 +4722,17 @@ corollary that the party compiling a record of your mistakes is systematically s
 them. Concluding *my local figures are sound* from *my peers only ever correct my remote ones* reads
 a detector's coverage as a measurement of the thing detected.
 
+**The correction to that inference is subject to it too, which is the part I got wrong.** Having
+established the asymmetry, I refuted a peer's error-rate claim by producing a local error of my own
+and inferring from it a rate for unchecked local claims. Invalid, for the same reason: that error
+had been *caught* -- published to the one party re-deriving my figures and corrected within the
+hour -- so it is drawn from the visible half, not the unchecked one. A claim nobody verifies
+generates no evidence in either direction, so **the unchecked population is unobservable rather
+than unknown-but-estimable**, and the detector coverage that voids the original claim voids the
+replacement estimate identically. The honest form is to say neither party can speak to it. **A
+result about what an instrument cannot see applies to the remedy you build from it**, and the
+remedy is where it is least expected, because refuting a claim feels like standing outside it.
+
 It also matters that the two failures have independent mechanisms. **Verification cost** explains a
 remote claim asserted with no measuring command; an **instrument defect** explains a local claim
 measured with a command that silently returns the wrong number. Cost predicts errors cluster where
@@ -5263,6 +5274,41 @@ infrastructure members. Correcting a peer with *delivery works, merge is blocked
 wrong for exactly those two, and no sync output reports that a member is unsubscribed from a file, so
 the gap is invisible from both ends. **Before concluding a member has ignored canon, verify they are
 entitled to it.**
+
+**A fourth state hides behind the loudest evidence of all: refused once, delivered later, by an
+instrument the hub cannot see.** A member recorded here as permanently unreachable -- on a scheduled
+run failing `git clone` with `403` -- took delivery fourteen hours after that refusal and merged it:
+
+```
+08-10T08:28:33Z   scheduled run, clone 403 on the member
+08-10T22:27:42Z   that member's lock generatedAt
+08-10T22:32:02Z   that member's sync pull request MERGED
+```
+
+No workflow run exists at that hour, so the delivery came from a **locally executed** engine run,
+which names the cause of the separately reported class of member locks that match no run in the
+dispatch log. Three things follow. The `403` is scoped to the Actions token, not to the repository,
+so a note naming the repository as blocked overstates it in kind as well as degree. The member is
+**rank 7 of 11** by lock freshness -- ahead of four members carried as healthy -- so the record was
+not merely stale but inverted. And **the dispatch log is a record of workflow-triggered syncs, not
+of syncs**, which retires the earlier suggestion here that it can bound the fleet in one call: an
+absence in it is consistent with delivery. The general form is that **a failure observed in one
+channel does not establish the state of a resource, only of that channel**, and the louder the
+failure the less anyone re-checks it.
+
+**And an unmerged sync pull request is an orphan, not a retry queue.** Across the fleet four members
+hold an open sync pull request, and one holds *two* -- dated two days apart, both open. That settles
+the mechanism: each run opens a fresh dated branch and abandons the prior one rather than updating
+it. So a stalled delivery is never refreshed, the member's default branch stays at whatever last
+merged, and a later successful run does not clear an earlier failure -- it adds a second orphan and
+the two must be merged in order or not at all. **Delivery has two independent gates, dispatch and
+merge**, and an operational note naming only the first will read a merge-blocked member as a
+dispatch problem and dispatch harder, producing exactly the stack observed.
+
+**A related signal is weaker than it looks: lock presence is not entitlement.** That same member
+carries a lock with 58 entries and four instruction paths, and no entry for this file at all.
+Presence of the artifact says the engine visited; only presence of the *entry* says the member is
+subscribed to what you are asking about.
 
 **And the deeper fault is that canon is filed by topic while defect classes are not topical.** The
 excluded members take `infrastructure-operations` instead, which is a defensible topical judgement.
