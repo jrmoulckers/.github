@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path';
 import { readdirSync, existsSync } from 'node:fs';
 import {
   applyManifestDefaults,
+  BREADTH_FLOOR,
   loadManifest,
   KINDS,
   MEMBER_MODES,
@@ -23,6 +24,54 @@ const manifest = loadManifest(REPO_ROOT);
 
 test('studio.config.json validates', () => {
   assert.doesNotThrow(() => validateManifest(manifest));
+});
+
+// The corpus sweeps across this suite open with `assert.ok(x.length > 0, ...)`, and that guard
+// cannot be pinned from in here: weakening it to `>= 0` is precisely the change the suite would
+// have to notice about itself. Measured, not assumed -- five such premises were mutated one at a
+// time and all five survived, with an injected `assert.ok(false)` in each file first to prove the
+// harness could see a failure at all. So the floor lives in production, where a mutation to it is
+// catchable, and these assertions pin that it is reached rather than merely correct.
+test('a manifest with no delivery targets is rejected', () => {
+  const empty = applyManifestDefaults(
+    structuredClone({ ...manifest, members: [], expectedFailures: [], excluded: [] }),
+  );
+  assert.throws(
+    () => validateManifest(empty),
+    /members` must contain at least/,
+    'zero members plans no writes and passes every corpus sweep vacuously',
+  );
+});
+
+test('a manifest with an empty canon roster is rejected', () => {
+  const stripped = structuredClone(manifest);
+  stripped.canon.workflows = [];
+  for (const member of stripped.members) delete member.optIn.workflows;
+  assert.throws(
+    () => validateManifest(applyManifestDefaults(stripped)),
+    /canon\.workflows must declare at least/,
+    'an empty roster makes every workflow check vacuous',
+  );
+});
+
+test('the breadth requirement is a floor, not a pin on the current fleet', () => {
+  // An exact count breaks the first time a member is onboarded and gets reverted rather than read.
+  assert.ok(
+    manifest.members.length > BREADTH_FLOOR.members,
+    'the real fleet must exceed the floor, or this test cannot distinguish the two',
+  );
+  const single = applyManifestDefaults(
+    structuredClone({
+      ...manifest,
+      members: [manifest.members[0]],
+      expectedFailures: [],
+      excluded: [],
+    }),
+  );
+  assert.doesNotThrow(
+    () => validateManifest(single),
+    'a fleet at the floor must be accepted, or the floor is an exact pin',
+  );
 });
 
 test('every studio member is registered', () => {

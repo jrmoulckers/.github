@@ -25,7 +25,17 @@ export const KINDS = [
   'workflows',
   'health',
 ];
+// A floor, deliberately not an exact count. Pinning `members.length === 11` breaks the first time a
+// member is legitimately onboarded and gets reverted rather than examined; a `> 0` guard written in
+// a test cannot be pinned by the suite that contains it, because weakening it to `>= 0` is exactly
+// the change that suite would have to detect in itself. The floor states the property the corpus
+// sweeps actually depend on -- that there is something to sweep -- somewhere those sweeps can rely
+// on and a mutation can be caught. `excluded` remains how a member is removed, so this asserts no
+// governance decision, only that the manifest describes at least one delivery target.
+export const BREADTH_FLOOR = { members: 1, canonWorkflows: 1 };
+
 export const MEMBER_MODES = ['application', 'infrastructure', 'pre-bootstrap'];
+
 export const DEFAULT_MEMBER_MODE = 'application';
 
 // Kinds selected by a plain boolean rather than "*" / a name array. Each one is a fixed,
@@ -101,6 +111,11 @@ export function validateManifest(m) {
       if (!(kind in m.canon)) errors.push(`canon.${kind} is missing`);
       else if (!Array.isArray(m.canon[kind])) errors.push(`canon.${kind} must be an array`);
     }
+    if (Array.isArray(m.canon.workflows) && m.canon.workflows.length < BREADTH_FLOOR.canonWorkflows) {
+      errors.push(
+        `canon.workflows must declare at least ${BREADTH_FLOOR.canonWorkflows} workflow; an empty roster makes every workflow check vacuous`,
+      );
+    }
   }
   if (isObject(m.sourcePaths) && isObject(m.targetPaths)) {
     for (const kind of KINDS) {
@@ -112,6 +127,11 @@ export function validateManifest(m) {
   if (!Array.isArray(m.members)) {
     errors.push('`members` must be an array');
   } else {
+    if (m.members.length < BREADTH_FLOOR.members) {
+      errors.push(
+        `\`members\` must contain at least ${BREADTH_FLOOR.members} member; a manifest with no delivery targets plans no writes and passes every corpus sweep vacuously`,
+      );
+    }
     m.members.forEach((member, i) => {
       if (!isObject(member)) {
         errors.push(`members[${i}] must be an object`);
