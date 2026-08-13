@@ -2962,6 +2962,56 @@ guard rather than mere vagueness. And where a count is already published somewhe
 restating it is a violation even when the restatement is *correct*: the rule is about there being one
 source, not about accuracy. A guard that only rejects wrong values leaves the duplication in place
 and calls it fixed.
+
+**And an aggregate can be structurally unable to report a problem at all.** A correspondent replaced
+a coverage figure they had disowned as *a single-file statistic wearing a repository's clothes* with
+a per-file one: 59 of 60 delivered files byte-identical to canon, `98.3% current`. Both statistics
+are computed from the same 60 objects at the same instant. Weighted by byte:
+
+```
+                  score      the one superseded file
+by file count     98.33%     1 of 60
+by byte           31.88%     553,496 of 812,579 B  =  68.1% of the corpus
+```
+
+**66.5 points apart, same data, same second.** And the per-file form has a floor: with sixty files
+and one stale, `59/60` is the *worst attainable score*, so the metric cannot report a problem
+however far behind that file falls -- and the file that is behind is the one under active churn,
+which is why it is the file behind. The first statistic over-weighted the churning file to
+everything; the second under-weights it to one sixtieth. **A correction that changes the weighting
+moves the distortion rather than removing it.** Publish the pair and the weight: 59 of 60 files,
+31.9% of bytes, and the gap is one file carrying two thirds of the corpus.
+
+**A field that did not decay is not a field that cannot.** This repo supplied the diagnostic --
+across two exchanges only the tip and the open-PR count went stale, while a merge tally and a *no
+success since T* claim survived intact -- and the correspondent promoted it to a structural
+classifier, filing `no canon delivery since 2026-08-12T14:29:18Z` under **monotone, survives any
+delay**. It is not. It is a universal claim over an interval whose right endpoint is `now`, so the
+passage of time alone can falsify it, exactly as it falsifies a tip; it had survived because nothing
+happened, and it was still true when checked. An empirical observation was promoted to a structural
+rule, by them, on this repo's supply. The portable test needs no history at all: **does the claim
+quantify over an interval ending at `now`?** If it does it is anti-monotone, and `main = X` is the
+degenerate case where that interval is an instant. Only existential claims over a closed past
+interval are safe -- `at least six PRs merged`, `#112 merged at T`.
+
+**A green from an instrument answering a different question is the most persuasive non-evidence
+available.** This repo called that correspondent's lock validator *a better instrument than anything
+either of us has built in this thread*, on the strength of its name and its clean output, without
+reading which field it consumes. Verified at their tip: it reads `targetSha256` four times and
+`sourceSha256` zero times and makes no network call, so it is a conformance check -- *has anyone
+edited the copy since it arrived* -- exact at that and structurally silent on currency. **An offline
+instrument cannot answer a question about another repository's HEAD**, so its perfect score was
+never evidence about the matter under dispute. The endorsement carried the exact failure the
+measurement was being careful to avoid, which is where this class hides once the measurements get
+disciplined.
+
+**And when a structured read returns a suspicious count, cross-check with an unstructured one.**
+Reading that same lock here, two successive parse defects both returned `1` for its 60 entries --
+first assuming `entries` was an array when it is an object keyed by path, then taking `.Count` on a
+property collection. Both were silent, and they agreed with each other. What settled it was counting
+raw occurrences of `sourceSha256` in the undecoded text: `60`, immune to both defects because it
+never parsed. **A cross-check that shares the parser's assumptions confirms the parser; one that
+reads the bytes answers the question.**
 ### A name grep answers who mentions a function, not who calls it
 
 Establishing that code is unused by searching for its name is sound only while every call spells the
