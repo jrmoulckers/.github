@@ -308,6 +308,21 @@ export function buildFile(existingContent, inner, markers) {
  * Throws rather than warns. A warning is the wrong severity for a postcondition on content the
  * engine does not own: by the time it is observable the file has already been written, and the
  * whole point of this failure mode is that nobody reads the output that describes it.
+ *
+ * `!before || !after` is an **equivalent** pair (#880): mutated away one operand at a time, both
+ * survive, and no test can kill either, because neither can be reached. That is reported as an
+ * equivalence rather than dressed up as coverage. The two arms are dead for two different
+ * reasons, which a shared SURVIVED score conceals:
+ *
+ *   - `!before` is dead by its *caller*. The sole call site is already inside `if (found)`, so
+ *     `outsideRegion(existing)` has a region to find by construction.
+ *   - `!after` is dead by a *round-trip invariant*: `findBlock` can always re-find `renderBlock`'s
+ *     own output.
+ *
+ * Only the second is a claim about the engine, and it is load-bearing: if rendering ever stops
+ * producing something findable, every managed file silently loses its region. So each reason gets
+ * a named test in `basemerge.test.mjs` instead of a mutant. The arm stays -- it is the assertion
+ * that the two invariants above still hold, and it costs nothing while they do.
  */
 function assertOutsidePreserved(existing, result, markers) {
   const before = outsideRegion(existing, markers);

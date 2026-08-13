@@ -638,3 +638,58 @@ test('trailing whitespace outside the region survives, because the member owns i
   assert.ok(rebuilt.startsWith('hard break  \n'), 'two trailing spaces above the region are a Markdown line break');
   assert.ok(rebuilt.includes('\ntrailing  \n'), 'and below it as well');
 });
+
+/*
+ * The two invariants that make `assertOutsidePreserved`'s `!before || !after` arm unreachable
+ * (#880). Both operands survive mutation and always will -- they are equivalent, not untested.
+ *
+ * A guard nothing can reach is indistinguishable from a guard that is wrong, so what is pinned
+ * here is not the arm but the two facts that keep it dead. If either stops holding, one of these
+ * fires by name instead of a throw whose entire failure mode is that nobody reads it.
+ */
+test('every managed region survives a render/find round-trip, which is why the postcondition cannot fire', () => {
+  // Non-vacuity first, and stated here for a reason (#880). Written without it, this test read
+  // `Object.entries(MANAGED_MERGE_TARGETS)` on what is a `Map`, quantified over the empty set,
+  // and passed while the round-trip was deliberately broken. The premise at line ~589 of this
+  // same file existed already; omitting it is what made the repair silently empty.
+  assert.ok(MANAGED_MERGE_TARGETS.size >= 2, 'a round-trip claim over no targets claims nothing');
+
+  for (const [kind, targetPath] of MANAGED_MERGE_TARGETS) {
+    const markers = markersFor(targetPath);
+    const built = buildFile('member line\n', `canon for ${kind}\n`, markers);
+
+    assert.notEqual(
+      outsideRegion(built, markers),
+      null,
+      `${targetPath}: rendered output must be findable again, or in-place replacement loses the region`,
+    );
+    assert.equal(
+      extractBlock(built, markers).trim(),
+      `canon for ${kind}`,
+      `${targetPath}: and the round-trip must return what was rendered, not merely something`,
+    );
+  }
+});
+
+test('the postcondition is only ever asked about content that has a region, which is why its first arm cannot fire', () => {
+  const markers = markersFor('AGENTS.md');
+  const withRegion = buildFile('member line\n', 'canon\n', markers);
+
+  assert.notEqual(
+    outsideRegion(withRegion, markers),
+    null,
+    'content holding a region reports its outside',
+  );
+  assert.equal(
+    outsideRegion('member line, no region\n', markers),
+    null,
+    'and content without one reports null -- the case buildFile routes to insertion instead, never to the postcondition',
+  );
+
+  const replaced = buildFile(withRegion, 'canon rev 2\n', markers);
+  assert.equal(
+    extractBlock(replaced, markers).trim(),
+    'canon rev 2',
+    'so the replacement path is reached exactly when a region exists',
+  );
+});

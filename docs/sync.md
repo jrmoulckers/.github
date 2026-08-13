@@ -3387,6 +3387,44 @@ and nobody reads the output that describes it. Its one permitted difference, tra
 normalization, is written as an explicit exception; comparing both sides trimmed would have been
 shorter and would have cancelled the assertion on exactly the class it exists to catch.
 
+## A mutation tally has no true reading
+
+Five operands survived one-at-a-time mutation of every two-operand boolean in the code #844 and
+#174 had just landed. They were three different findings, and the score could not tell them apart.
+
+- **A gap.** `stated < 1`, the lower bound on a qualified reach claim, decided nothing anywhere in
+  the suite and is constructible from an ordinary argument. An untested operand.
+- **A latent guard.** The `.git` and `node_modules` exclusions in both tree walks decided nothing
+  *on this disk* — there is no `node_modules` in a repository with no `package.json`, and `.git` in
+  a git worktree is a file rather than a directory, so it is never recursed. Add one dependency, or
+  run the suite in a plain clone, and both go load-bearing with no edit.
+- **An unreachable arm.** `!before || !after` in `assertOutsidePreserved` cannot fire: the sole
+  caller already guards on the region existing, and rendering always produces something findable.
+
+Only the first is a hole. The remedies are different and the difference matters: an operand dead by
+an impoverished corpus is repaired by **enriching the corpus**, not by pinning the deadness — an
+accident of the current working tree is not an invariant, and asserting it would freeze the accident
+and invite the guard's deletion as dead code. An operand dead by a true invariant is repaired by
+pinning **the invariant**, so that a named test fires the day it stops holding.
+
+That makes four ways a mutation count is wrong while every number in it is correct, each found by
+measurement rather than review: a mutation that never applied, scored as a kill; one applied and
+killed, scored as a survivor because the detector read a channel the runner was not writing; one
+killed by a bystander test, scored as coverage; and an equivalence scored as a gap. All four are
+invisible in the total and visible in the failing test *names*.
+
+## The repair for a vacuous premise can be vacuous
+
+The test written to pin the round-trip invariant above iterated
+`Object.entries(MANAGED_MERGE_TARGETS)`. That constant is a `Map`, so `Object.entries` returns the
+empty array: the test quantified over nothing, passed, and would have shipped as the evidence for a
+comment asserting the invariant was pinned. It was caught only by breaking the invariant on purpose
+and checking that the named test fired — not by the suite, which was green throughout.
+
+The non-vacuity premise that would have caught it already existed eleven lines away, in this same
+file, written for this same reason. **A guard you have already built does not transfer to the next
+test by having been built.** Verify a new assertion can fail before citing it as the reason
+something is safe; a green test and an empty test are the same observation.
 ## Idempotency & drift
 
 - The tool is **idempotent**: once a member carries a lockfile, re-running with no upstream change
