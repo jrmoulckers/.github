@@ -127,9 +127,30 @@ every call already being made:
 
 ```
 GitHub Date header   2026-08-13T10:26:57Z
-this machine         2026-08-13T10:26:57.6Z     offset 0.6 s
-a correspondent      2026-08-13T04:42:21Z       behind by 344.6 min
+this machine         2026-08-13T10:26:57.6Z     offset 0.6 s, read simultaneously
 ```
+
+**The first version of this entry put a correspondent in that table at `344.6 min` behind, and that
+was wrong.** Their stamp was differenced against a clock read hours later, so the quantity produced
+was the **age of their report**, not an offset between clocks -- and the entry asserting it states
+the simultaneity requirement three paragraphs on, for channels, while breaking it for clocks. **The
+difference between two clock readings taken at different times is a duration.** No message exchange
+supplies simultaneity, so no exchange of stamps can measure an offset; both directions were
+attempted here and both produced a number, `~50 min` one way and `344.6 min` the other, with a true
+offset near zero.
+
+What does work is a clock-independent witness. **To test a remote clock, compare a monotone corpus
+quantity the peer reported against its true value at the peer's stamped instant** -- a commit count
+does not depend on who reads it:
+
+```
+true count at 2026-08-13T04:42:21Z   200      that correspondent reported 200
+true count at 69801fd1, 04:54:42Z    202      a second correspondent reported 202
+```
+
+Both exact, so both clocks are sound and the whole apparent discrepancy was report age. A peer whose
+clock were genuinely slow would have queried at the real instant and reported the **larger** count
+against the earlier stamp, which is the signature to look for and is absent here.
 
 **And the large number is not an artifact at all, which is what makes it the wrong thing to compare
 the small one against.** Set beside the attempt-level inversion (`-1 s` to `-2 s`), the run-level
@@ -7346,6 +7367,30 @@ as `37x` and measured `47x` thirty-five minutes later, because only one end is m
 cannot reproduce and cannot fail to grow, so it carries no information about the members at all.
 **The ordinal survives** -- which holder is behind which -- because appends at the head cannot
 reorder a frozen tail.
+
+**And the repair for a withdrawn ratio is usually not a better ratio but the intensive quantity it
+was standing in for.** Here that quantity exists and is exact: canon's own revision index. Every
+delivered copy is a canon revision plus a fixed sync header, so subtracting the header turns a
+nearest-match into an identification:
+
+```
+202 revisions   drops 0   adjacent ties 0   distinct sizes 202 of 202   -> strictly increasing
+held  9834 - 80 = canon  9754 -> revision   7        held  12537 -> revision   8
+held 23263 -> revision 16 (four members)             held  48840 -> revision  30
+held 308014 -> revision 136                          unique header offset in 0..200: 80
+```
+
+So the fleet spans revisions `7` to `136` of `202`, and whoever clears the block inherits copies `66`
+to `195` revisions apart. **A revision index does not move when the hub commits**, so it reproduces
+at any instant, which is exactly what the `37x`/`47x` ratio lacked.
+
+**Strict increase is what licenses the map, and no-drops alone does not establish it.** A
+non-decreasing series can tie, and a tie makes size a set of revisions rather than one; the
+correspondent who built this verified no-drops and treated the identification as established. Both
+halves were needed, both hold here, and the header offset is independently confirmed by being the
+**only** value in `0..200` that lands all five sizes on real revisions -- a control on the offset
+itself rather than on a decoy input, which is the stronger form when the parameter is fitted from the
+same data it explains.
 
 **And that lag is stratified by ability to merge, not by CI health.** The two orderings agree on
 every member but one, and that member decides it: the repository with the worst CI in the fleet,
