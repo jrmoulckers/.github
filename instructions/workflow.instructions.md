@@ -3505,6 +3505,67 @@ instrument is silent on them, **including the repo it was built in.** The member
 have been hand-carried are the least likely to have opened the pull request the join requires, so
 the uncovered rows are selected for the property under test.
 
+**A path predicate answered by eye tests string similarity; ignore semantics test the hierarchy.**
+Asked whether a member's ignore file covered its canon copy, this repo cited the entry
+`.github/instructions/` as covering `.github/copilot-instructions.md`. It does not. The directory
+entry covers what is *inside* that directory; the disputed file sits beside it, one level up,
+matched by no other entry. The two strings share their distinctive token and differ by a hyphenated
+qualifier, so *is the instructions path covered?* returns a true answer to a question nobody asked.
+Re-asked of an implementation rather than of the strings, with both controls firing:
+
+```
+.github/copilot-instructions.md                LINTED
+.github/instructions/workflow.instructions.md  IGNORED   must-hit
+src/App.svelte                                 LINTED    must-miss
+```
+
+**A hyphenated qualifier reads as a level separator and is not one**, which is exactly where a name
+reused across levels defeats inspection.
+
+**And a number can be explained correctly by the party who cannot produce it.** A `219 B` figure
+published here for that ignore file was disputed against a measured `221`. The correspondent
+identified the mechanism precisely -- one em dash, three bytes rendering as one character -- and
+**declined to publish it**, on the stated ground that it explains a number without having produced
+it. The refusal was right, and it left confirmation to the only party holding the read path: the
+file is `221` UTF-8 bytes and `219` UTF-16 units, one `U+2014` costing the difference. Diagnosis and
+the means of confirming it sat in different sessions, as with the two-runtime join above, and the
+discipline that forbade the assertion is what made the confirmation worth having. The underlying
+error is the unit mixing recorded earlier in this section -- committed here, in the session that
+recorded it.
+
+**The reader-relative failure has a preferred site, and it is the standing block.** The same
+correspondent published `main 6837ba5` under the citation *git rev-parse, this turn*. The command
+ran and was right about the local branch:
+
+```
+that repo's remote main       095e4ee
+6837ba5                       identical to studio-sync/2026-08-09, four days old
+main...6837ba5                diverged, ahead 2, behind 9
+```
+
+So standing was certified on a stale branch tip, under a name every other reader resolves to a
+different object. It is the dual of the cache read above: there the act was live and the object
+stale, here the name is correct locally and wrong everywhere else. And `0 unpushed`, reported
+truthfully in the same block, is the giveaway -- nothing was unpushed **because** the tip was an
+already-published old branch. The metric reported health, and the condition it concealed is the
+reason it could.
+
+What makes it worth recording is that the message **stated the governing rule** -- *a verified fix
+on an unreachable commit is indistinguishable from no fix*, demonstrated with a four-way ancestry
+check -- and applied it to the disputed object while the block certifying its own position sat nine
+commits behind. It also opened by conceding a row certified from memory. Three instances of one
+class in one message, and the class is: **the rule was applied to the object under dispute and not
+to the frame the dispute is conducted from.**
+
+Across correspondents this is where staleness collects. Three peers, three messages, three stale
+standing blocks: a referent 37 revisions old, a ref read from a local cache 41 commits behind, and a
+branch name resolving to a four-day-old tip. **Not one of them erred inside an argument.** A
+standing block is the least-audited claim in a message precisely because it is the only part not
+under dispute -- every contested figure attracts a reproduction attempt, while standing is offered
+as housekeeping and accepted as housekeeping. So audit standing first, including your own, and
+prefer a referent the reader cannot resolve differently: a full SHA over a branch name, and a
+remote-verified read over a local one.
+
 The method they used to earn the right to their central reading is worth taking whole. Before
 applying an episode-to-delivery mapping to a member whose runs they could not see, they ran it on
 their own row, where the answer was already known: four lock episodes, four delivery pull requests,
