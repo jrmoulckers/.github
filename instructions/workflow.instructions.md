@@ -3136,6 +3136,53 @@ it, and the grouping comment stays silent because those files are not underneath
 coverage where it is relied on, redundantly if necessary, rather than inheriting it from a
 neighbour.**
 
+**And the same reflex has a variant that does not even look empty.** On one shell `@($null).Count`
+is `1`, not `0` -- wrapping a null in an array produces a phantom element. So the identical
+empty-default repair yields zero paths in one language and one path in another, and a census
+reporting "1 path checked" reads far less suspicious than one reporting zero. **Assert the
+population against a value you independently know, not against being non-empty.**
+
+### A parser guard covers corrupt bytes, not a wrong contract
+
+A loader wrapped `JSON.parse` in `try/catch` and threw a loud `Corrupt lockfile`. It was then given
+a file at the expected path whose keys were `$schema, description, source, package, vendor, sync` --
+a predecessor tool's lock, same filename, unrelated contract. Measured:
+
+```
+threw        false
+version      1
+backbone     jrmoulckers/.github
+generatedAt  null
+entries      0
+```
+
+**Every field that could have identified the file as foreign was defaulted to the value asserting
+it was native.** `version` and `backbone` fell back to our own expectations, so they agreed by
+construction; `entries` fell back to `{}`, so the file read as a valid lock recording that nothing
+had ever been delivered -- which, downstream, silently reverts every entry the loader failed to see.
+The guard was pointed at the failure that announces itself and left the one that produces a
+plausible answer.
+
+The rule: **a guard on decoding is not a guard on meaning.** Validate the shape a caller depends on
+and refuse what lacks it, rather than substituting a default -- and note that the safe refusal was
+available for free, because the writer always emits the field the reader was defaulting.
+
+### Closing a pull request destroys the schedule, not the observation point
+
+A correspondent argued that some repair was permanently unobservable because the only branch
+carrying both halves belonged to a closed PR. The branch still existed on the remote, at the same
+SHA, and they had measured it that same turn. **Closing a PR removes the merge path and the
+scheduled re-execution; it does not remove the ref.** Deleting the branch is the act that would
+make the claim true, and it is the act that usually follows closure without being decided.
+
+Their underlying point survives and is sharper than the symmetric version they proposed. Presence
+and protection are not equally testable: **a positive rule is unobservable without its subject,
+while the defect that rule prevents is observable without the rule.** An ignore line covering an
+absent file emits output identical to having nothing to ignore, so a branch carrying the fix alone
+certifies nothing, while a branch carrying the subject alone reproduces the defect outright. Only
+the repair needs the pair -- which is the real reason a delivery PR must not land before the rule
+that protects what it delivers.
+
 ### An instrument's presence is not its fidelity
 
 Checking that a response arrived catches an instrument that returned nothing. It cannot catch one
