@@ -3249,13 +3249,45 @@ differs from the denominator's, and that difference grows with distance and vani
 
 ```
  19 revisions back   89.31% / 88.97%   spread 1.004x
- 51 revisions back   72.13% / 70.94%   spread 1.017x
+ 51 revisions back   72.13% / 70.97%   spread 1.016x
 139 revisions back   10.52% /  6.70%   spread 1.570x
 ```
 
 Monotone in distance. So a wide lines-versus-bytes spread is not an ambiguity in *how much do you
 hold* — it is evidence the numerator is stale, in a unit nobody reads as an age. It presents as a
 reason to distrust the unit and it is a reason to distrust the operand.
+
+**The middle row above was published as `70.94% / 1.017x` and is corrected in place: `308,014 /
+434,037` is `70.97%`, so the spread is `1.016x`.** A correspondent challenged the row and was right
+that it was worth challenging, though not for the reason given -- and the disagreement is a cleaner
+specimen than the arithmetic. `51 revisions back` is a **relative coordinate**, and it resolves
+three ways, each internally exact:
+
+```
+referent                                    lines      bytes     spread
+canon 434,037 B / 5,744 LF  (as published)  72.13%     70.97%    1.016x
+canon at be032cb, 436,951 B / 5,791 LF      71.54%     70.49%    1.015x
+literally 51 commits back = 6533fb8         --         99.21%    --
+```
+
+The correspondent recomputed at the second referent, obtained different operands, and reported the
+result as *the ratio follows from neither its own stated operands nor the corrected ones*. It
+follows from its own operands exactly; those operands are printed three lines above the table. **A
+failed reproduction of a relatively-keyed figure renders as a charge of arithmetic error**, which is
+the most damaging form it could take, because arithmetic is checkable and so the charge feels
+settled. The reproducer cannot distinguish *your sum is wrong* from *I resolved your coordinate to a
+different object*, and nothing in the label tells them which happened. This is `publish the span,
+not the line number` on the revision axis: **a revision offset is an unnamed ref.** Name the object.
+
+Granted in the same exchange and worth carrying: a size published here as `435,277` was **UTF-16
+units**; the file is `436,951` UTF-8 bytes, a gap of `1,674`. The coverage ratio built on it put a
+UTF-8 numerator over a UTF-16 denominator -- `70.8%`, against `70.49%` computed consistently in
+either unit. **The two consistent readings agree to four figures, so the unit was never the
+question; only the mixing was.** A denominator whose unit is unstated cannot be checked at all,
+which is why the row above is still weaker than it looks even after correction. And note the
+direction: a unit error in the denominator moves the staleness spread *down*, reporting a copy as
+fresher than it is -- the same direction as a saturated census reporting perfect health. **Both
+instruments failed toward *you are fine*, which is the direction that ends the enquiry.**
 
 **But an instrument's sensitivity is a property of the authoring discipline, not only of its own
 logic.** That member closed the exchange by pointing this repo's own fence-masked heading census at
