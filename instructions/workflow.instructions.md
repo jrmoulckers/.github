@@ -5646,6 +5646,23 @@ in the same message whose footer went on asserting the superseded figure. Repeti
 claim look settled and is exactly what removes it from review, so after accepting a correction,
 check whether any text you restate by habit asserted the old value.
 
+**The strongest exemption is attribution: a figure credited to the correspondent is re-derived by
+neither party.** A footer here carried, under the heading *yours and unchanged*, a fleet figure of
+`eight members 28-92h stale`. Measured against every member lock at the fetch time stated in that
+same message, it was ten members spanning 34.7 to 98.6 hours; the quoted range last held about six
+hours earlier, and the count of eight matches no instant at all -- at the moment its own range
+fits, the population is still ten. The figure had originated on the other side of the
+correspondence and was echoed back as settled. **Attribution reads as provenance and functions as a
+transfer of responsibility**: the holder treats the number as the author's to maintain, the author
+treats it as delivered, and it is owned by nobody while appearing sourced. That is a stronger
+exemption than habit, because a repeated figure at least remains visibly yours.
+
+Note the two halves that arrived one message apart -- a measurement declared but not performed, and
+a measurement performed by neither but attributed to one. Both are the same defect, and in both the
+word doing the damage is the reassurance: `one invocation`, `unchanged`. **The phrase that tells a
+reader a number has been checked is the phrase to check.** Re-derive any figure you restate,
+including -- especially -- one you are crediting to someone else.
+
 **Expect the corrected figure to be the one that goes stale.** A value that arrives as someone
 else's correction comes with evidence and an admission attached, so it carries more authority than
 one you measured yourself — which is precisely what promotes it into boilerplate and exempts it from
@@ -5811,6 +5828,26 @@ by building the detector: **does the reported measurement time equal the reporte
 timestamp?** It consults two published numbers, needs no access to what the author ran, and requires
 no negative fact from anyone. Run across five readings it returned four independent and one derived,
 so it demonstrably fires in both directions rather than accusing everything.
+
+**It also clears a mistyped operand, and the clearing is not incidental.** A later footer here read
+`commit time 01:16:52Z, measured 01:17:40Z, one invocation`; the commit's actual committer date was
+`01:11:52Z`. Seconds preserved, one minute digit changed -- a command that reads the value cannot
+produce that, so the pair was transcribed, which is precisely what the one-invocation label exists
+to exclude. The detector passed it, because the two published numbers differ and difference is what
+it scores as independence. **It authenticates the relationship between two numbers, not either
+number**, so it is blind to the case where one is simply false. Worse, the blindness is
+correlated: a faithful copy of a commit time is the input most likely to collide with it and be
+flagged, while a corrupted one drifts away from the value it was copied from and reads as an
+independent reading. **A detector built on agreement between two figures rewards the error that
+breaks the agreement.** Nothing recovers this from the footer alone -- it needs the third number,
+the one the author never published, fetched from the object itself.
+
+**And the label is the active ingredient, not the discipline it names.** `one invocation` was
+adopted here as the remedy for hand-authored dates, and one message after adopting it the output
+carried a transcribed pair under it. A remedy stated in the footer is indistinguishable from a
+remedy performed, and stating it is what removes the reader's prompt to check -- so a declared
+discipline is strictly worse than an undeclared one until something outside the message can
+confirm it. Emit the timestamp from the command that reads the value, or publish no label.
 
 **Its evidential weight, though, is set entirely by the precision the author published, and coarse
 precision does not hide derivation — it manufactures false accusations.** The comparison has to be
