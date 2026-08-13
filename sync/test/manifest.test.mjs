@@ -976,16 +976,37 @@ test('an accepted signature must not absorb the failures the engine raises itsel
   assert.ok(fragments.size > 10, `only ${fragments.size} engine error fragment(s) discovered`);
 
   const manifest = loadManifest(REPO_ROOT);
-  const recorded = manifest.expectedFailures ?? [];
-  assert.ok(recorded.length > 0, 'no expectedFailures recorded — this check would be vacuous');
 
-  for (const entry of recorded) {
-    assert.deepEqual(
-      absorbedBy(entry.signature, fragments),
-      [],
-      `expectedFailures signature for ${entry.repo} is broad enough to absorb an engine error`,
-    );
-  }
+  // The check, applied to a register rather than read off the live one, so the property can be
+  // proved against a corpus that cannot empty.
+  const violations = (register) =>
+    register
+      .filter((entry) => absorbedBy(entry.signature, fragments).length > 0)
+      .map((entry) => entry.repo);
+
+  // `expectedFailures` is designed to drain: every entry names the issue whose closure deletes it,
+  // and the live register below may legitimately be empty. The floor that used to stand here --
+  // `recorded.length > 0`, reported as "this check would be vacuous" -- turned that success into a
+  // red suite, on the one day the exemption is correctly removed. A guard that fails when the world
+  // improves is resolved by restoring the exemption or deleting the guard, so it pins open the very
+  // register it audits. The non-vacuity guarantee belongs on a constructed register instead.
+  assert.deepEqual(
+    violations([{ repo: 'narrow/fixture', signature: 'The requested URL returned error: 403' }]),
+    [],
+    'a signature narrow enough to pin one fault must not be reported as absorbing engine errors',
+  );
+  assert.deepEqual(
+    violations([{ repo: 'broad/fixture', signature: 'e' }]),
+    ['broad/fixture'],
+    'an over-broad signature must be reported through the same path the live register uses',
+  );
+
+  // The live register, with no floor on its size. It is an additional corpus, not the guarantee.
+  assert.deepEqual(
+    violations(manifest.expectedFailures ?? []),
+    [],
+    'a recorded expectedFailures signature is broad enough to absorb an engine error',
+  );
 
   // Positive control, constructed and routed through the same predicate the assertion uses. A
   // control that re-implements the comparison passes while the production copy is weakened.

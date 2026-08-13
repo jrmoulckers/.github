@@ -5691,6 +5691,38 @@ per-worktree copy**, five worktrees share one store, and that same shared direct
 freshen a citation writes state four sibling sessions are reading**, so the reflexive remedy for
 staleness feeds the contention defect next door.
 
+**An anti-vacuity floor on a register that is designed to drain pins the register open.** Canon
+already says a check over an empty population asserts nothing, and the reflex is a floor —
+`assert.ok(register.length > 0, 'this check would be vacuous')`. That reflex inverts on any register
+whose *success condition is emptiness*: exemption lists, accepted-failure registers, known-broken
+allowlists, migration backlogs. Measured here on `expectedFailures`, which requires every entry to
+name the issue whose closure deletes it and held exactly one row:
+
+```
+register drained to []       fail=1   "no expectedFailures recorded -- this check would be vacuous"
+register key removed         fail=1   same test
+baseline                     fail=0
+```
+
+So the day the exemption is correctly removed, the suite goes red and blames vacuity. The two
+repairs available to whoever is holding the deletion are **restore the exemption** or **delete the
+guard**, and the first leaves the fleet worse than before. A guard that fails when the world
+improves is not a strict guard, it is a guard pointed at the wrong event: it made *there is nothing
+left to assert* — the outcome the register exists to reach — indistinguishable from a regression.
+
+Note the failure is louder than the vacuity it replaced and still worse, because **red is only safe
+when the action it provokes is the right one.** The sibling defect drains to a silent green; this
+one drains to a confident red demanding the defect be reinstated.
+
+**Put the non-vacuity guarantee on a constructed population and let the live one be empty.** Prove
+the property against a fixture register that cannot drain — including a negative case routed through
+the *same* path the live data uses, or the injection is decorative — then check the live register
+with no floor on its size, as an additional corpus rather than as the guarantee. And when the live
+arm then survives deletion, do not conclude it is redundant: pair the mutant with a corrupted corpus
+before scoring it. Here the arm survived on clean data and killed on a violating one, which makes it
+latent, not dead, and the treatment for a latent guard is to enrich the input, never to pin the
+accident that made it quiet.
+
 ### A measurement someone reports is a moment, not a standing claim
 
 The rule above governs what *you* assert. Its mirror governs what you receive: when a report from
