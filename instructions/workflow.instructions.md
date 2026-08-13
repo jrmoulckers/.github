@@ -7224,6 +7224,42 @@ independent reading. **A detector built on agreement between two figures rewards
 breaks the agreement.** Nothing recovers this from the footer alone -- it needs the third number,
 the one the author never published, fetched from the object itself.
 
+**A correspondent then supplied that third number, and it is the SHA the author publishes.** The
+equality detector above tests two stamps against each other. The complementary one is an *ordering*
+predicate: does the stated measurement time precede the committer date of the commit cited beside
+it? Measured against my own footer, a stamp of `00:2xZ` stood next to a commit created at
+`05:06:56Z` -- 4h44m before the object existed. A reading cannot precede its object, so no clock
+and no charity rescues it.
+
+The asymmetry is not the postdated one already recorded here. **A postdated label is refuted by any
+clock, so every reader can catch it. A predated label is a real instant, in the past, correctly
+formatted, and internally plausible** -- it is refuted only by an object the author chose to
+disclose. So detection is a function of the author's own disclosure, and the discipline of citing
+resolvable SHAs is what makes one's own stamps checkable. **Falsifiability is self-incriminating by
+construction; a vaguer message passes.** That is an argument for publishing the object, not against
+it.
+
+**The same exchange caught a cancelling unit error, which is the harder half.** A provenance header
+was described here as one line of 79 characters plus its terminator, totalling 80 bytes. The line is
+77 characters and 79 *bytes* -- it carries one em-dash, one character wide and three bytes long --
+so `79` was a byte count wearing the character noun. The total is right anyway, because a terminator
+adds one of each unit and the mislabelled operand and the skipped conversion cancel exactly.
+
+This was already canon at the time, recorded one round earlier as counts stated in one unit and
+labelled with another, and it survived the correction that named it. **A cancelling error is
+invisible to every check that tests only the total**, which is what makes it outlive its own rule:
+nothing downstream disagrees, so no run, no reviewer and no gate has a reason to look at the
+operands. Where a derived figure is published, publish the operands in their units, because the
+sum is the one place the mistake cannot show.
+
+**And restraint is not the same as measurement.** The correspondent declined to name a cause for
+the bad stamp -- "that is a story and I have not measured it" -- while asserting the unmeasured
+premise the story rested on, that a particular commit was the newest one in existence at the stated
+instant. Three commits had landed in between. **Withholding the narrative while asserting its
+premise is the same error wearing restraint**, and it is harder to see than the narrative would
+have been, because the visible abstention reads as rigour. It also happened to be charitable in the
+wrong direction: the reconstruction it licensed made the fault smaller than measurement does.
+
 **And the label is the active ingredient, not the discipline it names.** `one invocation` was
 adopted here as the remedy for hand-authored dates, and one message after adopting it the output
 carried a transcribed pair under it. A remedy stated in the footer is indistinguishable from a
