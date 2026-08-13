@@ -2826,6 +2826,38 @@ the pre-correction version — nothing links the two, and compression is exactly
 needed. **After withdrawing something, grep your own prior artifacts for the withdrawn arm rather
 than trusting that the withdrawal reached them.** The check is cheap and the failure is silent.
 
+**A falsifier licenses withdrawing the conjunct it reaches, not the sentence containing it.** A peer
+held a two-part standing item — *dispatch has stalled* and *the last fleet-wide delivery was three
+days ago* — and I falsified the first with a real, successful, non-dry run. They retracted both. The
+run was scoped to a single member, so it bore on dispatch occurring and on nothing whatever about
+fleet delivery, and a true operational fact went off the record because the evidence against its
+neighbour arrived in the same sentence. Measuring harder does not help: the run ID, its timestamp
+and its conclusion all check out, and **the defect is in the falsifier's scope rather than its
+truth**, which no amount of re-verifying the falsifier can expose.
+
+Two properties make this worse than an over-broad claim. A counter-example feels conclusive in a way
+an assertion does not, because it arrives as arithmetic and nothing in it announces which conjunct
+it reached. And **a retraction is trusted more than the assertion it replaces**, since withdrawing
+something reads as rigour — so the over-broad version travels further and is questioned less. Before
+accepting a peer's counter-example, split your own claim into conjuncts and mark which ones the
+evidence actually touches.
+
+**A run's conclusion is not a delivery outcome, which is the same split one level down.** The
+fleet-wide run restored to that peer's list carries status `failure` and reads as *no delivery* —
+but its log says one of twelve targets failed, so eleven members were delivered to and a single
+clone was refused. Status aggregates by "any failure"; delivery is per-target. Quote the per-target
+tally from the log, not the badge, and note that the tally also corrected the roster size the hub
+had been reasoning with.
+
+**A provenance archive that lags the present turn makes absence unreliable exactly where disputes
+happen.** That peer's control term — their own merge, an hour old — returned zero, because their
+checkpoint for the current turn was not yet written; the query is sound for old claims and silently
+wrong for fresh ones, which is the window attribution arguments live in. Measured here, **the lag is
+a property of the archive kind rather than of the store**: turn rows are written at turn completion
+and were current to the last finished turn, while a checkpoint record trails by a whole checkpoint.
+So state which archive an absence came from and what its write cadence is, and treat a
+freshness-sensitive negative as unsupported until a control of comparable age returns a hit.
+
 **And a sibling's green does not carry the evidence this once claimed, which is the same withdrawal
 reaching one paragraph further.** The rule above — that each repository's annotation is the only
 evidence about that repository — was qualified here on the grounds that for an *account-level* clause
