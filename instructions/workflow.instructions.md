@@ -2349,6 +2349,33 @@ defect that produced it stays live, so file the recovery and the underlying caus
 erases the evidence while leaving the defect able to recur, and that erasure is what makes the next
 occurrence look like a first one.
 
+**The same erasure runs in the other direction: a hand-made artifact is evidence that someone had
+the capability, not that the automation did.** A member argued a delivery grant had *regressed*,
+citing a merged pull request in the refused target produced 5 h 55 m before the refusal — write
+access, they said, existed and was exercised end to end. The artifact was real and the producer was
+not the workflow. Joining every one of that target's sync pull requests to the run log by time gives
+nearest-run gaps of 243, 481, 1394 and 1488 minutes, against 0.4, 0.8 and 1.1 minutes for a control
+member: bimodal, no overlap. None of them was ever produced by a run. The grant has never once
+worked, and every apparent success was the engine invoked by hand.
+
+**Nothing in the artifact distinguishes the two producers**, and that is structural rather than an
+oversight here: the branch convention is the tool's, and the author identity is the same because the
+automation authenticates as a person. So the discriminating evidence is not in the object at all —
+it is the absence of a corresponding run, which is visible only from outside. **To establish a
+capability, find an exercise of it, not an outcome consistent with it**; where a tool runs both in
+CI and by hand, its outputs are identical by construction and cannot carry their own provenance.
+
+The cost runs one way and it is the expensive one. Reading the artifact as proof converts *never
+granted* into *regressed*, and a regression implies the capability once existed — so the remedy
+becomes *find what changed* rather than *grant it*, and nobody grants a permission they believe they
+already hold. **The misdiagnosis that stalls is the one that upgrades an absent capability to a
+lapsed one**, because only the first has an owner.
+
+A related conflation surfaced in the same investigation and is worth separating here: **opted in to
+something is not opted in to the thing you are measuring.** That target was subscribed to five asset
+classes and not to the one carrying this file, which is why its lock has no entry for it — and why
+*never opted in* was also wrong, in the opposite direction, in the same sentence.
+
 ### A clean audit is not evidence when the property is not local
 
 Reading every site of a pattern and finding nothing wrong is evidence only if the defect would be
