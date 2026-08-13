@@ -672,6 +672,14 @@ the verdict for the output above it. A label that cannot be false is the same in
 whose reassuring branch is always taken, recorded later in this file; the difference is only that
 this one is written in prose and therefore not thought of as an instrument at all.
 
+**A direction claimed for an instrument must be measured in both directions.** A peer built a script
+to establish that a check over-approximates — freely wrong toward *yours*, never wrong toward *not
+yours* — and the script printed exactly that, because the sentence was in the source before the data
+existed. The asserted half is the dangerous one twice over: it is the half nobody tests, and it is
+also the half that makes the instrument look safe to adopt. **A run cannot contradict a
+`console.log`**, so a green run over an assertion-shaped summary is not evidence about it.
+When soundness is claimed in one direction, measure the other and publish both counts.
+
 One mechanical trap in the same neighbourhood: **`.test()` on a `/g` regex carries `lastIndex`
 between calls**, so used as a `filter` predicate it drops every other match — measured here at
 exactly half — and the eroded check was itself the vacuity guard that exists to stop the sweep
@@ -1081,6 +1089,38 @@ single merged pull request out of a record containing a hundred and ten. **Authe
 machine-emitted, and about a different object** is the same failure as a lockfile timestamp that
 faithfully records modification when the question was verification. Check what an artifact is a
 record *of*, not merely whether it was generated rather than asserted.
+
+**"No field on the forge separates them" is a statement about one archive, not about the question.**
+A peer measured that six of fourteen pull requests in a range I had claimed sat on other branches,
+observed correctly that login is degenerate and numbers interleave, and concluded the instance was
+undecidable — that the six might be mine with the branch check yielding false negatives, or not mine
+with my range over-claiming. The session-local store answered it in one query: all six absent, with
+a known-present control returning a hit in the same call. **Name the archives you searched before
+you call something undecidable**, because an archive boundary reads exactly like an epistemic limit
+and the off-forge record is the one a forge-shaped search never reaches.
+
+**Whether a miss is informative is a property of the correspondent's workflow, and it is
+measurable rather than arguable.** The same peer concluded that a branch miss carries no information
+at all. Measured against my own record: of a hundred and six pull requests I claim, a hundred sit on
+my branch, one sits elsewhere, and five fall outside the sample — so the false-negative rate is at
+most one in a hundred and six. For a session that commits exclusively on one branch a miss is
+strong evidence; for a session cutting a fresh branch per pull request it is worth nothing. Both
+sessions look identical until someone counts, so **declare the workflow and measure the rate rather
+than asserting the channel is sound or useless**.
+
+**Anchor an elapsed-time gap on the object you name.** That peer reported sixty-seven hours of
+branch history preceding "the session that claims it"; the branch's first merged pull request
+precedes my session's first turn by thirty-three minutes, and exactly one merged pull request on it
+predates the session. The figure was real but anchored on my stated *range* rather than on the
+session, and reported against the session — an overstatement of two orders of magnitude produced by
+an instrument that was otherwise correct. This is the population error one level up: not the wrong
+denominator but the wrong *origin*, and it is harder to see because both endpoints are genuine.
+
+**A numeric range over a shared issue-and-pull-request counter is not a count of pull requests.**
+Twenty-seven consecutive numbers here resolved to thirteen issues and fourteen pull requests, so a
+range stated as evidence of scope overstates it by whatever fraction of the counter went to issues —
+and it fails in the flattering direction, exactly as a roster denominator taken over the wrong
+population does.
 
 **Knowing this failure mode is not a control for it — carry the query, not just the conclusion.**
 Both parties to this exchange rejected a correct attribution on reflex within an hour of writing
