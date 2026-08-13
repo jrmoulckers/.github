@@ -3089,6 +3089,53 @@ invariant under test was deliberately broken**. A green test and an empty test a
 observation. Before citing a new assertion as why something is safe, break the thing and watch that
 assertion fail by name.
 
+**The reflex repair for a shape error is the dangerous one, because it supplies an empty
+population.** A loader that threw `entries is not iterable` was patched to `lock.entries ||
+lock.files || []`, and the census then reported a clean, fully passing run over **zero paths** --
+every assertion satisfied, no gaps, nothing to see. The narrow rule is not *avoid fallbacks*: it is
+that **a fallback whose default is empty converts a crash into a pass**, because every universally
+quantified check over an empty set holds. A crash is a better outcome than a silent zero, so default
+to a value that fails the check rather than one that vacuously satisfies it, or assert the population
+is non-empty before any predicate runs.
+
+The same shape once printed `ordinals agree: true` on `matched 0/9` -- two empty arrays joined to two
+equal strings -- while its upstream control passed by certifying the side that was never in question.
+**A control that validates the fixed side of a comparison licenses nothing about the varying side.**
+
+### A census inherits the ref it was taken at, and the repair already applied there
+
+Counting what will break is a claim about a **future** population, and it is routinely taken over the
+present one at whatever ref happens to be checked out. Two failures, both measured.
+
+A correspondent's exposure census reproduced to the integer -- but only at their working branch:
+
+```
+ref        lock entries   covered by the broad pattern   generatedAt
+main                 72                             16   2026-08-08T22:44:22.746Z
+their branch         77                             18   2026-08-09T22:48:49.885Z
+```
+
+Four of five conclusions held only there, because the branch also carried an ignore line that `main`
+lacks. Each endpoint was self-consistent at one uncovered file; the **cross** state -- the branch's
+delivered set against the older ignore file -- has two, and no census over either endpoint evaluates
+it. **When a repair and the thing it repairs live in separate files, the hazardous state is the one
+that merge ordering can produce, and a census taken where they are already aligned cannot see it.**
+
+And a delivery lock records the **last** delivery, so it cannot answer a question whose triggering
+event is the next one. The member above opts into six instruction files and its lock carries five;
+the sixth was created after both locks were generated, so no census over either could contain it.
+It landed inside a covered directory by luck, and the one genuinely uncovered file in that repo is a
+root-level file that arrived by exactly this route. **Enumerate the population the event will
+produce, not the one the last event left behind.**
+
+**And coverage correct by adjacency reads identically to coverage correct by intent.** The broad
+pattern above sits in a hygiene group beside `dist/` and `node_modules/`, above the comment that
+marks the synced block, so in place it reads as build-output tidying while silently covering
+eighteen generated files. Narrowing it is a plausible edit by someone with no idea canon depends on
+it, and the grouping comment stays silent because those files are not underneath it. **State
+coverage where it is relied on, redundantly if necessary, rather than inheriting it from a
+neighbour.**
+
 ### An instrument's presence is not its fidelity
 
 Checking that a response arrived catches an instrument that returned nothing. It cannot catch one
