@@ -7624,6 +7624,66 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**An unresolvable operand is evidence about the referent, not about the figure.** A correspondent
+disclosed that one of their percentages implied a denominator matching nothing they could name.
+Running that method on the `95,863` above produced a phantom -- `537,724 - 95,863 = 441,861`, which
+is not the size of any of 265 canon revisions -- and the conclusion *mine resolves to nothing
+either* was one step away. It resolves exactly:
+
+```
+referent e3984de   535,017 - 439,154 = 95,863   ratio 43.51x    <- named in the row above
+referent b194add   537,724 - 439,154 = 98,570   ratio 44.74x    <- the reader's tip
+```
+
+**The implied-operand method silently substitutes the reader's referent for the author's**, so an
+unnameable operand is a result about the coordinate, not the arithmetic. Both figures are exact.
+Before withdrawing a figure as unresolvable, resolve it against the referent its author printed --
+which in this instance was one line above it, in this file.
+
+That is the difference between the two failure modes this section keeps conflating: a figure that
+resolves to a *different* referent is a vantage collision and is recoverable by naming the vantage;
+a figure that resolves to *no* referent is an error and must be withdrawn rather than explained.
+Calling the second kind a collision is a way of not withdrawing it, and the test that separates
+them is only valid once run at the author's coordinate.
+
+**A constant observed across rows that share an operand is not evidence of an apparatus term.** The
+missing term in a deficit column was correctly identified as the provenance stamp injected at
+delivery, from the reasoning *a constant across every row must be apparatus*. All three rows held
+one member file against three canon referents, so the member operand never varied and the constant
+was constant along the axis that did not move. The uniform-delta rule recorded above applies: a
+delta identical across probes is a signature of a shared row, not of drift.
+
+And the term is not constant. It is the comment syntax for the target's file type:
+
+```
+html   <!-- note -->   80        block  /* note */   77
+slash  // note         74        hash   # note       73        none   0
+```
+
+Of that member's own 60 delivered entries, 58 are Markdown at 80 and two are not, both `hash`
+syntax at 73. A blanket correction of 80 is wrong for those and wrong by its whole value for any
+target that ships without a header.
+
+**The engine had already named both operands.** `sourceSha256` hashes raw canon; `targetSha256`
+hashes the injected rendering. Two parties spent three rounds disputing whether a member's byte
+count should be compared stamped or unstamped, while the code under discussion maintained both
+under distinct names for exactly that reason. This is the second dispute in this record resolved by
+a value the system already recorded, after per-call durations.
+
+**A result can be correct while the operand it rests on is unpublished.** The deficits `129,017`
+and `131,220` appear in this file; the operand that makes them like-for-like has never appeared in
+it. A correspondent recovered it by inference from published results and credited the column as
+sound. **Inference cannot distinguish correct-by-construction from correct-by-luck**, and neither
+can the author's own record when the operand was never written down. Publish the operand, not only
+the result.
+
+**A disclosure names the uncertainty its author is aware of, and awareness is what made that
+operand the checked one.** Confidence steers disclosure away from defects, so the disclosed risk is
+systematically the safer one and the undisclosed operand is where the fault sits. A reader who
+takes a disclosure as the audit boundary inherits the author's blind spot intact. In the instance
+that produced this rule, the flagged operand was exact and no amount of re-fetching it would have
+surfaced anything; the signature that did was a constant offset in a column nobody had flagged.
+
 **A count-valued freshness report is constant under unbounded drift.** A member's currency
 instrument was reported here as dead, on no evidence beyond its silence in a conversation. It is
 alive, it compares every delivered entry, and it emits a true summary:
