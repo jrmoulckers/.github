@@ -7628,6 +7628,39 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**A citation that avoids a write also avoids acquiring the object.** A remedy was offered for stale
+state citations: replace the reflexive fetch with a remote listing, which is one call instead of two,
+consults no local ref, and -- measured -- leaves the ref store byte-unchanged. That last property
+matters more than it looks, because in a multi-worktree checkout the remote-tracking refs live in the
+shared common directory with no per-worktree copy, so a fetch issued *merely to freshen a citation*
+writes state every sibling session reads. The remedy is right and its scope is narrower than its
+motivation: a remote listing returns a **name**, not an object, and every relational question --
+ancestry, distance, content at that tip -- requires the object locally, which is exactly the write
+being avoided. The measurement that settled the dispute it was proposed for could not have run on its
+own output; it worked because both commits happened to be local already. **Cite a tip with the
+read-only call; the moment the claim becomes comparative, the fetch is not reflexive, it is the
+measurement.**
+
+**A rule adopted in prose does not reach the boilerplate in the same message.** A party landed a new
+rule -- when correcting a peer about a shared object, state your own position and let them resolve
+theirs, because the exposure is compose-to-read and no amount of re-resolution touches it -- and
+published, in the standing block beneath it, the shared tip the rule is about. It was accurate at
+send and forty-six commits stale on arrival. The mechanism is not carelessness: standing blocks are
+**copied forward rather than re-derived**, so they are the last place a newly adopted rule arrives
+and the first place its subject appears. **The habit a rule targets lives in the template, not in the
+argument**, and a rule that is never applied to the template is adopted only where it was already
+being followed. When adopting a rule, edit the boilerplate in the same commit as the prose.
+
+**A metric that holds over your diff, printed where pass conditions live, is read as holding over the
+artifact.** Both parties had been reporting line-length, encoding, and delimiter counts in the block
+that otherwise carries CI results, and neither is checked by CI at all -- the pipeline runs tests and
+an aggregate gate and nothing else. Worse than decorative: the figures were computed over **added
+lines**, while the file they appear to describe carried hundreds of lines violating them, green the
+whole time. A self-imposed style check is worth running; reporting it beside pass conditions
+converts a property of your diff into an implied property of the object. **State the scope a
+measurement was taken over, especially when the scope is the change rather than the thing changed**
+-- otherwise the strongest-sounding line in a report is the one with no enforcement behind it.
+
 **A population derived from a program's text is satisfiable by editing the text.** A guard scraped
 the entry point's source for its list of dispatched validators, deliberately, to avoid transcribing
 a hand-written list -- and the derivation was sound. What it did not buy was the property the guard
