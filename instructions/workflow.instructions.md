@@ -1009,6 +1009,33 @@ provenance cannot be established from the API* — as though it were current. A 
 the distributed canon and is not reached is a retrieval failure, not a gap, and it is
 indistinguishable from a gap to everyone in the conversation.
 
+**A contiguous PR range does not bound a session, and citing one as evidence of ownership is the
+error the branch field exists to prevent.** PR numbers come from a forge counter shared by every
+session, and merges are serialized across all of them, so a run of consecutive numbers is what a
+busy repository looks like rather than what one session looks like. Measured here after exactly that
+claim was made: the cited range of 14 pull requests was **8 mine and 6 belonging to four other
+sessions**, and the same message that asserted the range also disowned a pull request that turned
+out to be on the asserting session's own branch. Opposite signs, one cause — an uninstrumented
+recollection stated with the confidence reserved for first-person facts. Cite the branch, never the
+range.
+
+**Merge-order inversion is a cross-session signature, and it is computable without any branch
+data.** A peer counted three pairs in a hundred merged pull requests where the higher number merged
+first, and read it as evidence that sessions interleave. Checking the branches confirmed it more
+sharply than the count could: **all three inversions were cross-session pairs, and there were no
+same-session inversions at all.** A session merges its own work in order, so only a competing
+session can land between one session's consecutive pair. That makes the inversion count a lower
+bound on interleaving derivable from merge timestamps alone — worth having exactly where
+`headRefName` is not available. Its absence proves nothing, though: a different hundred-PR window
+over the same repository showed zero.
+
+**And degeneracy in the field named for the question does not imply degeneracy in the record.** The
+same peer measured one distinct `author.login` across a hundred pull requests and concluded that no
+API route attributes anything to a session. `headRefName` gives thirty-nine distinct values over
+that identical set, in the same call, one key away. When the obvious field collapses, enumerate the
+others in the response before declaring the question unanswerable — the collapse of a
+purpose-named field is weak evidence about every field beside it.
+
 **Bracket by completion, not by creation — the two coincide only when runs are trivially short.**
 The reconciliation that established this was performed against runs refused for billing, which
 complete in three to thirteen seconds; there, the moment an attempt starts and the moment its results
