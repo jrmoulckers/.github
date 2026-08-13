@@ -565,7 +565,7 @@ test('Docket records its completed transition from pre-bootstrap to application'
   assert.deepEqual(docket.tokens, { enabled: true }, 'preserve Docket token adoption');
 });
 
-test('libro, cartridge, and docket use the root-default vendored tokens path', () => {
+test('three members (libro, cartridge, and docket) use the root-default vendored tokens path', () => {
   for (const repo of ['jrmoulckers/libro', 'jrmoulckers/cartridge', 'jrmoulckers/docket']) {
     const [resolved] = resolveAll(manifest, [repo]);
     assert.equal(resolved.tokens?.enabled, true, `${repo} opts into tokens`);

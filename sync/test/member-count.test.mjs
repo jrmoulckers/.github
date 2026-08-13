@@ -44,8 +44,13 @@ const REPO_ROOT = join(dirname(dirname(dirname(fileURLToPath(import.meta.url))))
  * Discovered, never enumerated, for the same reason given at `engineSources()`: a new document
  * is covered the moment it exists.
  *
- * `sync/test/**` stays excluded on the original grounds — the counts there are quoted regression
- * fixtures, and a test asserting a wrong count fails on its own.
+ * `sync/test/member-count.test.mjs` stays excluded on the original grounds — the counts there are
+ * quoted regression fixtures, and a test asserting a wrong count fails on its own. The exclusion
+ * names that file rather than its directory (#1088): the reason is a property of one file, and
+ * written on the directory it exempted 32. Measured before narrowing — dropping the directory
+ * exclusion fails four tests, naming the file fails two, and the two that go quiet in between are
+ * exactly the count-tier pair the docblock is about. The other two were a real offender and a
+ * directory-shaped assertion, not fixture noise.
  */
 /*
  * Takes its root as a parameter so the exclusions above can be exercised against a constructed
@@ -61,15 +66,21 @@ const REPO_ROOT = join(dirname(dirname(dirname(fileURLToPath(import.meta.url))))
  * would freeze the accident; enriching the corpus makes the operands decide. Add one dependency,
  * or run this suite in a plain clone instead of a worktree, and both go load-bearing with no
  * edit here.
+ *
+ * `yaml` joined the extension list for that same reason (#1088). Actions accepts both spellings
+ * and this repo happens to use `.yml` for all 20 of its workflows and `.yaml` for none, so the
+ * omission could not be observed — the #880 sentence landing one line below where #880 landed,
+ * because the exclusions were what that bug was about and the allow-list beneath them was not.
+ * The constructed root below supplies the spelling the working tree withholds.
  */
 function proseSurfaces(dir = REPO_ROOT, found = [], root = dir) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (entry.name === '.git' || entry.name === 'node_modules') continue;
     const full = join(dir, entry.name);
     const rel = relative(root, full).split('\\').join('/');
-    if (rel === 'sync/test') continue;
+    if (rel === 'sync/test/member-count.test.mjs') continue;
     if (entry.isDirectory()) proseSurfaces(full, found, root);
-    else if (/\.(md|mjs|yml|json)$/.test(entry.name)) found.push(rel);
+    else if (/\.(md|mjs|ya?ml|json)$/.test(entry.name)) found.push(rel);
   }
   return found;
 }
@@ -176,8 +187,11 @@ const ANY_COUNT_PHRASE = new RegExp(
  * remembered, and the next `sync/lib/*.mjs` arrives unguarded. Walking the tree means a new module
  * is covered the moment it exists.
  *
- * `sync/test/**` is excluded on purpose — the counts there are quoted regression fixtures and
- * narrative about #176, and a test that asserts a wrong count fails on its own.
+ * `sync/test/**` is excluded on purpose, and here the exclusion is genuinely directory-shaped: this
+ * walk collects *engine source*, and a test file is not engine source whatever it happens to quote.
+ * That reason survives at directory scope, unlike the prose sweep's, which was a property of one
+ * file and was narrowed to it in #1088. Stating the distinction because the two walks previously
+ * carried the same sentence and only one of them was entitled to it.
  */
 function engineSources(dir = join(REPO_ROOT, 'sync'), found = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -285,10 +299,19 @@ test('the prose sweep reaches the documents it claims to cover', () => {
     `the sweep covers ${found.length} documents, below the floor of ${SURFACE_FLOOR} — the walk has narrowed`,
   );
 
-  assert.deepEqual(
-    found.filter((file) => file.startsWith('sync/test/')),
-    [],
-    'regression fixtures live in sync/test and must stay out of the sweep',
+  // Two assertions, because the exclusion has two directions and one of them used to be missing.
+  // A directory-wide skip satisfies the first and fails the second; that gap is what #1088 was
+  // about. A `deepEqual` over the whole `sync/test/` slice was drafted here and cut — both sides
+  // derive from `found` and differ only by the excluded name, so it is entailed by the first
+  // assertion, which is the same redundancy this issue removed from the enumeration floor.
+  assert.ok(
+    !found.includes('sync/test/member-count.test.mjs'),
+    'this file quotes wrong counts as regression fixtures and must stay out of the sweep',
+  );
+
+  assert.ok(
+    found.some((file) => file.startsWith('sync/test/') && file !== 'sync/test/member-count.test.mjs'),
+    'the exemption is a property of one file, so its neighbours must still be swept',
   );
 });
 
@@ -539,8 +562,22 @@ function unboundedRuns(blockText, memberNames) {
  *
  * Pinned by name rather than by count because a count chosen from today's output ratifies whatever
  * today's output happens to be; each entry below is checkable by opening the file and finding the
- * enumeration. The floor is derived from this list for the same reason — a separately-tuned number
- * would be free to drift away from the names it is supposed to summarize.
+ * enumeration.
+ *
+ * The list is asserted as an **equality** against the reached set, not as a lower bound (#1088).
+ * A floor derived from these names was entailed by the per-name assertions above it — if all six
+ * distinct documents are in the set, the set has at least six members — so no state falsified the
+ * aggregate while satisfying every element, and the check could not fail. The reasoning that
+ * produced it was right (a separately-tuned number drifts away from the names it summarizes) and
+ * it produced a redundancy rather than a weakness; the general form is that **an aggregate over a
+ * set whose members are individually asserted needs a falsifying state exhibited before it earns
+ * its place.**
+ *
+ * Equality also closes the direction the floor never covered. Reached and pinned are equal today,
+ * headroom zero, and a containment check between equal sets is a tautology both ways: nothing
+ * required the rule to reach a *new* document enumerating the fleet. The cost is real and
+ * intended — a new enumerating document fails this test until it is named here, which is what
+ * makes the list an inventory instead of a lower bound.
  */
 const ENUMERATING_DOCS = [
   'AGENTS.md',
@@ -549,6 +586,13 @@ const ENUMERATING_DOCS = [
   'docs/architecture/0006-runtime-and-copilot-canon-kinds.md',
   'docs/architecture/0009-canonical-line-ending-normalization.md',
   'instructions/workflow.instructions.md',
+  // Reached because #1088 narrowed the walk exclusion from `sync/test` to the one fixture file.
+  // Listed here rather than re-exempted: the run in it is a legitimate one — three names bounded
+  // by their own stated count — and a document the rule evaluates belongs in the inventory of
+  // documents the rule evaluates, whatever kind of file it is. This entry is also the equality
+  // check earning its place on its first run: it appeared in the *upward* direction, which the
+  // floor it replaced could not observe at all.
+  'sync/test/manifest.test.mjs',
 ];
 
 test('the enumeration rule reaches a named population, not whatever the authoring convention admits', () => {
@@ -574,9 +618,10 @@ test('the enumeration rule reaches a named population, not whatever the authorin
     );
   }
 
-  assert.ok(
-    evaluated.size >= ENUMERATING_DOCS.length,
-    `the rule reaches ${evaluated.size} documents, below the ${ENUMERATING_DOCS.length} it is pinned to`,
+  assert.deepEqual(
+    [...evaluated].sort(),
+    [...ENUMERATING_DOCS].sort(),
+    'the set of documents the rule reaches must equal the set it is pinned to — add the new document to ENUMERATING_DOCS, or find out why an old one stopped being reached',
   );
 
   // The property the backtick gate destroyed, stated directly: two of the live enumerations —
@@ -689,7 +734,7 @@ test('the block is the unit, so a partition survives the line breaks that split 
   assert.equal(proseBlocks('a\nb\n\nc').at(-1).line, 4, 'and a block reports the line it starts on');
 });
 /*
- * The two walk exclusions, made decidable (#880).
+ * The two walk exclusions, made decidable (#880), and the extension list beside them (#1088).
  *
  * Mutated away one at a time against the real repo, neither changed an assertion -- there is no
  * `node_modules` here and `.git` is a worktree file rather than a directory. A constructed root
@@ -697,6 +742,11 @@ test('the block is the unit, so a partition survives the line breaks that split 
  *
  * Asserting instead that the real sweep contains no `.git/` path would have passed without the
  * exclusions existing at all, which is the bystander kill from #174 wearing a different hat.
+ *
+ * `.yaml` was added to the extension list later and for the same reason in reverse: the walk
+ * admitted only `.yml`, the repo happens to contain no `.yaml`, and so the omission had no way to
+ * show. The corpus below now carries both spellings and a near-miss suffix, which is what makes
+ * the added alternation decide something rather than merely be present.
  */
 test('the sweep skips version-control and dependency trees even when they hold sweepable files', () => {
   const root = mkdtempSync(join(tmpdir(), 'surfaces-'));
@@ -708,10 +758,17 @@ test('the sweep skips version-control and dependency trees even when they hold s
     writeFileSync(join(root, 'node_modules', 'pkg', 'readme.md'), 'all four members\n');
     writeFileSync(join(root, 'node_modules', 'pkg', 'index.mjs'), '// all four members\n');
     writeFileSync(join(root, 'docs', 'real.md'), 'all four members\n');
+    writeFileSync(join(root, 'docs', 'pipeline.yaml'), '# all four members\n');
+    writeFileSync(join(root, 'docs', 'pipeline.yml'), '# all four members\n');
+    writeFileSync(join(root, 'docs', 'notes.yamlx'), 'all four members\n');
 
     const swept = proseSurfaces(root);
 
-    assert.deepEqual(swept, ['docs/real.md'], 'only the tracked document is swept');
+    assert.deepEqual(
+      [...swept].sort(),
+      ['docs/pipeline.yaml', 'docs/pipeline.yml', 'docs/real.md'],
+      'only the tracked documents are swept',
+    );
     assert.equal(
       swept.filter((p) => p.startsWith('node_modules/')).length,
       0,
@@ -721,6 +778,24 @@ test('the sweep skips version-control and dependency trees even when they hold s
       swept.filter((p) => p.startsWith('.git/')).length,
       0,
       'and object storage is not prose at all',
+    );
+
+    // The extension list, made decidable (#1088). Actions accepts `.yaml` and `.yml`; this repo
+    // uses `.yml` for all 20 of its workflows and `.yaml` for none, so on the real tree the
+    // spelling is unobservable and a mutant dropping it dies nowhere. The constructed root
+    // supplies what the working tree withholds, which is the #880 repair rather than the #880
+    // bug: enrich the corpus until the operand decides, instead of pinning today's accident.
+    assert.ok(
+      swept.includes('docs/pipeline.yaml'),
+      'a workflow spelled .yaml is prose the sweep must reach; both spellings are valid to Actions',
+    );
+    assert.ok(
+      swept.includes('docs/pipeline.yml'),
+      'and the spelling already in use must not regress while the other is added',
+    );
+    assert.ok(
+      !swept.includes('docs/notes.yamlx'),
+      'the extension is anchored, so a longer suffix is not a workflow',
     );
   } finally {
     rmSync(root, { recursive: true, force: true });
