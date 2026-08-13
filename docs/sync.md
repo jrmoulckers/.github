@@ -3333,6 +3333,31 @@ verbatim**, and describing them is not a stylistic preference but the only optio
 Both were caught by running the mutants and neither by reading the code, in a change whose entire
 subject is that a guard's scope goes unchecked.
 
+## A hedge is unfalsifiable, so accepting it and rejecting a complete list is backwards
+
+The fleet-enumeration guard accepted any list marked "and more" and failed any list that named
+every member. That reads as the cautious rule and it inverts the guard's own purpose. A hedged
+list stays true forever, including after the next member is added — it is invisible to precisely
+the drift the guard exists to catch. A list that names the whole fleet breaks the moment a member
+arrives that it does not name, and breaks *with the new name in the failure message*. The complete
+enumeration is the stronger form, not the tolerated one, and the rule now treats it that way.
+
+The same change fixed a unit error underneath it. A run of member names is a fragment; the claim
+it belongs to is the paragraph or the table. Evaluated per line, a partition that accounted for
+every member reached the guard as several unrelated-looking subsets — a markdown table puts each
+arm on its own row, and ordinary line-wrapping splits a prose partition mid-sentence. Six of seven
+candidate offences were fragments of correct, complete claims. **Before widening a guard, check
+that its unit is the claim's unit**; a guard reading below the level at which the claim is made
+will manufacture offences out of the formatting.
+
+The instrument first proposed for this was to resolve each list against the manifest as of the
+commit that introduced it. It was abandoned after being built, because every one of the seven
+candidates returned today's fleet size: the historical arm agreed with the present-day arm on
+every case it existed for, so deleting it would have changed no verdict. It would have begun
+discriminating only after the fleet next grew, which means it would have shipped untested and its
+first live run would have been the one that mattered. It was also the wrong field — blame returns
+the last commit to touch a line, not the one that made the claim, and a reflow moves it.
+
 ## Idempotency & drift
 
 - The tool is **idempotent**: once a member carries a lockfile, re-running with no upstream change
