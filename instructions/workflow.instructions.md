@@ -757,6 +757,31 @@ running the control catches any source that yields an empty population, includin
 returning nothing for an unrelated reason. **Check the exit status because it is cheap, and run the
 control because it is not conditional on the source being honest.**
 
+**But de-suppression and the control are not two grades of the same remedy — one of them is blind to
+an entire class.** A member reported three consecutive fleet sweeps returning a clean uniform null,
+each from a different pagination or syntax fault, each written to stderr and each swallowed by a
+`2>$null`, and drew the rule: take the suppression operator off before believing a null. Correct for
+their three. Running the same sweep here returned `NONE` for all twelve repositories **with no
+suppression operator, an explicit exit-status check that passed, and empty stderr** — and ten of the
+twelve had the record. One cause was theirs (a page limit that cannot reach the window). The other
+was that the JSON deserializer **coerced an ISO-8601 field into a date object**, so comparing it
+against an ISO string literal compared that object's locale-formatted rendering, `8/11/2026 4:27:48
+AM`, which loses to `2026-08-11T04:00:00Z` on every row forever. The proof it was type and not
+transport: the needed record *was* in the first page, and the filter rejected it anyway.
+
+So an error-suppression idiom converts a **syntax** error into a measurement, and a type coercion
+converts a **semantic** one — with no stderr to reveal and no status to check, leaving nothing to
+un-suppress. Only the known positive spans both, which promotes it from the cheaper habit to the
+load-bearing one. **And the control must be one the query would actually return.** It fired here
+only because one repository's first page happened to reach the window; aimed at the large repository
+it would have been absent for the *other* fault, and a missing control reads as a failing control —
+the wrong diagnosis, on the case where both faults were live at once. So pick the control to be
+inside the result set on the axis you are filtering, not merely a record you are confident exists.
+
+The structural fix is the same move as preferring a content hash to probe discipline: **do the
+comparison while the value is still text.** Filtering server-side on the raw field never constructs
+the object that carries the wrong comparison, so the discipline that keeps failing is not required.
+
 **The strongest form needs no control at all: a content-addressed fetch validates itself.** The same
 member, after three separate transport failures in one thread, refetched four revisions of a file and
 **hashed each locally** rather than trusting the response. Reproduced here independently, all four
