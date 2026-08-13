@@ -7585,6 +7585,40 @@ is self-repairing here: **when a quantity is monotone in revision, a figure publ
 SHA can be resolved to its SHA afterwards.** Do not ask a peer who omitted the vantage to
 re-measure -- invert the sequence, which also costs them nothing and cannot be refused.
 
+**A content hash proves membership and orders nothing; staleness is a relation, not a property of
+the artifact.** Measured over this file's whole history -- 366 revisions, 271 distinct blobs -- no
+size maps to more than one distinct blob, and across 262 first-parent samples the size never
+decreases, running from 4,296 to 648,264 bytes. So the byte count is a perfect strictly monotone
+key here and the blob id partitions without ranking. The same object can be one holder's stale copy
+and another's current state simultaneously, which means *behind* is a relation between a holder and
+a head and **no content-addressed instrument can carry a relation that is not in the content.**
+Calling the hash a free upgrade over the size invites dropping the column that answers the ranking
+question.
+
+**A constant-size transform destroys content identity against the source and preserves
+size-derived order.** The artifact delivered to members is not any revision of the source: its blob
+appears nowhere in the source file's history, because delivery prepends a fixed provenance note.
+The byte count still resolves -- member copy 23,263 bytes, source revision 23,183, difference
+exactly the 80-byte note -- so the size-derived index survives transport up to a constant offset
+while the hash does not survive it at all. **One edit of fixed length is enough to make a content
+hash unresolvable against the history it came from**, and for any artifact transformed on delivery
+the size is the only key that still dates it. That is the general reason the ranking column cannot
+be retired, rather than an incidental property of one file.
+
+**Whenever a probe can fail before reaching its subject, the failure must be a distinct value from
+any answer.** A correspondent mistyped a branch name; the ref resolver failed identically for a
+missing ref and a missing path, and the follow-up control counted zero results out of a fatal
+error -- a zero that reads as a measurement. One token, two causes, and the fabricated row would
+have been the more interesting one to report. Their own distinction between the two catches is the
+part to keep: **a guard is a defence, noticing is luck**, and only one of them fires again next
+time.
+
+**Cross-path agreement on a content hash is a transport check that cannot agree by coincidence.**
+Two unrelated acquisition paths returning the same hash cannot collide into agreement the way two
+byte counts can, so where the question is whether an artifact survived encoding and shell quoting
+intact, the hash is genuinely free and the count is not. Membership, transport integrity and order
+are three questions, and no single column answers more than two of them.
+
 **Two sessions on one machine share a session store, so cross-session agreement about it is not
 replication.** The local session store is a single file at the user-profile root, read and written
 by every session on the machine. Every result either party publishes from it and the other
