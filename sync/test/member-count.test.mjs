@@ -22,8 +22,9 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { loadManifest } from '../lib/manifest.mjs';
 
@@ -45,13 +46,28 @@ const REPO_ROOT = join(dirname(dirname(dirname(fileURLToPath(import.meta.url))))
  * `sync/test/**` stays excluded on the original grounds — the counts there are quoted regression
  * fixtures, and a test asserting a wrong count fails on its own.
  */
-function proseSurfaces(dir = REPO_ROOT, found = []) {
+/*
+ * Takes its root as a parameter so the exclusions above can be exercised against a constructed
+ * tree (#880).
+ *
+ * Both were unkillable before that: mutated away one at a time, neither changed a single
+ * assertion. Not because either is dead code -- because this repo has no `node_modules` (it has
+ * no `package.json` at all), and because `.git` in a git *worktree* is a file rather than a
+ * directory, so it is never recursed and its name never matches the extension filter.
+ *
+ * That is a different finding from an operand that can never decide, and it takes a different
+ * repair. An accident of the current working tree is not an invariant, so pinning the deadness
+ * would freeze the accident; enriching the corpus makes the operands decide. Add one dependency,
+ * or run this suite in a plain clone instead of a worktree, and both go load-bearing with no
+ * edit here.
+ */
+function proseSurfaces(dir = REPO_ROOT, found = [], root = dir) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (entry.name === '.git' || entry.name === 'node_modules') continue;
     const full = join(dir, entry.name);
-    const rel = relative(REPO_ROOT, full).split('\\').join('/');
+    const rel = relative(root, full).split('\\').join('/');
     if (rel === 'sync/test') continue;
-    if (entry.isDirectory()) proseSurfaces(full, found);
+    if (entry.isDirectory()) proseSurfaces(full, found, root);
     else if (/\.(md|mjs|yml)$/.test(entry.name)) found.push(rel);
   }
   return found;
@@ -533,4 +549,93 @@ test('the block is the unit, so a partition survives the line breaks that split 
   assert.equal(unboundedRuns(wrapped, memberNames).length, 0, 'a table naming every member is complete');
   assert.equal(proseBlocks('a\nb\n\n\nc\n').length, 2, 'blank lines separate blocks and runs of them do not make empty ones');
   assert.equal(proseBlocks('a\nb\n\nc').at(-1).line, 4, 'and a block reports the line it starts on');
+});
+/*
+ * The two walk exclusions, made decidable (#880).
+ *
+ * Mutated away one at a time against the real repo, neither changed an assertion -- there is no
+ * `node_modules` here and `.git` is a worktree file rather than a directory. A constructed root
+ * supplies both, so each operand now decides an outcome and each mutant dies by name.
+ *
+ * Asserting instead that the real sweep contains no `.git/` path would have passed without the
+ * exclusions existing at all, which is the bystander kill from #174 wearing a different hat.
+ */
+test('the sweep skips version-control and dependency trees even when they hold sweepable files', () => {
+  const root = mkdtempSync(join(tmpdir(), 'surfaces-'));
+  try {
+    mkdirSync(join(root, '.git'));
+    mkdirSync(join(root, 'node_modules', 'pkg'), { recursive: true });
+    mkdirSync(join(root, 'docs'));
+    writeFileSync(join(root, '.git', 'COMMIT_EDITMSG.md'), 'all four members\n');
+    writeFileSync(join(root, 'node_modules', 'pkg', 'readme.md'), 'all four members\n');
+    writeFileSync(join(root, 'node_modules', 'pkg', 'index.mjs'), '// all four members\n');
+    writeFileSync(join(root, 'docs', 'real.md'), 'all four members\n');
+
+    const swept = proseSurfaces(root);
+
+    assert.deepEqual(swept, ['docs/real.md'], 'only the tracked document is swept');
+    assert.equal(
+      swept.filter((p) => p.startsWith('node_modules/')).length,
+      0,
+      'a dependency tree is vendored prose the fleet does not own, and would flood the sweep',
+    );
+    assert.equal(
+      swept.filter((p) => p.startsWith('.git/')).length,
+      0,
+      'and object storage is not prose at all',
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+/*
+ * The lower bound of the qualified arm (#880).
+ *
+ * `stated > expected` dies; `stated < 1` decided nothing anywhere in the suite. Unlike the
+ * exclusions above this one is constructible from an ordinary argument, so it was a plain hole
+ * rather than a latent guard -- the distinction the shared SURVIVED score erases.
+ */
+test('a subset claim of zero is a fault, not a vacuously safe subset', () => {
+  assert.equal(countClaimFault(11, true, 11), null, 'a subset may be the whole fleet');
+  assert.equal(countClaimFault(4, true, 11), null, 'and may be smaller');
+  assert.ok(countClaimFault(12, true, 11), 'but may not exceed its population');
+  assert.ok(
+    countClaimFault(0, true, 11),
+    'and may not be empty: "all zero members that receive the file" states nothing, so it cannot go on standing merely because zero is under the bound',
+  );
+});
+/*
+ * The same latent pair, in the other walk (#880).
+ *
+ * `engineSources` already took its root, so only a corpus was missing. Fixing the twin in
+ * `proseSurfaces` and leaving this one would have closed the instance and not the class -- and
+ * the tally would have looked one better either way.
+ */
+test('the engine-source walk skips fixtures and dependencies, and both exclusions decide it', () => {
+  const root = mkdtempSync(join(tmpdir(), 'engine-'));
+  try {
+    mkdirSync(join(root, 'lib'));
+    mkdirSync(join(root, 'test'));
+    mkdirSync(join(root, 'node_modules', 'dep'), { recursive: true });
+    writeFileSync(join(root, 'lib', 'runner.mjs'), '// nine member repos\n');
+    writeFileSync(join(root, 'test', 'fixture.mjs'), '// nine member repos\n');
+    writeFileSync(join(root, 'node_modules', 'dep', 'index.mjs'), '// nine member repos\n');
+
+    const sources = engineSources(root).map((p) => p.split(/[\\/]/).slice(-2).join('/'));
+
+    assert.deepEqual(sources, ['lib/runner.mjs'], 'only first-party engine source is swept');
+    assert.equal(
+      sources.filter((p) => p.startsWith('test/')).length,
+      0,
+      'quoted counts in fixtures are regression data, and a fixture with a wrong count fails on its own',
+    );
+    assert.equal(
+      sources.filter((p) => p.startsWith('node_modules/')).length,
+      0,
+      'and a dependency states counts about its own project, not about this fleet',
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
