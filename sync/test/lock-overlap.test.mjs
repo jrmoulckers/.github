@@ -177,6 +177,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { refreshLockAgainstDefault } from '../lib/pr.mjs';
 import { LOCK_FILENAME } from '../lib/lock.mjs';
+import { readLock } from '../lib/lock.mjs';
 
 function withTmp(fn) {
   const dir = mkdtempSync(join(tmpdir(), 'lock-overlap-'));
@@ -273,4 +274,35 @@ test('a fold that restores nothing does not rewrite the lockfile', () => {
 
     assert.equal(readFileSync(join(dir, LOCK_FILENAME), 'utf8'), raw);
   });
+});
+
+// A member repo can carry a *different* file under the same name: `jrmoulckers/libro` PR #6 holds a
+// pre-engine token-sync lock at `.studio-sync.lock.json` whose top-level keys are `$schema,
+// description, source, package, vendor, sync` -- valid JSON, no `entries`. Read with a defaulting
+// reader it returned version 1, the expected backbone, and zero entries: a lock that looks current,
+// valid and empty, because every field that could identify it as foreign was filled in from our own
+// expectations. Empty means "nothing was ever delivered", which reverts every untouched path.
+// Corrupt bytes already threw; the well-formed wrong contract was the case that passed silently.
+test('a lockfile carrying a foreign contract is refused, not emptied', () => {
+  const root = mkdtempSync(join(tmpdir(), 'foreign-lock-'));
+  writeFileSync(
+    join(root, LOCK_FILENAME),
+    JSON.stringify({
+      $schema: 'https://jrm.example/token-sync.schema.json',
+      description: 'pre-engine token sync',
+      source: 'jrmoulckers/.github',
+      package: '@jrm/tokens',
+      vendor: 'vendor/@jrm/tokens',
+      sync: { strategy: 'copy' },
+    }),
+  );
+
+  assert.throws(() => readLock(root, 'jrmoulckers/.github'), /no "entries" object/);
+});
+
+test('an absent lockfile is still the empty lock, not an error', () => {
+  const root = mkdtempSync(join(tmpdir(), 'absent-lock-'));
+  const lock = readLock(root, 'jrmoulckers/.github');
+  assert.deepEqual(lock.entries, {});
+  assert.equal(lock.generatedAt, null);
 });

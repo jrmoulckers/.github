@@ -81,12 +81,22 @@ export function readLock(memberRoot, backbone) {
   }
   try {
     const parsed = JSON.parse(readFileSync(p, 'utf8'));
+    // A file that parses but carries someone else's contract is the dangerous case: defaulting
+    // `entries` to {} here would report a valid, current, empty lock, and every field that could
+    // reveal the mismatch is filled in below from our own expectations. An empty lock means
+    // "nothing was ever delivered", which reverts every untouched path. Refuse it like corruption.
+    if (!parsed.entries || typeof parsed.entries !== 'object' || Array.isArray(parsed.entries)) {
+      throw new Error(
+        `Lockfile at ${p} has no "entries" object -- it is not a studio sync lock ` +
+          `(top-level keys: ${Object.keys(parsed).join(', ') || 'none'})`,
+      );
+    }
     return {
       version: parsed.version ?? LOCK_VERSION,
       backbone: parsed.backbone ?? backbone,
       classifierSha256: parsed.classifierSha256 ?? null,
       generatedAt: parsed.generatedAt ?? null,
-      entries: parsed.entries && typeof parsed.entries === 'object' ? parsed.entries : {},
+      entries: parsed.entries,
     };
   } catch (err) {
     throw new Error(`Corrupt lockfile at ${p}: ${err.message}`);
