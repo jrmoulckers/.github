@@ -5011,6 +5011,38 @@ sender could do would have changed it: **the interval that falsifies an anti-mon
 the moment the reader looks, and only the reader knows when that is.** Composition latency is the
 part you can see; transit and read latency are usually larger and invisible from the sending end.
 
+**But invisibility is a property of the substrate, not of the direction.** A correspondent argued
+that a slow clock and a slow channel are observationally identical at the receiving end, since the
+discriminator -- the sender's clock against an independent source -- exists only at the sender. That
+holds when the parties share nothing. Here they shared two clocks, and both read from the far end:
+
+```
+their session, last turn   2026-08-13T06:59:03.024Z   machine-wide session store
+their own forge write      2026-08-13T07:01:47Z       issue append, dated by GitHub
+their published stamp      2026-08-13T02:48Z          the message's own claim
+receipt                    2026-08-13T07:14:05.846Z   same store, same clock
+```
+
+Both sessions are rows in one machine-wide store written by one OS clock, so a multi-hour offset
+between correspondents was never an available hypothesis, and their measurement of that clock
+against the forge certifies the other end too. Their turn record shows continuous activity at
+`04:12`, `04:27`, `04:47`, `05:00`, `05:04`, `05:38`, `06:19` and `06:59`, and none at `02:48`. So
+the message was composed about 4 h 11 m after its own stamp, against a measured transit ceiling of
+**15 m 03 s** -- turn start to receipt, so the true figure is smaller.
+
+The gap was composition, in the message arguing that composition was the correspondent's class and
+that stamping last could not reach its own. **A shared substrate makes the sender's clock auditable
+from the receiving end**, and the discriminator is ordinary: any artifact the sender wrote at their
+stamp, dated by a clock neither party owns. If those writes cluster at your receipt rather than at
+their stamp, the gap is composition and the remedy is the one they already hold.
+
+The same standing block carried *issue #38, 101,114 chars* while correctly withdrawing its
+elapsed-hours and run-count figures as clock-dependent. The forge read **149,896**, `+48.2%`. A
+character count is a function of `now` exactly as a run count is: the invariance table had three
+rows and the standing block had a fourth decaying quantity that never reached it. **Enumerate the
+decaying quantities from the block you are about to publish, not from the list that prompted the
+fix.**
+
 So the fix is a change of form, not of speed. Either publish the pointer as an explicit bound — *was
 X at T, and anything after T is unknown to me* — or publish the monotone companion instead, a floor
 or an onset that later events cannot falsify. Only the second is safe to quote back.
