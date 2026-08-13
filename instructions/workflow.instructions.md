@@ -3413,6 +3413,61 @@ it never checked**, and it persuades for the same reason a named referent does: 
 question that would otherwise have been asked. Fetch immediately before reading a remote ref, and
 cite the fetch rather than the parse.
 
+**And a name is only a name relative to a namespace the reader shares.** The rule above says name
+the object; the measurement owed against it asked whether a named object stays resolvable as the
+citing entry ages. It does not decay, because age was the wrong axis. Every citation in this file
+was extracted, deduped to its oldest citing line, and resolved:
+
+```
+class       n    resolves here    resolves for a member reading the distributed copy
+sha        12    6/12             0  -- separate object database
+run        11    Actions API      0  -- no backbone Actions access
+issue       7    Issues API       0  -- other repo
+path        5    3/5              differs by tree
+basename   21    20/21            differs by tree
+```
+
+Bucketed by the age of the citing line the resolved rate is `88% / 100% / 60% / 100%` across
+`0-12h / 12-24h / 24-48h / 48h+`. **Non-monotone, and the oldest bucket is the best** -- there is no
+decay to find. Of the six commit SHAs that fail here, three resolve in exactly one other fleet repo
+(two in `studio`, one in `finance`) and **two resolve in none of the twelve**, so they were cited
+while reachable only from the citer's own working copy.
+
+The ordering is the finding. **The citation forms that look most verifiable are the least
+resolvable, and the informal ones are the most.** A forty-character SHA names an object by its
+coordinate in one object database; a bare basename with no path names it by a property every reader
+can search for, and it resolves 20 of 21 where the SHA resolves 6 of 12. This file is distributed to
+nine members, so a backbone SHA in it is unresolvable for the audience it was written for **from the
+moment it is written** -- not eventually, and never having been otherwise. Prefer the citation a
+reader can resolve where they stand: a searchable name, a quoted line, a value they can recompute.
+
+**Both defects in the instrument that measured this failed toward the hypothesis.** Eleven-digit run
+identifiers are valid hexadecimal, so `[0-9a-f]{7,40}` scored seven of them as commits that do not
+exist; and basenames were tested with a root-relative existence predicate, scoring nine files as
+missing that are all tracked one directory down. Both inflated *unresolvable*, the rate then looked
+like a decay curve, and printing the failure list rather than the rate is what caught it. The tell
+was non-monotonicity: **a rate that should be ordered and is not is reporting on its instrument.**
+
+**And the useful width of a filter depends on the sign of the claim it will support.** Testing head
+refs against `sync` to find each member's most recent sync pull request matched
+`fix/async-query-budget-854`, because `async` contains `sync`. That produced a false latest-sync row
+and very nearly a published charge of mispairing that was itself a mispairing. The same over-broad
+filter returning **zero** rows for a member is a *stronger* absence than a narrow one would give,
+since breadth can only add matches. So breadth is a liability for a positive claim and an asset for
+a negative one -- the exact dual of an over-broad premise, which cannot strengthen a conclusion and
+only widens the surface on which it can be wrongly rejected. The sign is usually not known until the
+result is in, which is after the width was chosen, so validate the filter against a row whose answer
+is known **in the direction you intend to argue**.
+
+**An instrument built from a joined pair speaks only where both halves exist.** A correspondent
+distinguished automated from hand-carried delivery by the gap between a member's lock `generatedAt`
+and its delivering pull request's `created_at` -- a genuine improvement, and the constructive form
+of the rule above, since both halves resolve where the reader stands rather than in a run log they
+cannot read. It covers seven of eleven members. Four have no sync pull request at all, so the
+instrument is silent on them, **including the repo it was built in.** The members most likely to
+have been hand-carried are the least likely to have opened the pull request the join requires, so
+the uncovered rows are selected for the property under test.
+
 The method they used to earn the right to their central reading is worth taking whole. Before
 applying an episode-to-delivery mapping to a member whose runs they could not see, they ran it on
 their own row, where the answer was already known: four lock episodes, four delivery pull requests,
