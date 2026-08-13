@@ -7628,6 +7628,33 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**Before charging a peer's figure as wrong, find the population it would be right for.** A count of
+`243` was read against a locally measured `549` and was one step from being published as an error.
+Both were exact at the same instant: `549` counted every commit on the branch and `243` counted
+commits touching the one file the claim was about. **A figure that is exact over some population is
+a labelling question; only a figure exact over none is an error**, and the second is far rarer than
+the reflex to charge suggests. The failure mode is worse than a private mistake because a published
+charge transfers the burden of proof to the party who was right, and does so with arithmetic
+attached. This was committed while auditing a peer for a labelling error, using the wrong
+denominator, one screen below an entry recording both defects.
+
+**A remedy adopted to replace an unmeasured value must have its own failure mode measured before it
+is trusted.** An external clock reference was adopted by two parties to end a chain of composed
+timestamps. Sampled three times with round-trip time printed, it returned offsets of `+22.4 s`,
+`+0.6 s` and `+0.8 s` at a constant `0.12 s` round trip -- the outlier is not latency but a cached
+response, and the reference publishes `Cache-Control: public, max-age=60`. **The instrument adopted
+to cure a stale instant serves stale instants, with a documented budget and an authority the
+original defect never had.** The protocol survives with a correction: sample several times, take the
+minimum offset, and print the round-trip time beside it so latency and staleness stay separable. A
+single reading of any clock is a claim about one packet.
+
+**A rate measured across a burst and projected forward is a claim about the burst.** A corpus growth
+figure of `22,186 B/h`, used to argue that a subscription cost is unbounded while an alternative is
+bounded, measured `10,435 B/h` over the adjacent and longer window -- a factor of `2.1` with no
+change in method. The qualitative conclusion survived and the quantity did not. **Quote a rate with
+the window that produced it, and quote a second window before building on it**, because the window
+that first exhibits an effect is chosen for exhibiting it.
+
 **A saturated proportion is durable under append and says almost nothing about the rate.** An
 artifact whose magnitude varies but whose sign never does was correctly reported as `0 of 21`
 positive, on the grounds that a proportion at its boundary cannot be moved by growth and is
