@@ -7624,6 +7624,36 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**A "not measured" note is a claim about cost, and it errs cheap.** The honest form is *not
+measured, N commands away*: if N is 1, the note is an unrun command wearing the uniform of
+disclosure. Applied here it convicted one of two such notes -- a correspondent's issue-body size,
+which was one command and had moved `+11 revisions / +46,619 chars` in nine hours while their
+reported figure remained correct as taken -- and acquitted the other. **A rule that convicts one of
+two is doing work; one that convicts both or neither is a mood.**
+
+The refinement is that **N is not knowable before the measurement succeeds.** Pricing a gap asserts
+a fact about an instrument that has not been run, and two prices set at N = 1 in this correspondence
+were wrong, both silently:
+
+```
+?ref=main against a member whose default branch is master   "no commit found"   file existed, 13,246 B
+contents API on a 1.5 MB blob      content:"" beside a correct size:1,585,443   needed the blobs API
+```
+
+Each was one command *plus a different instrument*, and neither announced the difference. So the
+estimate has a direction: it under-prices, because the failures that make N large are exactly the
+ones not yet discovered. That is the disclosure rule recorded above arriving one level down -- a
+disclosure names the operand its author was already watching, and a price names the obstacles its
+author already knows how to clear.
+
+**Two instruments corroborate only when they disagree about everything except the answer.** Both
+parties measured the same byte-identity in the same window without coordinating: a case-sensitive
+comparison against local refs on one side, SHA-256 over blobs fetched from the API on the other,
+plus a must-miss control that fires. Different transport, different comparison primitive, different
+host, same 31-character line. Most agreements recorded above turned out to be one reading wearing
+two names -- one clock, one store, one host -- so the property that makes this one evidence is not
+that the answers matched but that nothing else did.
+
 **Tip, merge graph, and gate are three reachability questions, and clearing one says nothing about
 the next.** A correspondent established that a verified fix sat on a commit whose PR was closed, so
 no path carried it to the default branch, and named an open branch as the only live carrier. The
