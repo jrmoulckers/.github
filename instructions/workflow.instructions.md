@@ -7628,6 +7628,26 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**Two names for one object are one carrier, not two.** A repair was reported as more robustly
+attested because it was reachable through both a branch ref and a pull-request ref; both resolved to
+the same commit. **Redundancy in the naming layer is not redundancy in the thing named.** Two refs
+at one object survive the deletion of either name and fail together on every fault that touches the
+object -- a wrong commit is wrong identically down both paths, and the forge advances the
+pull-request ref to track the branch, so a force-push moves both at once. What a second access path
+buys is reachability after a deletion, which is worth having and is not evidence. Before counting
+agreeing observations, resolve each to the object it observes and count the objects.
+
+**Widening an enumerator finds exactly the class it was widened for.** A census taken over branches
+was corrected by hand-writing a refspec for pull-request head refs, doubling the population and
+closing the known gap. The corrected census still omitted a third class -- the merge refs that exist
+only while a pull request is open, one of which belonged to a pull request the census classified --
+because the widened filter was widened for the class already known to be missing. The instrument
+that needed no correction was strictly cheaper: the unfiltered listing returns every class and
+always did. **Effort spent widening a filter reads as diligence and still returns a filtered
+result**, and the corrected population looks complete precisely because the gap someone thought of
+is now closed. Prefer the unfiltered instrument to a better filter, and when only a filter is
+available, state the classes it admits rather than the count it produced.
+
 **A remedy that is absent locally is indistinguishable from a remedy that does not exist.** A member
 reported that a generated lockfile sat inside its lint population, and concluded the only available
 fix was an ignore line nobody had written -- true of that tree, and false of the fleet: three
