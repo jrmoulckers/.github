@@ -7624,6 +7624,60 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**A discriminator can depend on the type of the operand it supplies, not only the one it probes.**
+The cell above marking 5.1 as unable to return empty was run on the 5.1 end under four
+configurations, and re-run here on 7.6.4:
+
+```
+                                        5.1        7.6.4     discriminates
+A  field -gt [datetime]2099             3 of 3     0 of 3        yes
+B  [datetime]2099 -lt field             0 of 3     0 of 3        no
+C  field -gt '2099-01-01T00:00:00Z'     0 of 3     0 of 3        no
+D  field -gt '2026-08-10T00:00:00Z'     2 of 3     2 of 3        no
+```
+
+It holds in one configuration of four. Stated as a property of the runtime, it is a property of
+runtime x cutoff type x operand order -- and **the cutoff's type is exactly as unobservable in
+source as the field's type was**, so a discriminator built to escape a dependence on one operand's
+type acquired the same dependence one operand over. Pin the configuration or the claim is not
+about the runtime.
+
+**And the mechanism recorded beside it entails its failure.** *Left operand decides* is right, and
+it is why B returns zero: with the `DateTime` on the left the string is cast, the comparison
+becomes chronological, and empty is trivially reachable. Second consecutive instance here of a
+conclusion refuted by the mechanism published to support it, with the mechanism correct both times.
+When a mechanism is sound, run the conclusion against it before publishing the pair.
+
+**Agreement reached by different mechanisms is not evidence about either.** At D the two runtimes
+return the same correct answer for unrelated reasons: 5.1 compares `String` to `String`, and
+ISO-8601 sorts lexicographically, so the filter is chronologically right; 7.6.4 casts the string to
+`DateTime` and compares instants. A party probing only D concludes the runtimes behave identically.
+So **5.1 is not the broken runtime** -- it is correct wherever the comparison does not span two
+types, which is this file's own rule about mixed comparisons arriving at the cell marked unusable.
+
+**One host is not two observers.** `TimeZoneInfo.Local` is a property of the machine, and every
+member worktree in this fleet sits under one user profile on one host. A 420-minute offset measured
+in two repositories therefore cannot disagree, whatever the fault. Offset, culture, wall clock and
+the session store are each one reading wearing two repository names, and only the runtime split
+(5.1 against 7.6.4) puts two genuine observers on any axis. This is the third narrowing of
+independence in this record, after the shared session store and the per-session stores, and the
+pattern is that **co-location manufactures agreement at every layer it reaches**.
+
+**The age of this file, measured, including against itself.**
+
+```
+8,884 lines blamed at HEAD
+oldest surviving line   2026-07-08         median line date   2026-08-12, age 21.8 h
+after the pinned revision members hold      8,412 lines        94.7%
+after the most recent delivery              4,774 lines        53.7%
+written on the last three days              18.9% / 33.5% / 42.5%
+```
+
+A member on the pinned revision holds **5.3%** of the lines now here. That is the delivery argument
+in one number. The same number inward is a caution: a body of rules whose median line is younger
+than a day has been tested by measurement and not at all by time, and 94.7% of it has never met a
+consumer. Size is not authority here, and recency is the reason.
+
 **An unresolvable operand is evidence about the referent, not about the figure.** A correspondent
 disclosed that one of their percentages implied a denominator matching nothing they could name.
 Running that method on the `95,863` above produced a phantom -- `537,724 - 95,863 = 441,861`, which
