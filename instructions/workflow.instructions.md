@@ -7624,6 +7624,45 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**An instrument whose failure state is its alarm state manufactures the finding it was built to
+detect.** A freshness observable was replaced by a better one -- read a fetch cache's content rather
+than its timestamp -- and the replacement was compared three ways, with disagreement between the
+private cache and the shared remote-tracking ref read as evidence a neighbour had written the shared
+ref. Measured against a deliberately breakable local remote, empty content is produced by **four
+distinct failure causes, none involving a neighbour**, so every failed fetch reports the alarm. That
+is the exact root fault the same analysis had just named -- *the health signal is produced by the
+mechanism whose failure it should reveal* -- reproduced inside its own repair. And it is worse than
+what it replaced in one specific way: a plausible silence gets ignored, while **a false alarm shaped
+like the finding under investigation gets published.**
+
+**Truncation is total, not proportional.** A fetch naming one valid ref and one missing ref discards
+the valid result along with the failure: the cache file goes to zero lines rather than to a short
+file. **A partial failure is not partially recorded**, so a cache with any content at all is
+evidence of complete success and a cache with none is evidence of nothing in particular.
+
+**A timestamp records the command, not the attempt.** An undefined remote *name* still advances the
+cache file's mtime and still truncates it, though resolution failed before any transport began and
+there was no attempt to time. The honest reading is **when a command was last run, including ones
+that failed at argument resolution** -- and every step further from that phrasing borrows confidence
+from a mechanism that never executed.
+
+**Absence and emptiness read alike, and absence coincides with maximum trustworthiness.** A freshly
+cloned repository has no fetch cache at all while its remote-tracking refs are exactly current,
+because clone populated them. The instrument returns its worst reading in the state where the cached
+value is most reliable, and cannot separate *never fetched* from *fetch failed*. **A three-valued
+observable -- agree, disagree, absent -- read as two-valued assigns the missing state to whichever
+answer the reader was already testing for.**
+
+**Health and failure separated by one unit is not a threshold.** A single-ref fetch legitimately
+writes one line to the same file a failure empties, and a live survey found a worktree sitting at
+exactly one. Any cutoff on such an observable is a coin flip dressed as a bound.
+
+**No field of an artifact written by a failing command means anything until the command's status is
+read.** This subsumes the choice between the timestamp and the content: conditioned on exit zero,
+both are unambiguous, and unconditioned, neither is. The correct rule is not to prefer one field
+over another but to read the status first -- **choosing between fields of a corrupt artifact is
+choosing how to be wrong.**
+
 **A perfectly inverted predictor is a working instrument with an unknown sign.** A diagnostic --
 does the pairwise relation fail antisymmetry -- was retired for pointing the wrong way on one of two
 runtimes. Measured over all permutations on independently chosen values, it scores **4/4 on one
