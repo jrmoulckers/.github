@@ -5821,6 +5821,19 @@ able to receive a correction accumulate the most of them**, and nothing inside a
 own tier. Whoever clears the blockage inherits six starting points rather than one, and a fix
 validated against the hub has been validated against none of them.
 
+**And the lag is exactly measurable, because distribution is verbatim.** A member was argued to hold
+"a per-member rendering at a fraction of the size"; measured, every one of nine members holds a
+**real hub revision plus a constant 80 bytes**, that being the provenance line prepended on
+distribution. Nine of nine matched at `-80`, so the size difference is lag and nothing else. All
+`202` hub revisions of this file also carry **distinct** byte sizes, which makes `member_size - 80`
+a unique fingerprint of the source commit -- a member cannot date its own copy from inside, but the
+hub can date every member's copy to the commit and the minute. **The right statistic for lag was
+never a ratio against a moving head; it is the source revision date, which is frozen**, and it
+confirms the merge-ability ordering directly: the three members whose checks cannot pass hold the
+three oldest revisions. Record the fingerprint as a convenience and not a design -- distinctness
+across 202 revisions is unenforced luck that decays as revisions accumulate, so stamping the source
+revision into the provenance line is the durable form.
+
 The mechanism sits one operand over from where it looks. Reproduced on identical data at one
 instant, a `ConvertFrom-Json` pipeline counted 93 where offset-aware parsing and a commit listing
 both counted 67. **But the diagnosis that followed — that the field is `Kind=Utc` and correct, and
