@@ -1160,8 +1160,8 @@ function readBaselineEvidence(
       },
     );
     return { baseCommit, manifest: JSON.parse(text) };
-  } catch {
-    return { baseCommit };
+  } catch (error) {
+    return { baseCommit, error: error.message };
   }
 }
 
