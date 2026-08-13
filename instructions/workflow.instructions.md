@@ -3388,6 +3388,30 @@ Put the marker in the middle of the anchor, and assert the mutation reached the 
 than only that the file changed. The stronger habit is to require a mutant to fail *for the reason
 claimed*: read the named failing test, not the count.
 
+### Put the floor on the population that decides, not the population that is walked
+
+A guard that walks a corpus and evaluates a subset of it has two numbers, and only the second is
+the instrument. Floor the first and the guard can narrow to nothing while every check stays green:
+the walk still finds every document, every fixture still passes, every mutant still dies, and the
+rule fires on zero blocks.
+
+The subset is usually chosen by something nobody decided — an authoring convention, a naming
+habit, a formatting style. Ours was backticks: the fleet-enumeration rule matched member names only
+when they were quoted, so 145 documents and 5,232 blocks came down to six blocks deciding every
+verdict, and two tables that named the whole fleet in plain text were invisible to the guard
+written to catch exactly them.
+
+Two consequences. **A detector and its legitimizers must share one convention** — widening the
+offence rule while its exemption still required backticks turned both complete tables into false
+offenders, so a one-sided widening is worse than none. And **prefer removing the convention to
+flooring the population it selects**: a floor on a convention-dependent population still fails the
+day the convention drifts, which is a report about formatting rather than about the claim.
+
+Pin the floor to named members of the population rather than to its current size. A count read off
+today's output ratifies today's output; a named document is checkable by opening it. Note the
+asymmetry that leaves: deleting a name weakens the floor silently, and nothing catches it, so the
+list is only as good as the reason each entry was added.
+
 ## Calling reusable workflows
 
 
