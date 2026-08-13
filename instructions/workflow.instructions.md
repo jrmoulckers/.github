@@ -1691,6 +1691,18 @@ successfully by hand. Cause: passing `--paginate` alongside an explicit `page=` 
 emit **two concatenated JSON objects**, `JSON.parse` throws, and `catch { return null }` reported that
 as no data.
 
+**The quieter sibling is a page that parses cleanly and is simply short of the truth.** Reading this
+file's own history, `commits?path=...&per_page=100` returns exactly `100` rows whose oldest entry is
+`2026-08-12T03:03:13Z`; the same call with `--paginate` returns `199` and an oldest of
+`2026-07-08T06:20:11Z`, five weeks earlier. Nothing errored and nothing was empty. **A page whose
+length exactly equals `per_page` is a truncation warning, not a result** -- and a member inherited a
+file-creation date wrong by five weeks from precisely this. The tell that does not wait for data:
+truncation drops the *oldest* rows, so every exception it induces must point the same way, things
+looking newer than they are. **Direction of bias is derivable from the mechanism before anything is
+tabulated; the distribution of the exceptions is an accident of which nuisance variable you grouped
+by**, so read the sign first and treat a set of exceptions that all lean one way as an accusation
+against the instrument.
+
 Three properties made it dangerous rather than merely wrong. It fired **only on repositories with more
 than 100 runs**, so it selected against exactly the largest and most informative member while leaving
 every smaller one correct and credible. `NO RUNS` is **plausible** for a quiet repository, so the
@@ -5739,6 +5751,18 @@ its own referents and can be re-derived; a sum is a reading of a moving system. 
 to any total, and treat a comparison of two totals taken at unpublished times as evidence in neither
 direction.** The same asymmetry decides which half of a table survives a wrong denominator: a named
 enumeration does, every ratio beside it does not.
+
+**But cardinality is only safe on a corpus that is not growing, and that condition was doing the
+work.** The `40 + 17` above reproduces because no object was created in the interval, not because a
+count is durable. Three live counterexamples the same week: a member's run total moved `1232` to
+`1374` between a peer's send and this read, the commit count on this file moved `165` to `199`, and
+a canon figure of `78,023` seconds moved to `121,811`. What did reproduce, to the second and across
+two independent instruments, was the **oldest** commit date on that same file -- because a minimum
+over an append-only set cannot move when the appends land at the other end. So the durable property
+is **invariance to appends**, not cardinality: an extremum at the frozen end survives, a saturated
+proportion (`0 of N`, `N of N`) survives because growth cannot cross a boundary the data never
+approaches, and every count and sum between them decays. **When a figure has to stay quotable, pick
+the invariant one; when only a count will do, publish its instant.**
 
 The mechanism sits one operand over from where it looks. Reproduced on identical data at one
 instant, a `ConvertFrom-Json` pipeline counted 93 where offset-aware parsing and a commit listing
