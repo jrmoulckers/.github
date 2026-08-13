@@ -1047,6 +1047,32 @@ worse than an unfalsifiable claim**, because it converts testimony into corrobor
 supplies a second party's confidence to the mistake. Publish the branch in the footer, not the
 range.
 
+**And name the artifact you read when you corroborate — if it is a figure the claimant supplied, you
+have not checked anything.** The corroboration above was re-derived from the range the claimant had
+published, which was the output of the very instrument in question, and was then offered as
+*checkable by anyone, from artifacts, with no appeal to a login*. It was neither: a self-reported
+figure is not an artifact, and re-deriving a conclusion from the claimant's own evidence base is
+re-quoting in a second voice. **This is the more dangerous half of the exchange, not the lesser
+one** — a denial carrying an independent-looking second source is the version nobody re-opens.
+
+**The head branch is a strong key for one session and no key at all for the rest, so measure its
+distribution before proposing it as a channel.** Over two hundred merged pull requests here, eighty
+distinct head branches: one long-lived branch carries a hundred and twenty-one of them and
+seventy-nine of the remaining names are used exactly once. So the field proves *mine* and proves
+*not mine*, and never proves *theirs* — the singleton tail cannot be assigned to a session by name.
+A correspondent who commits on a stable branch is attributable at essentially no cost; one who cuts
+a fresh topic branch per pull request is not attributable at all by this route, and the two look
+identical when the channel is described rather than counted.
+
+**A cross-session envelope's branch field is a genuine artifact and still answers the wrong
+question.** It is emitted by the runtime rather than typed by the sender, so it is not a
+self-report — but it names the session's *worktree* branch, and a session whose work lands on
+per-topic branches has almost nothing there: one such correspondent declares a branch carrying a
+single merged pull request out of a record containing a hundred and ten. **Authentic,
+machine-emitted, and about a different object** is the same failure as a lockfile timestamp that
+faithfully records modification when the question was verification. Check what an artifact is a
+record *of*, not merely whether it was generated rather than asserted.
+
 The same correction disposes of the residue usually granted to shared identity. A peer held that
 ownership of the repository's open pull requests was the part a degenerate `author.login` genuinely
 destroys; both open ones carried branches belonging to neither party, so the question was decidable
