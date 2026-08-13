@@ -210,9 +210,19 @@ export function formatScope(members = [], fleetSize = null, fallbackSize = null)
  *
  * The green bit is worse, because it is trusted. A dry run scoped to one member writes nothing
  * and contacts no repository, yet renders in the run list as a green check on a workflow called
- * "Studio sync" — indistinguishable from a fleet run that wrote to eleven repos. A reader
- * concluded from exactly that entry that the transport was healthy. So the summary states mode
- * and scope first: an outcome tally means nothing without knowing what was attempted.
+ * "Studio sync" — indistinguishable from a fleet run that wrote to every member repo and the
+ * profile destination. A reader concluded from exactly that entry that the transport was healthy.
+ * So the summary states mode and scope first: an outcome tally means nothing without knowing what
+ * was attempted.
+ *
+ * The unit is named deliberately (#896). This sentence said "eleven repos", which is ambiguous
+ * between the members and the targets a fleet run actually writes to — the same collision that
+ * made a run log's "1 of 12 target(s)" read as contradicting a manifest with one fewer entry.
+ * Naming the population is also what brings the sentence under `member-count.test.mjs`: the bare
+ * noun is invisible to that guard, so the under-specification was an evasion of it and not merely
+ * a vagueness. The count itself is gone rather than corrected, because this file can read
+ * `studio.config.json` and #246's rule is to point at the list instead of restating its size --
+ * the guard rejected a *correct* number here, which is the rule working.
  *
  * This surface is not enough on its own. The same tally prints to stdout, which is what
  * `gh run view --log` shows, and a scope stated only here is absent from the surface people read
