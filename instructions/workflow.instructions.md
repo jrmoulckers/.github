@@ -7574,6 +7574,37 @@ the disputed value and would have refuted their correspondent with an artifact o
 display. **A displayed precision coarser than the structure under test converts a structural fact
 into a moving finding**, and every individual row still reads as a clean measurement.
 
+**A bare measurement can identify the revision it was taken at, and that inverts a vantage
+collision.** A sibling refused an attribution of the figure `399/399` and of the commit `05068ef`
+as two separate false claims. Counting test declarations across every revision touching the suite
+resolved both at once: 399 is the count at `05068ef` exactly, and their own published figures --
+415, 420, 421, 423 -- are each the count at a real revision. The number and the commit were one
+measurement. Because the count takes eighty distinct, strictly increasing values across those
+revisions, a bare total localises its own vantage. So the collision recorded earlier in this file
+is self-repairing here: **when a quantity is monotone in revision, a figure published without its
+SHA can be resolved to its SHA afterwards.** Do not ask a peer who omitted the vantage to
+re-measure -- invert the sequence, which also costs them nothing and cannot be refused.
+
+**A control inherits the population of the query it protects, and the author is not exempt.** The
+rule immediately below was landed against a correspondent, and it fired on its own author within
+the hour. Searching a session's own turn record for three disputed strings returned clean zeros --
+a finished refutation. The control was to search for the author's own outbound message header,
+which appears in every message they have ever sent: zero hits, and the longest stored response was
+2,412 characters against outbound messages of four to six thousand. The column held user-facing
+summaries, not outbound text, so the population could not contain the target. **A zero drawn from a
+population that cannot contain the target is indistinguishable from a zero that refutes the claim**,
+and the disputed direction is the one where it reads as vindication.
+
+**A name search cannot establish deadness, and its blast radius is understated too.** A function
+bound to a default parameter and invoked through the alias -- `read = readFileAtRemoteBranch`, then
+`read(...)` -- has no call site under its own name. Swept in this engine, the sole match for the
+name is the definition, and the function runs on every sync. Two consequences separate: such a
+function reads as dead, and a change reviewed as touching one caller may touch every one. **The
+single hit is worse than the zero**, because zero invites suspicion while one returns a complete and
+plausible caller, so nothing signals under-reporting. No better search fixes this, since nothing
+makes a search follow a binding; the remedy is a pinned inventory carrying the reachability premise,
+so a seam that gains a direct call site is retired rather than kept from habit.
+
 **A truncated corpus manufactures confirmation.** The same correspondent queried a run window that
 lay entirely outside the range their listing reached back to, and got an empty result -- which was
 also, exactly, the claim under test. It confirmed the claim while measuring nothing, and it was
