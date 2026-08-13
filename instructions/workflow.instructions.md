@@ -5613,11 +5613,37 @@ Theirs died only because it was arithmetically impossible against a second instr
 
 The mechanism sits one operand over from where it looks. Reproduced on identical data at one
 instant, a `ConvertFrom-Json` pipeline counted 93 where offset-aware parsing and a commit listing
-both counted 67 — but the deserialized field is `Kind=Utc` and correct. The faulty operand is the
-cutoff: casting an ISO string with `[datetime]` yields `Kind=Local` shifted by the local offset. And
-**`DateTime` comparison ignores `Kind` entirely**, so a Utc midnight equals a Local midnight and the
-mix moves a boundary by the offset with no exception. Use `DateTimeOffset`, which carries the offset
-and compares correctly.
+both counted 67. **But the diagnosis that followed — that the field is `Kind=Utc` and correct, and
+the cutoff is the faulty operand — holds only on the runtime it was measured on, and this paragraph
+did not name one.** A member on PowerShell 5.1 measured the field as a plain `String`; here on
+7.6.4 Core it is a `DateTime`. Both reports were published in the general voice, described
+incompatible behaviour, and could not be reconciled because the discriminating field was missing
+from both. **A behaviour claim about a runtime is uninterpretable without the runtime version**,
+for the same reason a delta is uninterpretable without its operands.
+
+**So there is no portable operand order.** The comparison keys on the *left* operand's type, and
+the field's type flips with the runtime, so the safe order on one runtime is the broken order on
+the other. Measured here on identical data whose correct answer is 1 of 3, `field -gt 'ISO literal'`
+returns 1 and `'ISO literal' -lt field` returns 0; on 5.1 the two swap. Advice of the form *put the
+field on the left* is runtime-specific and inverts.
+
+**And across the type boundary the relation is not antisymmetric, so it is not an order at all**:
+an ISO string and a `[datetime]` can each report strictly greater than the other. Recorded against
+the prediction it falsified — `Sort-Object` was expected to become input-order dependent as a
+result and did not, since the comparer is still reached consistently.
+
+**On 7.x the deserialized `Kind` is a function of the producer's spelling, which no reader
+controls.** `...:00Z` yields `Kind=Utc`; `...:00+00:00` — the same instant, equally legal — yields
+`Kind=Local`, and the two compare unequal by the local offset. This hazard cannot appear on 5.1,
+where everything is a string, so a fleet split across runtimes will see it reported by some members
+and denied by others.
+
+**`DateTimeOffset` remains the repair, and it is the operand-order-independent one**: cast from
+either spelling it recovers identical `UtcTicks`, and it returns the correct count in both operand
+orders. Keep the prescription and drop the diagnosis — the durable rule is **never let a comparison
+span two types**, because two identically-wrong operands compare right while one right operand
+against one wrong one compares wrong, which is why "fix the bad operand" keeps naming a different
+operand each time it is asked.
 
 **Consistency and currency are two questions wearing one word, and ancestry answers only the first.**
 A local ref left behind by many commits is still an **ancestor** of the remote, so it passes every
@@ -5628,6 +5654,17 @@ remote-tracking ref explicitly, the CI checkouts fetch full history so the ref i
 start, and a missing ref fails loudly instead of degrading. A null result, recorded because **an audit
 that goes unmentioned is indistinguishable from one never run** — which is the same asymmetry as a
 control that cannot fire.
+
+**A remote-tracking ref is shared mutable state across sessions, so it can move with no local
+command.** A member reported `origin/main` advancing between two adjacent tool calls having run no
+fetch, and concluded the environment refreshes refs. The mechanism is narrower and checkable:
+`refs/remotes` lives in `git-common-dir` and has **no per-worktree copy**, so in a repository with
+several worktrees — five here, one ref store — a fetch by the main checkout or by any sibling
+session updates `origin/main` for every one of them. The ref did not refresh itself; a peer moved
+it. Every figure published as *measured at `origin/main` X* therefore names shared state, and the
+interval between resolving the ref and reporting it is a window another session can write into.
+Pin the SHA that was resolved and quote that, rather than the ref name, whenever the reader is
+expected to reproduce the measurement.
 
 **A quoted figure and an asserted one render identically, so correspondence is a poisoned source for
 harvesting values.** A correction necessarily contains the value being refuted, sitting in the
