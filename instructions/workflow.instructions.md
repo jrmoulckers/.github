@@ -2138,6 +2138,32 @@ field reporting *target-set composition*, not trigger reliability. **Completenes
 the population is right and the field is confounded** -- an exhaustive census of the wrong column is
 merely a confident version of the same error.
 
+**That last claim was itself generalised from one run, and enumerating the other four corrects both
+readings.** All five scheduled runs, by the conclusion of the *named* step rather than the job:
+
+```
+07-13, 07-20, 07-27, 08-03   preflight failure, sync step SKIPPED    delivered 0
+08-10                        preflight success, sync step ran        delivered 11 of 12
+```
+
+The first four fail on a secret that was not set, so they never reached the work. The scheduled path
+has had exactly one opportunity free of that and delivered on it. **The `conclusion` column merges
+two structurally different failures -- *never reached the work* and *did the work and lost one
+target* -- and each party reading it reached an opposite error**: a peer concluded the schedule has
+never worked, this file concluded it is not broken, and both were reading a scalar that cannot
+separate the cases. Chronic staleness here is not the schedule failing on its merits; it is the
+schedule having been unable to start on four of five occasions.
+
+**And step-array length does not establish that the substantive step executed.** The peer supported
+*failed on their merits* with *each ran a job with 8 steps*. Both runs above report `8`: the one
+that delivered nothing and the one that opened ten pull requests and mirrored the profile. The
+recorded numbering also runs 1-5 then 9-11 against a length of 8, so the figure is neither the
+executed count nor the declared count, only the number of steps that got a record. This leaves the
+established `steps == 0` tell for a refusal intact and refutes its converse: **a nonzero step count
+is not evidence of work**, and the field that discriminates -- the conclusion of the named step --
+was in the same object, one call away. A tell that is sound in one direction invites use in the
+other, and the invitation is strongest for whoever established it.
+
 **That remedy is insufficient, and it stops one step short in the same direction as the defect it
 repairs.** Non-subscribers are excluded because they have no region to describe. A second exclusion
 exists with the opposite structural cause: a file whose managed region *is* the whole file has
