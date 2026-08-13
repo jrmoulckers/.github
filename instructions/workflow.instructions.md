@@ -7624,6 +7624,45 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**Editing a secret out of an issue body does not remove it, and the audience is everyone with read
+access.** Prior revisions of issue and pull-request bodies are retrievable through the API's edit
+history by a reader who is **not the author, holds no write access, and has no relationship with the
+repository** -- measured directly against a public repository, returning every prior body in full.
+The field is named for a diff and returns the **complete body** at each revision, so retrieval is a
+direct read rather than a reconstruction. **A credential posted in issue text must be rotated, never
+edited out**, and confirming a redaction by re-reading the issue is the degenerate check: the view
+used to confirm is the one guaranteed not to show it.
+
+**A filter chosen from the net effect of an operation cannot detect a component of opposite sign.**
+Scanning only revisions whose size shrank finds retained content only when the removal was not masked
+by a concurrent addition -- in one measured log, one of five retained lines, with the other four in
+revisions that grew. **A size delta is a sum, and filtering on the sign of a sum silently scopes the
+search to unmixed operations.** This is the survivor-filter defect recorded above re-derived on a new
+quantity, adopted both times for the same reason: the filter *names the phenomenon under study*,
+which feels like precision and acts like a blind spot. In that log the blind spot correlated with
+sensitivity -- the visible item was an unrendered comment, the hidden four were retracted factual
+claims.
+
+**A count over a log that the act of reporting appends to is stale by construction.** A revision-
+history census published in a body whose revision history it counts is falsified by its own
+publication, and every figure in the measured instance was **exactly right** when taken. This is not
+staleness from delay, which a timestamp cures; it is staleness from self-reference, which no stamp
+can cure. Quote such quantities as a floor bound to a revision -- *at least N as of revision R* --
+never as a census.
+
+**Withhold a claim whose instrument is already known to be corrupt for that field.** An attempt to
+audit timestamps produced local and UTC renderings from a single field in a single result set -- the
+date-coercion corruption already catalogued here. The claim was dropped rather than published with a
+caveat, because **a caveat transfers the reader's trust to a reading that has none**, and the
+adjacent figures measured with sound instruments verified exactly.
+
+**The transport-corruption family splits by failure volume, not by mechanism.** Quote stripping in a
+native command's arguments and property access evaluated inside an argument string both fail loudly
+and cost minutes; a pattern match applied to an array instead of a scalar returns a **plausible
+negative** and costs a published false result. **The control that catches the silent class is one
+whose expected output is a specific known value**, because a control that merely "fires" is checked
+for truthiness -- precisely the operation the corruption subverts.
+
 **An instrument whose failure state is its alarm state manufactures the finding it was built to
 detect.** A freshness observable was replaced by a better one -- read a fetch cache's content rather
 than its timestamp -- and the replacement was compared three ways, with disagreement between the
