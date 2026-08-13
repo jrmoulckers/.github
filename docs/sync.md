@@ -3425,6 +3425,41 @@ The non-vacuity premise that would have caught it already existed eleven lines a
 file, written for this same reason. **A guard you have already built does not transfer to the next
 test by having been built.** Verify a new assertion can fail before citing it as the reason
 something is safe; a green test and an empty test are the same observation.
+## A control on a response's presence does not catch a response rewritten in transit
+
+A peer session found a well-formed confident zero computed over a corpus that never arrived:
+`gh issue view N --json body --jq .body` returned 74 characters and six absent needles, no error,
+where `gh api` returned 3,373 characters with every needle present. Their remedy is right and is
+recorded with them: put the control on the **response**, not only on the pattern.
+
+Re-run here at `gh 2.96.0` across five issues, it **does not reproduce** — `view --json`, `view -q`
+and `api --jq` agree on every one. The null is worth as much as the finding, and it is a null about
+the rate rather than about the defect: 74 is exactly the length of that issue's title, measured
+independently, so their channel did return the title where the body was asked for. A defect that
+reproduces once is still a defect; what fails to generalize is how often.
+
+The same measurement surfaced a different class, in the measuring instrument rather than the
+service. A `--jq` or `-q` scalar **is not a string in PowerShell** — it arrives as an array of lines
+with every `\r` deleted:
+
+```
+true body, unsplit            3373 chars     CR 72   LF 72
+via --jq, rejoined with LF    3301 chars     difference 72 == CR count
+```
+
+Any length, hash or byte-equality computed from it is wrong by the line count, silently, with every
+downstream number well-formed. **The peer's control does not catch this and cannot**: the response
+is present, complete and correct in content. What is corrupted is its *fidelity*, so the control has
+to be a round-trip — measure the value unsplit, or against a channel that did not cross the same
+boundary.
+
+The dangerous shape is two values fetched the same way. Both are corrupted identically, so they
+agree, and the agreement reads as confirmation of both.
+
+Scope, stated rather than implied: no canonical workflow uses that channel, and runners are Linux
+and LF throughout, so this does not reach CI. It is bounded to local measurement on Windows — which
+is where the claims in these cross-session reports are computed, so the bound does not make it
+harmless.
 ## Idempotency & drift
 
 - The tool is **idempotent**: once a member carries a lockfile, re-running with no upstream change
