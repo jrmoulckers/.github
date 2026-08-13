@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -271,6 +271,76 @@ Use {{{ scope }}}.
         },
       );
     },
+  );
+});
+
+// Reaching a validator directly proves the validator works. Only reaching it THROUGH the entry
+// point proves the entry point still calls it -- deleting `validateRoster(records, declared, errors)`
+// from validatePromptIntegrity left the whole suite green, because every test that covers rostering
+// calls into behaviour the dispatch is merely the delivery mechanism for. Each row corrupts a
+// fixture in a way only its own validator reports, so the needle is an isolation check, not just a
+// throw check: a bystander error would satisfy `assert.throws` and tell us nothing.
+const PROMPT_DISPATCH = [
+  {
+    call: 'validateUniqueNames(records, errors)',
+    files: { 'alpha.prompt.md': validPrompt('alpha'), 'beta.prompt.md': validPrompt('alpha') },
+    config: { prompts: ['alpha', 'beta'], agents: [], members: [] },
+    needle: 'duplicate prompt name "alpha"',
+  },
+  {
+    call: 'validateRoster(records, declared, errors)',
+    files: { 'alpha.prompt.md': validPrompt('alpha'), 'beta.prompt.md': validPrompt('beta') },
+    config: { prompts: ['alpha'], agents: [], members: [] },
+    needle: 'beta.prompt.md is not declared in canon.prompts',
+  },
+  {
+    call: 'validateMemberDependencyClosure(records, manifest, errors)',
+    files: { 'alpha.prompt.md': validPrompt('alpha', { agentDependencies: ['ghost'] }) },
+    config: { prompts: ['alpha'], agents: [], members: [] },
+    needle: 'references unknown canonical agent "ghost"',
+  },
+];
+
+test('every prompt validator is reached from the integrity entry point', () => {
+  for (const row of PROMPT_DISPATCH) {
+    withFixture(row.files, row.config, (root, manifest) => {
+      let message = null;
+      try {
+        validatePromptIntegrity(root, manifest);
+      } catch (error) {
+        message = error.message;
+      }
+      assert.ok(message, `${row.call} must be reached: its corruption produced no error at all`);
+      assert.ok(
+        message.includes(row.needle),
+        `${row.call} must be reached from validatePromptIntegrity: no ${JSON.stringify(row.needle)} in ${JSON.stringify(message)}`,
+      );
+    });
+  }
+});
+
+// The table above is maintained by hand, in the same repository as the dispatch it mirrors, which is
+// the very shape the test exists to catch one level up. Deriving the population from the entry
+// point's own source means a validator added to the dispatch without a row here fails rather than
+// passing unnoticed.
+test('the prompt dispatch table covers every validator the entry point calls', () => {
+  const source = readFileSync(join(REPO_ROOT, 'sync', 'lib', 'prompt-integrity.mjs'), 'utf8');
+  const start = source.indexOf('export function validatePromptIntegrity');
+  assert.ok(start >= 0, 'validatePromptIntegrity is no longer an exported declaration');
+  const end = source.indexOf('\nfunction ', start);
+  assert.ok(end > start, 'could not find the end of the validatePromptIntegrity body');
+  // Slice past the signature: the entry point's own declaration matches the call regex, and counting
+  // it would make the table permanently one row short of a set that can never be satisfied.
+  const body = source.slice(source.indexOf('\n', start), end);
+
+  const called = [...body.matchAll(/\bvalidate[A-Z]\w*\([^)]*\)/g)].map((match) => match[0]);
+  assert.ok(called.length > 0, 'extracted no validator calls, so this check would pass vacuously');
+
+  const covered = PROMPT_DISPATCH.map((row) => row.call);
+  assert.deepEqual(
+    [...new Set(called)].sort(),
+    [...new Set(covered)].sort(),
+    'the reachability table and the entry point dispatch must name the same validators',
   );
 });
 
