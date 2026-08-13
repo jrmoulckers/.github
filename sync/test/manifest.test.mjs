@@ -844,6 +844,42 @@ test('excluded is optional and never affects what is synced', () => {
 // Extracted so the premise below can be exercised against a constructed surface as well as the
 // real one. An inline guard is only ever run against a corpus that satisfies it, which makes it
 // indistinguishable from a guard that does nothing -- the failure this whole test exists to catch.
+// validateTokens can be blinded -- `return;` as its first statement -- with all 446 tests green.
+// Every other manifest validator is pinned by a test that constructs the state it rejects; this one
+// never was, because no defect in this repo has yet landed on the tokens block. Coverage that
+// accumulates from incidents leaves exactly the untouched validators undefended.
+test('a malformed tokens block is rejected on every field the validator owns', () => {
+  assert.doesNotThrow(
+    () => validateManifest(manifest),
+    'PREMISE: the real manifest must be clean, or these fixtures could pass on an unrelated error',
+  );
+
+  const badRepo = structuredClone(manifest);
+  badRepo.tokens.sourceRepo = 'not-an-owner-slash-name/extra/segments';
+  assert.throws(() => validateManifest(badRepo), /tokens\.sourceRepo must be "owner\/name"/);
+
+  const badPackage = structuredClone(manifest);
+  badPackage.tokens.package = '';
+  assert.throws(() => validateManifest(badPackage), /tokens\.package must be a non-empty string/);
+
+  const notAnObject = structuredClone(manifest);
+  notAnObject.tokens = 'jrm-tokens';
+  assert.throws(() => validateManifest(notAnObject), /`tokens` must be an object/);
+
+  // The block may be omitted only while no member enables tokens, so the absence arm needs a member
+  // that does -- otherwise it is a vacuous pass rather than a rejection.
+  const missing = structuredClone(manifest);
+  delete missing.tokens;
+  assert.ok(
+    (missing.members ?? []).some((member) => member?.tokens?.enabled === true),
+    'PREMISE: some member must enable tokens for the required-when-enabled arm to mean anything',
+  );
+  assert.throws(
+    () => validateManifest(missing),
+    /`tokens` config is required when any member enables tokens/,
+  );
+});
+
 function deliverySurface(members) {
   const origins = new Map();
   const externals = [];
