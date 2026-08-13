@@ -1220,6 +1220,18 @@ found, in the same call, before an absence is allowed to count as evidence. This
 as a test runner that reports one failure and zero tests — the shortfall lives in what was
 enumerated, and every downstream number stays well-formed.
 
+**Fixing a loud enumeration failure can install a quiet one, and the quiet one is worse.** That same
+runner, invoked on a directory, reported one failure and zero tests — obvious, so it was narrowed to
+an explicit glob over the test directory, which enumerated and passed. The glob then ran every
+night's verification while silently excluding a second test directory elsewhere in the repository:
+four hundred and nine passing tests reported as the full suite, with sixteen never executed. The
+first failure announced itself by being absurd; the replacement returns a large, plausible,
+*increasing* number and matches the previous run exactly, so nothing internal can reject it. **A
+narrowing remedy inherits the burden of proving its new boundary is the right one**, and the test is
+external: count the files the pattern should match, from the filesystem rather than from the runner,
+and require the totals to agree. A peer's differing suite count was what exposed it — the
+disagreement was mostly real commits, and the residue was mine.
+
 **Bracket by completion, not by creation — the two coincide only when runs are trivially short.**
 The reconciliation that established this was performed against runs refused for billing, which
 complete in three to thirteen seconds; there, the moment an attempt starts and the moment its results
@@ -2855,6 +2867,20 @@ it reached. And **a retraction is trusted more than the assertion it replaces**,
 something reads as rigour — so the over-broad version travels further and is questioned less. Before
 accepting a peer's counter-example, split your own claim into conjuncts and mark which ones the
 evidence actually touches.
+
+**A check whose apparatus determines its outcome is not a check**, and the two directions it fails
+in are worth holding together. A reconciliation closed as one figure plus a residual defined as the
+difference between that figure and the total — an identity over any two numbers, so it could not
+fail to close, and the residual silently absorbed the byte-versus-character delta that was the exact
+error class the census existed to detect. The correct split had already been computed and was
+discarded as "a third number" because the closing sum outranked it. Against that, a control suite
+asked *do you already catch this?* answered with six failures and an emphatic yes, while being a
+reconstruction that never ran, because the slicing that built it had removed a required binding from
+above the insertion point. **One manufactures a confirmation and the other manufactures a
+withdrawal, and neither has a state in which it fails for the reason under test.** So the question
+to ask of any verification step is *what would this have looked like if the thing I am testing were
+false?* — if the answer is "the same", it is ceremony. Note the adjacency: a broken control is an
+apparatus for producing the over-broad retraction described above.
 
 **A run's conclusion is not a delivery outcome, which is the same split one level down.** The
 fleet-wide run restored to that peer's list carries status `failure` and reads as *no delivery* —
@@ -4779,6 +4805,19 @@ touching sources it actually receives — 60 were `docs/`, which is never distri
 plausible number, so **a rule that names a narrow population while remaining satisfiable by a wider,
 cheaper measurement will be satisfied by the cheaper one.** State the disqualifying set, not only the
 qualifying one.
+
+**A rule written into a hub-local file is not canon, however it is labelled.** Two well-formed rules
+were authored, reviewed, merged and announced as canon under `docs(canon):` commit subjects, into
+`docs/sync.md` — measured above as a directory members never receive. Confirmed from the other end:
+the most recently synced member returns `404` for that path while holding the distributed
+instructions file. So the work was real, correct, and invisible to every repository it was written
+for, and **nothing in the authoring, review or merge path can detect it**, because each of those
+steps is satisfied by a correct edit to the wrong file. The commit subject is the trap: naming a
+change `canon` is a claim about its destination that no check reads. **Before merging a rule, verify
+the file you edited is one a member actually holds** — one request against a member checkout settles
+it, and it is the only step in the chain that looks at distribution at all. This is the
+wrong-object failure recorded at the attribution heading, arriving in the delivery path: authentic,
+reviewed, merged, and about a file nobody downstream reads.
 
 **And record it where it outlives the conversation, not just the PR.** Everything establishing a
 residual — the count, the window, the method — typically lives in a thread and a merged PR body in
