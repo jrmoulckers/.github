@@ -7628,6 +7628,27 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**A remedy that is absent locally is indistinguishable from a remedy that does not exist.** A member
+reported that a generated lockfile sat inside its lint population, and concluded the only available
+fix was an ignore line nobody had written -- true of that tree, and false of the fleet: three
+sibling members had each added exactly that line, on three dates, in three separate pull requests,
+none promoted upstream. One call per member finds it. This is the companion of *a file that has
+never failed a check produces the same evidence as a file exempt from it*, and it fails in the more
+expensive direction, because **a missing remedy prompts invention while a missing failure only
+prompts silence**. The fleet-level form is worse than the local one: a fix independently discovered
+three times downstream and zero times upstream is not three fixes, it is one unfiled defect plus
+three members who will each pay again after the next delivery.
+
+**Conformance that rests on a shared default is one observation, not one per member.** Four members
+lint a generated file that passes only because a hardcoded `2` in the generator matches the
+formatter's default indent; every configured member in the fleet runs that default, and no test on
+either side asserts the relationship. Counting the passes as independent evidence inverts the risk.
+**Independent coincidences degrade one member at a time, so the first failure arrives as a warning
+while the others can still be protected; a single shared default fails every dependent member in the
+same release, with no early instance and no staged signal.** Before treating repeated agreement as
+robustness, find the one value it traces to -- and if it traces to one, the count of passing members
+measures the blast radius, not the confidence.
+
 **A reconciliation that succeeds has not proved it found the only discrepancy.** The entry below was
 demonstrated on a pair of `549` against `243`, attributed entirely to population. Measured, the pair
 differs on two axes: at a fixed instant the counts are `504` and `243`, and eleven hours later they
