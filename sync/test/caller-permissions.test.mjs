@@ -244,6 +244,91 @@ test('observations include default and open pull-request heads', () => {
   assert.equal(result.refs[1].findings[0].state, 'unsafe');
 });
 
+// Every fixture in this file supplies `truncated: false`, so the disclosure arm has never been
+// exercised: on a listing that fits, a working disclosure and a deleted one print the same bytes.
+// Deleting `if (listing.truncated)` survived all 452 tests.
+//
+// This is the rule at `branch-reuse.test.mjs:404` — a reporting lookup never answers failure with a
+// bare empty collection — one step further out. That one separates failure from emptiness; this
+// separates PARTIAL from COMPLETE. What is being decided here is whether any repository calls a
+// canonical reusable workflow with unsafe permissions, so collapsing the two publishes "no unsafe
+// callers" when it means "I did not inspect all the callers" (#1065).
+test('a truncated pull-request listing is reported unknown, not as a clean sweep', () => {
+  const result = observeCallerPermissions(
+    {
+      root: 'checkout',
+      repo: 'owner/repo',
+      backbone: BACKBONE,
+      token: 'token',
+      includePullRequests: true,
+    },
+    {
+      inspectRoot() {
+        return { findings: [{ state: 'inherited' }], unknown: [] };
+      },
+      listPullRequests() {
+        return {
+          pullRequests: [{ number: 7, headRefName: 'seen', headRefOid: 'a'.repeat(40) }],
+          truncated: true,
+        };
+      },
+      readPullRequestSources() {
+        return [
+          {
+            path: '.github/workflows/ci.yml',
+            text: workflow({ workflowPermission: '  contents: read' }),
+          },
+        ];
+      },
+    },
+  );
+
+  assert.ok(
+    result.unknown.some((item) => /remaining heads were not inspected/.test(item.message)),
+    'a truncated listing must be disclosed as unknown rather than silently dropped',
+  );
+  // The heads it did reach are a real observation, so falling silent about them would be its own
+  // defect — and would let this test pass against a run that inspected nothing at all.
+  assert.deepEqual(
+    result.refs.map((ref) => ref.label),
+    ['default branch', 'PR #7 (seen)'],
+    'the heads that were inspected are still reported',
+  );
+});
+
+// The detection this depends on lives in `listOpenPullRequests`, which shells out to `gh` and has no
+// injectable seam, so it is pinned structurally instead. The relationship is three-way and only the
+// whole of it works: the query must ask for MORE than the slice keeps, the slice must bound the
+// returned list, and the comparison must test the raw count against that same bound.
+//
+// Requesting exactly `limit` is the dangerous one. At exactly `limit` rows, "exactly limit open pull
+// requests" and "more than limit" are indistinguishable, so detection is disabled two layers below
+// the disclosure — while reading as an off-by-one a reviewer would tidy up. Each of the three was
+// mutated independently and each survived the full suite.
+test('truncation stays detectable at the source: the listing asks for one more row than it keeps', () => {
+  const source = readFileSync(join(REPO_ROOT, 'sync', 'lib', 'git.mjs'), 'utf8');
+  const start = source.indexOf('export function listOpenPullRequests(');
+  assert.notEqual(start, -1, 'precondition: expected to find listOpenPullRequests to check');
+  const next = source.indexOf('\nexport ', start + 1);
+  const body = source.slice(start, next === -1 ? source.length : next);
+
+  assert.match(
+    body,
+    /String\(limit \+ 1\)/,
+    'the query must request one more row than the slice keeps, or truncation cannot be observed',
+  );
+  assert.match(
+    body,
+    /\.slice\(0, limit\)/,
+    'the returned list must be bounded by the same limit the count is measured against',
+  );
+  assert.match(
+    body,
+    /truncated: pullRequests\.length > limit\b(?! \+)/,
+    'truncation must be reported by comparing the raw row count against that same limit',
+  );
+});
+
 test('inaccessible pull-request state is non-fatal and reported unknown', () => {
   const listingFailure = observeCallerPermissions(
     {
