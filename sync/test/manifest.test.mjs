@@ -6,6 +6,11 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { readdirSync, existsSync } from 'node:fs';
 import {
+  engineErrorFragments,
+  engineSourcesByGit,
+  engineSourcesByWalk,
+} from './engine-sources.mjs';
+import {
   applyManifestDefaults,
   BREADTH_FLOOR,
   loadManifest,
@@ -929,4 +934,64 @@ test('an accepted failure must name a member, a signature, and a route to its fi
   const stranger = base();
   stranger.expectedFailures[0].repo = 'jrmoulckers/not-a-member';
   assert.throws(() => validateManifest(stranger), /is not in `members`/);
+});
+
+// An exemption is trusted more than the check it narrows, because narrowing reads as precision --
+// and nobody re-derives an exemption's population. `validateExpectedFailures` justifies `signature`
+// by narrowness ("pins one fault rather than granting a repository standing amnesty") and enforces
+// only non-emptiness. Those are different properties. Measured before this guard existed: with the
+// signature set to "e", the real manifest validates clean and `partitionFailures` classifies
+// `fatal: could not write lockfile: no space left on device` as the accepted 403, so the run goes
+// green on a fault nobody has seen.
+//
+// The remedy is deliberately not a minimum length. `2832257` retracted a length-based remedy in
+// this repo, and a threshold is an arbitrary proxy for the property that actually matters: does
+// this string absorb faults other than the one it was recorded for? So the corpus of "other faults"
+// is derived from the engine's own `new Error(...)` sites, and a signature contained in one of them
+// is one that would absorb it.
+//
+// LIMITATION, stated because the check must not imply more than it can see: this is a lower bound.
+// It enumerates faults the engine raises itself and cannot enumerate messages from git, the network
+// or the GitHub API -- which is where the live signature comes from. "failed" collides with nothing
+// here and is still a bad signature. This catches a real subclass and is silent about the rest.
+const absorbedBy = (signature, fragments) =>
+  [...fragments].filter((fragment) => fragment.includes(signature)).sort();
+
+test('an accepted signature must not absorb the failures the engine raises itself', () => {
+  // The decoy corpus is only as wide as the population it reads, and a narrowed population stays
+  // internally consistent -- the size floor below passes under exactly the narrowing it guards
+  // against. So the walk is falsified by an enumeration that shares none of its logic first.
+  const walked = engineSourcesByWalk();
+  assert.deepEqual(walked, engineSourcesByGit(), 'engine source walk disagrees with git ls-files');
+
+  // The cross-check above is weaker than it looks and the limit is worth naming: both enumerations
+  // apply the same `isEngineSource` predicate, so narrowing *the predicate* leaves them agreeing.
+  // A mutant that reduced the corpus to `sync/lib` passed this line and died only in the seam
+  // suite. So the entry points are named here too, and this suite fails on its own.
+  for (const entry of ['sync/index.mjs', 'sync/lib/git.mjs']) {
+    assert.ok(walked.includes(entry), `${entry} is shipped engine source and must raise decoys`);
+  }
+
+  const fragments = engineErrorFragments(walked);
+  assert.ok(fragments.size > 10, `only ${fragments.size} engine error fragment(s) discovered`);
+
+  const manifest = loadManifest(REPO_ROOT);
+  const recorded = manifest.expectedFailures ?? [];
+  assert.ok(recorded.length > 0, 'no expectedFailures recorded — this check would be vacuous');
+
+  for (const entry of recorded) {
+    assert.deepEqual(
+      absorbedBy(entry.signature, fragments),
+      [],
+      `expectedFailures signature for ${entry.repo} is broad enough to absorb an engine error`,
+    );
+  }
+
+  // Positive control, constructed and routed through the same predicate the assertion uses. A
+  // control that re-implements the comparison passes while the production copy is weakened.
+  const overBroad = absorbedBy('e', fragments);
+  assert.ok(
+    overBroad.length > 1,
+    `a one-character signature must be reported as absorbing many faults, got ${overBroad.length}`,
+  );
 });

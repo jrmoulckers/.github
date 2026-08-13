@@ -3053,7 +3053,43 @@ it was written into.
 There is a second-order lesson in which duplicate swallowed the edit. It was the transcribed
 header comment — the very surface whose independent decay motivated the guard in that file in the
 first place. **A duplicated claim does not only rot; it absorbs the probes aimed at the original.**
+### An exemption is trusted more than the check it narrows
+
+A check invites scrutiny because it makes a claim. An exemption carved out of that check invites
+none, because narrowing reads as precision — the author evidently thought about the population and
+found a case the rule should not reach. Nobody re-derives the exemption's population afterwards, so
+an exemption scoped wider than its own justification is the quietest way to disable a rule while
+leaving every appearance of enforcing it. The failure has a signature worth recognising: a
+prohibition that reports zero, where the zero is manufactured by the exemption rather than by the
+tree being clean.
+
+The mechanism is that **a justification and its predicate are separate artifacts, and only one of
+them executes.** A docstring may justify an exemption by ownership while the predicate keys on
+presence, and presence is satisfied by exactly the population the rule exists to catch. Both
+sentences can be written in the same hour by the same author and never be compared, because nothing
+compares them. When you write an exemption, derive its population from the property named in the
+justification and assert that population in a test; when you read one, do not accept the docstring
+as evidence of what the code does.
+
+The sharpest instance is an exemption that ships in the same change as the widening it cancels. The
+two halves net to no observable difference, the suite stays green, and the commit reads as a fix.
+
+### A cross-check between two enumerations cannot falsify a predicate they share
+
+Deriving a corpus from the property that makes a file subject to a rule, and then cross-checking
+that derivation against an independent enumeration such as `git ls-files`, is the correct remedy for
+a hand-written corpus. It is not a remedy for a hand-written *predicate*. Once both enumerations
+call the same `isEngineSource`, narrowing that predicate shrinks both sides identically and they go
+on agreeing — the cross-check passes on a corpus reduced to nothing in particular.
+
+The two claims are separable and want separate controls: the cross-check pins *how the files were
+found*, and a named positive control naming a specific known member pins *what counts as a member*.
+Assert that a particular entry point is in the corpus, by name, so that narrowing the predicate
+fails a test that says which file went missing. A tally cannot do this; only a name can.
+
 ## Calling reusable workflows
+
+
 
 Studio product repos call the backbone's reusable workflows at a reviewed immutable commit SHA:
 `uses: jrmoulckers/.github/.github/workflows/reusable-*.yml@<reviewed-commit-sha>`. The reference
