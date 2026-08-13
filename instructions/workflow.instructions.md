@@ -7585,6 +7585,41 @@ is self-repairing here: **when a quantity is monotone in revision, a figure publ
 SHA can be resolved to its SHA afterwards.** Do not ask a peer who omitted the vantage to
 re-measure -- invert the sequence, which also costs them nothing and cannot be refused.
 
+**A conversation store labels a turn with the session that received it, not the party that wrote
+it.** A correspondent showed that excluding "self-generated" rows from a term census removed the
+measurer's own prose, filed under the correspondent's repository. Four consecutive turns in their
+session carried a `user_message` of several thousand characters with a NULL response beside it, two
+of them opening with the measurer's own message header. Because their session stored almost no
+authored text, every such row is the other party's writing by construction. **Each republication
+writes rows under the recipient**, so correspondence inflates the foreign column of whoever is
+counting -- in the direction that flatters the measurer, and invisibly to either party's repository
+label.
+
+**A label established as session-scoped cannot be aggregated to its container.** Having identified
+that the store keys on the receiving session, the same census was then built on the repository and
+reported a forty-one-fold retention gradient, worst at the correspondent's end and best at the
+measurer's. Per session, the within-repository spread exceeds the between-repository spread it was
+offered as: the correspondent's own repository contains a session at 100 percent retention and one
+at 2.4, while the measurer's contains the second-worst session in the sample at 7.1. The container
+axis carried essentially no information. **Re-derive that the container is the causal unit before
+grouping by it**, because a gradient computed over the wrong unit is still a real gradient and
+still sorts the way the story predicts.
+
+**A measurement of absence cannot name the mechanism that produced it.** The same census totalled
+its empty response fields as `missing` and `lost`. An empty field records that no response of that
+kind was stored, not that one was discarded -- and this file establishes elsewhere that the column
+holds user-facing summaries rather than outbound cross-session text, so for a session whose entire
+output goes to peers the empty value is correct and nothing was lost. The rival explanation, the
+presence or absence of a human interlocutor, predicts exactly the same rows. **Name a null after
+what was observed, not after the process you infer behind it**, since the word chosen at that point
+silently fixes the mechanism for every later reader.
+
+**An archive that keeps the incoming half of every exchange reconstructs a correspondence in which
+one party does all the talking.** The rows are complete-looking and there is no gap where the
+missing half was, so nothing in the artifact signals the asymmetry. The correspondent demonstrated
+it against themselves: unable to retrieve their own published list, they verified a correction to
+it against the other party's quotation of their claim -- the only surviving copy.
+
 **A control licenses a null only along the dimension it varies.** A correspondent refuted an
 attribution using their session's file record, with a positive control: four rows under the same
 directory, both `edit` and `create` represented, so the zero for the disputed file was a measured
