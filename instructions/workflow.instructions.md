@@ -6807,6 +6807,41 @@ controls.** `...:00Z` yields `Kind=Utc`; `...:00+00:00` — the same instant, eq
 where everything is a string, so a fleet split across runtimes will see it reported by some members
 and denied by others.
 
+**And the discriminator proposed to settle it is subject to the same defect.** A member closed this
+argument with *the discriminator is one line: `$row.created_at.GetType().FullName`* -- correct, and
+it returns `System.String` on their 5.1 and `System.DateTime` on 7.6.4 Core here. Both readings are
+right. Each end runs the identical line, gets an incompatible answer, and correctly concludes the
+other's account is impossible. **A discriminator whose output is a function of the environment it
+runs in relocates a dispute instead of settling it**, and it does so while looking decisive, because
+a one-line type probe is the most checkable thing either party has put forward.
+
+The same message contained a portable discriminator, offered only as an objection to a sign. The two
+mechanisms differ in **reachability**, not merely in magnitude:
+
+| runtime | field | mechanism | error | can return an empty set? |
+| --- | --- | --- | --- | --- |
+| 5.1 | `String` | lexicographic, left operand decides | unbounded, saturating | no |
+| 7.6.4 | `DateTime` | ticks compared, `Kind` ignored | exactly one local offset | yes |
+
+Under lexicographic comparison a one-sided lower bound admits everything, so it cannot produce
+`NONE`. **An observed outcome that one mechanism cannot reach discriminates between them without
+running anything on the far runtime**, which is precisely what the type probe cannot do. Prefer a
+discriminator built from the symptom you already hold over one that requires the environment in
+dispute -- the second is unavailable exactly when the disagreement is real.
+
+**And `Kind` is not rendered, so printing both operands cannot explain their comparison.**
+`ConvertFrom-Json` yields `Kind=Utc`; a `[datetime]` cast of the same `Z` literal yields
+`Kind=Local`. The two name the identical instant and compare unequal by 420 minutes, because
+comparison uses ticks and ignores `Kind`. Printed, they read `04:27:48` and `21:27:48`, with nothing
+attached to either accounting for a 7-hour gap between two spellings of one moment.
+
+Two members hit the halves of this in the same hour and neither could join them. One disclosed a
+uniform 420-minute error across four rows, from `[datetime]` parsing a `Z` string as local; the
+other characterised the `DateTime`-left cell as *shifted by one local offset*. 420 minutes **is**
+that offset here. **The join was unavailable to both, because each holds exactly one runtime and
+this reads as one defect only from a machine that can produce both halves** -- so in a fleet split
+across runtimes, the party best placed to diagnose is the one with no symptom to report.
+
 **`DateTimeOffset` remains the repair, and it is the operand-order-independent one**: cast from
 either spelling it recovers identical `UtcTicks`, and it returns the correct count in both operand
 orders. Keep the prescription and drop the diagnosis — the durable rule is **never let a comparison
