@@ -476,6 +476,45 @@ test('a file whose lock entry was rekeyed to a new base is reported as abandoned
   });
 });
 
+// The sweep that finds the file above is driven by rekey PAIRS, not by their count: `abandonedBases`
+// recovers the vacated directory by stripping from `from` the plan-relative tail it shares with
+// `targetPath`. At a single relocated file a mispairing cannot be represented, so the case above
+// cannot exercise that derivation. With two, a rotation of the `from` fields keeps the lockfile and
+// the rekey count correct and empties this report entirely — measured under #1053.
+test('a base move of several files still identifies the vacated base and sweeps what is stranded', () => {
+  withTmp((root) => {
+    const OLD = 'apps/web/vendor/@jrm/tokens';
+    const NEW = 'vendor/@jrm/tokens';
+    const RELS = ['native/compose/JrmTokens.kt', 'native/swift/JRMTokens.swift'];
+    assert.ok(RELS.length >= 2, 'precondition: one pair cannot be mispaired, so the sweep needs two');
+
+    const at = (base) =>
+      RELS.map((rel) => ({
+        ...spec(`/* ${rel} */\n`),
+        name: rel,
+        targetPath: `${base}/${rel}`,
+        targetBase: base,
+      }));
+
+    apply(root, at(OLD), readLock(root, BACKBONE), { write: true });
+
+    // Never written by the plan and never recorded in the lock, sitting in the base being vacated.
+    // Nothing points at it, so only the base sweep can name it — and the sweep exists only because
+    // a correctly paired rekey identifies the base.
+    const stranded = `${OLD}/native/compose/Legacy.kt`;
+    mkdirSync(join(root, ...dirname(stranded).split('/')), { recursive: true });
+    writeFileSync(join(root, ...stranded.split('/')), '/* stranded */\n', 'utf8');
+
+    const { report } = apply(root, at(NEW), readLock(root, BACKBONE), { write: true });
+
+    assert.equal(report.rekeyed.length, RELS.length, 'precondition: every entry follows the base');
+
+    const found = report.abandoned.find((item) => item.targetPath === stranded);
+    assert.ok(found, 'the vacated base must be identified, so the file stranded in it is named');
+    assert.equal(found.tracked, false, 'and named untracked: no entry survives to verify a deletion');
+  });
+});
+
 test('an orphan that could not be rekeyed is reported while its file remains', () => {
   withTmp((root) => {
     const s = spec();
