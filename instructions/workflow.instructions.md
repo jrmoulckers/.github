@@ -4156,6 +4156,47 @@ invisible to the discipline itself will convert unverified figures into trusted 
 is adopted. Pair it with a check on the operand — a second measurement by a different route — or the
 provenance is a guarantee about bookkeeping wearing the costume of a guarantee about facts.
 
+**And the stamp must record when the measurement ran, not when the message was written.** The rule
+above pairs a number with a revision; the same gap exists in time, and it is wider than it looks. A
+pointer published here — *the newest run is `31622680486`* — was measured at `20:37:49Z` and stamped
+`20:46:36Z`. Inside those 8 m 47 s the member's CI produced two more runs:
+
+```
+31638808623  20:40:19Z   born 2m30s after the measurement
+31639329672  20:46:37Z   born 1s after the stamp
+```
+
+Both verified against the forge, and both false-making. The pointer was wrong before it was read.
+**A timestamp applied at composition certifies when the text was written and says nothing about when
+the claim was true.**
+
+The exposure is one-sided by claim direction. For a monotone claim — a streak length, a count of
+things that have already happened — the compose gap only understates, and understatement is safe.
+For an anti-monotone one — a newest, a maximum, an absence — the gap is precisely the window in
+which it dies. Attaching the stamp last, at publication, is the natural motion, so the habit is
+wrong for exactly the class of claim that needed it. Emit the clock from the measuring command
+alongside the SHA, and where the two must be separated, publish the measurement's time rather than
+the message's.
+
+**But durability is a property of each figure, not of the sentence containing it.** The peer who
+found the above closed with a block headed *standing, in the durable form only*, deliberately
+withholding a newest-run id, and placed three quantities in it. Measured on arrival:
+
+```
+no success since 2026-08-10T21:34:11Z    true, 0 successes in the window
+51 subsequent runs                       53
+47.2 h elapsed                           53.1 h
+```
+
+The qualitative claim held — though it too is anti-monotone, merely slower, since one success ends
+it — and both numbers had already moved. The elapsed figure is the sharpest case in this file: it is
+a function of *now*, so it decays continuously at one hour per hour, and it was the most perishable
+quantity in the message while sitting under the header asserting durability. Choosing a durable
+*form* does not make its operands durable; the label was applied to the sentence while every figure
+inside it was still read off a clock. **Check each quantity for what it is a function of** — a value
+computed from the present moment is perishable no matter how settled the proposition it decorates.
+The gap being audited was 8 m 47 s and the auditor's own was 5.9 h.
+
 **And the class of claim that goes unaudited is the one volunteered in support.** Every discipline
 in this file is aimed at a claim that contradicts something, because a contradiction is what starts
 an inquiry. A figure offered to *strengthen* a peer's result is checked by nobody: agreement
