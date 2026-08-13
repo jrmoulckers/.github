@@ -5346,8 +5346,9 @@ member main                      9,834 B   correction ABSENT
 member #37 head 1f98946         23,263 B   correction PRESENT   167 of 183 behind
 ```
 
-The pending copy holds 5.5% of canon and is 167 revisions stale — by any aggregate measure the worst
-artifact in the comparison — and it carries the disputed qualifier in full. The enrichment thesis
+The pending copy holds 5.5% of canon and is 167 revisions stale -- figures this file then
+misused as a ranking, corrected below -- and it carries the disputed qualifier in full. The
+enrichment thesis
 below is exactly what makes the inference feel sound: undelivered revisions really are
 disproportionately corrections, so a large lag really does raise the odds that any given correction
 is missing. Raising the odds is not deciding the case. **A distributional claim about the backlog
@@ -5355,6 +5356,56 @@ cannot settle whether one named passage is in it**, and the error runs both ways
 inference, that a pending delivery must carry a recent fix, was equally unlicensed and merely
 happened to be right. Grep the delivery for the sentence. It costs one request and it is the only
 thing that answers.
+
+**And a ratio between a member rendering and canon measures neither lag nor completeness.** That
+5.5% was published here as a ranking -- *by any aggregate measure the worst artifact in the
+comparison*. Measured across the whole fleet at the same path, by blob id rather than by size:
+
+```
+blob      bytes     members
+5932d34   23,263    jrm-recipes, score-king, finance, engineering
+2cf4679   12,537    cartridge, product
+50c3b25    9,834    libro (default branch)
+dd37364   48,840    docket
+28c236a  308,014    studio (canon source)
+--            --    homelab, windows -- not retrievable, non-zero exit
+```
+
+**Four healthy members hold the pending delivery byte-for-byte.** So 5.5% is the current member
+rendering, not a deficit: a rendering is a filtered projection of canon, and a ratio against the
+source measures the filter. The figure was not false -- 167 of 183 is true of that member and
+equally true of four nobody had called stale -- it was **non-distinguishing**, and it got
+attributed to one
+member because only one member was measured. The peer made the mirror error in the same exchange,
+ranking itself *measurably the furthest behind* from its own single-member reading, so two parties
+derived opposite comparative claims from populations of one. **A superlative needs the population it
+ranks over, and neither of us had one.**
+
+Two things the cohort view supplies that a pairwise comparison cannot. The peer's *working branch*
+at 12,537 B is not a private intermediate state -- it is the live rendering of two other members,
+so
+one member's stale copy is another's current one and "behind" is meaningless without a named cohort.
+And the blob id is the better instrument: equal byte counts across repositories are evidence, equal
+blob ids are proof, and both cost the same request. Ranking by cohort also relocates the remedy,
+since a wave that stopped is one dispatch for everyone rather than a special request for the member
+that happened to be measured.
+
+**And in a double-quoted PowerShell string the backtick is the escape character, so a probe can
+delete its own needle.** A peer searching a delivery for a passage containing a code span wrote two
+probes -- one bare, one with markdown backticks -- and got `false` from both:
+
+```
+"startup_failure` with no log"   ->  startup_failure with no log     27
+'startup_failure` with no log'   ->  startup_failure` with no log    28
+```
+
+The two independent probes were byte-identical after parsing, so the agreement was one measurement
+reported twice. This fails **silently toward the negative**: a deleted delimiter can only prevent a
+match, never create one, so the error is invisible in exactly the direction that manufactures a
+false absence. And note what broke -- writing the probe a second way *is* the standard defence, and
+the shell collapsed both forms before either ran. **A redundancy the transport can silently remove
+is not a redundancy.** Single-quote every literal needle, or hand it to a runtime that will not
+reparse it; a doubled backtick survives, which is why the failure is intermittent rather than total.
 
 The same measurement exposes a naming collision worth stating separately. *The in-flight copy* named
 three objects in one message — the member's default branch at 9,834 B, its local working branch at
