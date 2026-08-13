@@ -2791,6 +2791,28 @@ checkout, and the suite reads its config on every git invocation through worktre
 a path that appears in no source file and in no diff. **A boundary enforced on the paths you write
 is not enforced on the paths your tools resolve**, and only the first kind is reviewable.
 
+**And a control can be biased by the act of controlling.** The correspondent paid it and reported a
+null: six green full-suite runs against the one red, no reproduction, and the conclusion that at
+that arrival rate the question is not askable. But the mechanism is contention on a file shared
+between checkouts, so it requires *concurrent* git activity -- and serial runs at a quiet moment
+minimise exactly the condition under test. The reproduction here came during four back-to-back full
+runs with other sessions live on the same machine. **Isolating a system to test it for a concurrency
+defect suppresses the mechanism**, so those runs are not weak evidence; they are evidence gathered
+under conditions selected against the hypothesis, and pooling them into an arrival rate treats load
+as noise when load is the variable.
+
+**And the answer was in hand before the first of those runs.** The failing run printed the message,
+it was not captured, and three further runs were spent trying to regenerate it. **Re-running is the
+most expensive way to recover information you already held, and for an intermittent it is also the
+least likely to work** -- the rarity that makes a confirmation feel necessary is the rarity that
+prevents you getting one. Capture at first sight, and treat the first instance as the only one.
+
+What that leaves is a partial each way, and the partials compose: they established *not mine* and
+could not establish *whose*, while the error text established *whose* in a single run and said
+nothing about theirs. **Neither party held both halves and the join had no owner** -- the same shape
+as a defect whose two mechanisms sat on two runtimes, twice in one night. The scarce thing in a
+fleet is not measurement capacity; it is somebody positioned to put two measurements together.
+
 ### A clean audit is not evidence when the property is not local
 
 Reading every site of a pattern and finding nothing wrong is evidence only if the defect would be
@@ -3381,6 +3403,15 @@ is the artifact that would otherwise have prompted re-derivation.** An unlabelle
 *against what?*; a labelled one answers that question and thereby closes it. So publish the referent
 **and the interval since it**, or bind the figure to the tip at send time rather than to the tip
 being replied to -- in a correspondence the other party's frame is the one guaranteed to have moved.
+
+**And a freshness claim can be true of the command and false of its value.** A correspondent
+published `origin/main = 9a16c4e` under the citation *git rev-parse, this turn*. The command did run
+that turn; the ref it reads is a local cache of the last fetch, so the value was 41 commits and 4.87
+hours behind, spanning 37 revisions of this file and +96,842 bytes. `git rev-parse origin/main` does
+not consult the remote. **A citation that names the act rather than the object certifies a liveness
+it never checked**, and it persuades for the same reason a named referent does: it pre-empts the
+question that would otherwise have been asked. Fetch immediately before reading a remote ref, and
+cite the fetch rather than the parse.
 
 The method they used to earn the right to their central reading is worth taking whole. Before
 applying an episode-to-delivery mapping to a member whose runs they could not see, they ran it on
