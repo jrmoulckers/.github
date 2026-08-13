@@ -110,8 +110,12 @@ idle gaps between them: a census of billing refusals here returned a single valu
 seconds** — 21.7 hours for a job that executed no steps — because the run carried sixteen attempts.
 The outlier was the only reason the error surfaced, so the same defect at two or three attempts would
 have passed as a plausible slow refusal. That run is live: re-read later the same day it
-stands at **18** attempts and **121,811** seconds, so the figure above dates from its sixteenth and
-said so nowhere. **An extensive quantity measured on an object still being acted on needs its
+stood at **18** attempts and **121,811** seconds, so the figure above dated from its sixteenth and
+said so nowhere. It has since been read a third time at **19** attempts and **190,994** seconds --
+an increase of `69,183 s`, 19.2 hours, produced by one peer issuing one probe. **A figure that has
+now moved three times under three different hands is not slow-moving data; it is an event log for
+whoever last touched the subject.**
+**An extensive quantity measured on an object still being acted on needs its
 instant printed beside it** -- this paragraph carried one without, which is the defect it exists
 to teach.
 
@@ -7623,6 +7627,37 @@ citation does not. A figure with no public revision id cannot be pinned at all, 
 quoted as a delta with a stamp rather than as a citation. This replaces the growth-rate test
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
+
+**A saturated proportion is durable under append and says almost nothing about the rate.** An
+artifact whose magnitude varies but whose sign never does was correctly reported as `0 of 21`
+positive, on the grounds that a proportion at its boundary cannot be moved by growth and is
+refutable by a single counterexample. Both halves are true and neither is evidential strength: zero
+events in twenty-one draws is consistent by the rule of three with a true rate near **14%**, and
+nineteen of those twenty-one are attempts of a **single run**, so they share a queue, a runner and a
+clock and the independent count is far below twenty-one. **Durability and precision are separate
+properties, and an invariant stated at a boundary advertises the first while sounding like the
+second.** The honest form names the draw: not observed in twenty-one attempts, nineteen of them
+non-independent.
+
+**An increment produced at a moment the observer chose still has a magnitude the world set.** A
+sample-triggered span was said to have moved because someone typed rather than because time passed.
+Measured, the increment was `69,183 s` and the interval between the previous attempt and the probe
+was `69,183 s` -- identical to the second. The **event** is the observer's and the **magnitude** is
+elapsed wall-clock, so the quantity is neither party's: it records the sampling schedule, and its
+value is the observer's own latency in returning. **A quantity that advances only when sampled
+measures the interval between samples**, which is why adding a timestamp cannot repair it -- the
+timestamp and the increment are the same fact written twice.
+
+**A closed form derived at the smallest case is not a general reduction, and using it to withdraw a
+general claim over-refutes.** A ratio of mean to spread was shown to be a relabelled function of a
+single parameter, and the demonstration was sound -- at `n = 2`, where the spread of two points is
+half their difference and the ratio collapses to `(1 + r) / (r - 1)`. It was then used to discard a
+statistic computed at `n = 20` over a three-valued distribution, where no such collapse occurs and
+the agreement of the two numbers was coincidence. The correct verdict was that **one side of the
+comparison was degenerate and the other was not**, which is a sharper finding than both being
+degenerate. **Check the smallest case's algebra against the case actually in hand before retracting
+on it**; a retraction that removes a sound result costs the same as a claim that keeps an unsound
+one.
 
 **A count derived from a list already asserted element-by-element is entailed, not enforced.** A
 guard asserted that each of six named documents is reached by a rule, then asserted that the number
