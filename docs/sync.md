@@ -3209,6 +3209,38 @@ opposite direction: errors were matched against `reusable-ci-lint.yml` while the
 `"reusable-ci-lint"` without the extension, so a correctly-named error read as unnamed. One sweep,
 one transcription defect, once in the sample and once in the needle.
 
+## A stale trigger does not fail, it disappears
+
+`native-smoke-harness.yml` restricts itself to three paths, and the list is correct: the reusable
+workflow it calls, itself, and the fixture its jobs run in. Nothing checked that. The list is a
+hand-written transcription of what the workflow depends on, kept in step by whoever remembers, and
+it is the third of these in this engine after the flag header and the ceiling map.
+
+What makes this one worth a separate entry is the failure mode. A stale filter does not produce a
+red check or even a misleading green one -- it produces **no run at all**. The workflow renders in
+the pull request as an *absent* check, and a reader who never saw it has no line to be suspicious
+of. That is strictly quieter than a warn-only check, which at least prints something to ignore, and
+quieter again than a check that fails for the wrong reason. **The information is not in the wrong
+place; there is no information.**
+
+Everything the filter must cover is recoverable from the workflow: the file itself, every
+`uses: ./`, and every `working-directory:`. Deriving the requirement removes the transcription, and
+the check is generic, so a paths filter added to some future workflow is covered on arrival rather
+than needing an entry here.
+
+Two properties the check has to have, both learned from the failure mode rather than the happy path.
+It **fails closed** on an unparseable or empty `paths:` block, because falling through to an empty
+glob list makes every coverage question answer false, which reads as *nothing is excluded* -- the
+exact inverse of what an unreadable filter means. And prefix matching **requires the separator**,
+so `.github/fixture/**` does not quietly cover `.github/fixture-extra/`.
+
+The instrument note belongs here too. A mutant that unwired the validator from the integrity run
+**survived**: every assertion called the validator directly, so the whole check could be
+disconnected with the suite still green. That is the same content-versus-reachability split as the
+`--help` text that nothing printed -- a validator that is correct and never reached is worth
+exactly nothing, and only mutating the *wiring* rather than the logic exposes it. Mutate the call
+site, not just the callee.
+
 ## Idempotency & drift
 
 - The tool is **idempotent**: once a member carries a lockfile, re-running with no upstream change

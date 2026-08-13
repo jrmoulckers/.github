@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +9,7 @@ import {
   validateCallerPermissionLintContract,
   validateCiGateCoverage,
   validateNativeSmokeContract,
+  validateTriggerCoverage,
   validateWorkflowIntegrity,
 } from '../lib/workflow-integrity.mjs';
 import { loadManifest } from '../lib/manifest.mjs';
@@ -65,6 +66,113 @@ test('deleting any canonical workflow is reported and names the file', () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  }
+});
+
+// The harness's own trigger is correct today, so these assert the check is not vacuous by
+// constructing the stale filter rather than by trusting the passing case.
+test('a pull_request paths filter must cover what the workflow reads', () => {
+  const harness = readFileSync(
+    join(REPO_ROOT, '.github', 'workflows', 'native-smoke-harness.yml'),
+    'utf8',
+  ).replace(/\r\n?/g, '\n');
+  assert.deepEqual(
+    validateTriggerCoverage('native-smoke-harness.yml', harness),
+    [],
+    'canon must satisfy the trigger coverage it declares',
+  );
+
+  const droppedCall = harness.replace(
+    '      - .github/workflows/reusable-native-smoke-test.yml\n',
+    '',
+  );
+  assert.notEqual(droppedCall, harness, 'the mutation must apply before its result is read');
+  assert.ok(
+    validateTriggerCoverage('native-smoke-harness.yml', droppedCall).some((error) =>
+      error.includes('reusable-native-smoke-test.yml'),
+    ),
+    'a filter that omits the workflow it calls must be rejected',
+  );
+
+  const droppedFixture = harness.replace('      - .github/native-smoke-fixture/**\n', '');
+  assert.notEqual(droppedFixture, harness, 'the mutation must apply before its result is read');
+  assert.ok(
+    validateTriggerCoverage('native-smoke-harness.yml', droppedFixture).some((error) =>
+      error.includes('native-smoke-fixture'),
+    ),
+    'a filter that omits the directory its jobs run in must be rejected',
+  );
+
+  const droppedSelf = harness.replace('      - .github/workflows/native-smoke-harness.yml\n', '');
+  assert.notEqual(droppedSelf, harness, 'the mutation must apply before its result is read');
+  assert.ok(
+    validateTriggerCoverage('native-smoke-harness.yml', droppedSelf).some((error) =>
+      error.includes('native-smoke-harness.yml'),
+    ),
+    'a filter that cannot be triggered by editing the workflow itself must be rejected',
+  );
+});
+
+test('an unreadable paths filter is an error, never an empty set of globs', () => {
+  // An empty glob list makes every coverage question answer false, which reads as "nothing is
+  // excluded" -- the inverse of what an unparseable filter actually means.
+  const empty = ['name: x', '', 'on:', '  pull_request:', '    paths:', '', 'jobs: {}'].join('\n');
+  assert.ok(
+    validateTriggerCoverage('x.yml', empty).some((error) => error.includes('lists no paths')),
+    'a paths filter with no entries must be reported, not treated as unrestricted',
+  );
+
+  // A workflow with no filter at all is unrestricted and has nothing to check.
+  const noFilter = ['name: x', '', 'on:', '  pull_request:', '', 'jobs: {}'].join('\n');
+  assert.deepEqual(validateTriggerCoverage('x.yml', noFilter), []);
+});
+
+test('trigger globs cover a subtree only through the separator', () => {
+  const source = [
+    'name: x',
+    '',
+    'on:',
+    '  pull_request:',
+    '    paths:',
+    '      - .github/workflows/x.yml',
+    '      - .github/fixture/**',
+    '',
+    'jobs:',
+    '  a:',
+    '    working-directory: .github/fixture-extra',
+  ].join('\n');
+  assert.ok(
+    validateTriggerCoverage('x.yml', source).some((error) => error.includes('fixture-extra')),
+    'a sibling directory sharing a prefix must not be read as covered',
+  );
+});
+
+// MUT E survived without this: every assertion above calls the validator directly, so unwiring it
+// from validateWorkflowIntegrity killed nothing. Content and reachability are separate properties.
+test('the integrity run reports a stale trigger, not just the validator in isolation', () => {
+  const manifest = loadManifest(REPO_ROOT);
+  const root = mkdtempSync(join(tmpdir(), 'workflow-trigger-'));
+  try {
+    cpSync(join(REPO_ROOT, '.github'), join(root, '.github'), { recursive: true });
+    const harnessPath = join(root, '.github', 'workflows', 'native-smoke-harness.yml');
+    const original = readFileSync(harnessPath, 'utf8').replace(/\r\n?/g, '\n');
+    const stale = original.replace('      - .github/native-smoke-fixture/**\n', '');
+    assert.notEqual(stale, original, 'the mutation must apply before its result is read');
+    writeFileSync(harnessPath, stale);
+
+    let message = null;
+    try {
+      validateWorkflowIntegrity(root, manifest);
+    } catch (error) {
+      message = error.message;
+    }
+    assert.ok(message, 'a stale trigger must fail the integrity run');
+    assert.ok(
+      message.includes('native-smoke-fixture'),
+      'the integrity run must name the dependency the trigger stopped covering',
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 });
 

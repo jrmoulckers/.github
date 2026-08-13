@@ -111,6 +111,7 @@ export function validateWorkflowIntegrity(repoRoot, manifest) {
     const relativePath = `.github/workflows/${fileName}`;
     const text = readFileSync(join(workflowDir, fileName), 'utf8').replace(/\r\n?/g, '\n');
     sources.set(fileName, text);
+    validateTriggerCoverage(fileName, text, errors);
     errors.push(
       ...inspectWorkflowSource(relativePath, text, {
         reusable: reusableFiles.includes(fileName),
@@ -510,6 +511,46 @@ export function validateCallerPermissionLintContract(reusableText = '', harnessT
   }
   if (!/uses:\s*\.\/\.github\/workflows\/reusable-caller-permissions\.yml/.test(harnessText)) {
     errors.push('caller-permissions-harness.yml: must call the local reusable lint workflow');
+  }
+  return errors;
+}
+
+// A pull_request path filter decides whether a check runs at all, so a stale one does not fail --
+// it produces no run, and an absent check has no line in the PR list for a reader to skip. The
+// filter is a hand-written transcription of what the workflow depends on, and everything it must
+// cover is recoverable from the workflow itself: the file, the local workflows it calls, and the
+// directories it points its jobs at. Deriving the requirement removes the transcription.
+export function validateTriggerCoverage(fileName, text = '', errors = []) {
+  const relativePath = `.github/workflows/${fileName}`;
+  const trigger = text.match(/^ {2}pull_request:\n(?: {4}[^\n]*\n| *\n)*/m);
+  if (!trigger || !/^ {4}paths:/m.test(trigger[0])) return errors;
+
+  const globs = [...trigger[0].matchAll(/^ {6}- (\S+)$/gm)].map((match) => match[1]);
+  if (globs.length === 0) {
+    // Never fall through to an empty list: "covers?" would then be false for everything, which
+    // reads as "nothing is excluded" -- the exact inverse of what an unreadable filter means.
+    errors.push(`${relativePath}: declares a pull_request paths filter that lists no paths`);
+    return errors;
+  }
+
+  // Prefix matching requires the separator, so .github/x/** must not be read as covering
+  // .github/x-extra/y.
+  const covers = (dependency) =>
+    globs.some((glob) => {
+      const base = glob.replace(/\/\*\*?$/, '');
+      return glob === dependency || base === dependency || dependency.startsWith(`${base}/`);
+    });
+
+  const dependencies = new Set([relativePath]);
+  for (const match of text.matchAll(/^\s*uses:\s*\.\/(\S+)/gm)) dependencies.add(match[1]);
+  for (const match of text.matchAll(/^\s*working-directory:\s*(\S+)/gm)) dependencies.add(match[1]);
+
+  for (const dependency of [...dependencies].sort()) {
+    if (!covers(dependency)) {
+      errors.push(
+        `${relativePath}: pull_request paths filter does not cover "${dependency}", so a change to it cannot run this workflow`,
+      );
+    }
   }
   return errors;
 }
