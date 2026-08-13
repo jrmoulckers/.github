@@ -1642,6 +1642,28 @@ a silent fallback is indistinguishable from a real result, and the same edit tha
 the one that made it survivable. Once it printed, the very next run surfaced a genuine `HTTP 502` on a
 different repository that would otherwise have been absorbed the same way.
 
+**A classifier's residual bucket does the same thing to states its author never enumerated, and the
+direction it fails in decides how long it survives.** Two sessions ran line-ending censuses over
+overlapping populations, both with three buckets — pure LF, LF-plus-a-CRLF-terminator, mixed — and
+neither had a bucket for **pure CRLF**. One assigned those bodies to `mixed` and reported 13 against
+a true 2, a 6.5x inflation; the other excluded them from *contains CRLF* entirely and reported 12
+where the answer was 26, the 12 being exactly the terminator and mixed counts summed. Same absent
+state, opposite signs, one round-trip apart.
+
+The inflated one contradicted a peer on the spot and was caught before it was published. The
+deflated one agreed with its author's prior, read as reassuring, and was never questioned — it
+surfaced only because the peer tried to *refute* it and published their buckets beside their count.
+**A residual bucket that fails toward alarm gets audited; one that fails toward reassurance gets
+cited.** Re-running the sweep cannot expose either, because the missing state is missing from the
+question, so the check is to enumerate the states the data could be in before choosing buckets, and
+to publish the buckets with the totals so a reader can find the one that is absent.
+
+**And when the property being measured is a property of the encoding, confirm the field preserves
+it.** The same 40 objects reported 17 carrying CRLF through a raw `body` field and **0** through the
+rendered-text field beside it, which discards carriage returns universally — no error, no empty
+result, no shape that looks wrong, just a clean zero for a question the field does not answer.
+Assert a known-positive object through the exact field before counting.
+
 **A control that cannot fire at all scores perfectly and reports nothing.** A refusal predicate
 requiring `steps == 0` was censused against ordinary CI failures and returned no false positives —
 but an ordinary failing job has run steps, so the two populations never overlap and that score holds
