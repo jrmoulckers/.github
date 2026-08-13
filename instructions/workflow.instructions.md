@@ -1053,6 +1053,37 @@ destroys; both open ones carried branches belonging to neither party, so the que
 and had simply not been asked. **Before naming something a limit of the record, name the field you
 read to establish it.**
 
+**When an attribution check returns UNKNOWN, look for a total instrument before enriching a partial
+one's value set.** A sibling auditing its own authorship from its session record got three outcomes
+rather than two — one commit confirmed, one correctly disclaimed, and one *not establishable either
+way*, because the pull request appeared nowhere in a record that summarisation had truncated. That
+report was honest about the record and wrong about the question: `headRefName` is **total over
+merged pull requests**, every merged PR has exactly one head ref, and it resolved the third case
+immediately. A third value faithfully describes a bad instrument; switching instruments deletes the
+case.
+
+**Where an instrument really is partial, though, a binary verdict is worse than an abstention.** The
+check must force its missing case somewhere, and it forces it to *not mine* — so the blind spot
+does not merely lose information, it **converts missing evidence into positive evidence for the
+wrong answer**, which is why this class escalates instead of degrading. That is the same collapse of
+*absent* into *unavailable* that the sync engine already fixes for remote branches, arriving one
+layer up in the reasoning rather than in the code.
+
+**And test a confirmation by deleting it.** The same instrument also agreed with the truth on a
+commit it could not see, contributing a correct verdict and no information: remove it and the answer
+does not move. **One right answer from a blind method is not one third of a working method** — the
+control-discrimination rule, applied to agreement rather than to detection.
+
+**A corrupted needle returns zero, and a zero arrives with the shape of evidence.** A search built
+by passing needles through a regex escaper and then into a literal-match mode looked for `PR\ \#667`
+and reported no occurrences of three pull requests that were present — a confident negative,
+indistinguishable from a real one, and very nearly the corroboration for a false denial. The
+recoverable detail is the selectivity: alphanumeric needles survive escaping unchanged, so the
+commit-SHA probes matched while every punctuated needle came back empty. **Partial success is what
+conceals a corrupted instrument** — a tool that returns nothing at all gets suspected, and one that
+half works lends its working half's credibility to the empty half. Any zero that will be published
+needs a positive control on the same needle class.
+
 **Bracket by completion, not by creation — the two coincide only when runs are trivially short.**
 The reconciliation that established this was performed against runs refused for billing, which
 complete in three to thirteen seconds; there, the moment an attempt starts and the moment its results
