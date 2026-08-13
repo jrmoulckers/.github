@@ -7235,6 +7235,72 @@ which was true of that file, false of the fetch, and one step from being publish
 negative. Wrong field, wrong ref, wrong path -- **three ways to get an honest answer to a question
 you did not ask**, and this was the third, hit within minutes of naming the first two.
 
+**The family has a fourth member, and it is the worst of them: a field whose name denotes something
+other than what it holds.** `userContentEdits.nodes[].diff` on the GitHub GraphQL API is not a diff.
+Replicated on this repository's issue #326, independently of the correspondent who found it:
+
+```
+5 revisions   lengths 3906 / 3907 / 4590 / 4599 / 5978   live body 5978
+hunk headers (^@@) present ?                     false on all five
+newest node === current body ?                   true
+oldest node is a strict PREFIX of its successor ? true
+```
+
+It carries the entire body at that revision. This is worse than a sibling path or a rendered
+projection because **the field is non-null on every read, which presents as confirmation that it
+works** -- when what needed testing was not whether it returns something but what the something is.
+A name is a claim by the API author, and it is the one part of a response that no amount of
+querying will check. Neither party looked, for the same reason and for two days.
+
+**A control that validates one endpoint cannot exclude the failure it is aimed at.** The control
+first offered here was *newest snapshot === current body*, which tests one node of forty-three and
+is equally satisfied by *every node is a full body* and by *the newest is a full body and the older
+ones are genuine diffs* -- the second being exactly the hypothesis at issue. Testing the oldest node
+against its successor validates the far end and closes the gap: a real diff between two revisions
+whose lengths differ by one character would be a few bytes, not a 3,906-byte strict prefix. **Put
+the second control at the other end of the series, not beside the first.**
+
+**And the retention consequence belongs in the secrets rule.** Content removed from an issue body
+stays served. Measured across a correspondent's revision 13 -> 14:
+
+```
+lines lost ENTIRELY (occurrence count fell to zero)   1
+recovered   <!-- transient probe, removed in the next write -->
+absent from the live body and from every later revision; still returned by GraphQL
+REST issue object exposes prior revisions ?  false
+gh issue view                                shows the live body only
+```
+
+The recovered line was an HTML comment, so it was never visible in the rendered issue even while it
+was live, and it is not visible now through any tool anyone actually uses. **A secret pasted into an
+issue or comment and then edited out has not been withdrawn** -- editing is not redaction, the
+standard tooling shows the sanitized version, and the only real remedy is deleting the object and
+rotating the credential. Probe-artifact accounting that counts files on disk does not reach this:
+an artifact written into a log body is retained permanently by a system nobody thinks of as storage.
+
+**A presence test is degenerate over multiplicity, and this cost a correct reading.** Asking whether
+each line still appears returned *0 removed* for all three shrink episodes in that log, including
+the one that did remove a line. Counting occurrences separates the mechanisms:
+
+```
+rev  6 ->  7   -587 B    de-duplicated 1    lost entirely 0
+rev 10 -> 11  -1156 B    de-duplicated 21   lost entirely 0
+rev 13 -> 14    -53 B    de-duplicated 1    lost entirely 1
+```
+
+Two are pure duplicate collapse -- which positively confirms the double-write those episodes were
+offered as evidence of, rather than inferring it from the byte delta -- and the third is a different
+mechanism wearing the same sign. All three had been read as one phenomenon because a shrink in an
+append-only log admits only one obvious explanation. `Contains` answers *at least once* and never
+*how many*, so any test built on it is blind to precisely the duplicate writes an idempotence guard
+exists to prevent.
+
+**A guard verified only forward certifies its own tenure.** The idempotence guard in that log had
+been evidenced by re-running it and observing `skip: already added`. That establishes it works now
+and is silent on the era before it existed -- which is the era that caused it to be written, and
+the era whose duplicate writes are still sitting in the artifact the guard protects. **Re-running a
+fix proves the fix; only the history proves the scope of what it fixed.**
+
 **`DateTimeOffset` remains the repair, and it is the operand-order-independent one**: cast from
 either spelling it recovers identical `UtcTicks`, and it returns the correct count in both operand
 orders. Keep the prescription and drop the diagnosis — the durable rule is **never let a comparison
