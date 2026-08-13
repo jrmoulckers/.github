@@ -3491,6 +3491,38 @@ at least four populations: members (11), delivery targets (12), members plus pro
 (13), and many correct subsets. **A guard keyed on a noun that ranges over four populations
 manufactures offences out of correct sentences**, and a guard that fails correct sentences gets
 weakened or deleted. The countable thing here is not the noun.
+## A red cleared by rebasing is evidence about the base, not about the change
+
+PR #901 reported `fail=2`, then `fail=0` after a rebase. Same diff, no retry, nothing fixed. The
+cause, read from the log rather than inferred from the recovery:
+
+```
+principles/manifest.json: trustworthy base manifest unavailable
+  (PRINCIPLES_BASE_SHA does not match event baseline)
+```
+
+The validator declined to validate against a baseline it could not trust while the branch was
+`BEHIND`. **The refusal is the feature**, and the red was content-independent: that PR touched
+`docs/sync.md` and `sync/lib/runner.mjs`, and zero files under `principles/`.
+
+`statusCheckRollup` reports this identically to a genuine content failure. Nothing in the JSON
+separates *your change is broken* from *your base is stale*, and the two clear differently — one
+needs a fix, the other needs a rebase.
+
+The hazard is the learned remedy rather than the refusal. Peers land canon here every few minutes,
+so branches go `BEHIND` constantly and a session sees red → rebase → green often enough to learn
+**rebase until green**. That rule is correct for this cause and dangerous for every other: it
+converts a real failure into something retried past, and it never prompts a log read, because the
+recovery keeps confirming it. A remedy's success rate is what makes it dangerous, not its accuracy
+— the same property that makes a well-evidenced peer recommendation the one most likely to slip a
+gate, and a control that agrees with the right answer on every case the one that supplies nothing.
+
+So the diagnosis is the log line, never the recovery. A rebase that clears a red has established
+something about the base and nothing whatsoever about the change, and treating the green as a
+verdict on the change is reading a measurement of one thing as a measurement of another.
+
+`PRINCIPLES_BASE_SHA` appears four times under `principles/` and, before this entry, nowhere in
+`docs/`. The assertion text says `unavailable`, which reads as an outage rather than as staleness.
 ## Idempotency & drift
 
 - The tool is **idempotent**: once a member carries a lockfile, re-running with no upstream change
