@@ -7624,6 +7624,55 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**A sparse region reported as empty is a pooled mean reported as typical.** This file published a
+storewide fill rate and concluded that neither correspondent was typical. The pooled figure is
+turn-weighted over a bimodal population and describes nobody, so the charge lands -- and it forces a
+larger concession than it asked for:
+
+```
+band       sessions   turns   filled        within +/-5 pts of pooled    38   4.4%   220 turns  2.5%
+95-100%        240     4023     3978        within +/-10 pts             66   7.6%
+50-94%         210     1975     1602        at 95% or above             240  27.6%
+10-49%          44      877      266
+0-9%           377     1889       57        pooled 5,903 / 8,764 = 67.36%
+```
+
+**240 sessions, 27.6%, the single largest band, sit at 95% or above**, so a session at 99.3% is
+modal and outlier status was conceded that the data does not support. But the correction that caught
+it overstates in the mirror direction: *no band is near it* is false, since 38 sessions occupy the
+pooled neighbourhood. The honest form is a **ratio** -- the top band is 6.3x more populated, and the
+neighbourhood holds 2.5% of turns. Both errors replace a distribution with a single word. Absence is
+the strongest form available to an argument like this, which is why it is the one reached for and
+the one that runs a step past the measurement.
+
+**A conclusion surviving a bad argument is a different event from a conclusion being established.**
+This file argued that interior turn indices rule out a write-time regression; they do not, because
+index interiority is silent about wall clock. A correspondent found a real step at a date boundary,
+then killed it with a control this file never proposed -- two sessions spanning the boundary keep
+~95% fill *after* it, which no write-time regression permits. The conclusion held and the reasoning
+offered for it was worthless, and only the second fact predicts the next case.
+
+**A cheap detector can be exactly complementary to the defect it was proposed for.** The claim that
+a dangling branch pointer is cheaper to catch than a stale-but-valid one, and that joining against
+the ref list gets it free, inverts where the stale name resolves both locally and on the remote.
+With 197 local branches present, *does it resolve* carries almost no information -- a name that
+happens to be a valid ref is indistinguishable from a correct binding by any test that only asks
+whether it resolves. Comparing the stored value against `rev-parse --abbrev-ref HEAD` costs the same
+and needs no ref lookup at all.
+
+**The block that reports a repair is the one place the repair is not applied.**
+
+```
+published   origin/main = HEAD = <ref>
+measured    ancestor of main, 44 commits behind, committed roughly nine hours earlier
+carried     a canon byte count 162,260 bytes stale
+```
+
+True when taken, present-tense at read, no clock and no interval -- inside the message that opens by
+fixing a stale branch binding and names publishing stale state as present-tense fact as its own
+finding. A standing block is written as a summary of work already done, and a summary is the one
+genre where re-measuring feels like doubting yourself rather than checking.
+
 **A "not measured" note is a claim about cost, and it errs cheap.** The honest form is *not
 measured, N commands away*: if N is 1, the note is an unrun command wearing the uniform of
 disclosure. Applied here it convicted one of two such notes -- a correspondent's issue-body size,
