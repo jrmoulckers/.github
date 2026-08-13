@@ -3891,6 +3891,27 @@ measured with a command that silently returns the wrong number. Cost predicts er
 checking is expensive, and the local error occurred where checking was cheapest, so a remedy built
 only on cost licenses trusting exactly the figures the other mechanism corrupts.
 
+**And a two-party audit converges on the two parties.** The cost rule predicts errors in what each
+side says about the *other*, and it under-predicts the worst case: an object neither party owns is
+measured by nobody, indefinitely, and produces no correction because there is no counterparty to
+bounce off. Two sides audited the endpoints of a distribution pipeline to the byte for a full
+session while the nine-member fan-out the pipeline exists for went unmeasured by both — eight of
+nine between 28 and 92 hours stale, in four cohorts, four of them holding a revision one party had
+personally verified faithful that morning and then never mentioned again. **The measurement that
+never happens is the one with no advocate in the room, and its absence is silent because absence
+always is.** When two parties agree their own figures are sound, that is the moment to ask which
+third thing both are describing and neither is measuring.
+
+**A byte-count minus a character-count does not size the non-ASCII content.** The gap is a
+*weighted* sum — a 3-byte BMP character contributes +2 against UTF-16 units, a 2-byte one +1 — so
+it bounds the count within a factor of two and determines it only if the composition is already
+known. Measured here: a 1,190-byte gap over 599 non-ASCII characters, 591 of them at +2 and 8 at
++1, where reading the gap directly overstates by ~2x and dividing by two understates by 4. Both
+errors occurred in one exchange, the second inside a correction of the first, and the correct figure
+came from counting the characters rather than from any arithmetic on the gap. **A quantity derived
+from two measurements of the same object in different units carries a coefficient, and the
+coefficient is a property of the content, not of the encoding pair.**
+
 **And an independent confirmation is worth only what its own reading is worth — agreement is the
 condition under which nobody audits the reading.** This repo declined to take a correspondent's
 figure and went to the underlying file instead, which is the right instinct, then described that file
@@ -4268,6 +4289,26 @@ can be compared directly against canon's rendering, and it cannot go stale while
 one that cannot be right and misleading at once.** Asking for the field whose shape suggests
 recency, over the field that actually carries it, is the same misreading as the one corrected
 above, arriving one section later in the advice rather than in the description.
+
+**And `sourceSha256` answers a stronger question than either: which canon revision the member
+holds.** It is the hash of the source blob, so it is an exact key into the hub's own history, and
+resolving it is one lookup with no ambiguity. Measured across the nine members carrying this file,
+it resolved to a revision for all nine and agreed with byte-exact reproduction in every case. That
+matters because **the delivered artifact itself carries no revision identifier** — the provenance
+line names the source repository and warns against local edits, and stops there. So the question
+"which revision is this member on" has no answer in the file, and both parties auditing the fleet
+independently fell back on fingerprinting by line count and confirming by reconstruction, hashing
+every historical revision of the path to do it. The exact key was shipping in the lock the whole
+time, one API call away, and neither reached for it.
+
+**The general form: when an audit turns out to need a bespoke instrument, check first whether the
+pipeline already emits a key for exactly that question.** A fingerprint is what you build when you
+believe no identifier exists; building one is therefore also evidence that nobody checked. And
+fingerprint discipline is worth stating separately — *fingerprints propose, reproduction proves* is
+the right rule, and its safety here was measurable rather than assumed: 171 revisions of this path
+produced 171 distinct line counts, zero collisions. That is a contingent property of a document that
+grows monotonically, not a guarantee, so measure the collision rate on the corpus before trusting a
+fingerprint on it.
 
 **There is a third state, and it is the one that most resembles a block: never dispatched.** A
 scheduled or manually dispatched distribution that simply has not run leaves exactly the artifact a
