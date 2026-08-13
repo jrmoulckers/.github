@@ -109,7 +109,30 @@ run level the subtraction is not a duration at all but a **span across attempts*
 idle gaps between them: a census of billing refusals here returned a single value of **78,023
 seconds** — 21.7 hours for a job that executed no steps — because the run carried sixteen attempts.
 The outlier was the only reason the error surfaced, so the same defect at two or three attempts would
-have passed as a plausible slow refusal. And at attempt level the two fields **invert** relative to
+have passed as a plausible slow refusal. That run is live: re-read at `2026-08-13T05:05Z` it
+stands at **18** attempts and **121,811** seconds, so the figure above dates from its sixteenth and
+said so nowhere. **An extensive quantity measured on an object still being acted on needs its
+instant printed beside it** -- this paragraph carried one without, which is the defect it exists
+to teach.
+
+**And the large number is not an artifact at all, which is what makes it the wrong thing to compare
+the small one against.** Set beside the attempt-level inversion (`-1 s` to `-2 s`), the run-level
+drift (`+199 s` to `+121,811 s`) reads as five orders of magnitude, and the gap invites a
+detectability story: the big one unmissable, the small one surviving as rounding. Two problems. The
+separation is `2.3` orders comparing minima and `4.8` comparing maxima, so a single figure for it
+names neither operand. And the members are not the same kind of thing -- the `-1 s` is a genuine
+field inversion, while the `+121,811 s` is the field reporting the truth, since that run really was
+created 34 hours before its eighteenth attempt started. **Magnitude was measuring the idle gap, not
+the error.**
+
+**So rank artifacts by consistency, not size.** Measured on 20 attempt objects in one member: mean
+`-0.950 s`, sd `0.497`, giving `|mean|/sd = 1.91`, with `17` nonzero and `0` of the opposite sign.
+The run-level pair has `n=2` and `|mean|/sd = 1.00`. The small artifact is the *cleaner* signal, and
+the large one cannot be separated from ordinary idle time by any test. A defect that fires the same
+way every time is detectable at any amplitude; one that varies as widely as its own mean is
+detectable at none.
+
+And at attempt level the two fields **invert** relative to
 the top-level case: `run_started_at` equals `created_at` on attempt 1, but on retried attempts it
 *precedes* it by one to two seconds, so the attempt is recorded as starting before it was created.
 
