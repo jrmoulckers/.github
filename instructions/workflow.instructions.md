@@ -805,6 +805,16 @@ running the control catches any source that yields an empty population, includin
 returning nothing for an unrelated reason. **Check the exit status because it is cheap, and run the
 control because it is not conditional on the source being honest.**
 
+**And a transport can exit `0`, report nothing wrong, and still hand back corrupted content.**
+`gh api <contents-path> --jq '.content'` returns base64 **wrapped across lines**, so decoding each
+line separately mangles every 45-byte boundary and yields text that is readable rather than
+obviously broken: a fetched `.prettierignore` came back with `.github/prompts/` split across two
+lines and `jrmoulckers` broken mid-token, which was briefly read here as the peer's file being
+malformed rather than as damage in transit. **Fetch file contents with
+`-H "Accept: application/vnd.github.raw"`**, and treat decoded output that merely looks untidy as a
+decoding failure until proven otherwise -- plausible corruption invites no second look, which is
+the same property that makes a fallback `NO RUNS` dangerous.
+
 **But de-suppression and the control are not two grades of the same remedy — one of them is blind to
 an entire class.** A member reported three consecutive fleet sweeps returning a clean uniform null,
 each from a different pagination or syntax fault, each written to stderr and each swallowed by a
@@ -1747,6 +1757,32 @@ specific integer beside it supplies the confidence that stops the question. **Be
 clean run against a control population, check the detector could have fired on it at all.** This is
 the third sign of the same defect: one control fired for the wrong reason, one denied a right answer,
 and this one is structurally excluded — all three present as confirmation.
+
+**And a control licenses only the axis it exercises, so a green control beside a collapsed
+population is the most convincing vacuous result there is.** A peer's coverage checker derived *is
+this file formattable* from an ignore-aware call that returns a null parser for anything it is
+ignoring, so every correctly-ignored file was deleted from the population used to check ignoring.
+It reported `0` gaps over `0` files and exited clean, and its control passed -- proving the
+instrument could tell ignored from checked, which was true and irrelevant, because the collapse was
+on the parser axis. **A checker whose population is filtered by the condition it tests cannot
+fail**, and unlike a stale input there is no event to notice: better coverage empties the
+denominator, and at perfect coverage the result is guaranteed. That qualifies the claim above that
+running a control catches any source yielding an empty population -- it does so only when the
+control runs through the same population.
+
+**The same shape sits in this file's own canon gate.** It reads added lines from a diff and asserts
+length, encoding and terminator properties over them; run against an empty diff it reports `added
+0`, no over-long lines, no non-ASCII and no removals, satisfying every assertion over nothing. It
+certified six amendments in one session and would have returned the same verdict had every edit
+silently no-opped. **Refuse to report a clean result when the population is zero**, which is the
+refusal already required when a probe does not fire, moved from the specimen to the denominator.
+
+**And the same coupling under-counts risk one axis over.** That peer's fragility set -- paths
+needing a hand-written ignore entry rather than a directory prefix -- was reported as `2` after
+filtering the roster to types the formatter currently handles. On the same branch it is `3`:
+`.github/copilot-instructions.md`, `AGENTS.md` and `agency.toml`, the last excluded because TOML is
+not formatted today. **A count of what will break later must not be filtered by a property that can
+change**, because those members are precisely the ones whose risk is that it does.
 
 **The graded form is a test that fails to reject and does not publish what it could have rejected.**
 A model proposed here — that a sub-minute gap survives minute-truncation with probability `g/60` —
