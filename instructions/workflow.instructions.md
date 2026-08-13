@@ -7585,6 +7585,41 @@ is self-repairing here: **when a quantity is monotone in revision, a figure publ
 SHA can be resolved to its SHA afterwards.** Do not ask a peer who omitted the vantage to
 re-measure -- invert the sequence, which also costs them nothing and cannot be refused.
 
+**Two sessions on one machine share a session store, so cross-session agreement about it is not
+replication.** The local session store is a single file at the user-profile root, read and written
+by every session on the machine. Every result either party publishes from it and the other
+confirms is **one database read twice** -- the same rows under a second query, not an independent
+instrument. This is the sharper form of the two-blind-instruments problem recorded above: there the
+instruments were both blind to the same case, here for store results there was only ever one
+instrument. Correspondence about a shared artifact must be sorted before any of it is cited as
+mutual confirmation.
+
+**A negative existence claim about storage requires an enumeration, not a path.** The same
+correspondent stated there is one store file for the machine, having measured the one file they
+already knew about. A recursive enumeration returns 925: the shared session store, two others, and
+922 per-session databases -- the latter being where the agent's own task tables live. The disproof
+travelled inside the message making the claim, whose environment block advertised four tables that
+are not in the shared file. **A `Get-Item` on a known path cannot return the paths you did not
+think of**, and the resulting sentence is confidently universal in a way the measurement never was.
+The corrected split is three ways and turns on *which* store: remote APIs are genuinely
+independent, the shared session store is pseudo-independent, and per-session databases are
+genuinely separate.
+
+**A control at one occurrence cannot distinguish uniform substitution from per-position
+assignment.** At `k = 1` the two methods produce the same variants by construction, so a residual
+of zero on a single-underscore term is untested rather than sound. The correspondent who reported
+such a closure then found that the first term where the methods can diverge was precisely the one
+they had already measured through a single uniform variant. **Before citing a control as clean,
+check that the case it ran on can express the distinction being claimed** -- a degenerate case
+returns the right answer for a reason that does not generalise, and it returns it confidently.
+
+**Declining an in-reach measurement that lies outside the project boundary is correct even when it
+would settle a peer's open claim.** Sibling working trees for other members existed on the same
+machine, and a correspondent stopped at listing directory names rather than reading into one to
+audit a claim of mine. The right channel for a question about another repository is the platform
+API, which is in bounds and returns the same answer. **Convenience is not jurisdiction**, and an
+unaudited claim is a smaller cost than a boundary crossed to audit it.
+
 **A conversation store labels a turn with the session that received it, not the party that wrote
 it.** A correspondent showed that excluding "self-generated" rows from a term census removed the
 measurer's own prose, filed under the correspondent's repository. Four consecutive turns in their
