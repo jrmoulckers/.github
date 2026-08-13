@@ -2819,6 +2819,40 @@ guard rather than mere vagueness. And where a count is already published somewhe
 restating it is a violation even when the restatement is *correct*: the rule is about there being one
 source, not about accuracy. A guard that only rejects wrong values leaves the duplication in place
 and calls it fixed.
+### A name grep answers who mentions a function, not who calls it
+
+Establishing that code is unused by searching for its name is sound only while every call spells the
+name. Wherever a function is **passed rather than called** — an injected default parameter, a
+callback in a table, a handler stored on an object — it runs under the *parameter's* name and its own
+name never appears at the call site. The search then returns zero, and zero reads as dead.
+
+The measured instance: a function carrying an unusually careful docstring returned exactly one hit
+for its own name, the definition. It runs on every sync, reached as a default parameter and invoked
+under a two-letter alias. The conclusion being drafted from that search was that it should be
+deleted.
+
+The graded result across the seams in one engine:
+
+```
+two functions    0 call sites by name   -> read as dead; both run on every sync
+one function     1 call site by name    -> read as used by that one caller only
+one function     2 call sites by name   -> visible
+```
+
+**The single hit is more dangerous than the zero.** Zero invites suspicion; one returns a complete,
+plausible answer naming a real caller, and nothing about it suggests the search under-reported. This
+is the partial-instrument shape in a new place — the corpus is intact and the needle is correct, and
+the answer is simply present under a different name. A tool that half works lends its working half's
+credibility to the empty half.
+
+Two consequences worth separating. **For deletion**, a name search cannot establish deadness; follow
+the binding, or delete and let the suite object. **For impact analysis**, it silently narrows blast
+radius — a change reviewed as touching one caller may touch every one.
+
+The durable remedy is not a better search, because nothing can make a name search follow a binding.
+It is an **inventory**: enumerate the seams in one place and pin it, so a new one has to be declared
+rather than discovered by whoever next audits reachability. Pin it with the reachability premise
+attached, so a seam that later gains a direct call site is retired rather than kept out of habit.
 ## Calling reusable workflows
 
 Studio product repos call the backbone's reusable workflows at a reviewed immutable commit SHA:
