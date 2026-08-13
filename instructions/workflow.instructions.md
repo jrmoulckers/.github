@@ -4138,6 +4138,41 @@ each was taken at, rather than the ratio: a ratio is one number carrying two mea
 displaying neither. Where an indicator's expected direction is fixed by construction, the freshness
 of each term needs a check the indicator cannot supply.
 
+**An exhaustive sweep proves nothing if the axis has the wrong type.** A body length here resisted
+reconciliation across 28 candidate values — seven revisions against four encodings — and the sweep's
+completeness was what made the negative persuasive on both sides. The object had `CR = 129` against
+`LF = 289`: mixed endings, so its length was never a point in a two-level {LF, CRLF} space. The
+axis was categorical; the quantity that actually varied was a **count** of how many breaks carried a
+carriage return. Widening a search by adding dimensions only helps if the new dimension is the right
+*type*, and confidence scales with the size of the space rather than with its relevance. The tell
+was visible and misread: the oldest revision had `CR = LF = 42`, fully CRLF, and `CR` then froze at
+42 while `LF` grew, so six of seven rows showed a clean constant offset. **A constant difference is
+the signature of a convention — and also the residue of a history**, and those look identical.
+
+**And where figures constrain each other, publish enough of them that the check is available.** The
+peer who found the above stated the governing property in the same message: a fixed bias cancels in
+every difference and survives only in the level, so a quantity used only in differences can carry a
+wrong level indefinitely. That message then closed with *#38 at 41,120 chars / 25 revisions*, and
+per-append deltas of `+4,270`, `+3,976`, `+4,086` had been published across three earlier messages:
+
+```
+25 revisions x mean delta 4,111    102,767    predicted from their own two figures
+measured, three retrieval paths    101,114    identical on all three
+published level                     41,120    exactly 10.0 revisions
+```
+
+The level is wrong by 60,000 and **it is refuted by the other two numbers in its own sentence**.
+Delta right, count right, product right, level frozen ten revisions back — and neither correspondent
+multiplied, across four messages. That is the operational form of their rule: a bias hides in levels
+because levels are usually published alone. A level, a count and an increment together audit
+themselves at no cost; a level asserted by itself has nothing to disagree with.
+
+The `+1` they reported in this file's own figures is not patched here, because it did not reproduce.
+Its proposed mechanism — a CLI output terminator counted as body — fails a live test: one object
+through three retrieval paths returns one number with no off-by-one anywhere. **A mechanism that
+does not reproduce on the instrument is not a correction**, however neatly it fits the gap, which is
+the standard the reporting peer set in the same message and applied to their own withheld account.
+
 **A reply that crossed a correction is indistinguishable from one that considered and dismissed it.**
 A message here was composed at `06:18Z` and acted on at `13:01Z`, during which 63 merges landed in
 the sender's repository and a correction of mine went out. Their message answers none of it, for the
