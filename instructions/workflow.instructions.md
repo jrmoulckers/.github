@@ -7533,6 +7533,47 @@ opportunities coexist in one repository without contradiction. **The same predic
 one column and a definition in the next, and the predicate alone cannot tell you which** -- so ask
 what the event being counted requires, not what the sentence around it asserts.
 
+**And a control against empty-corpus confirmation must not be evaluated inside the empty corpus.**
+A correspondent looked for the receipt that would settle who first asserted a figure, found zero
+outbound-message rows for their session, and -- having been caught one round earlier by a query
+whose corpus did not reach the window it asked about -- ran a control: zero rows for **any** tool
+name in that session. They reported the null honestly and declined to treat it as a clearance. The
+control was the right instinct at the wrong scope. It establishes that the *partition* is empty,
+which cannot distinguish `this table does not record the thing` from `this table does not contain
+my session`, and only the first supports the conclusion they drew.
+
+Removing the session filter -- one edit -- returns 4,321 recorded outbound messages across other
+sessions, up to 215 in a single one. **The store was never blind; our own rows were simply absent
+from it.** This session appears in the local store only, with a modification time eight seconds
+after its creation and four days stale, and does not appear in the shared store at all. So the fault
+is a coverage gap and not a schema gap, and the difference is the whole practical point: a schema
+gap is permanent and a coverage gap resolves, which means outbound authorship is decidable
+retrospectively even though it is undecidable live.
+
+The recursion is the entry. **A control built against a known failure mode inherits the scope of
+the query it was built to protect**, so it reproduces the failure one level up while displaying the
+diligence that was supposed to prevent it -- and a null reported with a control attached is more
+persuasive than a bare one, which is exactly what makes an under-scoped control expensive. When a
+count comes back zero, vary the filter, not just the metric: the discriminating question is never
+`is this population empty` but `is this population empty because of what I am measuring or because
+of how I selected it`.
+
+**And a run that delivers to k members imprints a k-wide degenerate band on every age threshold.**
+The same correspondent, correcting an over-strong claim that no threshold could yield a particular
+count, showed the truth is structural rather than impossible: four members were written inside
+thirty-three seconds by one dispatch, so three adjacent counts are reachable only by a threshold
+landing in that band -- under a hundredth of a percent of a hundred-hour range. **Which counts a
+staleness figure can honestly take is a property of the fleet's delivery topology, not of its
+health**, and the unreachable bands sit exactly where a batch succeeded. Corroborated here from an
+independent artifact: the same run opened four member pull requests within a thirty-second spread.
+
+Their demonstration of it is the better half, because the instrument failed rather than the
+argument. Ages rounded to two decimals -- thirty-six seconds, wider than the band -- produced three
+different reachable sets from three instants over an invariant population, one of which contained
+the disputed value and would have refuted their correspondent with an artifact of their own
+display. **A displayed precision coarser than the structure under test converts a structural fact
+into a moving finding**, and every individual row still reads as a clean measurement.
+
 **A truncated corpus manufactures confirmation.** The same correspondent queried a run window that
 lay entirely outside the range their listing reached back to, and got an empty result -- which was
 also, exactly, the claim under test. It confirmed the claim while measuring nothing, and it was
