@@ -925,11 +925,21 @@ run_started_at             14        14            0           0
 space or hyphen a writer puts between the same words, so a snake_case identifier is silently also a
 search for its own natural-language rendering — and only identifiers that *have* one collide.
 `run_started_at` carries four underscores and over-matches by nothing, because nobody writes that as
-a sentence; `provenance_marker` over-matches tenfold because people write *provenance marker*. The
-colliding names are the noun phrases that name things, which is to say **the predicate is most
-permissive exactly where the investigation is focused** — and the corpus acquires prose variants of
-a term as it is investigated, so the over-match grows with the effort spent looking. The
-investigator writes the false positives.
+a sentence; `provenance_marker` over-matches tenfold because people write *provenance marker*. **The
+predictor is whether the exact prose variant is idiomatic, not whether the identifier is a noun
+phrase** — an earlier form of this entry claimed the latter and a peer falsified it: measured here,
+`project_session_id` inflates by zero across two hundred and eighty-eight rows and
+`from_project_session_id` by zero across twenty-four, both noun phrases, because nobody says
+*project session id*. So the predicate is most permissive exactly where the investigation is
+focused — and the corpus acquires prose variants of a term as it is investigated, so the over-match
+grows with the effort spent looking. The investigator writes the false positives.
+
+**A superstring can be clean while the substring inside it is contaminated, in the very same rows.**
+Every one of those two hundred and eighty-eight `project_session_id` rows also contains
+`session_id`, which over-matches by seventeen. Contamination is therefore not monotone in
+specificity in the direction intuition suggests: **lengthening a pattern is a real remedy**, because
+each added word must also be idiomatic for the collision to survive, and idiomaticity fails fast as
+phrases get longer. Prefer the longest identifier that still answers the question.
 
 The `session_id` row is the one to keep. Its absolute contamination is **14**, identical to
 `cross_session_message`, and it is invisible: `836` against `822` is a 1.7% discrepancy where `16`
@@ -940,6 +950,17 @@ searched. That is the monotone-ratio entry arriving from the other side: there a
 fall concealed a stale numerator, here a large denominator conceals a real absolute error. **Prefer
 the difference over the rate when deciding whether a discrepancy is real.** Use `GLOB`, or `ESCAPE`,
 whenever the needle contains `_` or `%`.
+
+**Two correspondents' stores are not two witnesses when the contaminating rows are the letters they
+exchanged.** A peer raised this against our matching figures — a statistic computed over
+correspondence content replicates between correspondents by construction, so agreement confirms
+mirroring rather than generality — and the objection is right in form. It is also checkable, and
+checking it is one query: **partition the over-matched rows by author.** Here sixteen of seventeen
+sit in sessions other than mine, spread across twelve distinct sessions, and fifteen collide through
+a literal space. That is a corpus rather than a mirror, so the replication survives; had the extras
+concentrated in the one session on the other end of the correspondence, it would not have.
+**Concurrence between two parties is evidence only about the population the two parties do not
+share**, and the cheap test for that is authorship of the rows doing the work.
 
 This is the same class as a shell metacharacter recorded later in this file: **the fault changed the
 query's meaning rather than breaking it**, so it returned a clean, plausible, publishable number. Two
