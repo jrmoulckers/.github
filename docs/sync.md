@@ -3241,6 +3241,43 @@ disconnected with the suite still green. That is the same content-versus-reachab
 exactly nothing, and only mutating the *wiring* rather than the logic exposes it. Mutate the call
 site, not just the callee.
 
+## A premise guard cannot be pinned by the suite that contains it
+
+Corpus-derived assertions in this suite are protected by an inline premise -- `assert.ok(x.length >
+0, 'PREMISE: ...')` -- so that a filter matching nothing cannot read as a passing test. Weakening
+five of those guards from `> 0` to `>= 0`, one at a time, killed **nothing**: five mutants, five
+survivors, zero failures.
+
+Before reporting that, the kill detector was proved able to fire. An `assert.ok(false, ...)`
+injected into each of the three files produced `fail=1` every time, so the survivors are a property
+of the guards and not of the harness. A survivor published without that control is indistinguishable
+from an instrument reading a channel it never opened.
+
+The reason they survive is structural, not a coverage gap. Weakening a premise is precisely the
+change the suite would have to detect **in itself**, and any test written to catch it has the same
+property. Constructing the state does not help, because there is nowhere inside the suite to
+construct it from. The judgement has to leave the suite and live in production.
+
+The production half was the real finding. `validateManifest` **accepted a zero-member manifest.**
+Its apparent rejections of `members: []` and `canon.workflows: []` were incidental -- referential
+integrity firing from `expectedFailures` and `optIn` rows pointing at names that no longer existed.
+Make the deletion self-consistent and the manifest validated clean. A rejection that only happens
+because of a *second* inconsistency is not a check on the first.
+
+`BREADTH_FLOOR` states the requirement where a mutation can reach it, and states it as a **floor**:
+
+- `=== N` pins the current fleet, breaks on legitimate growth, and gets reverted the first time a
+  member is added -- which removes the check rather than relaxing it.
+- `> 0` in a test is invisible to weakening, per above.
+- A floor is falsifiable in both directions: dropping below it fails, and raising it above the real
+  corpus fails too. The test *the breadth requirement is a floor, not a pin on the current fleet*
+  asserts a one-member fleet validates, so tightening the floor into a pin is itself caught.
+
+A zero-member manifest is never legitimate here: `excluded` is the mechanism for removing a member,
+so the floor asserts no governance decision that the manifest does not already encode.
+
+The `BREADTH_FLOOR` shape is finance's, arrived at from the same five-of-five result on their side.
+
 ## Idempotency & drift
 
 - The tool is **idempotent**: once a member carries a lockfile, re-running with no upstream change
