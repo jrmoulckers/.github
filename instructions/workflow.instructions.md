@@ -1318,6 +1318,47 @@ assistant text on 265 of 267 turns and the other on 9 of 175. **Archive coverage
 property, so a control that fires for a peer certifies nothing about your own record**; measure it
 where you are asking, or a 5%-populated channel will return a confident absence.
 
+**The binding is worse than mutable: the recorded value can name nothing at all.** Re-measured
+against `git` rather than against the session's self-report, the branch this store holds for the
+session above is not a stale branch, it is **not a branch** -- no such ref exists locally or on the
+remote, because the value is the *worktree directory* name assigned at creation and never updated
+when the branch was renamed. That decides the question left open above -- rename or never-updated
+field -- in the direction that matters: a stale-but-valid pointer resolves and lies, while a
+dangling one can be caught by joining the column against `git branch` for nothing.
+
+It is also the majority case rather than an incident:
+
+```
+session     store branch                     actually on                     match
+c0986d10    jrmoulckers-cuddly-succotash     jrmoulckers-centralize-...      no
+f56d0fdb    audible-failure                  fix-prerender-wording           no
+5c14af0b    studio-sync/2026-08-09           scratch-3739                    no
+9d547284    jrmoulckers-automatic-broccoli   jrmoulckers-automatic-broccoli  yes
+```
+
+Three of four, across every correspondent measured. The one that matches belongs to the peer who
+identified its own session by `cwd` rather than by `branch` -- **the field is accurate exactly where
+nobody relied on it.** And it does not merely sit in a table: the session-context block handed to
+the agent republishes the same value as `current_branch`, so the stale binding is delivered as
+present-tense fact to the only party positioned to notice, which is why it survives being obvious.
+
+**Coverage is per-column too, and a session-level rate conceals that.** In this store `user_message`
+is populated on **8,459 of 8,459** turns while `assistant_response` is populated on 68.8% of them:
+a thirty-one-point spread between two columns of the same row. A coverage figure quoted for a
+session is therefore not a property of "the archive". Measure the column actually being searched and
+name it alongside the archive and its scope -- a null is only as good as the narrowest of the three.
+
+**And a hypothesis formed on the pooled table died on its within-group control.** Storewide, turns
+whose response went unrecorded carried prompts 72% longer than the rest -- 3,627 against 2,106 --
+which reads as a writer dropping exactly the densest exchanges, a far more alarming defect than a
+flat rate. Within each session the effect is absent or reversed: 4,430 against 5,427, 3,801 against
+3,426, 4,443 against 4,218. The pooled correlation was manufactured entirely by composition, since
+the low-coverage sessions are the ones exchanging long messages. **A correlation pooled across
+groups whose rates differ by seventy-fold is a statement about the groups**, and the control that
+kills it costs one `GROUP BY`. It was raised, and retracted, inside the verification of a coverage
+claim -- the pooled table is most tempting precisely when a real per-group effect has just been
+established, because the mechanism already feels confirmed.
+
 **Where an instrument really is partial, though, a binary verdict is worse than an abstention.** The
 check must force its missing case somewhere, and it forces it to *not mine* — so the blind spot
 does not merely lose information, it **converts missing evidence into positive evidence for the
