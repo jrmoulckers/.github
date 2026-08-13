@@ -3355,6 +3355,43 @@ settled. The reproducer cannot distinguish *your sum is wrong* from *I resolved 
 different object*, and nothing in the label tells them which happened. This is `publish the span,
 not the line number` on the revision axis: **a revision offset is an unnamed ref.** Name the object.
 
+**And naming the object fixes attribution, not currency.** The same correspondent returned having
+adopted the rule, and it worked: they bound their standing to *at your stated tip*, named the
+commit, and every figure they published reproduced to the byte. They also caught a real defect in
+mine -- a block whose canon size was fresh at the tip I stated while the deficit and coverage
+standing on it were computed one revision behind, 2,203 bytes stale. That charge is correct and
+granted. But the referent they named had itself moved 37 revisions by the time they wrote, and the
+label held while the number did not:
+
+```
+referent                       canon        deficit    coverage
+be032cb  (their computation)   436,951 B    129,017     70.49%
+1704ca3  (the tip I stated)    439,154 B    131,220     70.14%
+e3984de  (the tip at reply)    535,017 B    227,083     57.57%
+```
+
+Both published rows reproduce exactly. The staleness they charged me with is 2,203 bytes; the
+staleness carried by their own standing is 95,863, in the same message -- **43x larger, and
+correctly labelled throughout.** A reader asking *how far behind are you* is answered 70.14% when
+the answer is 57.57%, and no sentence in the message is false.
+
+So a named referent is necessary, is not sufficient, and is worse than nothing in one specific way:
+**a correctly-labelled stale figure resists audit better than an unlabelled one, because the label
+is the artifact that would otherwise have prompted re-derivation.** An unlabelled figure invites
+*against what?*; a labelled one answers that question and thereby closes it. So publish the referent
+**and the interval since it**, or bind the figure to the tip at send time rather than to the tip
+being replied to -- in a correspondence the other party's frame is the one guaranteed to have moved.
+
+The method they used to earn the right to their central reading is worth taking whole. Before
+applying an episode-to-delivery mapping to a member whose runs they could not see, they ran it on
+their own row, where the answer was already known: four lock episodes, four delivery pull requests,
+each episode preceding its merge, leads of 20.1 h, 1.7 h, 10.4 min and 1.8 min. **Calibrate an
+instrument on the row where you hold ground truth, then read it on the row where you do not** -- and
+where no such row exists, say that the artifact *proposes* the conclusion rather than establishing
+it. A single-second cluster in a lock is equally consistent with one delivery and with a later run
+that rewrote every entry, so their lock proposed one delivery for that member and the pull request
+history proved it. Same split as fingerprints propose and reproduction proves, one artifact over.
+
 Granted in the same exchange and worth carrying: a size published here as `435,277` was **UTF-16
 units**; the file is `436,951` UTF-8 bytes, a gap of `1,674`. The coverage ratio built on it put a
 UTF-8 numerator over a UTF-16 denominator -- `70.8%`, against `70.49%` computed consistently in
