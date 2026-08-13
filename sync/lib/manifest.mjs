@@ -414,10 +414,19 @@ function isObject(v) {
  * accept a failure that can never occur, which is an exemption that is inert on arrival and stale
  * forever after.
  *
- * `signature` is required and is matched against the failure message, so the record pins one fault
- * rather than granting a repository standing amnesty. `issue` is required because an accepted
- * failure without a route to its fix is indistinguishable from an abandoned one, and this field is
- * the only thing that keeps the entry from reading as a decision to leave the member unsynced.
+ * `signature` is required and is matched against the failure message with `includes`, so a record
+ * can pin one fault rather than granting a repository standing amnesty. **What this function
+ * enforces is that the field is present and non-empty, which is weaker than that sentence.** A
+ * one-character signature validates clean here and then absorbs every later failure for that
+ * repository, because breadth is a property of the recorded string and non-emptiness does not
+ * constrain it. The narrowness check is a derived one — an accepted signature must not be a
+ * substring of any error message the engine itself raises — and it lives in
+ * `test/manifest.test.mjs`, where the decoy corpus can be read from shipped source without making
+ * manifest validation scan the filesystem. Keep the two in mind together: this is the cheap half.
+ *
+ * `issue` is required because an accepted failure without a route to its fix is indistinguishable
+ * from an abandoned one, and this field is the only thing that keeps the entry from reading as a
+ * decision to leave the member unsynced.
  *
  * Nothing here suppresses a failure: the runner still reports it, still counts it, and treats a
  * recorded entry whose repository stopped failing as a blocking error. See `partitionFailures`.
@@ -446,8 +455,9 @@ function validateExpectedFailures(m, errors) {
     if (typeof entry.signature !== 'string' || !entry.signature.trim()) {
       errors.push(
         `expectedFailures[${i}].signature must be a non-empty string matching the failure ` +
-          `message accepted for "${entry.repo}"; a repository-wide exemption would absorb the ` +
-          'next, unrelated failure',
+          `message accepted for "${entry.repo}". Non-empty is all this check can establish; ` +
+          'whether the string is narrow enough to pin one fault is checked separately, against ' +
+          "the engine's own error messages",
       );
     }
     if (typeof entry.reason !== 'string' || !entry.reason.trim()) {

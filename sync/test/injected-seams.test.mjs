@@ -9,61 +9,29 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const REPO_ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
+import {
+  engineSourcesByGit,
+  engineSourcesByWalk,
+  readEngineSource,
+} from './engine-sources.mjs';
 
 // The population is a second hand-written scope, and it fails separately from the pattern (#930).
 // The first version of this suite walked `sync/lib` -- the directory the four known seams happened
-// to sit in -- so a seam added to the CLI entry point passed unnoticed. Derive the corpus from the
-// property that makes a file subject to the rule: shipped engine source that a reachability audit
-// would grep. Fixtures standing in for a member's app are not that.
-const isEngineSource = (rel) =>
-  rel.endsWith('.mjs') &&
-  (rel.startsWith('sync/') || rel.startsWith('principles/')) &&
-  !rel.includes('/test/');
-
-/** Shipped engine sources, walked from disk. */
-function engineSourcesByWalk(root = REPO_ROOT) {
-  const out = [];
-  const walk = (dir, prefix) => {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
-      if (entry.isDirectory()) {
-        if (entry.name === 'node_modules' || entry.name === '.git') continue;
-        walk(join(dir, entry.name), rel);
-      } else if (isEngineSource(rel)) {
-        out.push(rel);
-      }
-    }
-  };
-  walk(root, '');
-  return out.sort();
-}
-
-/** The same population from git's index -- an enumeration that shares none of the walk's logic. */
-function engineSourcesByGit() {
-  const listed = execFileSync('git', ['ls-files', '*.mjs'], { cwd: REPO_ROOT, encoding: 'utf8' });
-  return listed.split('\n').filter(Boolean).filter(isEngineSource).sort();
-}
-
+// to sit in -- so a seam added to the CLI entry point passed unnoticed. The derivation now lives in
+// ./engine-sources.mjs so that it exists once: a second copy would drift, and worse, would absorb
+// the mutants aimed at the first.
 /** Every function-valued default parameter in shipped engine code, as `file:param=function`. */
 function injectedSeams(files = engineSourcesByWalk()) {
   const declared = new Set();
-  const read = (rel) => readFileSync(join(REPO_ROOT, ...rel.split('/')), 'utf8');
-
   for (const rel of files) {
-    for (const match of read(rel).matchAll(/(?:export\s+)?(?:async\s+)?function\s+(\w+)/g)) {
+    for (const match of readEngineSource(rel).matchAll(/(?:export\s+)?(?:async\s+)?function\s+(\w+)/g)) {
       declared.add(match[1]);
     }
   }
 
   const seams = [];
   for (const rel of files) {
-    const text = read(rel);
+    const text = readEngineSource(rel);
     for (const fn of text.matchAll(/function\s+\w+\s*\(([^)]*)\)/g)) {
       for (const param of fn[1].split(',')) {
         const bound = param.match(/(\w+)\s*=\s*([A-Za-z_]\w*)\s*$/);
@@ -101,10 +69,7 @@ test('the injected seam inventory matches shipped code', () => {
 test('each seam names a function a grep for its call would miss', () => {
   // The premise of the inventory: these really are unfindable by name. If a seam ever gains a
   // direct call site, this fails and the entry can be retired rather than kept out of habit.
-  const shipped = engineSourcesByWalk().map((rel) => [
-    rel,
-    readFileSync(join(REPO_ROOT, ...rel.split('/')), 'utf8'),
-  ]);
+  const shipped = engineSourcesByWalk().map((rel) => [rel, readEngineSource(rel)]);
 
   const invisible = [];
   for (const seam of EXPECTED_SEAMS) {
