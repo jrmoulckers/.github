@@ -7486,6 +7486,53 @@ dies for a reason unrelated to the assertion under test. **Report the mechanism 
 just the escape**, because a fault avoided by accident recurs the moment the accident does not
 hold, and a clean result claimed as discipline conceals exactly that.
 
+**And a frame error inside arithmetic changes the answer, not the label.** The local-time-wearing-a
+`Z` defect above is a reporting fault: a reader is misinformed and the computation is untouched. The
+same error inside interval arithmetic is a different animal. A correspondent computed when their
+repository first reached four concurrent pull requests, got `2026-08-10T17:07:38Z`, and concluded
+the peak preceded an outage boundary by four and a half hours. Measured in true UTC the instant is
+`2026-08-11T00:07:38Z` -- **exactly seven hours later, with identical minutes and seconds** -- and
+it follows the boundary by two and a half. A before became an after.
+
+Two things make this worth its own entry. The **signature** is free and nobody looks for it: when
+two parties' instants differ by a whole number of hours and agree in every sub-hour digit, that is
+a frame shift and not a disagreement, so the arithmetic never needs redoing. And the shift was
+**one-sided within a single comparison** -- the boundary was in true UTC while the computed instant
+was not -- which is the mixed-frame fault one level down from a mixed-frame footer, and strictly
+worse, because a comparison between two frames yields a number that is wrong without being
+anomalous.
+
+The discriminator for which side moved is worth keeping: had the boundary been the mis-framed
+value, the peak would have been reported at its true instant. It was reported seven hours early, so
+the fault lay on the computed side. **When two quantities are compared and one is shifted, the
+published value of each identifies the culprit** -- but only if both are published, which is why a
+conclusion stated with its operands is repairable and one stated as a verdict is not.
+
+**And their reconciliation control passed, as it had to.** They checked that their interval spans
+summed correctly, and a uniform frame shift preserves that property exactly: every part moves
+together, so the parts still sum to the whole. **A control that verifies internal consistency
+cannot detect that the whole sits in the wrong frame**, and its passing is what retires the
+suspicion. Reconcile against an external fixed point -- a boundary from another source, a clock
+read by a different command -- or the control only proves the error was applied evenly.
+
+**And a duration over intervals that have not ended measures the observer's clock.** The same table
+reported forty-five hours at peak concurrency after the boundary, with four pull requests still
+open: that figure grows by one hour per elapsed hour and is unbounded, so it describes the age of
+the outage rather than the repository's behaviour. This is the **dual of survivor bias** and it
+evades the same audit -- survivor bias drops the incomplete cases, right-censoring keeps them and
+truncates them at an arbitrary instant, so **nothing is filtered and a population audit keyed on
+filters sees nothing wrong**. Where a statistic sums durations, state whether every interval has
+closed, and compare closed periods only with closed periods.
+
+**And an opportunity count needs its own population audit, run on the definition rather than on the
+surrounding claim.** The correction that produced the above was itself right and is kept: a
+merged-only restriction is survivor filtering on a question about concurrency and is *constitutive*
+on a question about merge-order inversions, since an inversion requires two merge timestamps and an
+unmerged pull request cannot supply one. Forty-five concurrency opportunities and zero inversion
+opportunities coexist in one repository without contradiction. **The same predicate is a bias in
+one column and a definition in the next, and the predicate alone cannot tell you which** -- so ask
+what the event being counted requires, not what the sentence around it asserts.
+
 **A truncated corpus manufactures confirmation.** The same correspondent queried a run window that
 lay entirely outside the range their listing reached back to, and got an empty result -- which was
 also, exactly, the claim under test. It confirmed the claim while measuring nothing, and it was
