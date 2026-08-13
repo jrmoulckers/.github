@@ -9502,6 +9502,44 @@ makes a wrong remedy behind a correct verdict *more* dangerous than one behind a
 nothing downstream contradicts it. Test what a check *says* on each cause, not only which way it
 exits.
 
+### The frame of a coverage claim is part of the claim
+
+A mutation that survives tells you nothing until you say *what was watching*. This repo's CI runs three
+gates — the sync suite, the principles suite, and `sync/index.mjs --dry-run` — and every survivor
+verdict recorded here had been measured against the first one alone and written down unqualified.
+
+The failure this guards against is not hypothetical and it runs in both directions. A peer session
+scored a survivor, filed an issue on it, and then killed the same mutant against the *unmodified*
+tree: the owner was a test they had not thought to look in, one that reached the same code by a
+different route. Attribution drawn from an incomplete population invents gaps as readily as it hides
+them, and the invented gap is the one that looks like a finding and gets published.
+
+So state the frame, then measure whether it costs anything. Here it did not: four mutations to
+`sync/lib` run against only the other two gates produced 0 observations in 8, and the two included as
+**positive controls** — mutations the sync suite kills outright — were equally invisible. That is what
+makes it a result rather than a shrug, because it separates "these mutants are subtle" from "these
+gates do not look here". Without a control drawn from known-owned code, a silent gate and a blind gate
+produce identical output.
+
+The rule is not "run every gate". It is that a coverage claim inherits the boundary of its instrument,
+and the boundary is harmless only once someone has checked what falls outside it.
+
+### A probe that produced a filed claim is evidence, not scratch
+
+Deleting probes is good hygiene until one of them is the only record of how a published number was
+obtained. A peer destroyed the harness behind an issue they had filed, on exactly that hygiene rule,
+and when a later run contradicted the filing they could not establish what the first run had applied.
+Neither discipline was wrong on its own terms; they were simply in conflict, and the conflict only
+surfaced at the moment the artifact was needed.
+
+Retention class is therefore set by whether the verdict left the session — into an issue, a PR body, or
+a message to another repository — and not by tidiness. With one refinement that decides whether
+deletion costs anything at all: **a probe is safely destructible only when its published description
+determines the mutation uniquely.** "Relaxed `>` to `>=`" and "reduced the line to a bare
+`${item.targetPath}`" reconstruct exactly, so those harnesses were a convenience. "The basis was forced
+degraded" does not reconstruct, and deleting that harness destroys the claim's only support while
+leaving the claim standing.
+
 ## Commit Messages
 
 ```text
