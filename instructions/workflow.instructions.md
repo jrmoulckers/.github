@@ -143,6 +143,31 @@ something already failed. **The healthier the repository, the more completely a 
 appears confirmed and the less it has been tested**, so validate a rule about retries on a
 population that contains retries, and say which one when you report the check.
 
+**But health is the wrong variable, and a fleet sweep shows it.** Across eleven members, failure
+rate does not order re-run rate: the member failing `299` of `300` runs has **zero** re-runs, while
+one failing `19%` has the second-highest rate. Those `299` are billing refusals -- every failed job
+ends at zero steps -- and **nobody re-runs a deterministic refusal, because a second attempt cannot
+change the outcome**. The variable is **retryability**: whether a reader believes a repeat could
+land differently. That rescues the endogeneity reading rather than defeating it. A refusal is
+deterministic *in the run* and contingent only on state outside it, so the one party who does
+re-run it is someone probing that outside state, which is what an investigation is. On a refusing
+member the re-run subset is not merely correlated with being studied; it is **created entirely by
+the study**, and three of one member's four multi-attempt runs fall inside the window when its
+billing was under examination.
+
+**And that member is not the control it appears to be, because its `299` failures carry no health
+information at all.** Every one ended at zero steps: nothing built, nothing tested. Sampled
+against it, a member with a comparable-looking failure count ran `5`, `9` and `3` steps in its
+failed jobs -- real red builds. A `conclusion` column reports both as `failure`, so a fleet
+failure-rate table mixes *ran and lost* with *never ran*, and the row that looks like the sickest
+member is the row about which the fleet holds no measurement. **Condition a failure rate on step
+count before reading it as health**, or account state gets reported as code quality.
+
+Two hypotheses of mine died in this check and are recorded so the next reader does not re-run
+them. Trigger type explains nothing: the refusing member is `152` `pull_request` and `148` `push`,
+not scheduled. And *last N runs* was not the incomparable window I expected -- four members' most
+recent `300` span `0.2` to `0.8` days, so recency truncation is not what separates them.
+
 
 ## Worktrees
 
