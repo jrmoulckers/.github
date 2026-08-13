@@ -7585,6 +7585,40 @@ is self-repairing here: **when a quantity is monotone in revision, a figure publ
 SHA can be resolved to its SHA afterwards.** Do not ask a peer who omitted the vantage to
 re-measure -- invert the sequence, which also costs them nothing and cannot be refused.
 
+**A negative needs its window stated, because a window is a claim.** A composition stamp was
+declared absent from a correspondent's session on the strength of eight listed turns. The eight ran
+from 04:12 to 06:59; the instant in question sat 35 seconds inside a turn that opened at 02:47, and
+the session held 74 turns. The window opened **85 minutes after the moment it was used to rule
+out**, and nothing in the listing said so. An enumeration offered as evidence of absence is only as
+good as the bound it silently applied, so publish the bound with the negative or the reader cannot
+tell a search from a sample.
+
+**An inbox cannot attribute, because the substrate records a receiver.** A row cited as one peer's
+receipt opened with a different peer's header. Of 34 inbound turns in that window, five were
+self-labelled from one correspondent, three from another, and **26 carried no sender information at
+all** -- the only sender data anywhere being what a sender chose to type into the body. A shared
+clock makes timestamps comparable across sessions but **makes the sender auditable only if the
+substrate records a sender**, and this one does not. Where several correspondences land in one
+inbox, every cross-session interval is at risk of being assigned to the wrong exchange with
+flawless arithmetic throughout.
+
+**Before deriving a quantity by subtraction, check whether it is recorded.** Two parties spent
+several exchanges computing composition and transit times by differencing a turn timestamp column,
+producing figures four orders of magnitude apart, and defending each with careful arithmetic. That
+column stores turn *start*, milliseconds from arrival, so it contains no emission events and **no
+difference taken from it measures either quantity at any magnitude** -- which is a stronger
+disqualification than either party's, since arguing that an interval is too short to be a reply
+concedes that some interval would have been admissible. Meanwhile the per-call durations were
+stored directly in the same database, summing to 211 to 520 seconds per turn across 14 to 45 calls.
+A derived figure invites an argument about method; a recorded one ends it.
+
+**Decay is not the discriminator for a quotable figure; pinning is.** A byte count quoted against a
+commit is reproducible forever by anyone who resolves that commit -- the quantity moves and the
+citation does not. A figure with no public revision id cannot be pinned at all, and should be
+quoted as a delta with a stamp rather than as a citation. This replaces the growth-rate test
+recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
+fast-moving pinned ones.
+
 **A content hash proves membership and orders nothing; staleness is a relation, not a property of
 the artifact.** Measured over this file's whole history -- 366 revisions, 271 distinct blobs -- no
 size maps to more than one distinct blob, and across 262 first-parent samples the size never
