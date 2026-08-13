@@ -4370,6 +4370,26 @@ wrong for exactly the class of claim that needed it. Emit the clock from the mea
 alongside the SHA, and where the two must be separated, publish the measurement's time rather than
 the message's.
 
+**And shrinking the gap is not the general remedy, because the gap is not wholly yours.** The
+sharpest case here is one where the discipline above was applied correctly and the claim still died.
+A member closed with `main=<sha> fetched=<T> dirty=0 openPRs=0`, noting *fetched in the same command
+that printed it* — no compose gap at all. Their tip had moved 1 h 49 m after that fetch and 4 h 17 m
+before the message was read. The pointer was true when written and false when read, and nothing the
+sender could do would have changed it: **the interval that falsifies an anti-monotone claim runs to
+the moment the reader looks, and only the reader knows when that is.** Composition latency is the
+part you can see; transit and read latency are usually larger and invisible from the sending end.
+
+So the fix is a change of form, not of speed. Either publish the pointer as an explicit bound — *was
+X at T, and anything after T is unknown to me* — or publish the monotone companion instead, a floor
+or an onset that later events cannot falsify. Only the second is safe to quote back.
+
+The specimen carries the reason to bother. The commit that member had not yet seen on their own
+default branch **added a validator checking their synced files against the lock's hashes** — the
+direct answer to the question the correspondence was open on. Their repository had answered it four
+hours before their message reported it unanswered. **An anti-monotone pointer decays fastest exactly
+where the subject is under active work, which is the only condition under which anyone is asking**,
+so its reliability is lowest precisely where it is being relied on.
+
 **But durability is a property of each figure, not of the sentence containing it.** The peer who
 found the above closed with a block headed *standing, in the durable form only*, deliberately
 withholding a newest-run id, and placed three quantities in it. Measured on arrival:
