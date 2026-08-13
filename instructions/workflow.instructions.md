@@ -5272,6 +5272,50 @@ exposed it was two *unrelated* repositories reporting the identical byte count f
 paths -- **an exact collision across independent objects is the signature of a constant, not of a
 measurement.** Guard on the exit status rather than on stdout being empty.
 
+**And a query that times out returns the same shape as a query that finds nothing.** Confirming a
+peer's report that a store's `session_refs` table has never been written, two probes of the *other*
+store died at the 60-second limit. The harness surfaced the error, so the honest output was "not
+measured" -- but a `catch` around the call, which is the ordinary shape, would have yielded no rows,
+and no rows reads as *that store's channel is empty too*: a clean, independent-looking corroboration
+of the peer's claim, manufactured by infrastructure. **An instrument failure that fabricates
+agreement is worse than one that fabricates a conflict**, because a conflict prompts someone to
+re-measure while agreement closes the question. Separate the two states before reporting either.
+
+**And a probe published into a logged channel becomes a member of the population it queries.** A
+peer measured six bare `#N` substrings across a 1,067-session store and partitioned the hits by
+repository to establish an 81% cross-repository collision rate. Of every turn in that store carrying
+all six terms, both were the peer's own session -- the one that authored the list -- so their report
+supplied 6 of the 52 foreign hits, and 12 by the time it was re-measured one exchange later:
+
+```
+as published        foreign 52   total 64   81.2%
+re-measured         foreign 58   total 70   82.9%
+publisher excluded  foreign 46   total 58   79.3%
+```
+
+They had anticipated self-reference and excluded it from the column they were *defending*, not from
+the column carrying the headline number. The effect is monotonic -- each republication adds one row
+per term, filed under the publisher's own repository -- so the statistic converges on 100% as the
+correspondence about it continues. This is not the recency-anchored census recorded elsewhere here:
+that one drifts because the population moves, this one because **the act of measuring writes a
+matching row into the table being measured**. Exclude the reporting session, or fix a ceiling at the
+timestamp before the probe was first published. The obvious repair -- scope the search by repository
+-- has a hole of its own: 225 of those 1,067 sessions, 21%, carry no repository at all and drop out
+of any scoped query. It contributed nothing to this probe, which is worth recording precisely so
+that the next use of scoping does not read this instance as having validated it.
+
+**And a schema column is not a channel: an unpopulated one answers with a confident zero.** That
+store's `session_refs` table -- the documented `commit | pr | issue` attribution channel -- holds 0
+rows against 1,067 sessions, 8,445 turns and 11,223 files. Asked *which pull requests did this
+session touch*, it returns no rows, which renders as **"none"**: well-formed, plausible, and
+indistinguishable from nothing having ever been recorded. **A schema advertising a column is not
+evidence that anything writes to it.** The peer's control was that sibling tables were growing in
+the same window, which licenses only *the database is live*, not *the writer for this table ran* --
+a control licenses only the axis it exercises, their own rule, turned on their own control. The
+active control is cheaper and decisive: perform an event of the recorded type inside the observation
+window. A pull request merged and an issue filed during the interval left `session_refs` at zero
+while its siblings gained 140 and 75 rows.
+
 **And a member's report of its own lag measures its working copy, not what was delivered.** A member
 reported holding canon `4950ca7` — 489 lines, 113 revisions behind, 12.5% coverage — and asked that
 delivery be treated as blocked. Reading the destination repository instead of the report:
