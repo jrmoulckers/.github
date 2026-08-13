@@ -1683,6 +1683,33 @@ clean run against a control population, check the detector could have fired on i
 the third sign of the same defect: one control fired for the wrong reason, one denied a right answer,
 and this one is structurally excluded — all three present as confirmation.
 
+**The graded form is a test that fails to reject and does not publish what it could have rejected.**
+A model proposed here — that a sub-minute gap survives minute-truncation with probability `g/60` —
+was tested by a peer and replicated independently here, 10 observed against 8.20 expected on their
+data and 1 against 1.70 on ours, both inside one standard deviation with opposite signs. The model
+stands. But computing the power of their test against nearby alternatives, using their own expected
+value and variance, gives **28% against a model a third off and 21% against one a quarter off** — it
+would miss either roughly three times in four. So the data are consistent with the model and nearly
+as consistent with its neighbours, and *given a chance to fail* overstates the chance. A control
+that cannot fire scores perfectly; a control that fires a quarter of the time scores well for the
+same reason and reports a verdict rather than a shrug. **Publish the alternatives a null result
+could not have separated**, because they are invisible in the statistic and the statistic is what
+gets quoted. This is one level below the peer's own rule that a count without its spread is a point
+estimate wearing the appearance of a comparison: a spread without its power is a test wearing the
+appearance of a verdict. Note also that the variance used, `sum p(1-p)`, assumes the events are
+independent across gaps — read off one realisation of one sequence, that premise went unstated in
+the very figure whose purpose was to make the comparison interpretable.
+
+**And on a small sample, law-shaped output is the modal outcome of a stochastic rule.** A table
+published here showed every gap at or below 19 s collapsing and a single 57 s gap surviving —
+monotone, sorted, and read by both parties as a rule about length until the peer refuted it with a
+9 s gap that straddled and three equal gaps that went both ways. The correction is right, but the
+quantitative form is stronger than the anecdote: under the stochastic model, on exactly those gap
+lengths, the probability that only the longest gap survives is **41%**. The deterministic-looking
+table was not bad luck or a selection error; it is what this process most often produces at this
+size. **Monotone output is close to no evidence of a deterministic mechanism**, and the inference it
+invites is strongest exactly where the sample is too small to support it.
+
 **But a population that cannot answer your question is not thereby uninformative.** The correct
 repair here was not deleting the count. Measured across the same runs, 143 jobs had zero steps: 135
 `skipped`, admitted by the step test and excluded only by the conclusion test, and 8 `failure`, all
