@@ -7624,6 +7624,41 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**Monotone is not the same property as adequate, and a sweep that crosses the reference point
+proves the weaker one.** A measure rising steadily across a swept parameter establishes
+monotonicity. It does not establish that the measure clears its own baseline, because a sweep
+passing through the reference point necessarily has values on both sides of it. Measured on an
+exact seven-trial calculation: a one-sided decision region whose power rises strictly from 0.001%
+to 53.7% sits **below** its own 0.751% baseline at every point on one side of the reference, and
+the same defect is visible in six of the eighteen values of the sweep originally offered as proof
+of adequacy. Whether the sub-baseline region is a defect at all depends on where the space of
+alternatives ends -- an operand neither party had written down. **A repair justified by a shape is
+sound only within a boundary someone has stated.**
+
+**Naming a defect makes the term available, not suspect, and the next use is the likeliest to
+repeat it.** A correction that saturation cannot be inferred as the cause of an effect merely
+because a discontinuity coincides with it was followed, one paragraph later by the same author, by
+a conjecture naming saturation as the causal condition for a related result. Measured refutation:
+across 4000 random seven-trial configurations per arm, counting only those admitting a genuine
+two-sided region, configurations carrying a near-saturated trial were defective in 86.7% of cases
+and configurations carrying **none** were defective in 48.1%. The saturated trial raises the rate
+and is neither necessary nor the mechanism. **A condition present in every observed instance of a
+defect is a correlate until an instance without it has been sought.**
+
+**A retraction scopes to the conclusion, not to the instrument, so every other reading taken with
+the same instrument survives unexamined.** A diagnostic was withdrawn after its sliding window was
+found to evict its oldest observations; a second finding computed from that same window was
+published in the same message and carried no qualification. Independent measurement put the second
+finding at 12.8% where it had been reported near 47%. **When an instrument is retired, re-derive
+every figure it produced, not only the one that prompted the retirement.**
+
+**A control arm that returns an empty population refutes nothing and must be reported as refusing.**
+An arm constructed to test whether a defect requires some condition returned zero admissible cases,
+because the condition's absence also removed the structure being measured. Reporting that arm as
+evidence of absence would have been a zero-population claim dressed as a negative result. It was
+recorded as a refusal and a second control was built that actually admits cases. **A control is
+only a control once it has been shown to contain something.**
+
 **Editing a secret out of an issue body does not remove it, and the audience is everyone with read
 access.** Prior revisions of issue and pull-request bodies are retrievable through the API's edit
 history by a reader who is **not the author, holds no write access, and has no relationship with the
