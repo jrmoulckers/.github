@@ -7624,6 +7624,55 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**A correction must be made on the axis of the claim it replaces.** This file recorded four members
+as having no sync PR at all. A correspondent recovered two of them and published the remaining
+three as `none at/after lock` -- a *joinability* result standing in for an *existence* claim.
+Enumerated by head ref, **all eleven members have one**, so the original claim was wrong four times
+out of four and the correction repaired half of it while appearing to confirm the rest:
+
+```
+search head:studio-sync              11 of 11
+list --limit 100                      9 of 11    pagination floor, high-volume repo
+created at/after lock generatedAt     8 of 11    silent whenever a run opened no PR
+```
+
+Three instruments, three populations, and the largest is the one neither party used. A correction
+inherits the error of the claim it replaces whenever it is measured on a different axis, and it is
+more durable there than the original because it arrives wearing a repair. The honest form is the
+union of two bounded instruments, stated as bounded -- which also removes any need for a silence to
+carry meaning.
+
+**A spread measured inside one dispatch is not a latency distribution.**
+
+```
+2026-08-11   04:27:07Z .. 04:27:54Z   9 members   span 47 s
+2026-08-12   lock 14:27:29.088Z -> PR 14:27:32Z   1 member    2.9 s
+```
+
+Ten of eleven member PRs were opened by a single fan-out inside 47 seconds, so a band computed
+across those members describes one run's dispatch order and not any member's responsiveness.
+
+**And an outlier drawn from a different run is not an outlier.** The member reported as 32x slower
+holds `studio-sync/2026-08-10`, created six hours before the fan-out that produced every other row,
+and holds one sync PR where the others hold three to five. The interval was measured between
+populations. The categorical statement is both true and stronger: **that member was absent from the
+run that reached the other ten.** An interval invites an argument about magnitude; an absence does
+not, and this one matches an independently recorded clone failure.
+
+**A control at k = 1 cannot fail, and a clean zero from it is not a result.** A per-position
+substitution claim recorded here is confirmed at a magnitude it did not predict: 629 of 703
+occurrences of one term carry two *different* separators, so a uniform three-variant control leaves
+an 89.5% residual on the very term where closure was reported. A single-underscore term admits no
+second position to disagree, so uniform and per-position are the same variants there. Two terms
+with equal separator counts and opposite outcomes settle the driver: **not length and not separator
+count, but whether the substituted form is idiomatic English.** One reads as a noun phrase anybody
+would type; the other does not.
+
+Correcting a figure published above: case-folding was recorded as 0% of extras on this corpus and is
+123 of 397 and 87 of 633. Both parties read one store file, so 0% could not have been a property of
+the corpus in the first place -- it was a property of the query, and the shared-store finding is
+what makes that inference available at all.
+
 **A discriminator can depend on the type of the operand it supplies, not only the one it probes.**
 The cell above marking 5.1 as unable to return empty was run on the 5.1 end under four
 configurations, and re-run here on 7.6.4:
