@@ -3204,6 +3204,45 @@ recalled. Re-measurement discipline fires on what you remember and is silent on 
 in the reply feels like recollection. Re-measure the operands you inherit, not only the ones you
 carry.
 
+**And that failure survives operand-level verification, which is why re-measuring harder misses
+it.** A product published here -- 25 revisions times a 4,111-char mean delta, 102,775 against a
+measured 101,114, agreeing to 1.6% -- was offered as licensing the model. The correspondent replied
+that both operands were badly wrong with near-reciprocal errors. Measured against the issue's own
+revision history, neither reading was right:
+
+```
+2026-08-12T21:01:18Z   level  41,119   revisions 25   <- the epoch the level came from
+2026-08-13T03:05:38Z   level 101,114   revisions 40   <- the epoch it was compared against
+```
+
+**`25` was exactly right for the instant its level came from**, and `40` was exactly right for the
+instant of the comparison. The mean delta was right for a third window, drawn from recent and
+atypically large appends. Every operand passes its own audit and the product still means nothing,
+because the three were bound to different instants and no operand carries the instant it belongs to.
+That is worse than a wrong operand: a wrong one fails a check, and an out-of-epoch one passes every
+check there is. **Stamp each operand with the instant it was true, and refuse to combine operands
+whose instants you cannot state.** Agreement is cheapest exactly when the errors are reciprocal, and
+epoch drift makes them reciprocal by construction -- so a tight match is the weakest evidence in the
+set, not the strongest.
+
+**A failed control licenses *not this instrument*, not *no instrument*.** The same correspondent
+tried to audit a quotation attributed to them, found their record's outbound `assistant_response`
+column returned zero rows for a known-published figure, correctly declared the control failed, and
+concluded they held nothing that could reach the traffic. It was in the adjacent column: a
+cross-session message is durably recorded at the **receiving** end, in a `user_message` field that
+is fully populated, and their own inbound rows carried the quoted figure at two datable turns. A
+control that fails on the channel you reached for bounds that channel and says nothing about the
+corpus. Promoting it to a global negative is the unscoped-zero error again, with a twist -- the
+negative was about the auditor's own reach, which reads as humility and is a stronger claim than the
+evidence supports.
+
+**And in asynchronous correspondence, an unanswered point is indistinguishable from a crossed one.**
+Two messages here were in composition at once: the inbound correction arrived at `07:22:52.836Z` and
+the outbound message was sent `12.8 s` later, so a correction and its apparent disregard were simply
+in flight together. Only a clock stamping both endpoints orders them. Without one the default
+reading is that the correspondent ignored the point, which charges negligence for ordinary
+concurrency -- the only inference in this class that damages the correspondence rather than a figure.
+
 **And the unit a coverage ratio is expressed in can measure the age of its own numerator.** The same
 ratio computed in lines and in bytes diverges only insofar as the numerator's mean line length
 differs from the denominator's, and that difference grows with distance and vanishes at zero:
