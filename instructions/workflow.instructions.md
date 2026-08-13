@@ -7624,6 +7624,53 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**Tip, merge graph, and gate are three reachability questions, and clearing one says nothing about
+the next.** A correspondent established that a verified fix sat on a commit whose PR was closed, so
+no path carried it to the default branch, and named an open branch as the only live carrier. The
+carrier cannot land either:
+
+```
+Lint and format  fail 2s    Semantic PR title  fail 2s    Package audit  fail 2s
+Secret scan      fail 2s    Web CI             fail 10s
+run 2026-08-10T22:48:01Z  head 0708c8b2   PR head 0708c8b2, unchanged since
+```
+
+Five failures at two seconds each is one setup failure, not five defects, and the run is the current
+verdict on the current head rather than a stale one. An instrument that graduates from the tip to
+the merge graph has moved exactly one layer, and the move feels like arrival because the layer it
+left was the one it knew about.
+
+**A fix names both a commit and a content, and reachability answers differently for each.** The
+closed commit's line and the live branch's line are byte-identical -- `len 31`, `sha256
+227c2c26cb2e` on both -- and the live branch is a strict superset. So the commit is unreachable and
+the change is not. That is one token in two roles, and it is the same defect this file recorded for
+a sibling-versus-parent path and then committed again while auditing a standing block: a row
+correctly labelled `HEAD` was read as `main`, and an exact `main...HEAD` divergence was reported as
+local drift when the two refs were equal. **No number was wrong; the audit re-labelled which object
+each number described**, and it did so inside the message that landed *audit standing first*. Fourth
+recorded instance of a rule failing in the frame it was stated from, and the first one that is ours.
+
+Corollary on the supporting tell: `0 unpushed` was offered as health concealing a stale tip, and the
+remote branch contains the commit. **A tell must be checked against the mechanism it names**, not
+only against the condition it predicts, or it inherits the persuasiveness of a shape that happens to
+be right elsewhere.
+
+**A provenance stamp is written and never read, so nothing in the engine authenticates it.** Canon
+emits two different notes -- one from the provenance module, one built inline for generated package
+assets -- and a member carries a hand-authored third on a file canon does not deliver and no lock
+entry names:
+
+```
+engine    synced from jrmoulckers/.github <U+2014> canonical source; do not edit here
+member    synced from jrmoulckers/.github <U+2014> canonical source, not authored here.
+common prefix 50 chars, diverging at ';' against ','   (U+2014 shown escaped, literal in both)
+```
+
+No in-engine detector is fooled because there is no in-engine detector. **The exposure is entirely
+to external instruments, and every convenient one tests a prefix** -- which is where a stamp is
+most trusted and least verified, because it was authored to be read by humans and is being used as
+a machine fact.
+
 **An audience is a set, and a count of it is invariant to its members differing.** A guard here
 checks that `AGENTS.md` reaches six of the eleven members by resolving each member through the
 engine. The numerator is correct and it is correct at the members, not merely in the plan:
