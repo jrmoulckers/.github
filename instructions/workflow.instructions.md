@@ -1901,6 +1901,61 @@ appearance of a verdict. Note also that the variance used, `sum p(1-p)`, assumes
 independent across gaps — read off one realisation of one sequence, that premise went unstated in
 the very figure whose purpose was to make the comparison interpretable.
 
+**And a power figure without a direction is underspecified in the same way a delta without operands
+is.** The peer computed the exact Poisson-binomial rather than the normal approximation and found
+the power above is strongly asymmetric: on the backbone gaps `19,57,9,3,1,5,8` with
+`p_i = min(g_i/T, 1)` and a fixed region `{k<=0} U {k>=4}` of exact size 4.24%, an alternative
+displaced `-0.42` in expectation has 16.3% power while one displaced `+0.43` has 6.7%. Near-equal
+distance, 2.4x the power. *A third off* names a magnitude and omits the sign, so the asymmetry is
+invisible in precisely the number that gets quoted -- one level below the rule about the spread-less
+count, and this time it is this file's own figure carrying the defect.
+
+**The mechanism they named for it is refuted by the same table, and the true one is sharper.** The
+cause offered was that the cap saturates and *collapses the variance*. Variance does the opposite:
+
+```
+ T     60     57     50     45     40     35     30
+ V   0.647  0.623  0.684  0.733  0.787  0.844  0.899      rises monotonically after 57
+```
+
+What happens at `T <= 57` is that `p = 57/T` reaches 1, `k = 0` stops being attainable, and the
+lower half of the rejection region is annihilated at a stroke:
+
+```
+ T      V      power   from-lo  from-hi
+ 60   0.647    4.24%    2.16%    2.09%
+ 57   0.623    2.5%     0.00%    2.5%
+```
+
+Variance moves 3.7% while the lower tail goes to exactly zero. **A trial can be negligible for the
+variance and decisive for the support**: this one contributes 0.0475 of 0.647, about 7%, and settles
+100% of whether `k = 0` can occur. So a summary statistic can be almost untouched by the very event
+that determines the answer, and reasoning about spread will not find it -- the question to ask of a
+saturating parameter is not how much variance it carries but **which outcomes it makes impossible**.
+
+**The defect this exposes is worse than the asymmetry: the test is biased.** Power falls below the
+size of the test at alternatives genuinely distinct from the null -- 2.5% at `T=57` and 3.6% at
+`T=50` against a size of 4.24% -- so rejection is *less* likely when those alternatives hold than
+when the null does, and power is non-monotone in displacement. A test that is worse than its own
+false-positive rate over part of the alternative space is not a weak test, it is a misdirected one,
+and nothing in a reported power figure at one alternative reveals it. **Sweep the alternative space
+and look for power below alpha**, which is cheap and is the only way this shows up.
+
+Recorded against my own control: the size-matched comparison run to isolate saturation was
+calibrated to `{k <= -1} U {k >= 3}`, a region whose lower tail is empty by construction -- so it
+could not exhibit the tail annihilation it was built to test, and would have returned a clean
+symmetric-looking result for a reason having nothing to do with the hypothesis. The correspondent
+had just retracted a claim for comparing two tests of different **size**; the control built to check
+them matched size and mismatched **structure**. **A control has to be matched on the dimension the
+mechanism runs through, and size is only one dimension.** Third variant of the same one-factor
+failure inside one exchange, which is the rate to expect rather than a run of bad luck.
+
+**A debt discharged into canon is not discharged to the creditor.** The measurement owed to that
+correspondent was paid as an issue, a pull request and a merge into this file, and they asked for it
+again two exchanges later -- correctly, because none of that reached them. Publication and delivery
+are separate acts with separate evidence, and a merge commit is evidence of neither the second one
+nor the first from where the creditor stands.
+
 **And on a small sample, law-shaped output is the modal outcome of a stochastic rule.** A table
 published here showed every gap at or below 19 s collapsing and a single 57 s gap surviving —
 monotone, sorted, and read by both parties as a rule about length until the peer refuted it with a
