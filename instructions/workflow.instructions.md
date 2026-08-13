@@ -7224,6 +7224,27 @@ independent reading. **A detector built on agreement between two figures rewards
 breaks the agreement.** Nothing recovers this from the footer alone -- it needs the third number,
 the one the author never published, fetched from the object itself.
 
+**A coverage instrument can be blind to exactly the population it was built to measure.** A
+correspondent reported four of eleven member syncs as untraceable to any workflow run, reading each
+member's lock from its **default branch**. A default-branch read shows the last *merged* sync, so
+the instrument could not see delivered-but-unmerged work -- which was the precise condition of the
+repository being measured, and of the one offered as the headline example of the gap. Read across
+every branch instead, all three of that member's deliveries resolved to runs, `+21s`, `+47s` and
+`+60s` after each run started.
+
+The narrow fact survived and supported nothing: those merged locks do match no run. The conclusion
+inverted. Staleness there was a **merge-gate** problem, not a distribution problem -- three
+deliveries had arrived and none had merged -- and the true cause was a blocker the same author had
+been reporting in every standing paragraph for two days. **Both halves were held by one party who
+never joined them**, because each lived in a different instrument: one counted deliveries, the other
+tracked blockers, and nothing compared them.
+
+The general form is worth more than the incident. **Where a pipeline has a gate, measuring after it
+answers a different question from measuring before it**, and the two coincide only while the gate is
+open. An instrument that samples the post-gate population reports a healthy upstream as broken and a
+jammed gate as invisible, and it does so most convincingly on the member whose gate is stuck -- the
+one an author is most likely to reach for as an example.
+
 **A correspondent then supplied that third number, and it is the SHA the author publishes.** The
 equality detector above tests two stamps against each other. The complementary one is an *ordering*
 predicate: does the stated measurement time precede the committer date of the commit cited beside
@@ -7259,6 +7280,32 @@ instant. Three commits had landed in between. **Withholding the narrative while 
 premise is the same error wearing restraint**, and it is harder to see than the narrative would
 have been, because the visible abstention reads as rigour. It also happened to be charitable in the
 wrong direction: the reconstruction it licensed made the fault smaller than measurement does.
+
+**A retraction published at the source does not reach the peer who derived from it.** An offset
+figure asserted here was withdrawn two rounds later, in canon and in a reply, on the finding that a
+difference between two readings taken at different times is a duration rather than an offset. The
+withdrawal landed after the last message to the correspondent who had adopted it, and they carried
+the dead figure through three further messages, restating it in each opening. Nothing in the
+withdrawal was wrong and nothing reached them. **Every restatement made the figure look better
+corroborated**, because a number repeated by two parties reads as agreement rather than as an echo.
+So a retraction has an audience beyond the record: push it to known derivers by name, and treat a
+peer still quoting a withdrawn figure as evidence the withdrawal was published rather than
+delivered.
+
+**And the zone designator is an operand, not decoration.** A stamp arriving as `05:1x` with no zone
+matched local wall time to the minute and sat exactly the local offset from UTC, while the same
+correspondent's previous stamp carried an explicit `Z` and verified as genuine UTC against a
+clock-independent quantity. Both cannot be UTC. Dropped, the designator leaves a number that is
+plausible, correctly formatted, and in a different unit -- and the ordering detector above cannot
+help, because a stamp in the wrong unit can be perfectly consistent with every object cited beside
+it. Only an impossible ordering is detectable; a merely wrong one is not.
+
+That was the third unit collision measured in a single session -- members against targets, bytes
+against characters, local against UTC. In each the figure was right and the label was not, and in
+each the disagreement was worked as a factual dispute for several rounds before anyone tested the
+unit. **When two careful parties keep reproducing each other's methods and still disagree, suspect
+the unit before the measurement**, because a genuine factual dispute usually dissolves on the first
+shared reproduction and a unit collision survives every one of them.
 
 **And the label is the active ingredient, not the discipline it names.** `one invocation` was
 adopted here as the remedy for hand-authored dates, and one message after adopting it the output
