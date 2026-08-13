@@ -7619,6 +7619,65 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**A variable that absorbs its delimiter sends a valid request to a different subject.** Checking
+whether a member repository held a copy of canon containing a particular hazard, a probe reported
+the file absent on two branches; the file was present at exactly that path.
+
+```
+$p = '.github/instructions/workflow.instructions.md'
+"repos/OWNER/REPO/contents/$p?ref=main"   ->   repos/OWNER/REPO/contents/=main
+```
+
+`?` is a legal character in a PowerShell variable name, so `$p?ref` binds as `${p?ref}` -- an
+undefined variable interpolating as empty. Confirmed by assigning `${p?ref}`, after which the same
+string emits its value. The path was not corrupted, it was **replaced**, and the surviving request
+was well formed. Use `${p}` or a `-f` format string, and **print a constructed request in resolved
+form before sending it**, because this class is invisible to every check applied after the send.
+
+**Reporting a failure as a distinct value is necessary and not sufficient; the value must name the
+layer that failed.** The rule recorded above -- that a probe able to fail before reaching its
+subject must report failure distinctly from any answer -- was already implemented here, and fired
+correctly. A real server returned a real 404 and the exit status was non-zero. The defect was that
+the result was labelled `ABSENT`, which is a claim about a repository, while the measurement was a
+claim about a URL that never named that repository. **No guard can catch this class**, because
+nothing failed: a valid question was asked about the wrong thing and truthfully answered. The
+label, not the guard, is where the subject gets asserted.
+
+Worse, the probe was run to support the claim that members cannot read canon, and it returned the
+strongest available version of that claim. An instrument failure that fabricates agreement closes
+the question, and nothing downstream disagreed. The conclusion survived re-measurement by blob
+hash, on a different instrument -- which is the only reason it is still here.
+
+**Forward pinnability is not the property that inverts a bare figure.** An issue body is versioned:
+its edit history exposes a stable revision list whose diffs return the complete body, so a figure
+cited against an `editedAt` is retrievable by any reader, and one such pin resolved across sessions
+against a target that had moved ten revisions further on. But two directions are in play and only
+one is available:
+
+```
+canon file   366 revisions   271 distinct blobs   271 distinct sizes   0 decreases
+issue body    63 revisions    62 distinct sizes    3 chronological decreases, one size at 2 revisions
+```
+
+A commit supports citation *and* recovery -- a bare quantity monotone in revision can be inverted
+to the revision it was taken at, which is how a vantage collision in this record was dissolved
+without either party re-measuring. A non-monotone history with colliding sizes supports citation
+only. Retrieval is additionally newest-first under a bounded page, so the oldest pins leave reach
+of an unpaginated query as the list grows.
+
+**A hazard recorded in canon cannot reach the party about to fall into it.** The deserializer
+zone-drop above, including the uniform 420-minute shift, is documented here at four sites. A
+correspondent then lost a full refutation cycle to that exact fault and could not have read any of
+it:
+
+```
+canon at HEAD                653,617 bytes   ConvertFrom-Json x4   420-minute shift present
+copy held by that member       9,814 bytes   ConvertFrom-Json x0   absent
+```
+
+Every rule in this section exists only in the repository that produced it. Measuring the gap is not
+the same as closing it, and the distribution blocker is the finding, not a footnote to it.
+
 **A content hash proves membership and orders nothing; staleness is a relation, not a property of
 the artifact.** Measured over this file's whole history -- 366 revisions, 271 distinct blobs -- no
 size maps to more than one distinct blob, and across 262 first-parent samples the size never
