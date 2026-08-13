@@ -5,7 +5,7 @@ import { dirname, join, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { validateInstructionIntegrity } from '../lib/instruction-integrity.mjs';
-import { loadManifest } from '../lib/manifest.mjs';
+import { loadManifest, applyManifestDefaults } from '../lib/manifest.mjs';
 import { enumerateTargets } from '../lib/assets.mjs';
 import { resolveAll } from '../lib/resolve.mjs';
 
@@ -545,5 +545,156 @@ test('a hub-local canon surface states that it is undistributed, and the claim t
       text.includes(HUB_LOCAL_NOTICE),
       'docs/ is not a source path, so docs/sync.md must say so where a rule would be written',
     );
+  }
+});
+/**
+ * Every validator the entry point calls, driven through the entry point with a real violation.
+ *
+ * Deleting any one of the six dispatch lines in `validateInstructionIntegrity` left the whole suite
+ * green (#996). Not because the validators were unwired — `loadManifest` calls this entry point on
+ * every run — but because **nothing ever constructed a violation for them to catch**. The rules were
+ * covered, thoroughly, by tests that reimplement each rule and run it against the real corpus. That
+ * asserts the corpus is clean. It never asserts the validator would notice if it were not, so the
+ * whole set could be deleted and the suite would still pass.
+ *
+ * The reimplementation above even carries the anti-vacuity floor, on its own `readdirSync`, while
+ * the production walk it describes had none. That is the sharpest form of this defect: the lesson
+ * was learned, written down, and applied to the copy.
+ *
+ * Each row corrupts a full copy of the repository in the one way only its validator objects to, and
+ * asserts the entry point reports it. The manifest is built without validation on purpose — see
+ * `unvalidatedManifest` — because `loadManifest` runs these same validators, so a fixture that goes
+ * through it is caught one frame too early and passes without ever calling the arm it names.
+ */
+const DISPATCH = [
+  {
+    validator: 'validateRoster',
+    corrupt: (root) => rmSync(join(root, 'instructions', 'tokens.instructions.md')),
+    expect: /canon\.instructions "tokens" has no instruction file/,
+  },
+  {
+    validator: 'validateScopes',
+    corrupt: (root) => {
+      const path = join(root, 'instructions', 'docs.instructions.md');
+      const text = readFileSync(path, 'utf8');
+      const rewritten = text.replace(/applyTo: '[^']*'/, "applyTo: '**/*.md'");
+      assert.notEqual(rewritten, text, 'the applyTo rewrite matched nothing and would prove nothing');
+      writeFileSync(path, rewritten);
+    },
+    expect: /applyTo must not blanket-match \*\*\/\*\.md/,
+  },
+  {
+    validator: 'validateContent',
+    corrupt: (root) => {
+      const path = join(root, 'instructions', 'agents.instructions.md');
+      writeFileSync(path, readFileSync(path, 'utf8').split('localAgents').join('localAgent-s'));
+    },
+    expect: /agents\.instructions\.md: missing declared localAgents/,
+  },
+  {
+    validator: 'validateMemberSelections',
+    corrupt: (root) => {
+      const path = join(root, 'studio.config.json');
+      const manifest = JSON.parse(readFileSync(path, 'utf8'));
+      const member = manifest.members.find((m) => m.repo === 'jrmoulckers/homelab');
+      member.optIn.instructions = ['agents'];
+      writeFileSync(path, JSON.stringify(manifest, null, 2));
+    },
+    expect: /jrmoulckers\/homelab: optIn\.instructions must be explicit/,
+  },
+  {
+    validator: 'validateSourceTargetReferences',
+    corrupt: (root) => {
+      const path = join(root, 'AGENTS.md');
+      writeFileSync(path, readFileSync(path, 'utf8').split('.github/skills/').join('the-skills-folder'));
+    },
+    expect: /AGENTS\.md: must reference "\.github\/skills\/"/,
+  },
+  {
+    validator: 'validateImmutableWorkflowExamples',
+    corrupt: (root) => {
+      const path = join(root, 'docs', 'sync.md');
+      writeFileSync(
+        path,
+        `${readFileSync(path, 'utf8')}\n    uses: jrmoulckers/.github/.github/workflows/reusable-ci-web.yml@main\n`,
+      );
+    },
+    expect: /docs\/sync\.md: reusable workflow examples must use <reviewed-commit-sha>/,
+  },
+];
+
+function corruptedCopy(corrupt) {
+  const tmp = mkdtempSync(join(tmpdir(), 'instr-dispatch-'));
+  cpSync(REPO_ROOT, tmp, {
+    recursive: true,
+    filter: (src) => !src.includes(`${sep}.git${sep}`) && !src.endsWith(`${sep}.git`),
+  });
+  corrupt(tmp);
+  return tmp;
+}
+
+/**
+ * The manifest for a corrupted root, built without validating it.
+ *
+ * `loadManifest` runs this entry point itself — along with the agency, agent, prompt, and workflow
+ * validators — so calling it here would raise the corruption one frame too early and the assertion
+ * would pass without `validateInstructionIntegrity` ever being called. The fixture would be green,
+ * for a reason that has nothing to do with what it claims to test.
+ */
+function unvalidatedManifest(root) {
+  return applyManifestDefaults(JSON.parse(readFileSync(join(root, 'studio.config.json'), 'utf8')));
+}
+
+test('every instruction validator is reached from the integrity entry point', () => {
+  for (const row of DISPATCH) {
+    const tmp = corruptedCopy(row.corrupt);
+    try {
+      assert.throws(
+        () => validateInstructionIntegrity(tmp, unvalidatedManifest(tmp)),
+        row.expect,
+        `${row.validator}: its corruption did not reach the entry point`,
+      );
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  }
+});
+
+test('the dispatch table covers every validator the entry point calls', () => {
+  // Derived from the entry point's own source rather than transcribed, because a hand-listed table
+  // inside a change about hand-listed populations reproduces the defect one level up. A validator
+  // added to the dispatch without a row here fails this test rather than joining the six silently.
+  const source = readFileSync(join(REPO_ROOT, 'sync', 'lib', 'instruction-integrity.mjs'), 'utf8');
+  const body = source.slice(
+    source.indexOf('export function validateInstructionIntegrity'),
+    source.indexOf('\nfunction validateRoster'),
+  );
+  const called = [...body.matchAll(/^\s*(validate[A-Za-z]+)\(/gm)].map((m) => m[1]);
+
+  assert.ok(called.length > 0, 'no dispatch calls parsed — this guard would assert nothing');
+  assert.deepEqual(
+    [...new Set(called)].sort(),
+    DISPATCH.map((row) => row.validator).sort(),
+    'the dispatch table and the entry point disagree about which validators exist',
+  );
+});
+
+test('the reusable-workflow walk cannot pass by reading nothing', () => {
+  // The walk discovers its own population, so an empty walk asserts nothing and reports success.
+  // canon.workflows declares what it must find; deleting the files leaves the declaration standing.
+  const tmp = corruptedCopy((root) => {
+    const dir = join(root, '.github', 'workflows');
+    for (const name of readdirSync(dir).filter((n) => /^reusable-.*\.yml$/.test(n))) {
+      rmSync(join(dir, name));
+    }
+  });
+  try {
+    assert.throws(
+      () => validateInstructionIntegrity(tmp, unvalidatedManifest(tmp)),
+      /declared in canon\.workflows but not read by the immutable-example check/,
+      'an empty walk passed — the check is silent exactly when discovery fails',
+    );
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
   }
 });

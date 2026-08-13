@@ -3543,6 +3543,23 @@ today's output ratifies today's output; a named document is checkable by opening
 asymmetry that leaves: deleting a name weakens the floor silently, and nothing catches it, so the
 list is only as good as the reason each entry was added.
 
+### A rule checked only against a clean corpus is not checked
+
+Reimplementing a rule in a test and running it over the real repository asserts that the repository
+complies. It does not assert that the validator would object if the repository stopped complying —
+those are different claims, and only the first was ever being made. The tell is that the production
+validator can be deleted outright with the suite green.
+
+Distinguish that from a validator that is genuinely unwired: a deletion mutant produces the same
+green either way, so it cannot tell "never called" from "called with nothing to find". Both need the
+same fix and they are not the same defect, so name the one you measured. Constructing a violation is
+what separates them, because only a corrupted fixture can be caught.
+
+When the fixture is a corrupted copy of the repository, check which frame catches it. Our loader
+runs the integrity validators itself, so every first-draft fixture threw the message the test was
+waiting for — from the loader, before the entry point under test ran at all. The assertion passed
+and proved nothing. Build the input the entry point needs without the validation that duplicates it.
+
 ## Calling reusable workflows
 
 

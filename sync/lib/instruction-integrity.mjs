@@ -55,7 +55,7 @@ export function validateInstructionIntegrity(repoRoot, manifest) {
   validateContent(byName, errors);
   validateMemberSelections(manifest, errors);
   validateSourceTargetReferences(repoRoot, errors);
-  validateImmutableWorkflowExamples(repoRoot, errors);
+  validateImmutableWorkflowExamples(repoRoot, manifest, errors);
 
   if (errors.length) {
     throw new Error(`Invalid canonical instructions:\n  - ${errors.join('\n  - ')}`);
@@ -240,7 +240,7 @@ function validateSourceTargetReferences(repoRoot, errors) {
   }
 }
 
-function validateImmutableWorkflowExamples(repoRoot, errors) {
+function validateImmutableWorkflowExamples(repoRoot, manifest, errors) {
   const paths = [
     'README.md',
     'principles/github/actions-and-delivery.md',
@@ -260,7 +260,9 @@ function validateImmutableWorkflowExamples(repoRoot, errors) {
     }
   }
   const workflowDir = join(repoRoot, '.github', 'workflows');
+  const inspected = new Set();
   for (const fileName of readdirSync(workflowDir).filter((name) => /^reusable-.*\.yml$/.test(name))) {
+    inspected.add(fileName.slice(0, -'.yml'.length));
     const relativePath = `.github/workflows/${fileName}`;
     const text = readText(join(workflowDir, fileName));
     for (const match of text.matchAll(WORKFLOW_CALL)) {
@@ -269,6 +271,30 @@ function validateImmutableWorkflowExamples(repoRoot, errors) {
           `${relativePath}: reusable workflow examples must use <reviewed-commit-sha> or a full commit SHA`,
         );
       }
+    }
+  }
+
+  // The half above discovers its own population, so it is silent exactly when discovery fails: an
+  // empty walk runs no assertions and reports success. The sibling half of this function reads a
+  // hand-listed array and fails closed, because `readText` throws on a path that moved — so the
+  // transcribed population is the safe one here and the derived population is the hole.
+  //
+  // `canon.workflows` already declares this exact set and is pinned in both directions by
+  // `validateWorkflowIntegrity`, so the floor costs nothing to state and moves with the fleet. It is
+  // read without a `?? []` fallback on purpose: a default that degrades to empty would delete the
+  // floor in precisely the case it exists for.
+  const declared = manifest?.canon?.workflows;
+  if (!Array.isArray(declared) || declared.length === 0) {
+    errors.push(
+      'studio.config.json: canon.workflows must declare the reusable workflows read here; without it this check asserts nothing',
+    );
+    return;
+  }
+  for (const name of declared) {
+    if (!inspected.has(name)) {
+      errors.push(
+        `.github/workflows/${name}.yml: declared in canon.workflows but not read by the immutable-example check`,
+      );
     }
   }
 }
