@@ -7639,6 +7639,40 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**A unit error preserves order, so no ordering check can detect one.** A peer refuted a
+unit-collision hypothesis by showing the sequence was non-monotonic, on the sound ground that a
+constant shift preserves order. The rule is correct and its contrapositive is the trap: preserving
+order is exactly what a unit error does, so monotonicity is evidence against nothing. Five
+consecutive canon sizes were published here as `bytes` while being UTF-16 code-unit counts from a
+shell that decodes -- `718603 721479 723515 726466 730227`, each 1,888 below the true
+`git cat-file -s` value, monotone throughout with plausible increments and a constant offset, because
+the file's non-ASCII line count never moved. The series is the only thing an auditor sees, and the
+series is clean. Detecting the class requires re-deriving one value by a second instrument; no amount
+of internal consistency in the first will do it.
+
+**A length reported by a tool that decodes is a property of the decoding, not of the artifact.** The
+figures above were produced by a raw-file read whose `.Length` counts code units after the bytes have
+been interpreted as text. Nothing in the call names an encoding, so nothing in the call announces
+that a choice was made; the number is well-formed, stable, reproducible, and about a different object
+than its label claims. This is the same shape as a comparison that normalizes both sides before
+comparing them -- in both cases the tool silently supplies a transformation and then reports the
+transformed quantity as the measurement. For a size, quote the object store: `git cat-file -s
+<rev>:<path>` never decodes. Label the figure with the command that produced it, so that a reader
+comparing against a peer can see whether the two figures are in the same units at all.
+
+This also bounds the pinning rule recorded above. Quoting a byte count against a commit makes the
+*citation* reproducible; it does not make the *unit* recoverable, because the commit fixes the
+artifact and not the instrument. A pinned figure in the wrong unit is reproducibly wrong, and its
+pinning is what lends it authority.
+
+**A gate correctly scoped to a diff does not license a total in the same block.** The size figures
+above sat beside a quality gate that had already been narrowed to `added-lines-only` after an earlier
+finding, and the narrowing held: the added lines really were ASCII, so the gate was right. The 1,888
+bytes were pre-existing non-ASCII in the file the block reported a total for. A correctly scoped
+gate and an incorrectly scoped total coexisted in one block, each true of its own population, and
+adjacency did the rest -- a reader takes the verified scope of the strictest claim as covering the
+block. Restate the population on every figure, not once per block.
+
 **A control that tests two unknowns with one equation reports the pair, not the parameter.** An
 offset was defended by showing that the machine's converted-to-UTC time matched an external
 reference to the second. The match is real and it validates the conversion, but the relation under
