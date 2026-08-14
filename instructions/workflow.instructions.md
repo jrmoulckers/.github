@@ -127,12 +127,23 @@ read from a clock is worse than an undated one**: an undated figure advertises t
 paragraph exists to close, while a fabricated instant manufactures exactly the confidence the rule
 was written to produce, inside the rule. Check a clock against something outside the process before
 publishing an instant beside a number -- a hub's response `Date` header is free and arrives with
-every call already being made:
+every call already being made. **It is a coarse reference and must be quoted as a bound, never as a
+value**, for reasons measured and recorded later in this file: it is served from cache, so repeated
+reads sit on plateaus roughly twelve seconds wide while the computed difference falls at one second
+per second of local time, and consecutive reads can go backwards. Sample it repeatedly, publish the
+spread and the round-trip time, and quote the maximum, which is the only extremum that bounds the
+truth:
 
 ```
-GitHub Date header   2026-08-13T10:26:57Z
-this machine         2026-08-13T10:26:57.6Z     offset 0.6 s, read simultaneously
+GitHub Date header   sampled 30x at 3 s, RTT 0.03-0.11 s
+offset min / max     -13.78 s / -3.10 s     spread 10.68 s
+report               true offset >= -3.10 s          a bound, not a value
 ```
+
+An earlier version of this paragraph published `offset 0.6 s, read simultaneously` from a single
+read. That figure was a single draw from the distribution above, is not reproducible, and was cited
+by a correspondent as a precise anchor. **Agreement to the second with a cached reference is a
+statement about when the cache refreshed.**
 
 **The first version of this entry put a correspondent in that table at `344.6 min` behind, and that
 was wrong.** Their stamp was differenced against a clock read hours later, so the quantity produced
@@ -7627,6 +7638,39 @@ citation does not. A figure with no public revision id cannot be pinned at all, 
 quoted as a delta with a stamp rather than as a citation. This replaces the growth-rate test
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
+
+**A control that tests two unknowns with one equation reports the pair, not the parameter.** An
+offset was defended by showing that the machine's converted-to-UTC time matched an external
+reference to the second. The match is real and it validates the conversion, but the relation under
+test is `wall + offset == reference`, and the disputed quantity is one of two free terms on the
+left -- so the control returns agreement under every candidate offset, each paired with the wall
+clock that satisfies it. The evidence that actually discriminated was a **direct read of the
+timezone record**, which does not involve the clock at all. Both were presented, and the blind one
+was presented as the clincher; a reader adopting the argument adopts the blind one, because it is the
+one framed as decisive. **Before offering a control, name the value it would have returned had the
+disputed parameter been different** -- if no such value exists, it is a demonstration, not a control.
+
+**A document can hold a prescription and its own refutation, and the prescription is the one that
+gets executed.** This file recommended an external clock reference in its prescriptive opening, and
+several hundred kilobytes later recorded the measurement showing that same reference is cached,
+non-monotonic across consecutive reads, and dispersed more widely than the quantity it is used to
+measure. Both entries were correct, landed deliberately, in the right file. Nothing linked them, and
+the recommendation kept issuing instructions the tail of the same document refutes. The mechanism is
+the internal form of a rule already recorded here about retractions failing to reach the parties who
+derived from them: **prescriptive text is written to be acted on and epistemics text is written to be
+read**, so a correction filed as a lesson never reaches the paragraph that gives the order. When a
+finding refutes an instrument, repair the passage that prescribes the instrument in the same change,
+and if the two cannot be co-located, put the bound at the point of use rather than the reasoning.
+
+**A comparison table is where a redaction gets silently resolved more than once.** A coarsened
+timestamp was carried into a two-column table, and each column resolved the span independently -- one
+inheriting a figure computed in an earlier round, the other recomputed at the interval's lower
+endpoint -- with no cell recording which point it used. Every individual derivation was defensible
+and the pair was incoherent, because **each column is a separate act of computation and the label is
+re-read for each one**. A span survives the first derivation as a span and is collapsed independently
+in the next, so the collapse is invisible in exactly the layout that invites comparison. Resolve a
+redaction once, to both endpoints, and carry the interval into every column, or print the resolved
+point in the cell.
 
 **A cached reference is not an arbiter, and when sampling one the estimator has a direction.** Two
 parties nominated a remote service's response header as a neutral clock, and both reported agreement
