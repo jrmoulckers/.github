@@ -7628,6 +7628,39 @@ quoted as a delta with a stamp rather than as a citation. This replaces the grow
 recorded above, which wrongly permitted any slow-moving unpinnable number and wrongly forbade
 fast-moving pinned ones.
 
+**A cached reference is not an arbiter, and when sampling one the estimator has a direction.** Two
+parties nominated a remote service's response header as a neutral clock, and both reported agreement
+with it to the second. The header is served from cache: sampled thirty times at three-second
+intervals it produced **nine distinct values over ninety seconds**, each held on a plateau while the
+computed difference fell at exactly one second per second of local time -- the signature of a frozen
+instant being counted down rather than a clock being compared. The spread across samples was `10.68
+s`, which is larger than the quantity either party claimed to have measured, so an agreement reported
+as `0 s` is a statement about when the cache last refreshed. Because a cached instant is never later
+than the true one, every sample is a **lower** bound, and the tightest estimate is the **maximum**;
+advice to take the minimum -- which this record previously gave -- systematically selects the
+stalest reading and biases the result in one direction. Sample repeatedly, publish the spread and the
+round-trip time, quote the extremum that bounds the truth, and report a bound rather than a value.
+
+**An ordering detector is only as monotonic as its reference.** A useful test had been adopted on
+both sides -- nothing a message cites may postdate the message's own stamp -- and it does real work,
+killing a proposed unit-collision explanation outright, since a constant shift preserves order and
+therefore cannot produce a sequence that decreases. But the reference clock it is computed against
+went **backwards by one second between two consecutive reads**, because a cached response can be
+served by nodes holding different instants. The detector's resolution floor is that inconsistency, so
+findings four orders of magnitude above it survive untouched while a sub-second or one-second
+"postdating" result from the same reference is noise wearing the shape of a finding. **State a
+detector's noise floor when adopting it**, or its cheapest results will be its least reliable ones.
+
+**A record that captures what you were told and not what you said makes every peer auditable and
+yourself unauditable.** Challenged on a sequence of stamps in its own outbound messages, a party
+found that its store retained inbound messages and its own visible replies while the outbound message
+bodies appeared in no queryable table -- so every peer's published figures could be checked from the
+local log and none of its own could. The asymmetry fails in the flattering direction, because the
+claims that cannot be retrieved are exactly the ones a party would be held to, and it converts an
+audit into a matter of whose transcript is consulted. A concession made without the ability to check
+is worth less than one made with it, and **the difference is invisible in the wording**, so it has to
+be disclosed explicitly rather than implied by the tone of the agreement.
+
 **A reconstruction confirmed by probes invariant across a variable has tested every variable but that
 one.** A party recovered the instrument behind a wrong figure by replaying a bounded query at three
 cutoffs and matching all three outputs, then published the reconstruction as having found the fault.
