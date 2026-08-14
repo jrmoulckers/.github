@@ -308,6 +308,97 @@ test('prompt frontmatter field shapes are rejected: empty description and bad li
   }
 });
 
+// The slug predicate's *rejecting* direction, which was unowned until #1099.
+//
+// Found by a two-armed sweep rather than by reading: forcing `isSlug` to always-true survived all
+// 458 tests, while forcing it to always-false killed 42. The suite tested that well-formed slugs
+// are accepted and never that malformed ones are rejected, so all three rejections could be
+// deleted with the suite green. A one-armed sweep would have reported 42 and called it covered --
+// the two arms of a predicate are independent measurements and neither predicts the other.
+//
+// Each case is isolated to the message its own call site emits. The frontmatter arm is the reason
+// the fixture is named `bad_name` rather than the usual `alpha`: the name must equal the file
+// stem, so a malformed name in a well-named file fails the filename rule first and the slug rule
+// never gets to speak. Isolating it needs a stem that is itself not a slug.
+test('a malformed slug is rejected at every site that asks for one', () => {
+  withFixture(
+    { 'alpha.prompt.md': validPrompt('alpha') },
+    { prompts: ['alpha'], agents: [], members: [] },
+    (root, manifest) => {
+      assert.doesNotThrow(
+        () => validatePromptIntegrity(root, manifest),
+        'PREMISE: the baseline fixture must pass, or every case below could fail for another reason',
+      );
+    },
+  );
+
+  const cases = [
+    {
+      label: 'frontmatter name',
+      files: { 'bad_name.prompt.md': validPrompt('bad_name') },
+      config: { prompts: ['bad_name'], agents: [], members: [] },
+      expected: /frontmatter name must be a kebab-case slug/,
+      // The stem and the name agree, so the filename rule is satisfied and cannot supply the throw.
+      forbidden: /must match filename/,
+    },
+    {
+      label: 'parameter name',
+      files: {
+        'alpha.prompt.md': `---
+name: alpha
+description: Test prompt.
+parameters:
+  - name: Bad_Param
+    type: string
+    description: Malformed parameter name.
+    default: ''
+built_ins: []
+agent_dependencies: []
+---
+
+# Test
+
+## Runtime Contract
+
+Use {{ Bad_Param }}.
+`,
+      },
+      config: { prompts: ['alpha'], agents: [], members: [] },
+      expected: /parameter "Bad_Param" name must be kebab-case or the conventional "N"/,
+    },
+    {
+      label: 'string-list entry',
+      // Uppercase fails both the slug pattern and the snake_case alternative beside it, so the
+      // entry is rejected as malformed rather than as unsupported -- two different messages from
+      // two branches of the same `if`, and only the first one belongs to `isSlug`.
+      files: { 'alpha.prompt.md': validPrompt('alpha').replace('built_ins: []', 'built_ins:\n  - Bad') },
+      config: { prompts: ['alpha'], agents: [], members: [] },
+      expected: /"built_ins" entries must be non-empty slugs/,
+      forbidden: /contains unsupported value/,
+    },
+  ];
+
+  for (const { label, files, config, expected, forbidden } of cases) {
+    withFixture(files, config, (root, manifest) => {
+      assert.throws(
+        () => validatePromptIntegrity(root, manifest),
+        (error) => {
+          assert.match(error.message, expected, `${label} must be rejected by its own rule`);
+          if (forbidden) {
+            assert.doesNotMatch(
+              error.message,
+              forbidden,
+              `${label}: a bystander rule fired, so this case would pass with the slug check deleted`,
+            );
+          }
+          return true;
+        },
+        `${label} must be rejected`,
+      );
+    });
+  }
+});
+
 // Reaching a validator directly proves the validator works. Only reaching it THROUGH the entry
 // point proves the entry point still calls it -- deleting `validateRoster(records, declared, errors)`
 // from validatePromptIntegrity left the whole suite green, because every test that covers rostering
