@@ -112,7 +112,7 @@ Three plausible signals were each unable to report it, for different reasons:
 | Signal | Why it cannot see an undelivered file |
 | --- | --- |
 | CI's `--dry-run` | Reads no member state at all. A missing file is invisible by construction. |
-| The sync's own run list | Goes red for reasons unrelated to delivery — a member the PAT cannot clone fails the whole run — and goes green when scoped to one member. Neither says anything about the other ten. |
+| The sync's own run list | Reports transport, not coverage. A scoped dispatch is green over the one member it was given, and since ADR-0013 a member the PAT cannot clone is absorbed by `expectedFailures` — so the run is green while that member receives nothing at all. Green means the run finished, never that canon arrived. |
 | Anything walking a member tree | Answers "is what's here correct", never "is what should be here present". |
 
 `--check` is the one comparison with **canon on the left-hand side**: it enumerates from
