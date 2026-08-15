@@ -1,0 +1,94 @@
+# =============================================================================
+# Canon delivery audit — does every member actually have the canon it opted into?
+# =============================================================================
+#
+# Runs `sync/index.mjs --check`, which enumerates from `studio.config.json` canon and compares
+# each member checkout against it. Canon is on the LEFT-hand side of that comparison, so a file
+# a member should have and does not have reports as `to add` and fails the run. A check that
+# walks the member tree instead can only answer "is what's here correct", never "is what should
+# be here present" — see docs/sync.md.
+#
+# Why this exists as its own workflow rather than as a step of the sync:
+#   The sync distributes canon on a weekly cron, so between a canon commit and the next Monday
+#   the fleet is legitimately behind and nothing says so. `canon-formatting.instructions.md` was
+#   added on 2026-08-11 and ten of eleven members still did not have it three days later; no
+#   check anywhere was red, because the only check that reads member state (`--check`) was run
+#   nowhere. CI runs the offline plan-only mode, which reads no member state and cannot see a
+#   missing file by construction.
+#
+#   The sync's own run history is not a substitute. It goes red for reasons unrelated to
+#   delivery — a member the PAT cannot clone fails the whole run — so a red sync says nothing
+#   about whether the other members are current, and a green one is scoped to whatever
+#   `--members` it was dispatched with.
+#
+# This job REPORTS; it writes nothing. Expect it to be red in the window between a canon commit
+# and the next sync run: that window is the thing it exists to make visible, and clearing it is
+# a matter of running the sync, not of silencing this.
+#
+# Authentication: `--check` clones each member, so it needs the same STUDIO_SYNC_TOKEN as the
+# sync. Read access is sufficient for the audit, but the token is shared with the sync workflow
+# and is scoped there.
+# =============================================================================
+name: Canon delivery audit
+
+run-name: >-
+  Canon delivery audit —
+  ${{ inputs.members && format('scoped to {0}', inputs.members) || 'all members' }}
+
+on:
+  schedule:
+    # Daily, 08:00 UTC — one hour after the Monday sync, so a Monday audit reads the fleet the
+    # sync just left rather than the one it was about to change.
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+    inputs:
+      members:
+        description: 'Comma-separated member filter (owner/name or bare name). Blank = all.'
+        required: false
+        type: string
+        default: ''
+
+permissions: {}
+
+concurrency:
+  group: canon-delivery-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Audit canon delivery to member repos
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout backbone
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24'
+
+      - name: Preflight — require the cross-repo token
+        env:
+          STUDIO_SYNC_TOKEN: ${{ secrets.STUDIO_SYNC_TOKEN }}
+        run: |
+          if [ -z "$STUDIO_SYNC_TOKEN" ]; then
+            echo "::error::STUDIO_SYNC_TOKEN is required. --check clones every member listed in studio.config.json \"members\" to read its state; without it this job would exit green having compared nothing, which is the exact failure it exists to catch."
+            exit 1
+          fi
+
+      - name: Audit canon delivery
+        env:
+          STUDIO_SYNC_TOKEN: ${{ secrets.STUDIO_SYNC_TOKEN }}
+          MEMBERS: ${{ inputs.members }}
+        run: |
+          args=()
+          if [ -n "$MEMBERS" ]; then args+=("--members" "$MEMBERS"); fi
+          echo "Running: node sync/index.mjs --check ${args[*]}"
+          node sync/index.mjs --check "${args[@]}"

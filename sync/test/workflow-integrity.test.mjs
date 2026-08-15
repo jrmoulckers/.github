@@ -397,6 +397,45 @@ test('the sync run names its mode and scope in the run list, not just in the sum
   assert.match(runName, /inputs\.members/, 'run-name does not state scope');
 });
 
+// `--check` is the only comparison in this repository with canon on the left-hand side: it
+// enumerates from `studio.config.json` and reports what a member lacks. `--dry-run` reads no member
+// state at all, so substituting it produces a green audit that compared nothing — the same shape as
+// the caller-permission scan that read zero files. And a scheduled trigger does not fail when it
+// rots, it disappears, taking the alarm with it and leaving a workflow that is still correct on
+// every axis a reader would think to check.
+//
+// One predicate, run over the real file and over mutants, so the contract cannot pass by describing
+// today's file back to itself.
+const auditContractErrors = (text) => {
+  const errors = [];
+  if (!/^\s+- cron: '[^']+'\s*$/m.test(text)) errors.push('no schedule cron');
+  if (!/node sync\/index\.mjs --check\b/.test(text)) errors.push('does not run --check');
+  if (/--dry-run/.test(text)) errors.push('a dry run reads no member state, so it audits nothing');
+  if (!/STUDIO_SYNC_TOKEN: \$\{\{ secrets\.STUDIO_SYNC_TOKEN \}\}/.test(text)) {
+    errors.push('the audit step cannot reach member state without the cross-repo token');
+  }
+  return errors;
+};
+
+test('the canon delivery audit runs --check against member state on a schedule', () => {
+  const source = readFileSync(
+    join(REPO_ROOT, '.github', 'workflows', 'canon-delivery-audit.yml'),
+    'utf8',
+  ).replace(/\r\n?/g, '\n');
+
+  assert.deepEqual(auditContractErrors(source), []);
+
+  // Each mutant fails for the reason claimed, not merely somewhere.
+  assert.deepEqual(auditContractErrors(source.replace(/^\s+- cron: '[^']+'\s*$/m, '')), [
+    'no schedule cron',
+  ]);
+  assert.deepEqual(
+    auditContractErrors(source.replace('node sync/index.mjs --check', 'node sync/index.mjs --dry-run')),
+    ['does not run --check', 'a dry run reads no member state, so it audits nothing'],
+  );
+  assert.ok(auditContractErrors('').length > 0, 'an empty file cannot satisfy the contract');
+});
+
 // The CI gate calls itself "Require every CI job" and enforces that by transcription: a `needs`
 // array plus one `test "$X" = "success"` per job. Adding a job and forgetting either edit narrows
 // what the gate covers while its name, its green tick, and every standing line citing it stay the

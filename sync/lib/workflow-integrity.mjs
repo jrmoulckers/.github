@@ -13,6 +13,7 @@ const PERMISSION_CEILINGS = new Map([
     ['ci-gate', new Map()],
   ])],
   ['studio-sync.yml', new Map([['sync', new Map([['contents', 'read']])]])],
+  ['canon-delivery-audit.yml', new Map([['audit', new Map([['contents', 'read']])]])],
   ['caller-permissions-harness.yml', new Map([['lint', new Map([['contents', 'read']])]])],
   ['reusable-caller-permissions.yml', new Map([['lint', new Map([['contents', 'read']])]])],
   ['reusable-change-detection.yml', new Map([['detect', new Map([['contents', 'read']])]])],

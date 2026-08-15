@@ -91,6 +91,40 @@ flowchart LR
 7. **Let product CI validate** — the member's own checks run on the sync PR; a human (or the
    member's agents) reviews and merges.
 
+## A canon commit is not a delivery, and the gap used to be unobservable
+
+Steps 1–7 run on a weekly cron. So for up to seven days after a canon file is added, every member
+that opted into it legitimately does not have it — and until the **Canon delivery audit** workflow
+existed, nothing anywhere said so.
+
+`canon-formatting.instructions.md` is the worked example. It entered `canon.instructions` and every
+member's `optIn.instructions` in one commit on `2026-08-11T19:51Z`, sixteen hours after the last
+fleet-wide run. Three days later ten of eleven members still lacked it, no check was red, and the
+engine was briefly suspected of ignoring newly-added canon of an already-opted-in kind. It does not:
+`jrmoulckers/studio` was synced on `2026-08-12` by a `--members`-scoped dispatch and its PR carried
+the file. **Enumeration is canon-driven end to end** — `resolveSelection` expands the manifest and
+`enumerateFileKind` reads the canon directory, with no consultation of the member's lock — so a new
+canon file reaches every opted-in member on the next run that includes them. The defect was never in
+the transport. It was that nothing measured the interval.
+
+Three plausible signals were each unable to report it, for different reasons:
+
+| Signal | Why it cannot see an undelivered file |
+| --- | --- |
+| CI's `--dry-run` | Reads no member state at all. A missing file is invisible by construction. |
+| The sync's own run list | Goes red for reasons unrelated to delivery — a member the PAT cannot clone fails the whole run — and goes green when scoped to one member. Neither says anything about the other ten. |
+| Anything walking a member tree | Answers "is what's here correct", never "is what should be here present". |
+
+`--check` is the one comparison with **canon on the left-hand side**: it enumerates from
+`studio.config.json`, clones each member, and a target the member does not have surfaces as
+`report.added`, which sets `stale` and exits non-zero. It had this property the whole time; it was
+simply run nowhere. `.github/workflows/canon-delivery-audit.yml` runs it daily.
+
+Two consequences worth stating plainly. **The audit is expected to be red between a canon commit and
+the next sync run** — that interval is the thing it exists to make visible, and it clears by running
+the sync, not by relaxing the audit. And **it reports only; it writes nothing**, so a red audit is a
+prompt to dispatch `Studio sync`, which is the only thing that actually delivers.
+
 ## Canonical agents and local overlays
 
 The supported model separates reusable role behavior from product facts:
@@ -332,6 +366,10 @@ node sync/index.mjs --dry-run                         # plan every member; no wr
 node sync/index.mjs --members jrmoulckers/jrm-recipes # real sync of one member (opens a PR)
 node sync/index.mjs --check                           # CI gate: non-zero if any member is stale
 ```
+
+`--check` is also what the daily `Canon delivery audit` workflow runs, because it is the only mode
+that compares a member against the canon inventory rather than against itself (see
+[A canon commit is not a delivery](#a-canon-commit-is-not-a-delivery-and-the-gap-used-to-be-unobservable)).
 
 Flags: `--dry-run`, `--members <a,b>`, `--check`, `--force` (overwrite drift; requires
 `--members`), `--work-dir <path>` (apply against a local checkout; no clone/push/PR),
