@@ -14,6 +14,10 @@ const PERMISSION_CEILINGS = new Map([
   ])],
   ['studio-sync.yml', new Map([['sync', new Map([['contents', 'read']])]])],
   ['canon-delivery-audit.yml', new Map([['audit', new Map([['contents', 'read']])]])],
+  // The one job in this repository that writes: it creates the tag members' SHA pins resolve
+  // against. Dispatch-only, and the ceiling is stated here so the write cannot spread to a second
+  // job without an edit that names it.
+  ['release.yml', new Map([['publish', new Map([['contents', 'write']])]])],
   ['caller-permissions-harness.yml', new Map([['lint', new Map([['contents', 'read']])]])],
   ['reusable-caller-permissions.yml', new Map([['lint', new Map([['contents', 'read']])]])],
   ['reusable-change-detection.yml', new Map([['detect', new Map([['contents', 'read']])]])],
