@@ -1530,6 +1530,13 @@ vendored token files offline).
 secret. A dispatch with `force: true` and a blank `members` is refused before the runner does any
 work; the engine refuses it too, and that one is the guard that matters.
 
+[`.github/workflows/canon-delivery-audit.yml`](../.github/workflows/canon-delivery-audit.yml) runs
+`--check` daily and writes nothing. It exists because the weekly cadence means canon can sit
+undelivered for up to a week with every signal green; see
+[`docs/sync.md`](../docs/sync.md#a-canon-commit-is-not-a-delivery-and-the-gap-used-to-be-unobservable).
+It is *expected* to be red between a canon commit and the next sync — a red audit reports an
+interval, not a fault.
+
 ## Tests
 
 Zero-dependency `node:test` suite — no network, no `gh`, no token (the git tests use local
