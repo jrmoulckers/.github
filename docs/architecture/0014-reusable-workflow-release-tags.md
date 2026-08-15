@@ -25,8 +25,8 @@ The failure mode is the one this repository keeps rediscovering: **a quiet updat
 produce identical output.** A member reading eight green dependency PRs concludes its automation is
 working, and it is — over a population that excludes exactly the refs that matter.
 
-The fleet diverged accordingly. `libro`, `docket` and `score-king` each sit on a *different* stale
-SHA, and `cartridge` sat ten commits behind until a human looked.
+The fleet diverged accordingly: three members — `libro`, `docket` and `score-king` — each sit on a
+*different* stale SHA, and `cartridge` sat ten commits behind until a human looked.
 
 Staleness here is not cosmetic, which is the argument against deferring this. `reusable-caller-permissions`
 checks out `sync/lib/caller-permissions.mjs` **at the pinned revision**. At one older pin, a scan that
