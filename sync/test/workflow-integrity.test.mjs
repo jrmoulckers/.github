@@ -409,7 +409,10 @@ test('the sync run names its mode and scope in the run list, not just in the sum
 const auditContractErrors = (text) => {
   const errors = [];
   if (!/^\s+- cron: '[^']+'\s*$/m.test(text)) errors.push('no schedule cron');
-  if (!/node sync\/index\.mjs --check\b/.test(text)) errors.push('does not run --check');
+  // Anchored to the start of a line so it reads the command that runs, not a mention of it. The
+  // first version matched anywhere, and the step's own `echo "Running: ..."` satisfied it — a
+  // mutant that swapped the executed flag left the predicate green off the echo alone.
+  if (!/^\s*node sync\/index\.mjs --check\b/m.test(text)) errors.push('does not run --check');
   if (/--dry-run/.test(text)) errors.push('a dry run reads no member state, so it audits nothing');
   if (!/STUDIO_SYNC_TOKEN: \$\{\{ secrets\.STUDIO_SYNC_TOKEN \}\}/.test(text)) {
     errors.push('the audit step cannot reach member state without the cross-repo token');
@@ -430,7 +433,7 @@ test('the canon delivery audit runs --check against member state on a schedule',
     'no schedule cron',
   ]);
   assert.deepEqual(
-    auditContractErrors(source.replace('node sync/index.mjs --check', 'node sync/index.mjs --dry-run')),
+    auditContractErrors(source.replace(/^(\s*)node sync\/index\.mjs --check/m, '$1node sync/index.mjs --dry-run')),
     ['does not run --check', 'a dry run reads no member state, so it audits nothing'],
   );
   assert.ok(auditContractErrors('').length > 0, 'an empty file cannot satisfy the contract');
