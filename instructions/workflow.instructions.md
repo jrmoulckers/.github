@@ -3633,9 +3633,42 @@ and proved nothing. Build the input the entry point needs without the validation
 
 Studio product repos call the backbone's reusable workflows at a reviewed immutable commit SHA:
 `uses: jrmoulckers/.github/.github/workflows/reusable-*.yml@<reviewed-commit-sha>`. The reference
-must be a full 40-character SHA; branches and tags are rejected. Configure Dependabot, Renovate, or
-equivalent automation to propose SHA update PRs, then review the exact upstream diff and release
-notes. Never resolve a mutable reference during a run.
+must be a full 40-character SHA; branches and tags are rejected. Never resolve a mutable reference
+during a run.
+
+**Configuring Dependabot for those pins is necessary and, on its own, was not sufficient — and its
+insufficiency is silent.** The `github-actions` updater resolves a SHA pin by looking for a newer
+**release or tag** in the source repository, and `jrmoulckers/.github` published neither until
+[ADR-0014](https://github.com/jrmoulckers/.github/blob/main/docs/architecture/0014-reusable-workflow-release-tags.md).
+A member with a correct `github-actions` entry covering `/` therefore got update PRs for
+`actions/checkout` and `actions/setup-node` and **none** for its backbone refs: no PR, no warning, no
+error. `cartridge` measured exactly that — 8 PRs, 0 of them for its seven reusable-workflow pins
+([dependabot-core#15577](https://github.com/dependabot/dependabot-core/issues/15577)).
+
+So **a quiet updater is not evidence of a current pin.** The two states are byte-identical from the
+member's side, which is why four members drifted onto four different SHAs without anyone noticing.
+Until the backbone publishes a tag your updater can see, check pins directly rather than inferring
+from silence:
+
+```sh
+gh api repos/jrmoulckers/.github/tags --jq length   # 0 means no ref you pin will ever be proposed
+git -C <backbone> rev-list --count <your-pin>..main # how far behind your pin actually is
+```
+
+**A stale pin can delete a check rather than merely delay an improvement**, so this is a correctness
+matter and not a currency one. `reusable-caller-permissions` checks out its lint script *at the
+pinned revision*; at one older pin a scan that read zero workflow files reported zero findings, which
+is byte-identical to a clean pass. The pin made a broken lint green.
+
+Once tags exist, pin the SHA a tag resolves to and carry the version as the trailing comment, so a
+reader can tell what the 40 characters mean and an updater has something to rewrite:
+
+```yaml
+uses: jrmoulckers/.github/.github/workflows/reusable-ci-lint.yml@<reviewed-commit-sha> # v1.0.0
+```
+
+Pin the SHA, never the tag: the tag is a resolution target for the updater, and a member's `uses:`
+must stay immutable. Review the exact upstream diff and release notes before merging the bump.
 
 ### Keep required checks terminal
 

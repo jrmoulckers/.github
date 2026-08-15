@@ -439,6 +439,44 @@ test('the canon delivery audit runs --check against member state on a schedule',
   assert.ok(auditContractErrors('').length > 0, 'an empty file cannot satisfy the contract');
 });
 
+// A release tag is the only thing a member's `uses:` pin can be updated *to*, so what this workflow
+// publishes is what the whole fleet moves onto. Two properties have to hold, and neither announces
+// itself when it stops: the version shape (a moving alias would reintroduce the mutable reference
+// GH-ACT-003 forbids, and it would look like an ordinary tag while doing it), and dispatch-only
+// triggering (an unattended publish decides for eleven repositories without anyone choosing a
+// commit).
+const releaseContractErrors = (text) => {
+  const errors = [];
+  if (!/^\s+workflow_dispatch:/m.test(text)) errors.push('not dispatchable');
+  if (/^\s+(?:schedule|push|pull_request):/m.test(text)) errors.push('publishes unattended');
+  if (!/\^v\[0-9\]\+\\\.\[0-9\]\+\\\.\[0-9\]\+\$/.test(text)) {
+    errors.push('does not validate the version shape');
+  }
+  if (!/rev-parse -q --verify "refs\/tags\/\$VERSION"/.test(text)) {
+    errors.push('does not refuse an existing tag');
+  }
+  return errors;
+};
+
+test('the release workflow publishes an immutable SemVer tag and only when dispatched', () => {
+  const source = readFileSync(join(REPO_ROOT, '.github', 'workflows', 'release.yml'), 'utf8').replace(
+    /\r\n?/g,
+    '\n',
+  );
+
+  assert.deepEqual(releaseContractErrors(source), []);
+
+  assert.deepEqual(
+    releaseContractErrors(source.replace("'^v[0-9]+\\.[0-9]+\\.[0-9]+$'", "'^v[0-9]+$'")),
+    ['does not validate the version shape'],
+  );
+  assert.deepEqual(
+    releaseContractErrors(source.replace('  workflow_dispatch:', "  schedule:\n    - cron: '0 7 * * 1'\n  workflow_dispatch:")),
+    ['publishes unattended'],
+  );
+  assert.ok(releaseContractErrors('').length > 0, 'an empty file cannot satisfy the contract');
+});
+
 // The CI gate calls itself "Require every CI job" and enforces that by transcription: a `needs`
 // array plus one `test "$X" = "success"` per job. Adding a job and forgetting either edit narrows
 // what the gate covers while its name, its green tick, and every standing line citing it stay the

@@ -1,0 +1,79 @@
+# =============================================================================
+# Release — publish a version tag so members' SHA pins have something to resolve to
+# =============================================================================
+#
+# Members call this repo's reusable workflows at a reviewed immutable commit SHA (GH-ACT-003) and
+# are told to let Dependabot or Renovate propose SHA updates. That instruction did not work: the
+# `github-actions` updater resolves a SHA pin by looking for a newer **release or tag** in the
+# source repository, and this repository published neither. A member with a correct
+# `.github/dependabot.yml` therefore received update PRs for marketplace actions and nothing at
+# all for its backbone pins — no PR, no warning, no error. See
+# https://github.com/dependabot/dependabot-core/issues/15577 and
+# docs/architecture/0014-reusable-workflow-release-tags.md.
+#
+# Dispatch-only on purpose. Publishing is a human act: the tag is what the fleet's pins will move
+# to, so a person picks the commit and the version rather than a schedule doing it unattended.
+#
+# Scheme: SemVer `vMAJOR.MINOR.PATCH`, validated below. There is deliberately no moving `v1`-style
+# alias — a moving alias is exactly the mutable reference GH-ACT-003 forbids, and members pin the
+# SHA a tag resolves to, never the tag itself.
+# =============================================================================
+name: Release
+
+run-name: Release ${{ inputs.version }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'SemVer tag to publish, e.g. v1.2.0. Must not already exist.'
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish a release tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate the requested version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! printf '%s' "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::version must be SemVer with a leading v, e.g. v1.2.0. Moving aliases such as v1 are refused: a member resolves a tag to a SHA once and pins that, so an alias that moves would make two members pinned to the same name carry different code."
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null; then
+            echo "::error::$VERSION already exists. A published tag is what members' pins were resolved against, so it is immutable — publish the next version instead of moving this one."
+            exit 1
+          fi
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          TARGET: ${{ github.sha }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          gh release create "$VERSION" \
+            --repo "$REPOSITORY" \
+            --target "$TARGET" \
+            --title "$VERSION" \
+            --generate-notes
+          echo "Published $VERSION at $TARGET" >> "$GITHUB_STEP_SUMMARY"

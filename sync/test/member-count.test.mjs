@@ -585,6 +585,10 @@ const ENUMERATING_DOCS = [
   'docs/sync.md',
   'docs/architecture/0006-runtime-and-copilot-canon-kinds.md',
   'docs/architecture/0009-canonical-line-ending-normalization.md',
+  // ADR-0014 names the three members that drifted onto different pins, bounded by its own stated
+  // count. The evidence is the point of the record — a member reading it needs to know whether its
+  // own pin was one of them — so the run stays and the document is inventoried.
+  'docs/architecture/0014-reusable-workflow-release-tags.md',
   'instructions/workflow.instructions.md',
   // Reached because #1088 narrowed the walk exclusion from `sync/test` to the one fixture file.
   // Listed here rather than re-exempted: the run in it is a legitimate one — three names bounded
