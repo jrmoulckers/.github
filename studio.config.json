@@ -126,7 +126,7 @@
   "excluded": [
     {
       "repo": "jrmoulckers/game-library",
-      "reason": "Private Go CLI tooling, deliberately ungoverned by owner decision. Not a member: no canon, no health files, and no .gitattributes is to be hand-added. It appears in ADR-0009 and ADR-0011 only as the real-world fixture that motivated strengthening an existing `* text=auto` rule rather than overwriting it; that citation describes a merge behaviour and is not a claim that the repository should be onboarded. Recorded so an org sweep that finds it ungoverned reads a closed decision rather than drift.",
+      "reason": "Private tooling, deliberately ungoverned by owner decision: a Go CLI plus the loopback-only local dashboard it serves. The dashboard, PRODUCT.md and DESIGN.md postdate this entry and do not reopen it. Not a member: no canon and no health files. It authors its own .gitattributes, which is repository-owned and must not be replaced by the canonical one; the earlier wording here -- \"no .gitattributes is to be hand-added\" -- meant do not hand-copy canon, and was misread as forbidding the repository's own file, which pins eol=lf so its //go:embed assets build byte-identically on Windows and Linux. It appears in ADR-0009 and ADR-0011 only as the real-world fixture that motivated strengthening an existing `* text=auto` rule rather than overwriting it; that citation describes a merge behaviour and is not a claim that the repository should be onboarded. Recorded so an org sweep that finds it ungoverned reads a closed decision rather than drift.",
       "decided": "2026-08-10"
     }
   ],
