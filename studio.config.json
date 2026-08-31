@@ -12,6 +12,7 @@
     "copilot": ["copilot-instructions.md"],
     "attributes": [".gitattributes"],
     "agents": [
+      "3d-print-specialist",
       "accessibility-reviewer",
       "ai-ops-engineer",
       "architect",
@@ -36,6 +37,7 @@
       "web-engineer"
     ],
     "skills": [
+      "3d-print-preparation",
       "accessibility-testing",
       "design-tokens",
       "dev-onboarding",
@@ -174,6 +176,7 @@
         "attributes": true,
         "health": true,
         "agents": [
+          "3d-print-specialist",
           "accessibility-reviewer",
           "ai-ops-engineer",
           "architect",

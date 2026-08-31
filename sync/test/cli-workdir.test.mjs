@@ -167,10 +167,10 @@ test('manifest dry-run reports complete phase-two activation plans', () => {
   // the studio operating guide.
   // `natives` is separate again: Studio declines base yet still calls backbone reusable CI.
   const members = [
-    ['jrmoulckers/finance', 'application · kmp-web · npm', 8, 6, 61, true, ['health', 'workflows']],
-    ['jrmoulckers/studio', 'infrastructure · pnpm', 8, 6, 60, false, ['workflows']],
-    ['jrmoulckers/homelab', 'infrastructure', 3, 3, 52, false, []],
-    ['jrmoulckers/windows', 'infrastructure', 8, 5, 59, false, []],
+    ['jrmoulckers/finance', 'application · kmp-web · npm', 8, 6, 63, true, ['health', 'workflows']],
+    ['jrmoulckers/studio', 'infrastructure · pnpm', 8, 6, 62, false, ['workflows']],
+    ['jrmoulckers/homelab', 'infrastructure', 3, 3, 54, false, []],
+    ['jrmoulckers/windows', 'infrastructure', 8, 5, 61, false, []],
   ];
 
   for (const [repo, metadata, promptCount, instructionCount, total, hasBase, natives] of members) {
@@ -178,8 +178,8 @@ test('manifest dry-run reports complete phase-two activation plans', () => {
 
     assert.equal(code, 0, out);
     assert.ok(out.includes(`▶ ${repo}  (${metadata})`), out);
-    assert.match(out, /agents \(22 files\)/);
-    assert.match(out, /skills \(21 files in 17 dirs\)/);
+    assert.match(out, /agents \(23 files\)/);
+    assert.match(out, /skills \(22 files in 18 dirs\)/);
     assert.match(out, new RegExp(`prompts \\(${promptCount} files\\)`));
     assert.match(out, new RegExp(`instructions \\(${instructionCount} files\\)`));
     assert.match(out, new RegExp(`Σ ${total} file\\(s\\) would be written`));

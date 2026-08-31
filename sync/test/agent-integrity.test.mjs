@@ -19,6 +19,16 @@ test('the real canonical agent roster passes integrity validation', () => {
   }
 });
 
+test('digit-leading kebab-case agent names are supported', () => {
+  withFixture(
+    { '3d-print-specialist.agent.md': validAgent('3d-print-specialist') },
+    ['3d-print-specialist'],
+    (root, manifest) => {
+      assert.doesNotThrow(() => validateAgentIntegrity(root, manifest));
+    },
+  );
+});
+
 test('name, uniqueness, sections, and handoff references fail together with clear paths', () => {
   withFixture(
     {
