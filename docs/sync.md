@@ -1033,7 +1033,7 @@ Two separate member repositories have now reported this count as a defect. The r
 the remedy — it was already present, in full, both times.
 
 **And neither reader was reading this document, because it does not reach them.** `docs/` is in no
-canon kind, so `docs/sync.md` is delivered to none of the eleven members, while the party told to
+canon kind, so `docs/sync.md` is delivered to none of the twelve members, while the party told to
 resolve a sync PR and assert this invariant is a member-side reader. A rule can be correctly stated,
 correctly justified, and still never arrive; more warning text here cannot fix an audience problem.
 
@@ -1056,12 +1056,13 @@ rather than an obvious error.
 **The prescription above is right; the justification this document used to give for it was false,
 and the correction is worth more than the rule.** It read *"canon's own prose quotes
 `studio:base:start`, so a name count returns 2 on every member in the fleet."* Backbone's own
-`AGENTS.md` contains the literal **zero** times. Counted across all eleven members:
+`AGENTS.md` contains the literal **zero** times. Counted across every member of the fleet as it
+then stood:
 
 | name occurrences in `AGENTS.md` | members |
 | --- | --- |
-| 0 (no managed region at all) | studio, engineering, homelab, product, windows |
-| 1 (delimiter only) | score-king, jrm-recipes, finance, docket |
+| 0 (no managed region at all) | five members: studio, engineering, homelab, product, windows |
+| 1 (delimiter only) | four members: score-king, jrm-recipes, finance, docket |
 | 2 (delimiter + a prose mention) | libro, cartridge |
 
 *Every member* was two of twelve. The prose mention that made the number 2 sits **outside** the
@@ -3332,7 +3333,7 @@ for five consecutive weeks while every other member synced. The guard that grew 
 
 Applying its own pattern to the whole tree found `instructions/workflow.instructions.md` carrying
 **six claims of exactly the guarded form** and sitting outside the list -- the document with the
-most fleet-count claims in the repository, delivered to nine of the eleven members, and therefore
+most fleet-count claims in the repository, delivered to ten of the twelve members, and therefore
 the one most likely to state a fleet size *to an agent*. The guard could not see it.
 
 The file had already reached this conclusion once and applied it in only one of the two places it

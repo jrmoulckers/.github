@@ -5,6 +5,17 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { memberMode } from './manifest.mjs';
 
+// A React runtime alone cannot separate a Vite application from a Next.js one: Next ships `react`
+// and `react-dom` too, so either of those as the signature would make every Next member ambiguous
+// and fail its own derivation. The Vite React plugin is the narrowest dependency that only a
+// React-on-Vite application declares, so it is the discriminator, and `react` is still required
+// alongside it so a repository that merely lints React consumers is not read as one.
+const REACT_VITE_PLUGINS = [
+  '@vitejs/plugin-react',
+  '@vitejs/plugin-react-swc',
+  '@vitejs/plugin-react-oxc',
+];
+
 const PACKAGE_LOCKS = new Map([
   ['package-lock.json', 'npm'],
   ['pnpm-lock.yaml', 'pnpm'],
@@ -133,6 +144,13 @@ export function inspectFramework(root) {
     };
     if ('next' in dependencies) {
       candidates.push({ value: 'nextjs', evidence: 'package.json dependency "next"' });
+    }
+    const reactVitePlugin = REACT_VITE_PLUGINS.find((name) => name in dependencies);
+    if (reactVitePlugin && 'react' in dependencies) {
+      candidates.push({
+        value: 'react-vite',
+        evidence: `package.json dependencies "react" and ${quote(reactVitePlugin)}`,
+      });
     }
     if ('svelte' in dependencies || Object.keys(dependencies).some((name) => name.startsWith('@sveltejs/'))) {
       candidates.push({ value: 'svelte', evidence: 'package.json Svelte dependency' });

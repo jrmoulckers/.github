@@ -134,6 +134,7 @@ test('every studio member is registered', () => {
     'jrmoulckers/libro',
     'jrmoulckers/cartridge',
     'jrmoulckers/docket',
+    'jrmoulckers/drum-path',
     'jrmoulckers/engineering',
     'jrmoulckers/product',
     'jrmoulckers/studio',
