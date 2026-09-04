@@ -7,11 +7,11 @@ Accepted
 ## Context
 
 Line endings were unmanaged across the fleet. Of thirteen repositories surveyed, five had **no
-`.gitattributes` at all** — `jrm-recipes`, `score-king`, `cartridge`, `windows`, and this backbone
-repo itself. Seven carried the generic `* text=auto eol=lf` stanza: `finance`, `libro`,
-`engineering`, `product`, `homelab`, `studio`, `docket`. One, `game-library`, had a file with a
-*weaker* rule (see below). Nothing kept these groups from diverging further, because nothing owned
-the rule.
+`.gitattributes` at all** — four members (`jrm-recipes`, `score-king`, `cartridge`, `windows`) and
+this backbone repo itself. Seven carried the generic `* text=auto eol=lf` stanza: `finance`,
+`libro`, `engineering`, `product`, `homelab`, `studio`, `docket`. One, `game-library`, had a file
+with a *weaker* rule (see below). Nothing kept these groups from diverging further, because nothing
+owned the rule.
 
 This is not a cosmetic split. Without `text=auto eol=lf`, a checkout on Windows materializes CRLF in
 the working tree wherever `core.autocrlf` says so, and every formatter that asserts LF then fails on
