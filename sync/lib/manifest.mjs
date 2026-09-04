@@ -297,7 +297,7 @@ function validateLocalAgents(member, i, manifest, errors) {
 
   const seen = new Set();
   for (const name of member.localAgents) {
-    if (typeof name !== 'string' || !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(name)) {
+    if (typeof name !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name)) {
       errors.push(`members[${i}].localAgents entries must be kebab-case agent names`);
       continue;
     }

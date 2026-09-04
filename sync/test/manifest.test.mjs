@@ -134,6 +134,7 @@ test('every studio member is registered', () => {
     'jrmoulckers/libro',
     'jrmoulckers/cartridge',
     'jrmoulckers/docket',
+    'jrmoulckers/drum-path',
     'jrmoulckers/engineering',
     'jrmoulckers/product',
     'jrmoulckers/studio',
@@ -210,7 +211,7 @@ test('phase-two members resolve dependency-closed roles and curated instruction 
     ],
   ]);
 
-  assert.equal(manifest.canon.agents.length, 22);
+  assert.equal(manifest.canon.agents.length, 23);
   for (const [repo, localAgents] of expectedLocalAgents) {
     const member = manifest.members.find((candidate) => candidate.repo === repo);
     const [resolved] = resolveAll(manifest, [repo]);
@@ -247,7 +248,7 @@ test('phase-two members resolve dependency-closed roles and curated instruction 
     );
     assert.equal(
       selectedAgents.length + localAgents.length,
-      22 + localAgents.length,
+      23 + localAgents.length,
       `${repo} has the expected total runtime-agent count`,
     );
   }
@@ -293,7 +294,7 @@ test('phase-two activation preserves member modes and non-AI bundle intent', () 
 
     const [resolved] = resolveAll(manifest, [repo]);
     const { writes } = enumerateTargets(resolved, REPO_ROOT);
-    assert.equal(writes.filter((write) => write.kind === 'agents').length, 22);
+    assert.equal(writes.filter((write) => write.kind === 'agents').length, 23);
     assert.ok(!writes.some((write) => write.kind === 'base'), `${repo} has no base writes`);
     assert.ok(!writes.some((write) => write.kind === 'tokens'), `${repo} has no token writes`);
     if (repo !== 'jrmoulckers/studio') {
@@ -486,7 +487,7 @@ test('engineering and product take the AI layer without a product toolchain', ()
 
     const [resolved] = resolveAll(manifest, [repo]);
     const { writes, native } = enumerateTargets(resolved, REPO_ROOT);
-    assert.equal(writes.filter((write) => write.kind === 'agents').length, 22);
+    assert.equal(writes.filter((write) => write.kind === 'agents').length, 23);
     assert.equal(writes.filter((write) => write.kind === 'runtime').length, 1);
     assert.equal(writes.filter((write) => write.kind === 'copilot').length, 1);
     assert.deepEqual(native, [], `${repo} has no native selections`);
@@ -741,6 +742,14 @@ test('a local replacement cannot overlap synced canon', () => {
     () => validateManifest(bad),
     /localAgents "design-engineer" overlaps optIn\.agents/,
   );
+});
+
+test('digit-leading kebab-case names are valid local replacements', () => {
+  const replacement = structuredClone(manifest);
+  const scoreKing = replacement.members.find((member) => member.repo === 'jrmoulckers/score-king');
+  scoreKing.optIn.agents = scoreKing.optIn.agents.filter((name) => name !== '3d-print-specialist');
+  scoreKing.localAgents.push('3d-print-specialist');
+  assert.doesNotThrow(() => validateManifest(replacement));
 });
 
 // canon is hand-maintained. A name with no file resolves to a missing source; a file with no name

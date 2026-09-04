@@ -24,8 +24,8 @@ here plus `@jrm` npm packages.
 ├─ CONTRIBUTING.md            # ┐
 ├─ SECURITY.md                # ├─ default community-health files (inherited by member repos)
 ├─ CODE_OF_CONDUCT.md         # ┘
-├─ agents/                    # 22 cross-cutting Copilot agents  (canonical source)
-├─ skills/                    # 17 cross-cutting skills          (canonical source)
+├─ agents/                    # 23 cross-cutting Copilot agents  (canonical source)
+├─ skills/                    # 18 cross-cutting skills          (canonical source)
 ├─ prompts/                   # 8 reusable prompts               (canonical source)
 ├─ instructions/             # 6 path-scoped instructions       (canonical source)
 ├─ docs/sync.md               # design and operating model for cross-repo sync
@@ -126,8 +126,8 @@ flow and **[`sync/README.md`](sync/README.md)** for the implemented engine.
 
 | Canon | Count | Synced to (in product repo) |
 | --- | --- | --- |
-| `agents/*.agent.md` | 22 | `.github/agents/` |
-| `skills/<name>/SKILL.md` | 17 | `.github/skills/` |
+| `agents/*.agent.md` | 23 | `.github/agents/` |
+| `skills/<name>/SKILL.md` | 18 | `.github/skills/` |
 | `prompts/*.prompt.md` | 8 | `.github/prompts/` |
 | `instructions/*.instructions.md` | 6 | `.github/instructions/` |
 | `AGENTS.md` | — | repo root — managed region; members extend it around the markers |
@@ -145,12 +145,13 @@ operating guide does not also decline MCP policy, Copilot orientation, or LF nor
 
 - **Agents** are cross-cutting roles (architecture, backend, database, native app, web, design,
   DevOps, SRE, QA, security, accessibility, docs, product, release, performance, product data,
-  AI ops, business, experimentation, localization, marketing, and compliance). Each is genericized
-  so a product repo can keep concise stack/path/risk overlays without forking the shared persona.
+  AI ops, business, experimentation, localization, marketing, compliance, and FDM print
+  preparation). Each is genericized so a product repo can keep concise stack/path/risk overlays
+  without forking the shared persona.
 - **Skills** are reusable playbooks (`trigger · inputs · method · safety · output`) for
   accessibility, design tokens, performance budgets, security review, UX testing, prompt
   engineering, issue/project/sprint management, i18n, onboarding, MCP tooling, go-to-market,
-  monetization, and privacy compliance.
+  monetization, privacy compliance, and 3D print preparation.
 - **Prompts** drive bounded backlog, bug-bash, cleanup, CI repair, rebase, review, sprint, and team
   workflows; **instructions** attach path-scoped standards via `applyTo` globs, each carrying a
   required `description` that fills the index a session decides retrieval from.

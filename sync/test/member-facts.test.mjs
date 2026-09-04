@@ -109,10 +109,100 @@ test('derives supported frameworks from repository signatures rather than member
   );
 });
 
+test('derives a React-on-Vite application from the plugin only such an application declares', () => {
+  // Each accepted spelling is exercised, and the evidence names the one that matched: the
+  // diagnostic a mismatch prints is the operator's only pointer back to the file it read.
+  for (const plugin of ['@vitejs/plugin-react', '@vitejs/plugin-react-swc', '@vitejs/plugin-react-oxc']) {
+    withFixture(
+      {
+        'package.json': JSON.stringify({
+          dependencies: { react: '19.2.8', 'react-dom': '19.2.8' },
+          devDependencies: { [plugin]: '6.1.0', vite: '8.2.2' },
+        }),
+      },
+      (root) => {
+        assert.deepEqual(deriveFramework(root), {
+          value: 'react-vite',
+          evidence: `package.json dependencies "react" and "${plugin}"`,
+        });
+      },
+    );
+  }
+});
+
+test('the React signature is the plugin, so Next, Svelte, and Kotlin members keep their own', () => {
+  // A runtime-only signature was the tempting one and it is wrong in both directions. Next ships
+  // `react` and `react-dom`, so reading either as React-on-Vite would turn every Next member into
+  // a conflict rather than a detection; and a repository that pulls the plugin in without the
+  // runtime is tooling for React consumers, not a React application. Both conjuncts are asserted
+  // here because either one alone passes the positive test above.
+  withFixture(
+    {
+      'package.json': JSON.stringify({
+        dependencies: { next: '15.0.0', react: '19.0.0', 'react-dom': '19.0.0' },
+      }),
+    },
+    (root) => assert.equal(deriveFramework(root).value, 'nextjs'),
+  );
+  withFixture(
+    {
+      'package.json': JSON.stringify({
+        dependencies: { react: '19.0.0', 'react-dom': '19.0.0' },
+        devDependencies: { vite: '8.2.2' },
+      }),
+    },
+    (root) => assert.throws(() => deriveFramework(root), /no supported framework signature/),
+  );
+  withFixture(
+    {
+      'package.json': JSON.stringify({
+        devDependencies: { svelte: '5.0.0', vite: '8.2.2', '@vitejs/plugin-react': '6.1.0' },
+      }),
+    },
+    (root) => assert.equal(deriveFramework(root).value, 'svelte'),
+  );
+  withFixture(
+    {
+      gradlew: '',
+      'settings.gradle.kts': 'rootProject.name = "fixture"\n',
+      'build.gradle.kts': 'alias(libs.plugins.kotlin.multiplatform) apply false\n',
+      'apps/web/package.json': JSON.stringify({
+        dependencies: { react: '19.0.0' },
+        devDependencies: { '@vitejs/plugin-react': '6.1.0' },
+      }),
+    },
+    (root) => assert.equal(deriveFramework(root).value, 'kmp-web'),
+  );
+});
+
 test('reports ambiguous and unsupported framework evidence instead of guessing', () => {
   withFixture(
     {
       'package.json': JSON.stringify({ dependencies: { next: '15.0.0', svelte: '5.0.0' } }),
+    },
+    (root) => assert.throws(() => deriveFramework(root), /conflicting signatures/),
+  );
+  withFixture(
+    {
+      'package.json': JSON.stringify({
+        dependencies: { next: '15.0.0', react: '19.0.0' },
+        devDependencies: { '@vitejs/plugin-react': '6.1.0' },
+      }),
+    },
+    (root) =>
+      assert.throws(() => deriveFramework(root), (error) => {
+        assert.match(error.message, /conflicting signatures/);
+        assert.match(error.message, /"nextjs" \(package\.json dependency "next"\)/);
+        assert.match(error.message, /"react-vite" \(package\.json dependencies "react" and/);
+        return true;
+      }),
+  );
+  withFixture(
+    {
+      'package.json': JSON.stringify({
+        dependencies: { react: '19.0.0', svelte: '5.0.0' },
+        devDependencies: { '@vitejs/plugin-react': '6.1.0' },
+      }),
     },
     (root) => assert.throws(() => deriveFramework(root), /conflicting signatures/),
   );

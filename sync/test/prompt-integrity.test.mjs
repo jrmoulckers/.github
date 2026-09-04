@@ -308,6 +308,72 @@ test('prompt frontmatter field shapes are rejected: empty description and bad li
   }
 });
 
+// `isSlug` has three call sites and all three are rejections, so widening it to always-true deletes
+// every one of them. A two-armed mutation sweep found that arm SURVIVES the whole suite: the cases
+// above prove well-formed slugs are ACCEPTED and never that malformed ones are REJECTED, which is a
+// validator whose validating direction is unowned. Each row below is built so the slug message is
+// the ONLY error the fixture produces -- a bystander error would satisfy `assert.throws` while the
+// rejection itself stayed unowned, which is exactly the gap being closed.
+const SLUG_REJECTIONS = [
+  {
+    // The filename-match rule fires first on a mismatched stem and would mask this one, so the stem
+    // must itself be the non-slug and the frontmatter name must match it.
+    label: 'frontmatter name (prompt-integrity.mjs:97)',
+    files: { 'Alpha_One.prompt.md': validPrompt('Alpha_One') },
+    config: { prompts: ['Alpha_One'], agents: [], members: [] },
+    expected: 'prompts/Alpha_One.prompt.md: frontmatter name must be a kebab-case slug',
+  },
+  {
+    // `max--findings` is a non-slug that the placeholder scanner still matches, so the parameter is
+    // interpolated normally and only the name rule objects.
+    label: 'parameter name (prompt-integrity.mjs:244)',
+    files: {
+      'alpha.prompt.md': validPrompt('alpha', {
+        parameters: '\n  - name: max--findings\n    type: string\n    description: A parameter.\n    default: x',
+        body: 'Use {{ max--findings }}.',
+      }),
+    },
+    config: { prompts: ['alpha'], agents: [], members: [] },
+    expected:
+      'prompts/alpha.prompt.md: parameter "max--findings" name must be kebab-case or the conventional "N"',
+  },
+  {
+    // Likewise `alpha--beta` is referenced and declared canonically, so the dependency closure is
+    // satisfied and the list-entry rule is left alone as the single objection.
+    label: 'string list entry (prompt-integrity.mjs:471)',
+    files: {
+      'alpha.prompt.md': validPrompt('alpha', {
+        builtIns: ['task'],
+        agentDependencies: ['alpha--beta'],
+        body: 'task(agent_type="alpha--beta")',
+      }),
+    },
+    config: { prompts: ['alpha'], agents: ['alpha--beta'], members: [] },
+    expected: 'prompts/alpha.prompt.md: "agent_dependencies" entries must be non-empty slugs',
+  },
+];
+
+test('every isSlug call site rejects a non-slug, and does so on its own message', () => {
+  for (const row of SLUG_REJECTIONS) {
+    withFixture(row.files, row.config, (root, manifest) => {
+      let message = null;
+      try {
+        validatePromptIntegrity(root, manifest);
+      } catch (error) {
+        message = error.message;
+      }
+      assert.ok(message, `${row.label}: a non-slug was accepted, so this rejection is unowned`);
+      // Equality, not a substring match: a fixture that also fails for an unrelated reason would
+      // keep passing after the slug check was deleted, which is how the survivor went unnoticed.
+      assert.deepEqual(
+        message.split('\n').slice(1).map((line) => line.replace(/^ {2}- /, '')),
+        [row.expected],
+        `${row.label} must be the only objection the fixture raises`,
+      );
+    });
+  }
+});
+
 // Reaching a validator directly proves the validator works. Only reaching it THROUGH the entry
 // point proves the entry point still calls it -- deleting `validateRoster(records, declared, errors)`
 // from validatePromptIntegrity left the whole suite green, because every test that covers rostering
@@ -402,7 +468,7 @@ function validPrompt(name, options = {}) {
   return `---
 name: ${name}
 description: Test prompt.
-parameters: []
+parameters:${options.parameters ?? ' []'}
 built_ins:${builtIns.length ? `\n${builtIns.map((item) => `  - ${item}`).join('\n')}` : ' []'}
 agent_dependencies:${
     agentDependencies.length

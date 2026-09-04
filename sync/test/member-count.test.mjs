@@ -37,7 +37,7 @@ const REPO_ROOT = join(dirname(dirname(dirname(fileURLToPath(import.meta.url))))
  * Enumerated by hand until #842, and the list was exactly "the files someone remembered" —
  * the conclusion this file had already reached for `engineSources()` below and applied in only
  * one of the two places it holds. `instructions/workflow.instructions.md` carried six claims of
- * the guarded form and sat outside the list; it is delivered to nine of the eleven members, so
+ * the guarded form and sat outside the list; it is delivered to ten of the twelve members, so
  * it is the document most likely to state a fleet size *to an agent* and it was the one the
  * guard could not see.
  *
@@ -331,10 +331,12 @@ test('a reach claim is bounded by the fleet, not equal to it', () => {
   // The real sentence, from the file this issue was found in.
   const real = bounded('Extending the same measurement to all nine members that receive the file:');
   assert.equal(real.qualified, true, 'a restrictive clause marks a reach claim');
-  assert.equal(real.ok, true, 'and nine of eleven is a legal reach');
+  assert.equal(real.ok, true, 'and a reach short of the fleet is legal');
 
-  // A reach cannot exceed its population.
-  assert.equal(bounded('all twelve members that receive the file').ok, false);
+  // A reach cannot exceed its population. Stated one above the manifest rather than as a literal,
+  // so the case stays out of bounds as the fleet grows instead of turning legal under it.
+  const overreach = `all ${[...WORD_NUMBERS].find(([, value]) => value === expected + 1)[0]} members that receive the file`;
+  assert.equal(bounded(overreach).ok, false);
 
   // Dropping the qualifier makes the same number a fleet-size claim, and a wrong one.
   assert.equal(bounded('all nine members').qualified, false);
@@ -1023,15 +1025,15 @@ test('the fraction sweep finds the claims that are actually written, and resolve
   const found = claims.map((c) => `${c.surface} -> ${c.subject} (${c.numerator}/${c.denominator})`);
 
   assert.ok(
-    found.includes('AGENTS.md -> AGENTS.md (6/11)'),
+    found.includes('AGENTS.md -> AGENTS.md (7/12)'),
     `AGENTS.md's self-reach is the claim #958 was filed for and must resolve to itself; found:\n  ${found.join('\n  ')}`,
   );
   assert.ok(
-    found.includes('docs/sync.md -> docs/sync.md (0/11)'),
-    'a document in no canon kind has an audience of zero, and "none of the eleven members" is a fleet claim a numeral-only pattern misses',
+    found.includes('docs/sync.md -> docs/sync.md (0/12)'),
+    'a document in no canon kind has an audience of zero, and "none of the twelve members" is a fleet claim a numeral-only pattern misses',
   );
   assert.ok(
-    found.some((entry) => entry.endsWith('-> instructions/workflow.instructions.md (9/11)')),
+    found.some((entry) => entry.endsWith('-> instructions/workflow.instructions.md (10/12)')),
     'a claim about another document resolves to that document, not to the file making it',
   );
   assert.ok(
@@ -1044,23 +1046,23 @@ test('the fraction guard fires on a wrong numerator, a wrong fleet, and an unatt
   // Both directions, because a healthy tree keeps every claim true and so the sweep above stays
   // silent whatever the predicate does. Each case goes through `reachFault`, the function the
   // sweep itself calls.
-  const fleet = 11;
+  const fleet = 12;
 
   assert.equal(
-    reachFault({ numerator: 6, denominator: 11, subject: 'AGENTS.md', audience: 6, fleet }),
+    reachFault({ numerator: 7, denominator: 12, subject: 'AGENTS.md', audience: 7, fleet }),
     null,
     'the real sentence stands',
   );
   assert.ok(
-    reachFault({ numerator: 7, denominator: 11, subject: 'AGENTS.md', audience: 6, fleet }),
+    reachFault({ numerator: 8, denominator: 12, subject: 'AGENTS.md', audience: 7, fleet }),
     'a numerator one off the computed audience is the decay this guard exists for',
   );
   assert.ok(
-    reachFault({ numerator: 6, denominator: 12, subject: 'AGENTS.md', audience: 6, fleet }),
+    reachFault({ numerator: 7, denominator: 13, subject: 'AGENTS.md', audience: 7, fleet }),
     'and the denominator is a fleet-size claim, which is the half the `all N members` pattern could not see here',
   );
   assert.ok(
-    reachFault({ numerator: 6, denominator: 11, subject: null, audience: 0, fleet }),
+    reachFault({ numerator: 7, denominator: 12, subject: null, audience: 0, fleet }),
     'a claim naming no document cannot be verified, so it is a fault rather than a pass',
   );
 });
@@ -1074,18 +1076,18 @@ test('the audience map is derived from the engine, and is pinned by documents na
 
   assert.equal(
     audienceOf(audienceMap, 'AGENTS.md'),
-    6,
-    'base is opted into by six members, so the operating guide reaches six',
+    7,
+    'base is opted into by seven members, so the operating guide reaches seven',
   );
   assert.equal(
     audienceOf(audienceMap, 'copilot-instructions.md'),
-    11,
+    12,
     'copilot is opted into by every member, so it is the one fleet-universal document',
   );
   assert.equal(
     audienceOf(audienceMap, 'instructions/workflow.instructions.md'),
-    9,
-    'the workflow instructions reach nine, which is the number two other surfaces state',
+    10,
+    'the workflow instructions reach ten, which is the number two other surfaces state',
   );
   assert.equal(
     audienceOf(audienceMap, 'docs/sync.md'),
@@ -1116,7 +1118,7 @@ test('a dir kind reaches the map through the group name, not the spec name', () 
     `a dir kind expands to files beneath the group name, and the map reached only ${skills.length} of them`,
   );
   assert.ok(
-    audienceOf(audienceMap, 'skills/fleet-orchestration/SKILL.md') === 11,
+    audienceOf(audienceMap, 'skills/fleet-orchestration/SKILL.md') === 12,
     'a skill opted into by every member reaches every member, named rather than counted',
   );
   assert.ok(

@@ -12,6 +12,7 @@
     "copilot": ["copilot-instructions.md"],
     "attributes": [".gitattributes"],
     "agents": [
+      "3d-print-specialist",
       "accessibility-reviewer",
       "ai-ops-engineer",
       "architect",
@@ -36,7 +37,9 @@
       "web-engineer"
     ],
     "skills": [
+      "3d-print-preparation",
       "accessibility-testing",
+      "autodesk-fusion",
       "design-tokens",
       "dev-onboarding",
       "edge-sync",
@@ -174,6 +177,7 @@
         "attributes": true,
         "health": true,
         "agents": [
+          "3d-print-specialist",
           "accessibility-reviewer",
           "ai-ops-engineer",
           "architect",
@@ -289,6 +293,26 @@
         "prompts": "*",
         "instructions": ["agents", "canon-formatting", "docs", "skills", "tokens", "workflow"],
         "workflows": ["reusable-caller-permissions", "reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget", "reusable-security-ci"]
+      },
+      "tokens": { "enabled": true }
+    },
+    {
+      "repo": "jrmoulckers/drum-path",
+      "mode": "application",
+      "framework": "react-vite",
+      "packageManager": "npm",
+      "notes": "Windows-first drum-learning app: a React 19 + Vite PWA at the repo root with an Electron desktop shell, a Capacitor iOS wrapper, and a Web MIDI practice engine. First member on the react-vite signature, which is the Vite React plugin rather than the React runtime because Next.js ships the runtime too. Vendored @jrm/tokens land at the default target path; mapping the app's brand-specific tokens onto them is member-side work, deliberately not done by this registration. Workflow availability starts empty: its three local workflows call no backbone reusable workflow, and adopting them is a separate change that must land in this repository's manifest before the member may call one.",
+      "optIn": {
+        "base": true,
+        "runtime": true,
+        "copilot": true,
+        "attributes": true,
+        "health": true,
+        "agents": "*",
+        "skills": "*",
+        "prompts": "*",
+        "instructions": ["agents", "canon-formatting", "docs", "skills", "tokens", "workflow"],
+        "workflows": []
       },
       "tokens": { "enabled": true }
     },

@@ -91,7 +91,7 @@ function inspectAgent(relativePath, fileName, text, errors) {
       `${relativePath}: frontmatter name "${frontmatter.name ?? ''}" must match filename "${fileStem}"`,
     );
   }
-  if (!/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(frontmatter.name ?? '')) {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(frontmatter.name ?? '')) {
     errors.push(`${relativePath}: frontmatter name must be a kebab-case slug`);
   }
   validateNonEmptyString(relativePath, 'description', frontmatter.description, errors);
