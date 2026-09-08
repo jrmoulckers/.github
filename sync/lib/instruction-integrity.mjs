@@ -24,6 +24,9 @@ const APPLICATION_REPOS = new Set([
   'jrmoulckers/cartridge',
   'jrmoulckers/docket',
 ]);
+const MEMBER_INSTRUCTION_SELECTIONS = new Map([
+  ['jrmoulckers/jrm-recipes', GENERAL_INSTRUCTIONS.filter((name) => name !== 'tokens')],
+]);
 const WORKFLOW_CALL =
   /uses:\s*jrmoulckers\/\.github\/\.github\/workflows\/[^\s`'"]+@([^\s`'"]+)/gi;
 
@@ -188,8 +191,8 @@ function validateContent(byName, errors) {
 function validateMemberSelections(manifest, errors) {
   for (const member of manifest.members ?? []) {
     const selected = member.optIn?.instructions;
-    let expected;
-    if (APPLICATION_REPOS.has(member.repo) || member.repo === 'jrmoulckers/studio') {
+    let expected = MEMBER_INSTRUCTION_SELECTIONS.get(member.repo);
+    if (!expected && (APPLICATION_REPOS.has(member.repo) || member.repo === 'jrmoulckers/studio')) {
       expected = GENERAL_INSTRUCTIONS;
     } else if (member.repo === 'jrmoulckers/homelab') {
       expected = ['agents', 'canon-formatting', 'infrastructure-operations'];

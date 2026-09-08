@@ -148,7 +148,7 @@
       "mode": "application",
       "framework": "nextjs",
       "packageManager": "pnpm",
-      "notes": "New consumer web product. Adopts the full canonical layer.",
+      "notes": "Consumer web product. Adopts the canonical AI layer and the reusable workflows it calls.",
       "optIn": {
         "base": true,
         "runtime": true,
@@ -158,8 +158,8 @@
         "agents": "*",
         "skills": "*",
         "prompts": "*",
-        "instructions": ["agents", "canon-formatting", "docs", "skills", "tokens", "workflow"],
-        "workflows": ["reusable-caller-permissions", "reusable-ci-lint", "reusable-ci-web", "reusable-deploy-preview", "reusable-perf-budget", "reusable-security-ci"]
+        "instructions": ["agents", "canon-formatting", "docs", "skills", "workflow"],
+        "workflows": ["reusable-ci-lint", "reusable-ci-web", "reusable-perf-budget", "reusable-security-ci"]
       },
       "tokens": { "enabled": false }
     },
