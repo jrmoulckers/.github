@@ -167,10 +167,10 @@ test('manifest dry-run reports complete phase-two activation plans', () => {
   // the studio operating guide.
   // `natives` is separate again: Studio declines base yet still calls backbone reusable CI.
   const members = [
-    ['jrmoulckers/finance', 'application · kmp-web · npm', 8, 6, 64, true, ['health', 'workflows']],
-    ['jrmoulckers/studio', 'infrastructure · pnpm', 8, 6, 63, false, ['workflows']],
-    ['jrmoulckers/homelab', 'infrastructure', 3, 3, 55, false, []],
-    ['jrmoulckers/windows', 'infrastructure', 8, 5, 62, false, []],
+    ['jrmoulckers/finance', 'application · kmp-web · npm', 8, 6, 65, true, ['health', 'workflows']],
+    ['jrmoulckers/studio', 'infrastructure · pnpm', 8, 6, 64, false, ['workflows']],
+    ['jrmoulckers/homelab', 'infrastructure', 3, 3, 56, false, []],
+    ['jrmoulckers/windows', 'infrastructure', 8, 5, 63, false, []],
   ];
 
   for (const [repo, metadata, promptCount, instructionCount, total, hasBase, natives] of members) {
@@ -179,7 +179,8 @@ test('manifest dry-run reports complete phase-two activation plans', () => {
     assert.equal(code, 0, out);
     assert.ok(out.includes(`▶ ${repo}  (${metadata})`), out);
     assert.match(out, /agents \(23 files\)/);
-    assert.match(out, /skills \(23 files in 19 dirs\)/);
+    assert.match(out, /skills \(24 files in 19 dirs\)/);
+    assert.match(out, /\.github\/skills\/3d-print-preparation\/references\/cura-optimization\.md/);
     assert.match(out, new RegExp(`prompts \\(${promptCount} files\\)`));
     assert.match(out, new RegExp(`instructions \\(${instructionCount} files\\)`));
     assert.match(out, new RegExp(`Σ ${total} file\\(s\\) would be written`));
